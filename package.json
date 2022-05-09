@@ -1,5 +1,5 @@
 {
-  "name": "sheets_map",
+  "name": "@paupololi/sheets_map",
   "version": "1.0.0",
   "description": "Componente Mapa de Form Builder",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paupololi/sheets_map.git"
+    "url": "git://github.com/paupololi/sheets_map.git"
   },
   "author": "Coderhub",
   "license": "ISC",
@@ -20,6 +20,6 @@
     "laravel-mix": "^6.0.43"
   },
   "publishConfig": {
-    "@eduardoalvara2:registry": "https://npm.pkg.github.com"
+    "@paupololi:registry": "https://npm.pkg.github.com"
   }
 }
