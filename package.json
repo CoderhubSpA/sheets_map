@@ -18,5 +18,8 @@
   "homepage": "https://github.com/paupololi/sheets_map#readme",
   "devDependencies": {
     "laravel-mix": "^6.0.43"
+  },
+  "publishConfig": {
+    "@eduardoalvara2:registry": "https://npm.pkg.github.com"
   }
 }
