@@ -1,0 +1,22 @@
+{
+  "name": "sheets_map",
+  "version": "1.0.0",
+  "description": "Componente Mapa de Form Builder",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paupololi/sheets_map.git"
+  },
+  "author": "Coderhub",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/paupololi/sheets_map/issues"
+  },
+  "homepage": "https://github.com/paupololi/sheets_map#readme",
+  "devDependencies": {
+    "laravel-mix": "^6.0.43"
+  }
+}
