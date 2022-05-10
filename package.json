@@ -1,6 +1,6 @@
 {
   "name": "@paupololi/sheets_map",
-  "version": "0.0.2",
+  "version": "0.0.21",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -44,8 +44,8 @@
   "publishConfig": {
     "@paupololi:registry": "https://npm.pkg.github.com"
   },
-  "description": "## Project setup ``` npm install ```",
-  "main": "babel.config.js",
+  "description": "Sheets Map",
+  "main": "dist/index.umd.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paupololi/sheets_map.git"
