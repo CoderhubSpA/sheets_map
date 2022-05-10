@@ -1,25 +1,59 @@
 {
-  "name": "@paupololi/sheets_map",
-  "version": "1.0.0",
-  "description": "Componente Mapa de Form Builder",
-  "main": "index.js",
+  "name": "sheets_map",
+  "version": "0.0.1",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "build-library": "vue-cli-service build --target lib --name index ./src/components/HelloWorld.vue"
   },
+  "dependencies": {
+    "core-js": "^3.8.3",
+    "vue": "^2.6.14"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
+    "vue-template-compiler": "^2.6.14"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "publishConfig": {
+    "@paupololi:registry": "https://npm.pkg.github.com"
+  },
+  "description": "## Project setup ``` npm install ```",
+  "main": "babel.config.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/paupololi/sheets_map.git"
+    "url": "git+https://github.com/paupololi/sheets_map.git"
   },
   "author": "Coderhub",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/paupololi/sheets_map/issues"
   },
-  "homepage": "https://github.com/paupololi/sheets_map#readme",
-  "devDependencies": {
-    "laravel-mix": "^6.0.43"
-  },
-  "publishConfig": {
-    "@paupololi:registry": "https://npm.pkg.github.com"
-  }
+  "homepage": "https://github.com/paupololi/sheets_map#readme"
 }
