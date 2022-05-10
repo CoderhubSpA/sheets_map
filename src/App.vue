@@ -1,17 +1,25 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    
+    <SheetsMap
+      id = "f52dd8c5-6504-4601-912f-acf56ddf7ca1"
+      entity_type_id = "35eac2b0-bab8-11ec-8305-04d4c47a3183"
+      config_entity_id = "35eac2b0-bab8-11ec-8305-04d4c47a3183"
+      endpoint_config = "/api/sheets/form/"
+      code = "map"
+      active_filters = "null"
+    />
+
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import SheetsMap from './components/SheetsMap.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    SheetsMap
   }
 }
 </script>
