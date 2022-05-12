@@ -22417,19 +22417,27 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=61fbe1d0&scoped=true&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('l-map',{staticStyle:{"height":"80vh"},attrs:{"zoom":_vm.zoom,"center":_vm.center}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-marker',{attrs:{"lat-lng":_vm.markerLatLng}})],1)],1),_c('div',[_c('h3',[_vm._v("Sheets Map")]),_c('ul',[_c('li',[_vm._v("id: "+_vm._s(_vm.id)+" ")]),_c('li',[_vm._v("entity_type_id: "+_vm._s(_vm.entity_type_id)+" ")]),_c('li',[_vm._v("config_entity_id: "+_vm._s(_vm.config_entity_id)+" ")]),_c('li',[_vm._v("endpoint_config: "+_vm._s(_vm.endpoint_config)+" ")]),_c('li',[_vm._v("code: "+_vm._s(_vm.code)+" ")]),_c('li',[_vm._v("active_filters: "+_vm._s(_vm.active_filters)+" ")])])])])}
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=2179c550&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,attrs:{"lat-lng":marker,"radius":2}})})],2)],1),_c('div',[_c('h3',[_vm._v("Sheets Map")]),_c('ul',[_c('li',[_vm._v("id: "+_vm._s(_vm.id)+" ")]),_c('li',[_vm._v("entity_type_id: "+_vm._s(_vm.entity_type_id)+" ")]),_c('li',[_vm._v("config_entity_id: "+_vm._s(_vm.config_entity_id)+" ")]),_c('li',[_vm._v("endpoint_config: "+_vm._s(_vm.endpoint_config)+" ")]),_c('li',[_vm._v("code: "+_vm._s(_vm.code)+" ")]),_c('li',[_vm._v("active_filters: "+_vm._s(_vm.active_filters)+" ")])])])])}
 var staticRenderFns = []
 
 
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
+var es_array_filter = __webpack_require__(7327);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.to-string.js
+var es_object_to_string = __webpack_require__(1539);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
+var es_array_map = __webpack_require__(1249);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.exec.js
+var es_regexp_exec = __webpack_require__(4916);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.replace.js
+var es_string_replace = __webpack_require__(5306);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.slice.js
 var es_array_slice = __webpack_require__(7042);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.js
 var es_symbol = __webpack_require__(2526);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.description.js
 var es_symbol_description = __webpack_require__(1817);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.to-string.js
-var es_object_to_string = __webpack_require__(1539);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.json.stringify.js
 var es_json_stringify = __webpack_require__(8862);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.number.constructor.js
@@ -22438,16 +22446,12 @@ var es_number_constructor = __webpack_require__(9653);
 var web_dom_collections_for_each = __webpack_require__(4747);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.find.js
 var es_array_find = __webpack_require__(9826);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
-var es_array_filter = __webpack_require__(7327);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
 var es_function_name = __webpack_require__(8309);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
 var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.concat.js
 var es_array_concat = __webpack_require__(2222);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.exec.js
-var es_regexp_exec = __webpack_require__(4916);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.test.js
 var es_regexp_test = __webpack_require__(7601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.iterator.js
@@ -22458,8 +22462,6 @@ var es_set = __webpack_require__(189);
 var es_string_iterator = __webpack_require__(8783);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-collections.iterator.js
 var web_dom_collections_iterator = __webpack_require__(3948);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
-var es_array_map = __webpack_require__(1249);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.btoa.js
 var web_btoa = __webpack_require__(7479);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-exception.constructor.js
@@ -23674,7 +23676,9 @@ var LTileLayer_vue_component_ = /*#__PURE__*/LTileLayer_normalizeComponent({
 }, LTileLayer_vue_inject_styles_, LTileLayer_vue_script_, LTileLayer_vue_scope_id_, LTileLayer_vue_is_functional_template_, LTileLayer_vue_module_identifier_, false, undefined, undefined, undefined);
 
 /* harmony default export */ var LTileLayer = (LTileLayer_vue_component_);
-;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMarker.js
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.fill.js
+var es_array_fill = __webpack_require__(3290);
+;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LCircleMarker.js
 
 
 
@@ -23685,39 +23689,8 @@ var LTileLayer_vue_component_ = /*#__PURE__*/LTileLayer_normalizeComponent({
 
 
 
-var LMarker_debounce = function debounce(fn, time) {
-  var timeout;
 
-  var debouncedFunction = function debouncedFunction() {
-    var args = [],
-        len = arguments.length;
-
-    while (len--) {
-      args[len] = arguments[len];
-    }
-
-    var context = this;
-
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-
-    timeout = setTimeout(function () {
-      fn.apply(context, args);
-      timeout = null;
-    }, time);
-  };
-
-  debouncedFunction.cancel = function () {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-  };
-
-  return debouncedFunction;
-};
-
-var LMarker_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
+var LCircleMarker_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -23725,9 +23698,9 @@ var LMarker_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LMarker_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+var LCircleMarker_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
   var loop = function loop(key) {
-    var setMethodName = 'set' + LMarker_capitalizeFirstLetter(key);
+    var setMethodName = 'set' + LCircleMarker_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
     if (props[key].custom && vueElement[setMethodName]) {
@@ -23756,7 +23729,7 @@ var LMarker_propsBinder = function propsBinder(vueElement, leafletElement, props
   }
 };
 
-var LMarker_collectionCleaner = function collectionCleaner(options) {
+var LCircleMarker_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -23770,11 +23743,11 @@ var LMarker_collectionCleaner = function collectionCleaner(options) {
   return result;
 };
 
-var LMarker_optionsMerger = function optionsMerger(props, instance) {
+var LCircleMarker_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
-  var result = LMarker_collectionCleaner(options);
-  props = LMarker_collectionCleaner(props);
+  var result = LCircleMarker_collectionCleaner(options);
+  props = LCircleMarker_collectionCleaner(props);
   var defaultProps = instance.$options.props;
 
   for (var key in props) {
@@ -23798,7 +23771,7 @@ var LMarker_optionsMerger = function optionsMerger(props, instance) {
   return result;
 };
 
-var LMarker_findRealParent = function findRealParent(firstVueParent) {
+var LCircleMarker_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -23812,7 +23785,7 @@ var LMarker_findRealParent = function findRealParent(firstVueParent) {
   return firstVueParent;
 };
 
-var LMarker_Layer = {
+var LCircleMarker_Layer = {
   props: {
     pane: {
       type: String,
@@ -23906,7 +23879,221 @@ var LMarker_Layer = {
     }
   }
 };
-var LMarker_Options = {
+var InteractiveLayer = {
+  props: {
+    interactive: {
+      type: Boolean,
+      default: true
+    },
+    bubblingMouseEvents: {
+      type: Boolean,
+      default: true
+    }
+  },
+  mounted: function mounted() {
+    this.interactiveLayerOptions = {
+      interactive: this.interactive,
+      bubblingMouseEvents: this.bubblingMouseEvents
+    };
+  }
+};
+var Path = {
+  mixins: [LCircleMarker_Layer, InteractiveLayer],
+  props: {
+    lStyle: {
+      type: Object,
+      custom: true,
+      default: null
+    },
+    stroke: {
+      type: Boolean,
+      custom: true,
+      default: true
+    },
+    color: {
+      type: String,
+      custom: true,
+      default: '#3388ff'
+    },
+    weight: {
+      type: Number,
+      custom: true,
+      default: 3
+    },
+    opacity: {
+      type: Number,
+      custom: true,
+      default: 1.0
+    },
+    lineCap: {
+      type: String,
+      custom: true,
+      default: 'round'
+    },
+    lineJoin: {
+      type: String,
+      custom: true,
+      default: 'round'
+    },
+    dashArray: {
+      type: String,
+      custom: true,
+      default: null
+    },
+    dashOffset: {
+      type: String,
+      custom: true,
+      default: null
+    },
+    fill: {
+      type: Boolean,
+      custom: true,
+      default: false
+    },
+    fillColor: {
+      type: String,
+      custom: true,
+      default: '#3388ff'
+    },
+    fillOpacity: {
+      type: Number,
+      custom: true,
+      default: 0.2
+    },
+    fillRule: {
+      type: String,
+      custom: true,
+      default: 'evenodd'
+    },
+    className: {
+      type: String,
+      custom: true,
+      default: null
+    }
+  },
+  mounted: function mounted() {
+    this.pathOptions = Object.assign({}, this.layerOptions, this.interactiveLayerOptions, {
+      stroke: this.stroke,
+      color: this.color,
+      weight: this.weight,
+      opacity: this.opacity,
+      lineCap: this.lineCap,
+      lineJoin: this.lineJoin,
+      dashArray: this.dashArray,
+      dashOffset: this.dashOffset,
+      fill: this.fill,
+      fillColor: this.fillColor,
+      fillOpacity: this.fillOpacity,
+      fillRule: this.fillRule,
+      className: this.className
+    });
+
+    if (this.lStyle) {
+      console.warn('lStyle is deprecated and is going to be removed in the next major version');
+
+      for (var style in this.lStyle) {
+        this.pathOptions[style] = this.lStyle[style];
+      }
+    }
+  },
+  beforeDestroy: function beforeDestroy() {
+    if (this.parentContainer) {
+      this.parentContainer.removeLayer(this);
+    } else {
+      console.error('Missing parent container');
+    }
+  },
+  methods: {
+    setLStyle: function setLStyle(newVal) {
+      this.mapObject.setStyle(newVal);
+    },
+    setStroke: function setStroke(newVal) {
+      this.mapObject.setStyle({
+        stroke: newVal
+      });
+    },
+    setColor: function setColor(newVal) {
+      this.mapObject.setStyle({
+        color: newVal
+      });
+    },
+    setWeight: function setWeight(newVal) {
+      this.mapObject.setStyle({
+        weight: newVal
+      });
+    },
+    setOpacity: function setOpacity(newVal) {
+      this.mapObject.setStyle({
+        opacity: newVal
+      });
+    },
+    setLineCap: function setLineCap(newVal) {
+      this.mapObject.setStyle({
+        lineCap: newVal
+      });
+    },
+    setLineJoin: function setLineJoin(newVal) {
+      this.mapObject.setStyle({
+        lineJoin: newVal
+      });
+    },
+    setDashArray: function setDashArray(newVal) {
+      this.mapObject.setStyle({
+        dashArray: newVal
+      });
+    },
+    setDashOffset: function setDashOffset(newVal) {
+      this.mapObject.setStyle({
+        dashOffset: newVal
+      });
+    },
+    setFill: function setFill(newVal) {
+      this.mapObject.setStyle({
+        fill: newVal
+      });
+    },
+    setFillColor: function setFillColor(newVal) {
+      this.mapObject.setStyle({
+        fillColor: newVal
+      });
+    },
+    setFillOpacity: function setFillOpacity(newVal) {
+      this.mapObject.setStyle({
+        fillOpacity: newVal
+      });
+    },
+    setFillRule: function setFillRule(newVal) {
+      this.mapObject.setStyle({
+        fillRule: newVal
+      });
+    },
+    setClassName: function setClassName(newVal) {
+      this.mapObject.setStyle({
+        className: newVal
+      });
+    }
+  }
+};
+var CircleMixin = {
+  mixins: [Path],
+  props: {
+    fill: {
+      type: Boolean,
+      custom: true,
+      default: true
+    },
+    radius: {
+      type: Number,
+      default: null
+    }
+  },
+  mounted: function mounted() {
+    this.circleOptions = Object.assign({}, this.pathOptions, {
+      radius: this.radius
+    });
+  }
+};
+var LCircleMarker_Options = {
   props: {
     /**
      * Leaflet options to pass to the component constructor
@@ -23918,45 +24105,25 @@ var LMarker_Options = {
       }
     }
   }
-};
+}; //
+
 /**
- * Marker component, lets you add and personalize markers on the map
+ * A marker in the shape of a circle
  */
 
-var LMarker_script = {
-  name: 'LMarker',
-  mixins: [LMarker_Layer, LMarker_Options],
+var LCircleMarker_script = {
+  name: 'LCircleMarker',
+  mixins: [CircleMixin, LCircleMarker_Options],
   props: {
+    latLng: {
+      type: [Object, Array],
+      default: function _default() {
+        return [0, 0];
+      }
+    },
     pane: {
       type: String,
       default: 'markerPane'
-    },
-    draggable: {
-      type: Boolean,
-      custom: true,
-      default: false
-    },
-    latLng: {
-      type: [Object, Array],
-      custom: true,
-      default: null
-    },
-    icon: {
-      type: [Object],
-      custom: false,
-      default: function _default() {
-        return new leaflet_src.Icon.Default();
-      }
-    },
-    opacity: {
-      type: Number,
-      custom: false,
-      default: 1.0
-    },
-    zIndexOffset: {
-      type: Number,
-      custom: false,
-      default: null
     }
   },
   data: function data() {
@@ -23964,27 +24131,15 @@ var LMarker_script = {
       ready: false
     };
   },
-  beforeDestroy: function beforeDestroy() {
-    if (this.debouncedLatLngSync) {
-      this.debouncedLatLngSync.cancel();
-    }
-  },
   mounted: function mounted() {
     var this$1 = this;
-    var options = LMarker_optionsMerger(Object.assign({}, this.layerOptions, {
-      icon: this.icon,
-      zIndexOffset: this.zIndexOffset,
-      draggable: this.draggable,
-      opacity: this.opacity
-    }), this);
-    this.mapObject = (0,leaflet_src.marker)(this.latLng, options);
+    var options = LCircleMarker_optionsMerger(this.circleOptions, this);
+    this.mapObject = (0,leaflet_src.circleMarker)(this.latLng, options);
     leaflet_src.DomEvent.on(this.mapObject, this.$listeners);
-    this.debouncedLatLngSync = LMarker_debounce(this.latLngSync, 100);
-    this.mapObject.on('move', this.debouncedLatLngSync);
-    LMarker_propsBinder(this, this.mapObject, this.$options.props);
-    this.parentContainer = LMarker_findRealParent(this.$parent);
-    this.parentContainer.addLayer(this, !this.visible);
+    LCircleMarker_propsBinder(this, this.mapObject, this.$options.props);
     this.ready = true;
+    this.parentContainer = LCircleMarker_findRealParent(this.$parent);
+    this.parentContainer.addLayer(this, !this.visible);
     this.$nextTick(function () {
       /**
        * Triggers when the component is ready
@@ -23993,46 +24148,10 @@ var LMarker_script = {
        */
       this$1.$emit('ready', this$1.mapObject);
     });
-  },
-  methods: {
-    setDraggable: function setDraggable(newVal, oldVal) {
-      if (this.mapObject.dragging) {
-        newVal ? this.mapObject.dragging.enable() : this.mapObject.dragging.disable();
-      }
-    },
-    setLatLng: function setLatLng(newVal) {
-      if (newVal == null) {
-        return;
-      }
-
-      if (this.mapObject) {
-        var oldLatLng = this.mapObject.getLatLng();
-        var newLatLng = (0,leaflet_src.latLng)(newVal);
-
-        if (newLatLng.lat !== oldLatLng.lat || newLatLng.lng !== oldLatLng.lng) {
-          this.mapObject.setLatLng(newLatLng);
-        }
-      }
-    },
-    latLngSync: function latLngSync(event) {
-      this.$emit('update:latLng', event.latlng);
-      this.$emit('update:lat-lng', event.latlng);
-    }
-  },
-  render: function render(h) {
-    if (this.ready && this.$slots.default) {
-      return h('div', {
-        style: {
-          display: 'none'
-        }
-      }, this.$slots.default);
-    }
-
-    return null;
   }
 };
 
-function LMarker_normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
+function LCircleMarker_normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
 /* server only */
 , shadowMode, createInjector, createInjectorSSR, createInjectorShadow) {
   if (typeof shadowMode !== 'boolean') {
@@ -24117,31 +24236,60 @@ function LMarker_normalizeComponent(template, style, script, scopeId, isFunction
 /* script */
 
 
-var LMarker_vue_script_ = LMarker_script;
+var LCircleMarker_vue_script_ = LCircleMarker_script;
 /* template */
 
+var LCircleMarker_vue_render_ = function __vue_render__() {
+  var _vm = this;
+
+  var _h = _vm.$createElement;
+
+  var _c = _vm._self._c || _h;
+
+  return _c('div', {
+    staticStyle: {
+      "display": "none"
+    }
+  }, [_vm.ready ? _vm._t("default") : _vm._e()], 2);
+};
+
+var LCircleMarker_vue_staticRenderFns_ = [];
 /* style */
 
-var LMarker_vue_inject_styles_ = undefined;
+var LCircleMarker_vue_inject_styles_ = undefined;
 /* scoped */
 
-var LMarker_vue_scope_id_ = undefined;
+var LCircleMarker_vue_scope_id_ = undefined;
 /* module identifier */
 
-var LMarker_vue_module_identifier_ = undefined;
+var LCircleMarker_vue_module_identifier_ = undefined;
 /* functional template */
 
-var LMarker_vue_is_functional_template_ = undefined;
+var LCircleMarker_vue_is_functional_template_ = false;
 /* style inject */
 
 /* style inject SSR */
 
 /* style inject shadow dom */
 
-var LMarker_vue_component_ = /*#__PURE__*/LMarker_normalizeComponent({}, LMarker_vue_inject_styles_, LMarker_vue_script_, LMarker_vue_scope_id_, LMarker_vue_is_functional_template_, LMarker_vue_module_identifier_, false, undefined, undefined, undefined);
+var LCircleMarker_vue_component_ = /*#__PURE__*/LCircleMarker_normalizeComponent({
+  render: LCircleMarker_vue_render_,
+  staticRenderFns: LCircleMarker_vue_staticRenderFns_
+}, LCircleMarker_vue_inject_styles_, LCircleMarker_vue_script_, LCircleMarker_vue_scope_id_, LCircleMarker_vue_is_functional_template_, LCircleMarker_vue_module_identifier_, false, undefined, undefined, undefined);
 
-/* harmony default export */ var LMarker = (LMarker_vue_component_);
+/* harmony default export */ var LCircleMarker = (LCircleMarker_vue_component_);
 ;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=script&lang=js&
+
+
+
+
+
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -24181,32 +24329,82 @@ leaflet_src.Icon.Default.mergeOptions({
   components: {
     LMap: LMap,
     LTileLayer: LTileLayer,
-    LMarker: LMarker
+    LCircleMarker: LCircleMarker
   },
   props: {
+    // Propiedades de componentes
     id: String,
     entity_type_id: String,
     config_entity_id: String,
     endpoint_config: String,
     code: String,
-    active_filters: Object
+    base_url: String,
+    // Propiedades que provienen del store
+    active_filters: Object,
+    info: Object,
+    data: Object
   },
   data: function data() {
     return {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      // map: undefined,
+      url: '',
       attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
       zoom: 10,
-      center: [51.505, -0.159],
-      markerLatLng: [51.504, -0.159]
+      center_default: [-33.472, -70.769],
+      center: undefined,
+      col_lat: '5766f169-bab8-11ec-8305-04d4c47a3183',
+      col_lon: '5762e5a4-bab8-11ec-8305-04d4c47a3183'
     };
+  },
+  computed: {
+    markers: function markers() {
+      var _this = this;
+
+      if (!this.data.data || !this.col_lat || !this.col_lon) return [];
+      var markers = this.data.data.map(function (d) {
+        var lat = parseFloat(d[_this.col_lat].replace(/,/, '.'));
+        var lon = parseFloat(d[_this.col_lon].replace(/,/, '.'));
+        if (!lat || !lon) return;
+        return [lat, lon];
+      }).filter(function (d) {
+        return d;
+      });
+      return markers;
+    }
+  },
+  watch: {
+    markers: function markers() {
+      if (this.center_default != this.center) return;
+      var total = this.markers.length;
+      if (!total) return this.center_default;
+      var markers_sum = this.markers.reduce(function (acc, d) {
+        acc[0] = acc[0] + d[0];
+        acc[1] = acc[1] + d[1];
+        return acc;
+      }, [0, 0]);
+      this.center = [markers_sum[0] / total, markers_sum[1] / total];
+    }
+  },
+  created: function created() {
+    this.center = this.center_default;
+  },
+  mounted: function mounted() {//
+  },
+  methods: {
+    ready: function ready() {
+      this.setTileLayer();
+    },
+    setTileLayer: function setTileLayer() {
+      this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
   }
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=61fbe1d0&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=2179c550&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=61fbe1d0&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=2179c550&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -24323,7 +24521,7 @@ var component = componentNormalizer_normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "61fbe1d0",
+  "2179c550",
   null
   
 )

@@ -37,3 +37,19 @@ add to package.json
       "build-library": "vue-cli-service build --target lib --name [YOUR_COMPONENT_NAME] ./src/[YOUR_COMPONENT].js",
    }
 ```
+
+### How to publish
+
+1. Compile:
+```
+npm run build-library
+```
+
+2. Upgrade `"version"` in package.json.
+
+3. Add changes, commit and push.
+
+4. Publish:
+```
+npm publish
+```
