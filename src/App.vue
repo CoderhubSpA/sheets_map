@@ -35,10 +35,6 @@ export default {
         console.log('created');
         this.init();
 
-        setTimeout(() => {
-            this.init();
-        }, 15000);
-
     },
     methods:{
         init(){
