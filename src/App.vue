@@ -22,7 +22,7 @@ export default {
     name: 'App',
     data () {
         return {
-            base_url: "http://mock.sheets.local",
+            base_url: "http://sheetsmock.local",
             config_entity_id : "35eac2b0-bab8-11ec-8305-04d4c47a3183",
             data : {},
             info : {}
@@ -37,11 +37,11 @@ export default {
 
     },
     methods:{
-        init(){
+        async init(){
             let url;
             
             // info
-            url = `${this.base_url}/entity/info/${this.config_entity_id}`
+            url = `${this.base_url}/entity/info/${this.config_entity_id}?ignore=['columnPrivileges']`
             axios.get(url)
             .then((response) => {
                 this.info = response.data.content
@@ -52,11 +52,13 @@ export default {
             .finally(() => {
                 console.log('done info');
             })
-
+    
             //data
-            url = `${this.base_url}/entity/data/${this.config_entity_id}?page=1`
-            axios.get(url)
+            url = `${this.base_url}/entity/data/${this.config_entity_id}?page=1&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
+            await axios.get(url)
             .then((response) => {
+                console.log(response.data.content);
+                
                 this.data = response.data.content
             })
             .catch((error) => {
@@ -66,6 +68,25 @@ export default {
                 console.log('done data');
 
             })
+
+            setTimeout(() => {
+                url = `${this.base_url}/entity/data/${this.config_entity_id}?page=2&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
+
+                axios.get(url)
+                .then((response) => {
+                    console.log(response.data.content);
+                    
+                    this.data = response.data.content
+                })
+                .catch((error) => {
+                    console.error(error);
+                })
+                .finally(() => {
+                    console.log('done data');
+
+                })
+            }, 1000);
+
         }
     }
 }

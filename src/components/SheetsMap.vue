@@ -1,10 +1,15 @@
 <template>
     <div>
-
         <div>
+            <!-- https://vue2-leaflet.netlify.app/ -->
+
+            <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map @ready="ready()" :zoom="zoom" :center="center" ref="myMap" class="myMap">
-                <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
                 
+                <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
+                <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
+
+                <!-- https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <l-circle-marker
                     v-for="(marker, index) in markers"
                         :key="'marker-' + index"
@@ -71,8 +76,10 @@ export default {
             zoom: 10,
             center_default : [-33.472 , -70.769],
             center : undefined,
+            // TO DO: Estas columnas deben llegar de una peticion que 
+            // solicita la configuracion del componente
             col_lat :'5766f169-bab8-11ec-8305-04d4c47a3183',
-            col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183',
+            col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183'
         };
     },
     computed:{

@@ -3512,71 +3512,6 @@ module.exports = function (it) {
 
 /***/ }),
 
-/***/ 1574:
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-"use strict";
-
-var DESCRIPTORS = __webpack_require__(9781);
-var uncurryThis = __webpack_require__(1702);
-var call = __webpack_require__(6916);
-var fails = __webpack_require__(7293);
-var objectKeys = __webpack_require__(1956);
-var getOwnPropertySymbolsModule = __webpack_require__(5181);
-var propertyIsEnumerableModule = __webpack_require__(5296);
-var toObject = __webpack_require__(7908);
-var IndexedObject = __webpack_require__(8361);
-
-// eslint-disable-next-line es-x/no-object-assign -- safe
-var $assign = Object.assign;
-// eslint-disable-next-line es-x/no-object-defineproperty -- required for testing
-var defineProperty = Object.defineProperty;
-var concat = uncurryThis([].concat);
-
-// `Object.assign` method
-// https://tc39.es/ecma262/#sec-object.assign
-module.exports = !$assign || fails(function () {
-  // should have correct order of operations (Edge bug)
-  if (DESCRIPTORS && $assign({ b: 1 }, $assign(defineProperty({}, 'a', {
-    enumerable: true,
-    get: function () {
-      defineProperty(this, 'b', {
-        value: 3,
-        enumerable: false
-      });
-    }
-  }), { b: 2 })).b !== 1) return true;
-  // should work with symbols and should have deterministic property order (V8 bug)
-  var A = {};
-  var B = {};
-  // eslint-disable-next-line es-x/no-symbol -- safe
-  var symbol = Symbol();
-  var alphabet = 'abcdefghijklmnopqrst';
-  A[symbol] = 7;
-  alphabet.split('').forEach(function (chr) { B[chr] = chr; });
-  return $assign({}, A)[symbol] != 7 || objectKeys($assign({}, B)).join('') != alphabet;
-}) ? function assign(target, source) { // eslint-disable-line no-unused-vars -- required for `.length`
-  var T = toObject(target);
-  var argumentsLength = arguments.length;
-  var index = 1;
-  var getOwnPropertySymbols = getOwnPropertySymbolsModule.f;
-  var propertyIsEnumerable = propertyIsEnumerableModule.f;
-  while (argumentsLength > index) {
-    var S = IndexedObject(arguments[index++]);
-    var keys = getOwnPropertySymbols ? concat(objectKeys(S), getOwnPropertySymbols(S)) : objectKeys(S);
-    var length = keys.length;
-    var j = 0;
-    var key;
-    while (length > j) {
-      key = keys[j++];
-      if (!DESCRIPTORS || call(propertyIsEnumerable, S, key)) T[key] = S[key];
-    }
-  } return T;
-} : $assign;
-
-
-/***/ }),
-
 /***/ 30:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -6275,22 +6210,6 @@ if (isForced(NUMBER, !NativeNumber(' 0o1') || !NativeNumber('0b1') || NativeNumb
 
 /***/ }),
 
-/***/ 9601:
-/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-
-var $ = __webpack_require__(2109);
-var assign = __webpack_require__(1574);
-
-// `Object.assign` method
-// https://tc39.es/ecma262/#sec-object.assign
-// eslint-disable-next-line es-x/no-object-assign -- required for testing
-$({ target: 'Object', stat: true, arity: 2, forced: Object.assign !== assign }, {
-  assign: assign
-});
-
-
-/***/ }),
-
 /***/ 5003:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -8609,8 +8528,6 @@ __webpack_require__(1539);
 
 __webpack_require__(2165);
 
-__webpack_require__(6992);
-
 __webpack_require__(8783);
 
 __webpack_require__(3948);
@@ -8775,8 +8692,6 @@ __webpack_require__(7327);
 __webpack_require__(2707);
 
 __webpack_require__(8309);
-
-__webpack_require__(6992);
 
 __webpack_require__(2472);
 
@@ -22448,14 +22363,10 @@ var web_dom_collections_for_each = __webpack_require__(4747);
 var es_array_find = __webpack_require__(9826);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
 var es_function_name = __webpack_require__(8309);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
-var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.concat.js
 var es_array_concat = __webpack_require__(2222);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.test.js
 var es_regexp_test = __webpack_require__(7601);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.iterator.js
-var es_array_iterator = __webpack_require__(6992);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.set.js
 var es_set = __webpack_require__(189);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.iterator.js
@@ -22475,8 +22386,6 @@ var es_array_join = __webpack_require__(9600);
 // EXTERNAL MODULE: ./node_modules/leaflet/dist/leaflet-src.js
 var leaflet_src = __webpack_require__(3814);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMap.js
-
-
 
 
 
@@ -23237,7 +23146,6 @@ var __vue_component__ = /*#__PURE__*/normalizeComponent({
 
 
 
-
 var LTileLayer_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
@@ -23679,7 +23587,6 @@ var LTileLayer_vue_component_ = /*#__PURE__*/LTileLayer_normalizeComponent({
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.fill.js
 var es_array_fill = __webpack_require__(3290);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LCircleMarker.js
-
 
 
 
