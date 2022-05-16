@@ -15,10 +15,12 @@
                         :key="'marker-' + index"
                         :lat-lng="marker.lat_lng"
                         :radius="2"
-                >
-                    <l-popup v-on:ready="console.log('ready')" >
+                        v-on:click="getMarkerData(marker)" 
+                        >
+                    <l-popup>
                         ID:
                         {{marker.id}}
+                        
                     </l-popup>
                 </l-circle-marker>
             </l-map>
@@ -41,6 +43,7 @@
 <script>
 
 // import L from 'leaflet';
+import _ from 'lodash';
 import {LMap, LTileLayer, LCircleMarker,LPopup} from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
@@ -105,7 +108,11 @@ export default {
                 
                 if(!lat || !lon) return;
 
-                return {lat_lng:[lat, lon],id:d.id};
+                return {
+                    lat_lng : [lat, lon],
+                    id      : d.id,
+                    data    : {}
+                };
             })
             .filter(d => d);
 
@@ -122,8 +129,8 @@ export default {
             if(!total) return this.center_default;
 
             const markers_sum = this.markers.reduce ((acc,d)=>{
-                acc[0] = acc[0]+d[0];
-                acc[1] = acc[1]+d[1];
+                acc[0] = acc[0]+d.lat_lng[0];
+                acc[1] = acc[1]+d.lat_lng[1];
                 return acc;
             },[0,0])
             
@@ -143,15 +150,80 @@ export default {
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
-        getMarkerData(id){
+        getMarkerData(marker){
+            console.log('ready', marker.id);
+
             let url;
             //data
-            url = `${this.base_url}/entity/data/${this.config_entity_id}/${id}?page=1`
+            url = `${this.base_url}/entity/data/${this.config_entity_id}/${marker.id}?page=1`
             axios.get(url)
             .then((response) => {
                 console.log(response.data.content);
-                
-                this.marker_data = response.data.content
+                try {
+                    let all_data = response.data.content;
+                    marker.data  = _.first(all_data.data) || {};
+                    console.log(JSON.stringify(marker.data,false,4));
+
+                    // UBICACION: LLAYLLAY
+                    // CUADRANTE: SCOM.LLAY-LLAY 2A.SN.FELIPE
+                    /*
+                    {
+                        "5762dc0e-bab8-11ec-8305-04d4c47a3183": 5012489414,
+                        "5762de6e-bab8-11ec-8305-04d4c47a3183": "IDENTIDAD",
+                        "5762ded3-bab8-11ec-8305-04d4c47a3183": "SCOM.LLAY-LLAY 2A.SN.FELIPE",
+                        "5762df13-bab8-11ec-8305-04d4c47a3183": "SCOM. I.A.T. Y CARRETERAS SAN FELIPE",
+                        "5762df49-bab8-11ec-8305-04d4c47a3183": "13/04/17",
+                        "5762df83-bab8-11ec-8305-04d4c47a3183": "19:56",
+                        "5762dfb8-bab8-11ec-8305-04d4c47a3183": "CONTROL DE VEHICULOS SIMCCAR",
+                        "5762dfed-bab8-11ec-8305-04d4c47a3183": "LLAYLLAY",
+                        "5762e023-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e059-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e08e-bab8-11ec-8305-04d4c47a3183": 1005803,
+                        "5762e0c4-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e0ff-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e136-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e16a-bab8-11ec-8305-04d4c47a3183": "VIA PUBLICA",
+                        "5762e19e-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e1d4-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e207-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e23a-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e26d-bab8-11ec-8305-04d4c47a3183": "CONTROL DE IDENTIDAD",
+                        "5762e2a1-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e2d7-bab8-11ec-8305-04d4c47a3183": 3924683,
+                        "5762e30e-bab8-11ec-8305-04d4c47a3183": "CONTROL PREV. SIMCCAR",
+                        "5762e344-bab8-11ec-8305-04d4c47a3183": "16:00_19:59",
+                        "5762e393-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5762e3cb-bab8-11ec-8305-04d4c47a3183": "PREF. ACONCAGUA",
+                        "5762e400-bab8-11ec-8305-04d4c47a3183": "V ZONA VALPARAISO",
+                        "5762e435-bab8-11ec-8305-04d4c47a3183": "JUEVES",
+                        "5762e468-bab8-11ec-8305-04d4c47a3183": "ABRIL",
+                        "5762e49b-bab8-11ec-8305-04d4c47a3183": 2017,
+                        "5762e4ce-bab8-11ec-8305-04d4c47a3183": 80018,
+                        "5762e506-bab8-11ec-8305-04d4c47a3183": 601010020000,
+                        "5762e53c-bab8-11ec-8305-04d4c47a3183": "CONTROL PREVENTIVO",
+                        "5762e56f-bab8-11ec-8305-04d4c47a3183": "CONTROL DE VEHICULOS SIMCCAR_13-04-2017 19:56_19:56:14_VIA PUBLICA_IMEI357784040668350",
+                        "5762e5a4-bab8-11ec-8305-04d4c47a3183": "-70,9200566667",
+                        "5766f169-bab8-11ec-8305-04d4c47a3183": "-32,8537116667",
+                        "5766f25b-bab8-11ec-8305-04d4c47a3183": "CV",
+                        "5766f2aa-bab8-11ec-8305-04d4c47a3183": 5,
+                        "5766f2ec-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5766f32d-bab8-11ec-8305-04d4c47a3183": "NULL",
+                        "5766f371-bab8-11ec-8305-04d4c47a3183": 98,
+                        "5766f3b0-bab8-11ec-8305-04d4c47a3183": "14/04/17",
+                        "5766f3f3-bab8-11ec-8305-04d4c47a3183": 601010021000,
+                        "id": "b9c2b4c5-bab9-11ec-8305-04d4c47a3183"
+                    }
+                    */
+
+                   // TO DO:
+                   // Falta detectar las columnas visibles y obtener su name para mostrar al usuario una informacion legible
+
+                    console.log(this.info.columns);
+                    
+                } catch (error) {
+                    console.error(error);
+                }
+
             })
             .catch((error) => {
                 console.error(error);
@@ -161,7 +233,7 @@ export default {
 
             });
 
-            console.log(this.marker_data);
+            console.log(marker);
 
 
         }
