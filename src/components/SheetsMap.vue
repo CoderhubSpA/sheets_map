@@ -13,9 +13,14 @@
                 <l-circle-marker
                     v-for="(marker, index) in markers"
                         :key="'marker-' + index"
-                        :lat-lng="marker"
+                        :lat-lng="marker.lat_lng"
                         :radius="2"
-                ></l-circle-marker>
+                >
+                    <l-popup v-on:ready="console.log('ready')" >
+                        ID:
+                        {{marker.id}}
+                    </l-popup>
+                </l-circle-marker>
             </l-map>
         </div>
         <div>
@@ -36,9 +41,10 @@
 <script>
 
 // import L from 'leaflet';
-import {LMap, LTileLayer, LCircleMarker} from 'vue2-leaflet';
+import {LMap, LTileLayer, LCircleMarker,LPopup} from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
+import axios from 'axios';
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -53,6 +59,7 @@ export default {
         LMap,
         LTileLayer,
         LCircleMarker,
+        LPopup
     },
     props: {
         // Propiedades de componentes
@@ -79,7 +86,8 @@ export default {
             // TO DO: Estas columnas deben llegar de una peticion que 
             // solicita la configuracion del componente
             col_lat :'5766f169-bab8-11ec-8305-04d4c47a3183',
-            col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183'
+            col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183',
+            marker_data: []
         };
     },
     computed:{
@@ -97,7 +105,7 @@ export default {
                 
                 if(!lat || !lon) return;
 
-                return [lat, lon];
+                return {lat_lng:[lat, lon],id:d.id};
             })
             .filter(d => d);
 
@@ -134,6 +142,28 @@ export default {
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        },
+        getMarkerData(id){
+            let url;
+            //data
+            url = `${this.base_url}/entity/data/${this.config_entity_id}/${id}?page=1`
+            axios.get(url)
+            .then((response) => {
+                console.log(response.data.content);
+                
+                this.marker_data = response.data.content
+            })
+            .catch((error) => {
+                console.error(error);
+            })
+            .finally(() => {
+                console.log('done data');
+
+            });
+
+            console.log(this.marker_data);
+
+
         }
     }
 }
