@@ -11,17 +11,19 @@
 
                 <!-- https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <l-circle-marker
-                v-model="markers"
                     v-for="(marker, index) in markers"
                         :key="'marker-' + index"
                         :lat-lng="marker.lat_lng"
                         :radius="2"
-                        v-on:click="getMarkerData(index)" 
+                        v-on:click="getMarkerData(marker)" 
                         >
-                    <l-popup>a{{marker}} {{markers.index}} {{index}}
+                    <l-popup>
 
-                        ID:
-                        {{marker.id}}
+                        <div>
+                            <span v-for="(col,key) in visible_columns"  :key="'col-' + key">{{col.name}} : {{marker.data[col.id]}}</span>
+                            <br> 
+                        </div>
+                       
                         
                     </l-popup>
                 </l-circle-marker>
@@ -77,7 +79,6 @@ export default {
         // Propiedades que provienen del store
         active_filters  : Object,
         info            : Object,
-        visible_col     : Array,
         data            : Object
     },
     data () {
@@ -93,7 +94,7 @@ export default {
             // solicita la configuracion del componente
             col_lat :'5766f169-bab8-11ec-8305-04d4c47a3183',
             col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183',
-            marker_data: []
+            markers_data : {}
         };
     },
     computed:{
@@ -114,13 +115,25 @@ export default {
                 return {
                     lat_lng : [lat, lon],
                     id      : d.id,
-                    data    : {}
+                    data    : this.markers_data[d.id] || {}
                 };
+            })
+            .filter(d => d);            
+            return markers;
+        },
+        visible_columns(){
+            if(!this.info.columns) return [];
+            
+            let all_columns = this.info.columns;
+            let visible_columns = all_columns.filter( c => {
+                if (c.visible == 1) {
+                    return c;
+                }
             })
             .filter(d => d);
 
-            return markers;
-        }
+            return visible_columns;
+        },
     },
     watch:{
         markers(){
@@ -153,89 +166,27 @@ export default {
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
-        validVisible(){
-            let all_columns = this.info.columns;
-            let valid_visible = all_columns.filter( c => {
-                if (c.col_name && (c.col_name.toLowerCase() == 'valid' || c.col_name.toLowerCase() == 'visible')) {
-                    return c.col_name;
-                }
-            });
-            console.log(valid_visible);
-            return valid_visible;
-        },
-        getMarkerData(index){
-
-            console.log('ready', this.markers[index].id);
-
+        getMarkerData(marker){
             let url;
             //data
-            url = `${this.base_url}/entity/data/${this.config_entity_id}/${this.markers[index].id}?page=1`
+            url = `${this.base_url}/entity/data/${this.config_entity_id}/${marker.id}?page=1`
             axios.get(url)
             .then((response) => {
                 console.log(response.data.content);
                 try {
+                    
                     let all_data = response.data.content;
-                    this.markers[index].data = _.first(all_data.data) || {};
-                    console.log('marker--------------------------------');
-                    console.log(JSON.stringify(this.markers[index].data,false,4));
+                    let marker_data = _.first(all_data.data) || {};
 
-                    // UBICACION: LLAYLLAY
-                    // CUADRANTE: SCOM.LLAY-LLAY 2A.SN.FELIPE
-                    /*
-                    {
-                        "5762dc0e-bab8-11ec-8305-04d4c47a3183": 5012489414,
-                        "5762de6e-bab8-11ec-8305-04d4c47a3183": "IDENTIDAD",
-                        "5762ded3-bab8-11ec-8305-04d4c47a3183": "SCOM.LLAY-LLAY 2A.SN.FELIPE",
-                        "5762df13-bab8-11ec-8305-04d4c47a3183": "SCOM. I.A.T. Y CARRETERAS SAN FELIPE",
-                        "5762df49-bab8-11ec-8305-04d4c47a3183": "13/04/17",
-                        "5762df83-bab8-11ec-8305-04d4c47a3183": "19:56",
-                        "5762dfb8-bab8-11ec-8305-04d4c47a3183": "CONTROL DE VEHICULOS SIMCCAR",
-                        "5762dfed-bab8-11ec-8305-04d4c47a3183": "LLAYLLAY",
-                        "5762e023-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e059-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e08e-bab8-11ec-8305-04d4c47a3183": 1005803,
-                        "5762e0c4-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e0ff-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e136-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e16a-bab8-11ec-8305-04d4c47a3183": "VIA PUBLICA",
-                        "5762e19e-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e1d4-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e207-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e23a-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e26d-bab8-11ec-8305-04d4c47a3183": "CONTROL DE IDENTIDAD",
-                        "5762e2a1-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e2d7-bab8-11ec-8305-04d4c47a3183": 3924683,
-                        "5762e30e-bab8-11ec-8305-04d4c47a3183": "CONTROL PREV. SIMCCAR",
-                        "5762e344-bab8-11ec-8305-04d4c47a3183": "16:00_19:59",
-                        "5762e393-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5762e3cb-bab8-11ec-8305-04d4c47a3183": "PREF. ACONCAGUA",
-                        "5762e400-bab8-11ec-8305-04d4c47a3183": "V ZONA VALPARAISO",
-                        "5762e435-bab8-11ec-8305-04d4c47a3183": "JUEVES",
-                        "5762e468-bab8-11ec-8305-04d4c47a3183": "ABRIL",
-                        "5762e49b-bab8-11ec-8305-04d4c47a3183": 2017,
-                        "5762e4ce-bab8-11ec-8305-04d4c47a3183": 80018,
-                        "5762e506-bab8-11ec-8305-04d4c47a3183": 601010020000,
-                        "5762e53c-bab8-11ec-8305-04d4c47a3183": "CONTROL PREVENTIVO",
-                        "5762e56f-bab8-11ec-8305-04d4c47a3183": "CONTROL DE VEHICULOS SIMCCAR_13-04-2017 19:56_19:56:14_VIA PUBLICA_IMEI357784040668350",
-                        "5762e5a4-bab8-11ec-8305-04d4c47a3183": "-70,9200566667",
-                        "5766f169-bab8-11ec-8305-04d4c47a3183": "-32,8537116667",
-                        "5766f25b-bab8-11ec-8305-04d4c47a3183": "CV",
-                        "5766f2aa-bab8-11ec-8305-04d4c47a3183": 5,
-                        "5766f2ec-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5766f32d-bab8-11ec-8305-04d4c47a3183": "NULL",
-                        "5766f371-bab8-11ec-8305-04d4c47a3183": 98,
-                        "5766f3b0-bab8-11ec-8305-04d4c47a3183": "14/04/17",
-                        "5766f3f3-bab8-11ec-8305-04d4c47a3183": 601010021000,
-                        "id": "b9c2b4c5-bab9-11ec-8305-04d4c47a3183"
-                    }
-                    */
+
+                    this.$set(this.markers_data, marker.id, marker_data);
+                    
 
                    // TO DO:
                    // Falta detectar las columnas visibles y obtener su name para mostrar al usuario una informacion legible
 
                     console.log('INFO--------------------------------');
                     console.log(this.info.columns);
-                    this.validVisible();
                     
                 } catch (error) {
                     console.error(error);
@@ -249,11 +200,6 @@ export default {
                 console.log('done data');
 
             });
-            //MARKEER
-            console.log(this.markers[index]);
-            console.log(index);
-            console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-
 
 
 
