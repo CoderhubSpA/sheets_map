@@ -11,13 +11,15 @@
 
                 <!-- https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <l-circle-marker
+                v-model="markers"
                     v-for="(marker, index) in markers"
                         :key="'marker-' + index"
                         :lat-lng="marker.lat_lng"
                         :radius="2"
-                        v-on:click="getMarkerData(marker)" 
+                        v-on:click="getMarkerData(index)" 
                         >
-                    <l-popup>
+                    <l-popup>a{{marker}} {{markers.index}} {{index}}
+
                         ID:
                         {{marker.id}}
                         
@@ -66,16 +68,17 @@ export default {
     },
     props: {
         // Propiedades de componentes
-        id: String,
-        entity_type_id: String,
+        id              : String,
+        entity_type_id  : String,
         config_entity_id: String,
-        endpoint_config: String,
-        code: String,
-        base_url: String,
+        endpoint_config : String,
+        code            : String,
+        base_url        : String,
         // Propiedades que provienen del store
-        active_filters: Object,
-        info: Object,
-        data: Object
+        active_filters  : Object,
+        info            : Object,
+        visible_col     : Array,
+        data            : Object
     },
     data () {
         return {
@@ -150,19 +153,31 @@ export default {
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
-        getMarkerData(marker){
-            console.log('ready', marker.id);
+        validVisible(){
+            let all_columns = this.info.columns;
+            let valid_visible = all_columns.filter( c => {
+                if (c.col_name && (c.col_name.toLowerCase() == 'valid' || c.col_name.toLowerCase() == 'visible')) {
+                    return c.col_name;
+                }
+            });
+            console.log(valid_visible);
+            return valid_visible;
+        },
+        getMarkerData(index){
+
+            console.log('ready', this.markers[index].id);
 
             let url;
             //data
-            url = `${this.base_url}/entity/data/${this.config_entity_id}/${marker.id}?page=1`
+            url = `${this.base_url}/entity/data/${this.config_entity_id}/${this.markers[index].id}?page=1`
             axios.get(url)
             .then((response) => {
                 console.log(response.data.content);
                 try {
                     let all_data = response.data.content;
-                    marker.data  = _.first(all_data.data) || {};
-                    console.log(JSON.stringify(marker.data,false,4));
+                    this.markers[index].data = _.first(all_data.data) || {};
+                    console.log('marker--------------------------------');
+                    console.log(JSON.stringify(this.markers[index].data,false,4));
 
                     // UBICACION: LLAYLLAY
                     // CUADRANTE: SCOM.LLAY-LLAY 2A.SN.FELIPE
@@ -218,7 +233,9 @@ export default {
                    // TO DO:
                    // Falta detectar las columnas visibles y obtener su name para mostrar al usuario una informacion legible
 
+                    console.log('INFO--------------------------------');
                     console.log(this.info.columns);
+                    this.validVisible();
                     
                 } catch (error) {
                     console.error(error);
@@ -232,8 +249,12 @@ export default {
                 console.log('done data');
 
             });
+            //MARKEER
+            console.log(this.markers[index]);
+            console.log(index);
+            console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 
-            console.log(marker);
+
 
 
         }

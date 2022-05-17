@@ -2,14 +2,15 @@
     <div id="app">
         <SheetsMap
             :base_url         ="base_url"
-            id               = "f52dd8c5-6504-4601-912f-acf56ddf7ca1"
-            entity_type_id   = "35eac2b0-bab8-11ec-8305-04d4c47a3183"
+            id                = "f52dd8c5-6504-4601-912f-acf56ddf7ca1"
+            entity_type_id    = "35eac2b0-bab8-11ec-8305-04d4c47a3183"
             :config_entity_id = "config_entity_id"
-            endpoint_config  = "/entity/info/"
-            code             = "map"
-            :active_filters  = "null"
+            endpoint_config   = "/entity/info/"
+            code              = "map"
+            :active_filters   = "null"
             :data             = "data"
             :info             = "info"
+            :visible_col      = "visible_col"
         />
     </div>
 </template>
@@ -25,13 +26,25 @@ export default {
             base_url: "http://sheetsmock.local",
             config_entity_id : "35eac2b0-bab8-11ec-8305-04d4c47a3183",
             data : {},
-            info : {}
+            info : {},
+            visible_col : []
+        }
+    },
+    watch:{
+        info(){
+            let all_columns = this.info.columns;
+            this.visible_col = all_columns.filter( c => {
+                if (c.visible == 1) {
+                    return c;
+                }
+            });
         }
     },
     components: {
         SheetsMap
     },
     created () {
+        console.log(this.visible_col);
         console.log('created');
         this.init();
 
