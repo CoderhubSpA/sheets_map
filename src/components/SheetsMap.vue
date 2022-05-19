@@ -83,7 +83,7 @@ export default {
     data () {
         return {
             // map: undefined,
-            url: '',
+            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom: 10,

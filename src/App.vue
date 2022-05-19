@@ -1,16 +1,17 @@
 <template>
     <div id="app">
         <SheetsMap
-            :base_url         ="base_url"
-            id                = "f52dd8c5-6504-4601-912f-acf56ddf7ca1"
-            entity_type_id    = "35eac2b0-bab8-11ec-8305-04d4c47a3183"
-            :config_entity_id = "config_entity_id"
-            endpoint_config   = "/entity/info/"
-            code              = "map"
-            :active_filters   = "null"
-            :data             = "data"
-            :info             = "info"
-            :visible_col      = "visible_col"
+            :base_url              ="base_url"
+            :id                    = "id"
+            :entity_type_id        = "entity_type_id"
+            :config_entity_type_id = "config_entity_type_id"
+            :config_entity_id      = "config_entity_id"
+            :endpoint_config       = "endpoint_config"
+            :code                  = "code"
+            :active_filters        = "null"
+            :data                  = "data"
+            :info                  = "info"
+            :visible_col           = "visible_col"
         />
     </div>
 </template>
@@ -23,11 +24,19 @@ export default {
     name: 'App',
     data () {
         return {
-            base_url: "http://sheetsmock.local",
-            config_entity_id : "35eac2b0-bab8-11ec-8305-04d4c47a3183",
-            data : {},
-            info : {},
-            visible_col : {}
+            base_url              : "http://sheetsmock.local",
+            id                    : "f52dd8c5-6504-4601-912f-acf56ddf7ca1",
+            entity_type_id        : "35eac2b0-bab8-11ec-8305-04d4c47a3183",
+            // Tipo de entidad de configuracion
+            config_entity_type_id : "0482f39a-7615-47f4-9d7a-dabadcc38b38",
+            // Registro de configuracion
+            config_entity_id      : "bbad9606-cbdd-4afa-a6f1-873a47922d62",
+            // Endpoint de configuracion
+            endpoint_config       : "/entity/data/",
+            code                  : "map",
+            data                  : {},
+            info                  : {},
+            visible_col           : {}
         }
     },
     watch:{
