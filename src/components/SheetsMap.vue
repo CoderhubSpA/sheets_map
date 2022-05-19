@@ -19,9 +19,8 @@
                         >
                     <l-popup>
 
-                        <div>
-                            <span v-for="(col,key) in visible_columns"  :key="'col-' + key">{{col.name}} : {{marker.data[col.id]}}</span>
-                            <br> 
+                        <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
+                            <span> <b>{{col.name}}</b> : {{marker.data[col.id]}} </span>
                         </div>
                        
                         
@@ -94,7 +93,12 @@ export default {
             // solicita la configuracion del componente
             col_lat :'5766f169-bab8-11ec-8305-04d4c47a3183',
             col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183',
-            markers_data : {}
+            markers_data : {},
+            //config component
+            component_code: 'map',
+            map_endpoint_url :'/entity/data/mapa_configuracion/',//default
+            entity_type_has_component : '364312c8-a94e-11ec-a981-04d4c47a3183'
+            
         };
     },
     computed:{
