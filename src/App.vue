@@ -11,7 +11,6 @@
             :active_filters        = "null"
             :data                  = "data"
             :info                  = "info"
-            :visible_col           = "visible_col"
         />
     </div>
 </template>
@@ -35,25 +34,13 @@ export default {
             endpoint_config       : "/entity/data/",
             code                  : "map",
             data                  : {},
-            info                  : {},
-            visible_col           : {}
-        }
-    },
-    watch:{
-        info(){
-            let all_columns = this.info.columns;
-            this.visible_col = all_columns.filter( c => {
-                if (c.visible == 1) {
-                    return c;
-                }
-            });
+            info                  : {}
         }
     },
     components: {
         SheetsMap
     },
     created () {
-        console.log(this.visible_col);
         console.log('created');
         this.init();
 
@@ -63,7 +50,7 @@ export default {
             let url;
             
             // info
-            url = `${this.base_url}/entity/info/${this.config_entity_id}?ignore=['columnPrivileges']`
+            url = `${this.base_url}/entity/info/${this.entity_type_id}?ignore=['columnPrivileges']`
             axios.get(url)
             .then((response) => {
                 this.info = response.data.content
@@ -76,7 +63,7 @@ export default {
             })
     
             //data
-            url = `${this.base_url}/entity/data/${this.config_entity_id}?page=1&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
+            url = `${this.base_url}/entity/data/${this.entity_type_id}?page=1&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
             await axios.get(url)
             .then((response) => {
                 console.log(response.data.content);
@@ -92,7 +79,7 @@ export default {
             })
 
             setTimeout(() => {
-                url = `${this.base_url}/entity/data/${this.config_entity_id}?page=2&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
+                url = `${this.base_url}/entity/data/${this.entity_type_id}?page=2&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
 
                 axios.get(url)
                 .then((response) => {

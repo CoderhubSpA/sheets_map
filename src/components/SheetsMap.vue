@@ -17,16 +17,19 @@
                         :radius="2"
                         v-on:click="getMarkerData(marker)" 
                         >
-                    <l-popup>
-
-                        <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
-                            <span> <b>{{col.name}}</b> : {{marker.data[col.id]}} </span>
+                    <!-- https://leafletjs.com/reference.html#popup -->
+                    <l-popup :options="{minWidth: 300}">
+                        <div v-if="marker.has_data">
+                            <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
+                                <span> <b>{{col.name}}</b> : {{marker.data[col.id]}} </span>
+                            </div>
                         </div>
-                       
-                        
+                        <div v-else>
+                            Cargando...
+                        </div>
                     </l-popup>
                 </l-circle-marker>
-            </l-map>
+                </l-map>
         </div>
         <div>
             <h3>Sheets Map!!!</h3>
@@ -72,6 +75,7 @@ export default {
         id              : String,
         entity_type_id  : String,
         config_entity_id: String,
+        config_entity_type_id: String,
         endpoint_config : String,
         code            : String,
         base_url        : String,
@@ -89,15 +93,9 @@ export default {
             zoom: 10,
             center_default : [-33.472 , -70.769],
             center : undefined,
-            // TO DO: Estas columnas deben llegar de una peticion que 
-            // solicita la configuracion del componente
-            col_lat :'5766f169-bab8-11ec-8305-04d4c47a3183',
-            col_lon :'5762e5a4-bab8-11ec-8305-04d4c47a3183',
-            markers_data : {},
-            //config component
-            component_code: 'map',
-            map_endpoint_url :'/entity/data/mapa_configuracion/',//default
-            entity_type_has_component : '364312c8-a94e-11ec-a981-04d4c47a3183'
+            col_lat :undefined,
+            col_lon :undefined,
+            markers_data : {}
             
         };
     },
@@ -117,9 +115,10 @@ export default {
                 if(!lat || !lon) return;
 
                 return {
-                    lat_lng : [lat, lon],
-                    id      : d.id,
-                    data    : this.markers_data[d.id] || {}
+                    lat_lng  : [lat, lon],
+                    id       : d.id,
+                    data     : this.markers_data[d.id] || {},
+                    has_data : !_.isEmpty(this.markers_data[d.id])
                 };
             })
             .filter(d => d);            
@@ -137,7 +136,7 @@ export default {
             .filter(d => d);
 
             return visible_columns;
-        },
+        }
     },
     watch:{
         markers(){
@@ -159,9 +158,10 @@ export default {
     },
     created(){
         this.center = this.center_default;
+        this.getMapConfiguration();
     },
     mounted(){
-        //
+        
     },
     methods:{
         ready(){
@@ -171,31 +171,20 @@ export default {
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
         getMarkerData(marker){
-            let url;
-            //data
-            url = `${this.base_url}/entity/data/${this.config_entity_id}/${marker.id}?page=1`
+
+            const url = `${this.base_url}/entity/data/${this.entity_type_id}/${marker.id}?page=1`
             axios.get(url)
             .then((response) => {
-                console.log(response.data.content);
                 try {
                     
                     let all_data = response.data.content;
                     let marker_data = _.first(all_data.data) || {};
 
-
                     this.$set(this.markers_data, marker.id, marker_data);
-                    
-
-                   // TO DO:
-                   // Falta detectar las columnas visibles y obtener su name para mostrar al usuario una informacion legible
-
-                    console.log('INFO--------------------------------');
-                    console.log(this.info.columns);
                     
                 } catch (error) {
                     console.error(error);
                 }
-
             })
             .catch((error) => {
                 console.error(error);
@@ -207,6 +196,46 @@ export default {
 
 
 
+        },
+        getMapConfiguration(){
+            //data
+            const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
+            //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
+            //
+            console.log(url);
+            /*
+            let data = this.getDataFrom(url);
+                    console.log('confMap-------------------------');
+                    console.log(data);
+
+
+            return data;
+            },
+            async getDataFrom(url){*/
+            let all_data;
+            let data;
+            axios.get(url)
+            .then((response) => {
+                try {
+                    all_data     = response.data.content;
+                    data         = _.first(all_data.data);
+                    this.col_lon = data.sh_map_column_longitude;
+                    this.col_lat = data.sh_map_column_latitude;
+
+                } catch (error) {
+                    console.error(error);
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+            })
+            .finally(() => {
+                console.log('done data');
+
+            });
+
+            //        console.log(data);
+           // return data || undefined;
         }
     }
 }
