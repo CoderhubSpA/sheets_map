@@ -21,7 +21,7 @@
                     <l-popup :options="{minWidth: 300}">
                         <div v-if="marker.has_data">
                             <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
-                                <span> <b>{{col.name}}</b> : {{marker.data[col.id]}} </span>
+                                <span> <b>{{col.name}}</b> : {{getPopupData(marker,col)}} </span>
                             </div>
                         </div>
                         <div v-else>
@@ -166,6 +166,9 @@ export default {
     methods:{
         ready(){
             this.setTileLayer();
+        },
+        getPopupData(marker,col){
+            return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
