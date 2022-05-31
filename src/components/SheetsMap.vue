@@ -11,16 +11,16 @@
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <l-layer-group  ref="lgroup">
                     <l-marker
-                        v-for="(feature, index) in clusters"
+                        v-for="(cluster, index) in clusters"
                         v-bind:key="index"
-                        :lat-lng="feature.lat_lng"
+                        :lat-lng="cluster.lat_lng"
                     >
                         <l-icon
                             :icon-anchor="[40,40]"
-                            :class-name="'marker-cluster marker-cluster-'+feature.size"
+                            :class-name="'marker-cluster marker-cluster-'+cluster.size"
                         >
                             <div class="headline">
-                                <span> {{feature.properties.point_count_abbreviated}}</span>
+                                <span> {{cluster.properties.point_count_abbreviated}}</span>
                             </div>
                         </l-icon>
                     </l-marker>
@@ -211,13 +211,11 @@ export default {
                     let size =
                         count < 100 ? 'small' :
                         count < 1000 ? 'medium' : 'large';
-                    d.properties.classes = [size];
 
                     return {
-                        lat_lng  : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
-                        id       : d.properties.id,
+                        lat_lng    : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
                         properties : d.properties,
-                        size     : size,
+                        size       : size,
                     };
                 }
             })
