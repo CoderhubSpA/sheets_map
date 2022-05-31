@@ -2,34 +2,51 @@
     <div>
         <div>
             <!-- https://vue2-leaflet.netlify.app/ -->
-
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
-            <l-map @ready="ready()" :zoom="zoom" :center="center" ref="myMap" class="myMap">
+            <l-map 
+                @ready="ready()" @moveend="getClusterInfo()" :zoom="zoom" :center="center" ref="myMap" class="myMap">
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
-
-                <!-- https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
-                <l-circle-marker
-                    v-for="(marker, index) in markers"
-                        :key="'marker-' + index"
-                        :lat-lng="marker.lat_lng"
-                        :radius="2"
-                        v-on:click="getMarkerData(marker)" 
+                    <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
+                <l-layer-group  ref="lgroup">
+                    <l-marker
+                        v-for="(feature, index) in clusters"
+                        v-bind:key="index"
+                        :lat-lng="feature.lat_lng"
+                    >
+                        <l-icon
+                            :icon-anchor="[40,40]"
+                            :class-name="'marker-cluster marker-cluster-'+feature.size"
                         >
-                    <!-- https://leafletjs.com/reference.html#popup -->
-                    <l-popup :options="{minWidth: 300}">
-                        <div v-if="marker.has_data">
-                            <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
-                                <span> <b>{{col.name}}</b> : {{getPopupData(marker,col)}} </span>
+                            <div class="headline">
+                                <span> {{feature.properties.point_count_abbreviated}}</span>
                             </div>
-                        </div>
-                        <div v-else>
-                            Cargando...
-                        </div>
-                    </l-popup>
-                </l-circle-marker>
-                </l-map>
+                        </l-icon>
+                    </l-marker>
+                    <l-circle-marker
+                        ref="circlemarker"
+                        v-for="(marker, index) in markers"
+                            :key="'marker-' + index"
+                            :lat-lng="marker.lat_lng"
+                            :radius="2"
+                            v-on:click="getMarkerData(marker)" 
+                            >
+                        <!-- https://leafletjs.com/reference.html#popup-->
+                        <l-popup :options="{minWidth: 300}">
+                            <div v-if="marker.has_data">
+                                <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
+                                    <span> <b>{{col.name}}</b> : {{getPopupData(marker,col)}} </span>
+                                </div>
+                            </div>
+                            <div v-else>
+                                Cargando...
+                            </div>
+                        </l-popup>
+                    </l-circle-marker>
+                </l-layer-group> 
+                <!--<l-geo-json :geojson="geoJson"></l-geo-json> -->
+            </l-map>
         </div>
         <div>
             <h3>Sheets Map!!!</h3>
@@ -45,15 +62,14 @@
     </div>
         
 </template>
-
 <script>
-
 // import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LCircleMarker,LPopup} from 'vue2-leaflet';
+import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon } from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
+import Supercluster from 'supercluster';
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -61,14 +77,17 @@ Icon.Default.mergeOptions({
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
-
 export default {
     name: 'SheetsMap',
     components: {
         LMap,
         LTileLayer,
+        LLayerGroup,
         LCircleMarker,
-        LPopup
+        LPopup,
+        LIcon,
+        LMarker,
+        // LGeoJson
     },
     props: {
         // Propiedades de componentes
@@ -94,35 +113,41 @@ export default {
             center_default : [-33.472 , -70.769],
             center : undefined,
             col_lat :undefined,
-            col_lon :undefined,
-            markers_data : {}
-            
+            col_lng :undefined,
+            markers_data : {},
+            map : undefined,
+            circle : undefined,
+            clusters_markers:[],
+            index:[]
         };
     },
     computed:{
-        markers(){
+        markers_latlgn(){
             
             if(
                 !this.data.data
                 || !this.col_lat
-                || !this.col_lon
+                || !this.col_lng
             ) return [];
-
-            let markers = this.data.data.map( d =>{
-                const lat = parseFloat(d[this.col_lat].replace(/,/, '.'));
-                const lon = parseFloat(d[this.col_lon].replace(/,/, '.'));
+             return [];
+            // let markers = this.data.data.map( d =>{
                 
-                if(!lat || !lon) return;
+            //     let lat;
+            //     let lon;
 
-                return {
-                    lat_lng  : [lat, lon],
-                    id       : d.id,
-                    data     : this.markers_data[d.id] || {},
-                    has_data : !_.isEmpty(this.markers_data[d.id])
-                };
-            })
-            .filter(d => d);            
-            return markers;
+            //     try {
+            //         lat = parseFloat(d[this.col_lat].replace(/,/, '.'));
+            //         lon = parseFloat(d[this.col_lng].replace(/,/, '.'));
+            //     } catch (error) {
+            //         console.log();
+            //         console.error(error);
+            //     }
+
+            //     if(!lat || !lon) return;
+            //     return [lat, lon];
+            // })
+            // .filter(d => d);      
+            // return markers;
         },
         visible_columns(){
             if(!this.info.columns) return [];
@@ -134,19 +159,96 @@ export default {
                 }
             })
             .filter(d => d);
-
             return visible_columns;
+        },
+        geo_json(){
+            // Al recibir data, geo_json se construye a partir de esa data
+            // y las columnas configuradas como lat y lng
+            let geo_json = {type: "FeatureCollection", features: []};
+
+            if(
+                !this.data.data
+                || !this.col_lat
+                || !this.col_lng
+            ) return geo_json;
+
+            geo_json.features = this.data.data.map((d) => {
+                try {
+                    let lat = d[this.col_lat];
+                    let lng = d[this.col_lng];
+
+                    lat = (typeof lat == 'string') ? parseFloat(d[this.col_lat].replace(/,/, '.')):lat;
+                    lng = (typeof lng == 'string') ? parseFloat(d[this.col_lng].replace(/,/, '.')):lng;
+                    
+                    if(!lat || !lng) return;
+    
+                    let coordinates = [lng,lat];
+                    // let coordinates = [marker.lat_lng[1],marker.lat_lng[0]];
+                    return {
+                        type: "Feature",
+                        properties: {
+                            id: d.id,
+                        },
+                        geometry: {
+                            type: "Point",
+                            coordinates: coordinates
+                        }
+                    };
+
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+            
+            return geo_json;      
+        },
+        //Supercluster
+        clusters(){
+            let clusters = this.clusters_markers.map( d =>{
+                if(d.properties.cluster){
+                
+                    let count = d.properties.point_count;
+                    let size =
+                        count < 100 ? 'small' :
+                        count < 1000 ? 'medium' : 'large';
+                    d.properties.classes = [size];
+
+                    return {
+                        lat_lng  : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
+                        id       : d.properties.id,
+                        properties : d.properties,
+                        size     : size,
+                    };
+                }
+            })
+            .filter(d => d);      
+            return clusters;
+        },
+        markers(){
+            let markers = this.clusters_markers.map( d =>{
+                if(!d.properties.cluster){
+                    return {
+                        lat_lng  : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
+                        id       : d.properties.id,
+                        data     : this.markers_data[d.id] || {},
+                        has_data : !_.isEmpty(this.markers_data[d.properties.id])
+                    };
+                }
+            })
+            .filter(d => d);      
+            return markers;
         }
     },
     watch:{
+        geo_json(){
+            this.index.load(this.geo_json.features);
+            this.getClusterInfo();
+        },
         markers(){
             
             if(this.center_default != this.center) return;
-
             const total = this.markers.length;
-
             if(!total) return this.center_default;
-
             const markers_sum = this.markers.reduce ((acc,d)=>{
                 acc[0] = acc[0]+d.lat_lng[0];
                 acc[1] = acc[1]+d.lat_lng[1];
@@ -159,13 +261,32 @@ export default {
     created(){
         this.center = this.center_default;
         this.getMapConfiguration();
+        // Cuando geo_json es construido, se instancia Supercluster
+        this.index = new Supercluster({
+            radius: 40, // clusterizar en un radio de (radio es relativo al zoom)
+            maxZoom: 17 // Maximo zoom a clusterizar
+        });
+        this.index.load([]);
     },
     mounted(){
-        
     },
     methods:{
         ready(){
             this.setTileLayer();
+            this.map = this.$refs.myMap.mapObject;
+
+            /*
+            let circlemarker = this.$refs.circlemarker;
+            this.circle = this.$refs.circlemarker;
+        
+            let bounds = this.map.getBounds();
+            console.log(bounds);
+            console.log(this.geoJson);
+            console.log(circlemarker);
+            console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
+            this.map.on('update', this.getClusterInfo());
+            this.map.on('update', console.log('w'));
+            this.map.on('moveend', console.log('a'));*/
         },
         getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
@@ -174,7 +295,6 @@ export default {
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
         getMarkerData(marker){
-
             const url = `${this.base_url}/entity/data/${this.entity_type_id}/${marker.id}?page=1`
             axios.get(url)
             .then((response) => {
@@ -182,7 +302,6 @@ export default {
                     
                     let all_data = response.data.content;
                     let marker_data = _.first(all_data.data) || {};
-
                     this.$set(this.markers_data, marker.id, marker_data);
                     
                 } catch (error) {
@@ -194,24 +313,16 @@ export default {
             })
             .finally(() => {
                 console.log('done data');
-
             });
-
-
-
         },
         getMapConfiguration(){
             //data
-            const url = `${(this.base_url || '')}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
+            const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
             //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
-            //
-            console.log(url);
             /*
             let data = this.getDataFrom(url);
                     console.log('confMap-------------------------');
                     console.log(data);
-
-
             return data;
             },
             async getDataFrom(url){*/
@@ -222,9 +333,8 @@ export default {
                 try {
                     all_data     = response.data.content;
                     data         = _.first(all_data.data);
-                    this.col_lon = data.sh_map_column_longitude;
+                    this.col_lng = data.sh_map_column_longitude;
                     this.col_lat = data.sh_map_column_latitude;
-
                 } catch (error) {
                     console.error(error);
                 }
@@ -234,24 +344,82 @@ export default {
             })
             .finally(() => {
                 console.log('done data');
-
             });
-
             //        console.log(data);
            // return data || undefined;
+        },
+        getClusterInfo(){
+            
+            console.log('getClusterInfo');
+            
+            let bounds   = this.map.getBounds();
+            let bbox     = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];      
+            let zoom     = this.map.getZoom();
+            let clusters_markers = this.index.getClusters(bbox, zoom);
+            
+            this.clusters_markers = clusters_markers;
+
+            //markers.clearLayers();
+            //markers.addData(clusters);
+            /*let circle = this.$refs.circlemarker;
+            if (this.$refs.circlemarker != undefined) {
+                console.log('circle--------');
+                console.log(circle[0].circleOptions);
+                console.log(circle[0].mapObject);
+                console.log(circle);
+                //this.markers.clearLayers();
+                console.log('circle');
+            }*/
+            
         }
     }
 }
 </script>
-
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
     .myMap {
         min-height: 60vh;
     }
-
     li {
         text-align: left;
         margin: 0 10px;
+    }
+    .marker-cluster-small {
+        background-color: rgba(181, 226, 140, 0.6);
+    }
+    .marker-cluster-small div {
+        background-color: rgba(110, 204, 57, 0.6);
+    }
+
+    .marker-cluster-medium {
+        background-color: rgba(241, 211, 87, 0.6);
+    }
+    .marker-cluster-medium div {
+        background-color: rgba(240, 194, 12, 0.6);
+    }
+
+    .marker-cluster-large {
+        background-color: rgba(253, 156, 115, 0.6);
+    }
+    .marker-cluster-large div {
+        background-color: rgba(241, 128, 23, 0.6);
+    }
+
+    .marker-cluster {
+        background-clip: padding-box;
+        border-radius: 20px;
+    }
+    .marker-cluster div {
+        width: 30px;
+        height: 30px;
+        margin-left: 5px;
+        margin-top: 5px;
+
+        text-align: center;
+        border-radius: 15px;
+        font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+    }
+    .marker-cluster span {
+        line-height: 30px;
     }
 </style>
