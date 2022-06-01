@@ -53,6 +53,11 @@ export default {
             url = `${this.base_url}/entity/info/${this.entity_type_id}?ignore=['columnPrivileges']`
             axios.get(url)
             .then((response) => {
+            let aux = response.data.content;
+            let aux1 = aux.columns.map(a => {
+                return a.col_name;
+            });
+            console.log(aux1);
                 this.info = response.data.content
             })
             .catch((error) => {
@@ -61,6 +66,7 @@ export default {
             .finally(() => {
                 console.log('done info');
             })
+            console.log(this.info);
     
             //data
             url = `${this.base_url}/entity/data/${this.entity_type_id}?page=1&column_ids=["5766f169-bab8-404e-8e4c-848127197add","5762e5a4-bab8-404e-8e4c-848127197add"]`

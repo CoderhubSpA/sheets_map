@@ -228,7 +228,7 @@ export default {
                     return {
                         lat_lng  : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
                         id       : d.properties.id,
-                        data     : this.markers_data[d.id] || {},
+                        data     : this.markers_data[d.properties.id] || {},
                         has_data : !_.isEmpty(this.markers_data[d.properties.id])
                     };
                 }
