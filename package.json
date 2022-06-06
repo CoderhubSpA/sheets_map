@@ -1,6 +1,6 @@
 {
   "name": "@paupololi/sheets_map",
-  "version": "0.0.28",
+  "version": "0.0.30",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -16,6 +16,7 @@
     "core-js": "^3.8.3",
     "leaflet": "^1.8.0",
     "save": "^2.5.0",
+    "supercluster": "^7.1.5",
     "vue": "^2.6.14",
     "vue2-leaflet": "^2.7.1"
   },

@@ -42,7 +42,7 @@ export default {
         return {
             base_url              : "http://sheetsmock.local",
             id                    : "f52dd8c5-6504-4601-912f-acf56ddf7ca1",
-            entity_type_id        : "35eac2b0-bab8-11ec-8305-04d4c47a3183",
+            entity_type_id        : "de59f145-a291-4474-91da-7e3ec3744f4f",
             // Tipo de entidad de configuracion
             config_entity_type_id : "0482f39a-7615-47f4-9d7a-dabadcc38b38",
             // Registro de configuracion
@@ -69,6 +69,11 @@ export default {
             url = `${this.base_url}/entity/info/${this.entity_type_id}?ignore=['columnPrivileges']`
             axios.get(url)
             .then((response) => {
+            let aux = response.data.content;
+            let aux1 = aux.columns.map(a => {
+                return a.col_name;
+            });
+            console.log(aux1);
                 this.info = response.data.content
             })
             .catch((error) => {
@@ -77,9 +82,10 @@ export default {
             .finally(() => {
                 console.log('APP done info');
             })
+            console.log(this.info);
     
             //data
-            url = `${this.base_url}/entity/data/${this.entity_type_id}?page=1&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
+            url = `${this.base_url}/entity/data/${this.entity_type_id}?page=1&column_ids=["5766f169-bab8-404e-8e4c-848127197add","5762e5a4-bab8-404e-8e4c-848127197add"]`
             await axios.get(url)
             .then((response) => {
              //   console.log(response.data.content);
@@ -94,23 +100,23 @@ export default {
 
             })
 
-            setTimeout(() => {
-                url = `${this.base_url}/entity/data/${this.entity_type_id}?page=2&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
+            // setTimeout(() => {
+            //     url = `${this.base_url}/entity/data/${this.entity_type_id}?page=2&column_ids=["5766f169-bab8-404e-8e4c-848127197add","5762e5a4-bab8-404e-8e4c-848127197add"]`
 
-                axios.get(url)
-                .then((response) => {
-                 //   console.log(response.data.content);
+            //     axios.get(url)
+            //     .then((response) => {
+            //         console.log(response.data.content);
                     
-                    this.data = response.data.content
-                })
-                .catch((error) => {
-                    console.error(error);
-                })
-                .finally(() => {
-                    console.log('APP done data');
+            //         this.data = response.data.content
+            //     })
+            //     .catch((error) => {
+            //         console.error(error);
+            //     })
+            //     .finally(() => {
+            //         console.log('done data');
 
-                })
-            }, 1000);
+            //     })
+            // }, 10000);
 
         }
     }
