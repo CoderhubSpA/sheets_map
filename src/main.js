@@ -1,5 +1,11 @@
 import App from "./App.vue";
 import Vue from "vue";
+import BootstrapVue from 'bootstrap-vue/dist/bootstrap-vue.esm';
+import 'bootstrap-vue/dist/bootstrap-vue.css';
+import 'bootstrap/dist/css/bootstrap.css';
+
+Vue.use(BootstrapVue);
+
 
 import SheetsMap from "./components/SheetsMap.vue";
 

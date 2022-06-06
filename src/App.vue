@@ -12,11 +12,28 @@
             :data                  = "data"
             :info                  = "info"
         />
+        <div class="zone zone-d">
+            <div class="zone-body" style="display: grid">
+                <SheetsTools
+                    :base_url              ="base_url"
+                    :id                    = "id"
+                    :entity_type_id        = "entity_type_id"
+                    :config_entity_type_id = "config_entity_type_id"
+                    :config_entity_id      = "config_entity_id"
+                    :endpoint_config       = "endpoint_config"
+                    :code                  = "code"
+                    :active_filters        = "null"
+                    :data                  = "data"
+                    :info                  = "info"
+                />
+            </div>
+        </div>
     </div>
 </template>
 
 <script>
 import SheetsMap from './components/SheetsMap.vue'
+import SheetsTools from './components/SheetsTools.vue'
 import axios from 'axios';
 
 export default {
@@ -38,12 +55,11 @@ export default {
         }
     },
     components: {
-        SheetsMap
+       SheetsMap, 
+        SheetsTools
     },
     created () {
-        console.log('created');
         this.init();
-
     },
     methods:{
         async init(){
@@ -59,14 +75,14 @@ export default {
                 console.error(error);
             })
             .finally(() => {
-                console.log('done info');
+                console.log('APP done info');
             })
     
             //data
             url = `${this.base_url}/entity/data/${this.entity_type_id}?page=1&column_ids=["5766f169-bab8-11ec-8305-04d4c47a3183","5762e5a4-bab8-11ec-8305-04d4c47a3183"]`
             await axios.get(url)
             .then((response) => {
-                console.log(response.data.content);
+             //   console.log(response.data.content);
                 
                 this.data = response.data.content
             })
@@ -74,7 +90,7 @@ export default {
                 console.error(error);
             })
             .finally(() => {
-                console.log('done data');
+                console.log('APP done data');
 
             })
 
@@ -83,7 +99,7 @@ export default {
 
                 axios.get(url)
                 .then((response) => {
-                    console.log(response.data.content);
+                 //   console.log(response.data.content);
                     
                     this.data = response.data.content
                 })
@@ -91,7 +107,7 @@ export default {
                     console.error(error);
                 })
                 .finally(() => {
-                    console.log('done data');
+                    console.log('APP done data');
 
                 })
             }, 1000);
@@ -103,12 +119,12 @@ export default {
 
 <style>
 #app {
-font-family: Avenir, Helvetica, Arial, sans-serif;
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
-text-align: center;
-color: #2c3e50;
-margin-top: 60px;
-box-shadow: 2px 2px 20px #2c3e50AA;
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 60px;
+    box-shadow: 2px 2px 20px #2c3e50AA;
 }
 </style>
