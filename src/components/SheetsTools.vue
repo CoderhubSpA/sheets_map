@@ -152,7 +152,7 @@ export default {
     code: String,
     base_url: String,
     // Propiedades que provienen del store
-    active_filters: Object,
+    active_filters: Array,
     info: Object,
     data: Object,
   },
