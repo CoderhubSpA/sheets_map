@@ -132,15 +132,9 @@
     </div>
   </div>
 </template>
-
 <script>
 
-import axios from "axios";
-
 export default {
-  mounted() {
-    this.getToolsConfiguration();
-  },
 
   props: {
     // Propiedades de componentes
@@ -151,24 +145,33 @@ export default {
     endpoint_config: String,
     code: String,
     base_url: String,
-    // Propiedades que provienen del store
     active_filters: Object,
     info: Object,
     data: Object,
+    data_pivots: {
+      type: Object , 
+      default:() => {},
+    },
+    all_info: {
+      type: Object, 
+      default:() => {},
+    },
   },
   data() {
     return {
-      data_pivots: [],
-      all_info: [],
       data_tools: [],
       data_tools_id: "",
-      api_info: [],
       cartography_base: [],
       analytical_layer: [],
       operational_layer: [],
       base_key : '',
-      base_active : false
     };
+  },
+  watch: {
+    all_info(val) {
+      if (val)
+        this.getInfo()
+    }
   },
   methods: {
     collapseLeft() {
@@ -184,15 +187,13 @@ export default {
       switch (option.type) {
         case 'base' :
          // La capa base solo debe tener una activa
-          if (this.base_key ==  option.key && this.base_active ){
+          if (this.base_key ==  option.key  ){
               option.active = !option_active_val;
-              this.base_active = false;
               this.base_key = '';
           } else {
-            if (!this.base_active){
+            if (this.base_key == ''){
               option.active = !option_active_val
               this.base_key = option.key;
-              this.base_active = true;
             } 
           }
         break;  
@@ -208,82 +209,37 @@ export default {
       analytic
       operative */
     },
-    getToolsConfiguration() {
-      let url;
-      let all_data;
-      //Configuracion
-      url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
-      axios
-        .get(url)
-        .then((response) => {
-          try {
-            all_data = response.data.content;
-            this.data_pivots = all_data.pivots;
-            // entity_type_pivot_fk  esta es la tabla pivote de capas de la configracion de mapas
-            this.getInfo("bd478f21-43d8-4380-bad8-ecce651b9ba7");
-          } catch (error) {
-            console.error(error);
-          }
-        })
-        .catch((error) => {
-          console.error(error);
-        })
-        .finally(() => {
-          console.log("sheets tools done data");
-        });
+    getInfo(){
+      let api_info = {};
+      api_info = this.parseData(this.data_pivots, this.all_info);
+      this.cartography_base = api_info.filter((item) => item.type == "base");
+      this.analytical_layer = api_info.filter((item) => item.type == "analytic");
+      this.operational_layer = api_info.filter((item) => item.type == "operative");
     },
-    getInfo(key) {
-      let url = `${this.base_url}/entity/info/${key}?page=1&set_alias=alias`;
-      axios
-        .get(url)
-        .then((response) => {
-          try {
-            this.all_info = response.data.content;
-            this.parseData();
-            //console.log("info", this.api_info);
-            this.cartography_base = this.api_info.filter(
-              (item) => item.type == "base"
-            );
-            this.analytical_layer = this.api_info.filter(
-              (item) => item.type == "analytic"
-            );
-            this.operational_layer = this.api_info.filter(
-              (item) => item.type == "operative"
-            );
-          } catch (error) {
-            console.error(error);
-          }
-        })
-        .catch((error) => {
-          console.error(error);
-        })
-        .finally(() => {
-          console.log("sheets tools done Info");
-        });
-    },
-    parseData() {
+    parseData(data_pivots, all_info) {
       let info_columns;
       let info_tools;
       let pivots_values;
       let pivots_details;
+      let api_info_result = [];
 
-      let pivots = Object.values(this.data_pivots);
+      let pivots = Object.values(data_pivots);
       pivots.forEach((column_group) => {
         Object.values(column_group).forEach((fk_group) => {
           Object.values(fk_group).forEach((pivot) => {
             Object.keys(pivot).map((key, index) => {
-              info_columns = this.all_info.columns.find(
+              info_columns = all_info.columns.find(
                 (elem) => elem.id == key
               );
               if (
                 info_columns &&
-                this.all_info.entities_fk[info_columns.entity_type_fk] &&
+                all_info.entities_fk[info_columns.entity_type_fk] &&
                 info_columns.entity_type_fk &&
                 info_columns.alias == "sh_map_has_layer_type"
               ) {
                 let col_name_fk = info_columns.col_name_fk || "name";
                 pivots_values = Object.values(pivot);
-                pivots_details = this.all_info.entities_fk[
+                pivots_details = all_info.entities_fk[
                   info_columns.entity_type_fk
                 ].find((elem) => elem.id == pivots_values[index]);
 
@@ -296,7 +252,7 @@ export default {
                   };
                 }
                 if (info_tools) {
-                  this.api_info.push(info_tools);
+                  api_info_result.push(info_tools);
                 }
                 info_tools = null;
               } else {
@@ -306,6 +262,7 @@ export default {
           });
         });
       });
+      return api_info_result;
     },
   },
 };
