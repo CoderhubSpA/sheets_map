@@ -220,10 +220,12 @@ export default {
       let info_columns;
       let info_tools;
       let pivots_values;
+      let pivots_values_valid;
       let pivots_details;
       let api_info_result = [];
-
       let pivots = Object.values(data_pivots);
+      let pivots_valid = 0;
+     
       pivots.forEach((column_group) => {
         Object.values(column_group).forEach((fk_group) => {
           Object.values(fk_group).forEach((pivot) => {
@@ -235,14 +237,13 @@ export default {
                 info_columns &&
                 all_info.entities_fk[info_columns.entity_type_fk] &&
                 info_columns.entity_type_fk &&
-                info_columns.alias == "sh_map_has_layer_type"
-              ) {
+                info_columns.alias == "sh_map_has_layer_type" 
+               ) {
                 let col_name_fk = info_columns.col_name_fk || "name";
                 pivots_values = Object.values(pivot);
                 pivots_details = all_info.entities_fk[
                   info_columns.entity_type_fk
                 ].find((elem) => elem.id == pivots_values[index]);
-
                 if (pivots_details) {
                   info_tools = {
                     key: pivot.id,
@@ -251,12 +252,18 @@ export default {
                     active: false, // la capa esta desactiva por default
                   };
                 }
-                if (info_tools) {
+              }
+              if (
+                info_columns &&
+                info_columns.alias == "sh_map_has_layer_valid"  &&
+                key == info_columns.id
+              ) {
+                pivots_values_valid = Object.values(pivot);
+                pivots_valid = pivots_values_valid[index];
+                if (info_tools && pivots_valid) {
                   api_info_result.push(info_tools);
                 }
                 info_tools = null;
-              } else {
-                info_columns = "";
               }
             });
           });
