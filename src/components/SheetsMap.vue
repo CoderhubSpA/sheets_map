@@ -4,7 +4,7 @@
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
-                @ready="ready()" @moveend="getClusterInfo()" :zoom="zoom" :center="center" ref="myMap" class="myMap">
+                @ready="ready()" @moveend="getClusterInfo(); findBounds();" :zoom="zoom" :center="center" ref="myMap" class="myMap">
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
@@ -269,6 +269,18 @@ export default {
     mounted(){
     },
     methods:{
+        findBounds(){
+            console.log('getBounds');
+            let bounds   = this.map.getBounds();
+            let all_col = this.info.columns;
+            let all_col_name = all_col.map((columns)=>{
+                return columns.alias;
+            });
+                console.log('circle--------');
+                console.log(bounds);
+                console.log(all_col_name);
+                console.log(this.info.columns);
+        },
         ready(){
             this.setTileLayer();
             this.map = this.$refs.myMap.mapObject;
