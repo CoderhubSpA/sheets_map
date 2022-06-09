@@ -266,7 +266,7 @@ export default {
     },
   },
 };
-</script>Realizar llamados de aplicación capas
+</script>
 
 <style scoped>
 .btn-outline-second {
