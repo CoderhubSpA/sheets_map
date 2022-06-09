@@ -699,6 +699,61 @@ module.exports = function (Constructor, list) {
 
 /***/ }),
 
+/***/ 8457:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var bind = __webpack_require__(9974);
+var call = __webpack_require__(6916);
+var toObject = __webpack_require__(7908);
+var callWithSafeIterationClosing = __webpack_require__(3411);
+var isArrayIteratorMethod = __webpack_require__(7659);
+var isConstructor = __webpack_require__(4411);
+var lengthOfArrayLike = __webpack_require__(6244);
+var createProperty = __webpack_require__(6135);
+var getIterator = __webpack_require__(8554);
+var getIteratorMethod = __webpack_require__(1246);
+
+var Array = global.Array;
+
+// `Array.from` method implementation
+// https://tc39.es/ecma262/#sec-array.from
+module.exports = function from(arrayLike /* , mapfn = undefined, thisArg = undefined */) {
+  var O = toObject(arrayLike);
+  var IS_CONSTRUCTOR = isConstructor(this);
+  var argumentsLength = arguments.length;
+  var mapfn = argumentsLength > 1 ? arguments[1] : undefined;
+  var mapping = mapfn !== undefined;
+  if (mapping) mapfn = bind(mapfn, argumentsLength > 2 ? arguments[2] : undefined);
+  var iteratorMethod = getIteratorMethod(O);
+  var index = 0;
+  var length, result, step, iterator, next, value;
+  // if the target is not iterable or it's an array with the default iterator - use a simple case
+  if (iteratorMethod && !(this == Array && isArrayIteratorMethod(iteratorMethod))) {
+    iterator = getIterator(O, iteratorMethod);
+    next = iterator.next;
+    result = IS_CONSTRUCTOR ? new this() : [];
+    for (;!(step = call(next, iterator)).done; index++) {
+      value = mapping ? callWithSafeIterationClosing(iterator, mapfn, [step.value, index], true) : step.value;
+      createProperty(result, index, value);
+    }
+  } else {
+    length = lengthOfArrayLike(O);
+    result = IS_CONSTRUCTOR ? new this(length) : Array(length);
+    for (;length > index; index++) {
+      value = mapping ? mapfn(O[index], index) : O[index];
+      createProperty(result, index, value);
+    }
+  }
+  result.length = index;
+  return result;
+};
+
+
+/***/ }),
+
 /***/ 1318:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -1087,6 +1142,24 @@ for (var index = 0; index < 66; index++) ctoi[itoc.charAt(index)] = index;
 module.exports = {
   itoc: itoc,
   ctoi: ctoi
+};
+
+
+/***/ }),
+
+/***/ 3411:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var anObject = __webpack_require__(9670);
+var iteratorClose = __webpack_require__(9212);
+
+// call something on iterator step with safe closing on error
+module.exports = function (iterator, fn, value, ENTRIES) {
+  try {
+    return ENTRIES ? fn(anObject(value)[0], value[1]) : fn(value);
+  } catch (error) {
+    iteratorClose(iterator, 'throw', error);
+  }
 };
 
 
@@ -3526,6 +3599,54 @@ Function.prototype.toString = makeBuiltIn(function toString() {
 
 /***/ }),
 
+/***/ 6130:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var sign = __webpack_require__(4310);
+
+var abs = Math.abs;
+var pow = Math.pow;
+var EPSILON = pow(2, -52);
+var EPSILON32 = pow(2, -23);
+var MAX32 = pow(2, 127) * (2 - EPSILON32);
+var MIN32 = pow(2, -126);
+
+var roundTiesToEven = function (n) {
+  return n + 1 / EPSILON - 1 / EPSILON;
+};
+
+// `Math.fround` method implementation
+// https://tc39.es/ecma262/#sec-math.fround
+// eslint-disable-next-line es-x/no-math-fround -- safe
+module.exports = Math.fround || function fround(x) {
+  var $abs = abs(x);
+  var $sign = sign(x);
+  var a, result;
+  if ($abs < MIN32) return $sign * roundTiesToEven($abs / MIN32 / EPSILON32) * MIN32 * EPSILON32;
+  a = (1 + EPSILON32 / EPSILON) * $abs;
+  result = a - (a - $abs);
+  // eslint-disable-next-line no-self-compare -- NaN check
+  if (result > MAX32 || result != result) return $sign * Infinity;
+  return $sign * result;
+};
+
+
+/***/ }),
+
+/***/ 4310:
+/***/ (function(module) {
+
+// `Math.sign` method implementation
+// https://tc39.es/ecma262/#sec-math.sign
+// eslint-disable-next-line es-x/no-math-sign -- safe
+module.exports = Math.sign || function sign(x) {
+  // eslint-disable-next-line no-self-compare -- NaN check
+  return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;
+};
+
+
+/***/ }),
+
 /***/ 5948:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -3715,6 +3836,71 @@ module.exports = function (it) {
     throw TypeError("The method doesn't accept regular expressions");
   } return it;
 };
+
+
+/***/ }),
+
+/***/ 1574:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var DESCRIPTORS = __webpack_require__(9781);
+var uncurryThis = __webpack_require__(1702);
+var call = __webpack_require__(6916);
+var fails = __webpack_require__(7293);
+var objectKeys = __webpack_require__(1956);
+var getOwnPropertySymbolsModule = __webpack_require__(5181);
+var propertyIsEnumerableModule = __webpack_require__(5296);
+var toObject = __webpack_require__(7908);
+var IndexedObject = __webpack_require__(8361);
+
+// eslint-disable-next-line es-x/no-object-assign -- safe
+var $assign = Object.assign;
+// eslint-disable-next-line es-x/no-object-defineproperty -- required for testing
+var defineProperty = Object.defineProperty;
+var concat = uncurryThis([].concat);
+
+// `Object.assign` method
+// https://tc39.es/ecma262/#sec-object.assign
+module.exports = !$assign || fails(function () {
+  // should have correct order of operations (Edge bug)
+  if (DESCRIPTORS && $assign({ b: 1 }, $assign(defineProperty({}, 'a', {
+    enumerable: true,
+    get: function () {
+      defineProperty(this, 'b', {
+        value: 3,
+        enumerable: false
+      });
+    }
+  }), { b: 2 })).b !== 1) return true;
+  // should work with symbols and should have deterministic property order (V8 bug)
+  var A = {};
+  var B = {};
+  // eslint-disable-next-line es-x/no-symbol -- safe
+  var symbol = Symbol();
+  var alphabet = 'abcdefghijklmnopqrst';
+  A[symbol] = 7;
+  alphabet.split('').forEach(function (chr) { B[chr] = chr; });
+  return $assign({}, A)[symbol] != 7 || objectKeys($assign({}, B)).join('') != alphabet;
+}) ? function assign(target, source) { // eslint-disable-line no-unused-vars -- required for `.length`
+  var T = toObject(target);
+  var argumentsLength = arguments.length;
+  var index = 1;
+  var getOwnPropertySymbols = getOwnPropertySymbolsModule.f;
+  var propertyIsEnumerable = propertyIsEnumerableModule.f;
+  while (argumentsLength > index) {
+    var S = IndexedObject(arguments[index++]);
+    var keys = getOwnPropertySymbols ? concat(objectKeys(S), getOwnPropertySymbols(S)) : objectKeys(S);
+    var length = keys.length;
+    var j = 0;
+    var key;
+    while (length > j) {
+      key = keys[j++];
+      if (!DESCRIPTORS || call(propertyIsEnumerable, S, key)) T[key] = S[key];
+    }
+  } return T;
+} : $assign;
 
 
 /***/ }),
@@ -6221,6 +6407,27 @@ $({ target: 'Array', proto: true }, {
 
 /***/ }),
 
+/***/ 1038:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var from = __webpack_require__(8457);
+var checkCorrectnessOfIteration = __webpack_require__(7072);
+
+var INCORRECT_ITERATION = !checkCorrectnessOfIteration(function (iterable) {
+  // eslint-disable-next-line es-x/no-array-from -- required for testing
+  Array.from(iterable);
+});
+
+// `Array.from` method
+// https://tc39.es/ecma262/#sec-array.from
+$({ target: 'Array', stat: true, forced: INCORRECT_ITERATION }, {
+  from: from
+});
+
+
+/***/ }),
+
 /***/ 6699:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -6820,6 +7027,19 @@ if ($stringify) {
 
 /***/ }),
 
+/***/ 4755:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var fround = __webpack_require__(6130);
+
+// `Math.fround` method
+// https://tc39.es/ecma262/#sec-math.fround
+$({ target: 'Math', stat: true }, { fround: fround });
+
+
+/***/ }),
+
 /***/ 3689:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -6931,6 +7151,22 @@ if (isForced(NUMBER, !NativeNumber(' 0o1') || !NativeNumber('0b1') || NativeNumb
   NumberPrototype.constructor = NumberWrapper;
   defineBuiltIn(global, NUMBER, NumberWrapper, { constructor: true });
 }
+
+
+/***/ }),
+
+/***/ 9601:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var assign = __webpack_require__(1574);
+
+// `Object.assign` method
+// https://tc39.es/ecma262/#sec-object.assign
+// eslint-disable-next-line es-x/no-object-assign -- required for testing
+$({ target: 'Object', stat: true, arity: 2, forced: Object.assign !== assign }, {
+  assign: assign
+});
 
 
 /***/ }),
@@ -9275,6 +9511,38 @@ exportTypedArrayMethod('find', function find(predicate /* , thisArg */) {
 
 /***/ }),
 
+/***/ 4197:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Float32Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Float32', function (init) {
+  return function Float32Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 6495:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Float64Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Float64', function (init) {
+  return function Float64Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
 /***/ 2846:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -9809,6 +10077,38 @@ exportTypedArrayMethod('toString', arrayToString, IS_NOT_ARRAY_METHOD);
 
 /***/ }),
 
+/***/ 8255:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Uint16Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Uint16', function (init) {
+  return function Uint16Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 9135:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Uint32Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Uint32', function (init) {
+  return function Uint32Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
 /***/ 2472:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -10207,6 +10507,8 @@ __webpack_require__(1539);
 
 __webpack_require__(2165);
 
+__webpack_require__(6992);
+
 __webpack_require__(8783);
 
 __webpack_require__(3948);
@@ -10337,6 +10639,8 @@ module.exports = __webpack_require__(9142);
 
 
 __webpack_require__(1539);
+
+__webpack_require__(8674);
 
 __webpack_require__(7479);
 
@@ -10578,7 +10882,11 @@ module.exports = function xhrAdapter(config) {
 "use strict";
 
 
+__webpack_require__(6992);
+
 __webpack_require__(1539);
+
+__webpack_require__(8674);
 
 __webpack_require__(8783);
 
@@ -10653,6 +10961,8 @@ module.exports["default"] = axios;
 __webpack_require__(1703);
 
 __webpack_require__(1539);
+
+__webpack_require__(8674);
 
 __webpack_require__(561);
 
@@ -10834,6 +11144,8 @@ __webpack_require__(4747);
 
 __webpack_require__(2222);
 
+__webpack_require__(8674);
+
 var utils = __webpack_require__(2175);
 
 var buildURL = __webpack_require__(8470);
@@ -11010,6 +11322,8 @@ __webpack_require__(2526);
 __webpack_require__(1817);
 
 __webpack_require__(1539);
+
+__webpack_require__(9601);
 
 var utils = __webpack_require__(2175);
 /**
@@ -11190,6 +11504,8 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
 __webpack_require__(1539);
 
 __webpack_require__(4747);
+
+__webpack_require__(8674);
 
 var utils = __webpack_require__(2175);
 
@@ -12101,6 +12417,8 @@ __webpack_require__(7852);
 
 __webpack_require__(8862);
 
+__webpack_require__(8674);
+
 var utils = __webpack_require__(2175);
 /**
  * Convert a data object to FormData
@@ -12290,7 +12608,11 @@ __webpack_require__(4916);
 
 __webpack_require__(5306);
 
+__webpack_require__(9601);
+
 __webpack_require__(6210);
+
+__webpack_require__(6992);
 
 __webpack_require__(2472);
 
@@ -12880,6 +13202,8 @@ __webpack_require__(7327);
 __webpack_require__(2707);
 
 __webpack_require__(8309);
+
+__webpack_require__(6992);
 
 __webpack_require__(2472);
 
@@ -36034,8 +36358,8 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=7c4bd040&scoped=true&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2)],1),_c('div',[_c('h3',[_vm._v("Sheets Map!!!")]),_c('ul',[_c('li',[_vm._v("id: "+_vm._s(_vm.id)+" ")]),_c('li',[_vm._v("entity_type_id: "+_vm._s(_vm.entity_type_id)+" ")]),_c('li',[_vm._v("config_entity_id: "+_vm._s(_vm.config_entity_id)+" ")]),_c('li',[_vm._v("endpoint_config: "+_vm._s(_vm.endpoint_config)+" ")]),_c('li',[_vm._v("code: "+_vm._s(_vm.code)+" ")]),_c('li',[_vm._v("active_filters: "+_vm._s(_vm.active_filters)+" ")])])])])}
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=19761f3d&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo()}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2)],1)],1),_c('div',[_c('h3',[_vm._v("Sheets Map!!!")]),_c('ul',[_c('li',[_vm._v("id: "+_vm._s(_vm.id)+" ")]),_c('li',[_vm._v("entity_type_id: "+_vm._s(_vm.entity_type_id)+" ")]),_c('li',[_vm._v("config_entity_id: "+_vm._s(_vm.config_entity_id)+" ")]),_c('li',[_vm._v("endpoint_config: "+_vm._s(_vm.endpoint_config)+" ")]),_c('li',[_vm._v("code: "+_vm._s(_vm.code)+" ")]),_c('li',[_vm._v("active_filters: "+_vm._s(_vm.active_filters)+" ")])])])])}
 var staticRenderFns = []
 
 
@@ -36074,8 +36398,12 @@ var web_dom_collections_for_each = __webpack_require__(4747);
 var es_array_find = __webpack_require__(9826);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
 var es_function_name = __webpack_require__(8309);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
+var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.test.js
 var es_regexp_test = __webpack_require__(7601);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.iterator.js
+var es_array_iterator = __webpack_require__(6992);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.set.js
 var es_set = __webpack_require__(189);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.iterator.js
@@ -36095,6 +36423,8 @@ var es_array_join = __webpack_require__(9600);
 // EXTERNAL MODULE: ./node_modules/leaflet/dist/leaflet-src.js
 var leaflet_src = __webpack_require__(9014);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMap.js
+
+
 
 
 
@@ -36855,6 +37185,7 @@ var __vue_component__ = /*#__PURE__*/normalizeComponent({
 
 
 
+
 var LTileLayer_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
@@ -37293,9 +37624,356 @@ var LTileLayer_vue_component_ = /*#__PURE__*/LTileLayer_normalizeComponent({
 }, LTileLayer_vue_inject_styles_, LTileLayer_vue_script_, LTileLayer_vue_scope_id_, LTileLayer_vue_is_functional_template_, LTileLayer_vue_module_identifier_, false, undefined, undefined, undefined);
 
 /* harmony default export */ var LTileLayer = (LTileLayer_vue_component_);
+;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LLayerGroup.js
+
+
+
+
+var LLayerGroup_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
+  if (!string || typeof string.charAt !== 'function') {
+    return string;
+  }
+
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+var LLayerGroup_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
+    var setMethodName = 'set' + LLayerGroup_capitalizeFirstLetter(key);
+    var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
+
+    if (props[key].custom && vueElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        vueElement[setMethodName](newVal, oldVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (setMethodName === 'setOptions') {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        (0,leaflet_src.setOptions)(leafletElement, newVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (leafletElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        leafletElement[setMethodName](newVal);
+      }, {
+        deep: deepValue
+      });
+    }
+  };
+
+  for (var key in props) {
+    loop(key);
+  }
+};
+
+var LLayerGroup_findRealParent = function findRealParent(firstVueParent) {
+  var found = false;
+
+  while (firstVueParent && !found) {
+    if (firstVueParent.mapObject === undefined) {
+      firstVueParent = firstVueParent.$parent;
+    } else {
+      found = true;
+    }
+  }
+
+  return firstVueParent;
+};
+
+var LLayerGroup_Layer = {
+  props: {
+    pane: {
+      type: String,
+      default: 'overlayPane'
+    },
+    attribution: {
+      type: String,
+      default: null,
+      custom: true
+    },
+    name: {
+      type: String,
+      custom: true,
+      default: undefined
+    },
+    layerType: {
+      type: String,
+      custom: true,
+      default: undefined
+    },
+    visible: {
+      type: Boolean,
+      custom: true,
+      default: true
+    }
+  },
+  mounted: function mounted() {
+    this.layerOptions = {
+      attribution: this.attribution,
+      pane: this.pane
+    };
+  },
+  beforeDestroy: function beforeDestroy() {
+    this.unbindPopup();
+    this.unbindTooltip();
+    this.parentContainer.removeLayer(this);
+  },
+  methods: {
+    setAttribution: function setAttribution(val, old) {
+      var attributionControl = this.$parent.mapObject.attributionControl;
+      attributionControl.removeAttribution(old).addAttribution(val);
+    },
+    setName: function setName() {
+      this.parentContainer.removeLayer(this);
+
+      if (this.visible) {
+        this.parentContainer.addLayer(this);
+      }
+    },
+    setLayerType: function setLayerType() {
+      this.parentContainer.removeLayer(this);
+
+      if (this.visible) {
+        this.parentContainer.addLayer(this);
+      }
+    },
+    setVisible: function setVisible(isVisible) {
+      if (this.mapObject) {
+        if (isVisible) {
+          this.parentContainer.addLayer(this);
+        } else {
+          if (this.parentContainer.hideLayer) {
+            this.parentContainer.hideLayer(this);
+          } else {
+            this.parentContainer.removeLayer(this);
+          }
+        }
+      }
+    },
+    unbindTooltip: function unbindTooltip() {
+      var tooltip = this.mapObject ? this.mapObject.getTooltip() : null;
+
+      if (tooltip) {
+        tooltip.unbindTooltip();
+      }
+    },
+    unbindPopup: function unbindPopup() {
+      var popup = this.mapObject ? this.mapObject.getPopup() : null;
+
+      if (popup) {
+        popup.unbindPopup();
+      }
+    },
+    updateVisibleProp: function updateVisibleProp(value) {
+      /**
+       * Triggers when the visible prop needs to be updated
+       * @type {boolean}
+       * @property {boolean} value - value of the visible property
+       */
+      this.$emit('update:visible', value);
+    }
+  }
+};
+var LayerGroupMixin = {
+  mixins: [LLayerGroup_Layer],
+  mounted: function mounted() {
+    this.layerGroupOptions = this.layerOptions;
+  },
+  methods: {
+    addLayer: function addLayer(layer, alreadyAdded) {
+      if (!alreadyAdded) {
+        this.mapObject.addLayer(layer.mapObject);
+      }
+
+      this.parentContainer.addLayer(layer, true);
+    },
+    removeLayer: function removeLayer(layer, alreadyRemoved) {
+      if (!alreadyRemoved) {
+        this.mapObject.removeLayer(layer.mapObject);
+      }
+
+      this.parentContainer.removeLayer(layer, true);
+    }
+  }
+};
+var LLayerGroup_Options = {
+  props: {
+    /**
+     * Leaflet options to pass to the component constructor
+     */
+    options: {
+      type: Object,
+      default: function _default() {
+        return {};
+      }
+    }
+  }
+}; //
+
+/**
+ * Group together elements of the maps  including: markers, geoJSON, polylines and polygon, tooltip and popup.
+ */
+
+var LLayerGroup_script = {
+  name: 'LLayerGroup',
+  mixins: [LayerGroupMixin, LLayerGroup_Options],
+  data: function data() {
+    return {
+      ready: false
+    };
+  },
+  mounted: function mounted() {
+    var this$1 = this;
+    this.mapObject = (0,leaflet_src.layerGroup)();
+    LLayerGroup_propsBinder(this, this.mapObject, this.$options.props);
+    leaflet_src.DomEvent.on(this.mapObject, this.$listeners);
+    this.ready = true;
+    this.parentContainer = LLayerGroup_findRealParent(this.$parent);
+    this.parentContainer.addLayer(this, !this.visible);
+    this.$nextTick(function () {
+      /**
+       * Triggers when the component is ready
+       * @type {object}
+       * @property {object} mapObject - reference to leaflet map object
+       */
+      this$1.$emit('ready', this$1.mapObject);
+    });
+  }
+};
+
+function LLayerGroup_normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
+/* server only */
+, shadowMode, createInjector, createInjectorSSR, createInjectorShadow) {
+  if (typeof shadowMode !== 'boolean') {
+    createInjectorSSR = createInjector;
+    createInjector = shadowMode;
+    shadowMode = false;
+  } // Vue.extend constructor export interop.
+
+
+  var options = typeof script === 'function' ? script.options : script; // render functions
+
+  if (template && template.render) {
+    options.render = template.render;
+    options.staticRenderFns = template.staticRenderFns;
+    options._compiled = true; // functional template
+
+    if (isFunctionalTemplate) {
+      options.functional = true;
+    }
+  } // scopedId
+
+
+  if (scopeId) {
+    options._scopeId = scopeId;
+  }
+
+  var hook;
+
+  if (moduleIdentifier) {
+    // server build
+    hook = function hook(context) {
+      // 2.3 injection
+      context = context || // cached call
+      this.$vnode && this.$vnode.ssrContext || // stateful
+      this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext; // functional
+      // 2.2 with runInNewContext: true
+
+      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
+        context = __VUE_SSR_CONTEXT__;
+      } // inject component styles
+
+
+      if (style) {
+        style.call(this, createInjectorSSR(context));
+      } // register component module identifier for async chunk inference
+
+
+      if (context && context._registeredComponents) {
+        context._registeredComponents.add(moduleIdentifier);
+      }
+    }; // used by ssr in case component is cached and beforeCreate
+    // never gets called
+
+
+    options._ssrRegister = hook;
+  } else if (style) {
+    hook = shadowMode ? function (context) {
+      style.call(this, createInjectorShadow(context, this.$root.$options.shadowRoot));
+    } : function (context) {
+      style.call(this, createInjector(context));
+    };
+  }
+
+  if (hook) {
+    if (options.functional) {
+      // register for functional component in vue file
+      var originalRender = options.render;
+
+      options.render = function renderWithStyleInjection(h, context) {
+        hook.call(context);
+        return originalRender(h, context);
+      };
+    } else {
+      // inject component registration as beforeCreate hook
+      var existing = options.beforeCreate;
+      options.beforeCreate = existing ? [].concat(existing, hook) : [hook];
+    }
+  }
+
+  return script;
+}
+/* script */
+
+
+var LLayerGroup_vue_script_ = LLayerGroup_script;
+/* template */
+
+var LLayerGroup_vue_render_ = function __vue_render__() {
+  var _vm = this;
+
+  var _h = _vm.$createElement;
+
+  var _c = _vm._self._c || _h;
+
+  return _c('div', {
+    staticStyle: {
+      "display": "none"
+    }
+  }, [_vm.ready ? _vm._t("default") : _vm._e()], 2);
+};
+
+var LLayerGroup_vue_staticRenderFns_ = [];
+/* style */
+
+var LLayerGroup_vue_inject_styles_ = undefined;
+/* scoped */
+
+var LLayerGroup_vue_scope_id_ = undefined;
+/* module identifier */
+
+var LLayerGroup_vue_module_identifier_ = undefined;
+/* functional template */
+
+var LLayerGroup_vue_is_functional_template_ = false;
+/* style inject */
+
+/* style inject SSR */
+
+/* style inject shadow dom */
+
+var LLayerGroup_vue_component_ = /*#__PURE__*/LLayerGroup_normalizeComponent({
+  render: LLayerGroup_vue_render_,
+  staticRenderFns: LLayerGroup_vue_staticRenderFns_
+}, LLayerGroup_vue_inject_styles_, LLayerGroup_vue_script_, LLayerGroup_vue_scope_id_, LLayerGroup_vue_is_functional_template_, LLayerGroup_vue_module_identifier_, false, undefined, undefined, undefined);
+
+/* harmony default export */ var LLayerGroup = (LLayerGroup_vue_component_);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.fill.js
 var es_array_fill = __webpack_require__(3290);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LCircleMarker.js
+
 
 
 
@@ -38195,9 +38873,1951 @@ var LPopup_vue_is_functional_template_ = undefined;
 var LPopup_vue_component_ = /*#__PURE__*/LPopup_normalizeComponent({}, LPopup_vue_inject_styles_, LPopup_vue_script_, LPopup_vue_scope_id_, LPopup_vue_is_functional_template_, LPopup_vue_module_identifier_, false, undefined, undefined, undefined);
 
 /* harmony default export */ var LPopup = (LPopup_vue_component_);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.error.cause.js
+var es_error_cause = __webpack_require__(1703);
+;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LIcon.js
+
+
+
+
+
+
+
+
+
+var LIcon_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
+  if (!string || typeof string.charAt !== 'function') {
+    return string;
+  }
+
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+var LIcon_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
+    var setMethodName = 'set' + LIcon_capitalizeFirstLetter(key);
+    var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
+
+    if (props[key].custom && vueElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        vueElement[setMethodName](newVal, oldVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (setMethodName === 'setOptions') {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        (0,leaflet_src.setOptions)(leafletElement, newVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (leafletElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        leafletElement[setMethodName](newVal);
+      }, {
+        deep: deepValue
+      });
+    }
+  };
+
+  for (var key in props) {
+    loop(key);
+  }
+};
+
+var LIcon_collectionCleaner = function collectionCleaner(options) {
+  var result = {};
+
+  for (var key in options) {
+    var value = options[key];
+
+    if (value !== null && value !== undefined) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+};
+
+var LIcon_optionsMerger = function optionsMerger(props, instance) {
+  var options = instance.options && instance.options.constructor === Object ? instance.options : {};
+  props = props && props.constructor === Object ? props : {};
+  var result = LIcon_collectionCleaner(options);
+  props = LIcon_collectionCleaner(props);
+  var defaultProps = instance.$options.props;
+
+  for (var key in props) {
+    var def = defaultProps[key] ? defaultProps[key].default && typeof defaultProps[key].default === 'function' ? defaultProps[key].default.call() : defaultProps[key].default : Symbol('unique');
+    var isEqual = false;
+
+    if (Array.isArray(def)) {
+      isEqual = JSON.stringify(def) === JSON.stringify(props[key]);
+    } else {
+      isEqual = def === props[key];
+    }
+
+    if (result[key] && !isEqual) {
+      console.warn(key + " props is overriding the value passed in the options props");
+      result[key] = props[key];
+    } else if (!result[key]) {
+      result[key] = props[key];
+    }
+  }
+
+  return result;
+};
+
+var LIcon_findRealParent = function findRealParent(firstVueParent) {
+  var found = false;
+
+  while (firstVueParent && !found) {
+    if (firstVueParent.mapObject === undefined) {
+      firstVueParent = firstVueParent.$parent;
+    } else {
+      found = true;
+    }
+  }
+
+  return firstVueParent;
+}; //
+
+/**
+ * Easy and reactive way to configure the icon of a marker
+ */
+
+
+var LIcon_script = {
+  name: 'LIcon',
+  props: {
+    iconUrl: {
+      type: String,
+      custom: true,
+      default: null
+    },
+    iconRetinaUrl: {
+      type: String,
+      custom: true,
+      default: null
+    },
+    iconSize: {
+      type: [Object, Array],
+      custom: true,
+      default: null
+    },
+    iconAnchor: {
+      type: [Object, Array],
+      custom: true,
+      default: null
+    },
+    popupAnchor: {
+      type: [Object, Array],
+      custom: true,
+      default: function _default() {
+        return [0, 0];
+      }
+    },
+    tooltipAnchor: {
+      type: [Object, Array],
+      custom: true,
+      default: function _default() {
+        return [0, 0];
+      }
+    },
+    shadowUrl: {
+      type: String,
+      custom: true,
+      default: null
+    },
+    shadowRetinaUrl: {
+      type: String,
+      custom: true,
+      default: null
+    },
+    shadowSize: {
+      type: [Object, Array],
+      custom: true,
+      default: null
+    },
+    shadowAnchor: {
+      type: [Object, Array],
+      custom: true,
+      default: null
+    },
+    bgPos: {
+      type: [Object, Array],
+      custom: true,
+      default: function _default() {
+        return [0, 0];
+      }
+    },
+    className: {
+      type: String,
+      custom: true,
+      default: ''
+    },
+    options: {
+      type: Object,
+      custom: true,
+      default: function _default() {
+        return {};
+      }
+    }
+  },
+  data: function data() {
+    return {
+      parentContainer: null,
+      observer: null,
+      recreationNeeded: false,
+      swapHtmlNeeded: false
+    };
+  },
+  mounted: function mounted() {
+    var this$1 = this;
+    this.parentContainer = LIcon_findRealParent(this.$parent);
+
+    if (!this.parentContainer) {
+      throw new Error('No parent container with mapObject found for LIcon');
+    }
+
+    LIcon_propsBinder(this, this.parentContainer.mapObject, this.$options.props);
+    this.observer = new MutationObserver(function () {
+      this$1.scheduleHtmlSwap();
+    });
+    this.observer.observe(this.$el, {
+      attributes: true,
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
+    this.scheduleCreateIcon();
+  },
+  beforeDestroy: function beforeDestroy() {
+    if (this.parentContainer.mapObject) {
+      this.parentContainer.mapObject.setIcon(this.parentContainer.$props.icon);
+    }
+
+    this.observer.disconnect();
+  },
+  methods: {
+    scheduleCreateIcon: function scheduleCreateIcon() {
+      this.recreationNeeded = true;
+      this.$nextTick(this.createIcon);
+    },
+    scheduleHtmlSwap: function scheduleHtmlSwap() {
+      this.htmlSwapNeeded = true;
+      this.$nextTick(this.createIcon);
+    },
+    createIcon: function createIcon() {
+      // If only html of a divIcon changed, we can just replace the DOM without the need of recreating the whole icon
+      if (this.htmlSwapNeeded && !this.recreationNeeded && this.iconObject && this.parentContainer.mapObject.getElement()) {
+        this.parentContainer.mapObject.getElement().innerHTML = this.$el.innerHTML;
+        this.htmlSwapNeeded = false;
+        return;
+      }
+
+      if (!this.recreationNeeded) {
+        return;
+      }
+
+      if (this.iconObject) {
+        leaflet_src.DomEvent.off(this.iconObject, this.$listeners);
+      }
+
+      var options = LIcon_optionsMerger({
+        iconUrl: this.iconUrl,
+        iconRetinaUrl: this.iconRetinaUrl,
+        iconSize: this.iconSize,
+        iconAnchor: this.iconAnchor,
+        popupAnchor: this.popupAnchor,
+        tooltipAnchor: this.tooltipAnchor,
+        shadowUrl: this.shadowUrl,
+        shadowRetinaUrl: this.shadowRetinaUrl,
+        shadowSize: this.shadowSize,
+        shadowAnchor: this.shadowAnchor,
+        bgPos: this.bgPos,
+        className: this.className,
+        html: this.$el.innerHTML || this.html
+      }, this);
+
+      if (options.html) {
+        this.iconObject = (0,leaflet_src.divIcon)(options);
+      } else {
+        this.iconObject = (0,leaflet_src.icon)(options);
+      }
+
+      leaflet_src.DomEvent.on(this.iconObject, this.$listeners);
+      this.parentContainer.mapObject.setIcon(this.iconObject);
+      this.recreationNeeded = false;
+      this.htmlSwapNeeded = false;
+    },
+    setIconUrl: function setIconUrl() {
+      this.scheduleCreateIcon();
+    },
+    setIconRetinaUrl: function setIconRetinaUrl() {
+      this.scheduleCreateIcon();
+    },
+    setIconSize: function setIconSize() {
+      this.scheduleCreateIcon();
+    },
+    setIconAnchor: function setIconAnchor() {
+      this.scheduleCreateIcon();
+    },
+    setPopupAnchor: function setPopupAnchor() {
+      this.scheduleCreateIcon();
+    },
+    setTooltipAnchor: function setTooltipAnchor() {
+      this.scheduleCreateIcon();
+    },
+    setShadowUrl: function setShadowUrl() {
+      this.scheduleCreateIcon();
+    },
+    setShadowRetinaUrl: function setShadowRetinaUrl() {
+      this.scheduleCreateIcon();
+    },
+    setShadowAnchor: function setShadowAnchor() {
+      this.scheduleCreateIcon();
+    },
+    setBgPos: function setBgPos() {
+      this.scheduleCreateIcon();
+    },
+    setClassName: function setClassName() {
+      this.scheduleCreateIcon();
+    },
+    setHtml: function setHtml() {
+      this.scheduleCreateIcon();
+    }
+  },
+  render: function render() {
+    return null;
+  }
+};
+
+function LIcon_normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
+/* server only */
+, shadowMode, createInjector, createInjectorSSR, createInjectorShadow) {
+  if (typeof shadowMode !== 'boolean') {
+    createInjectorSSR = createInjector;
+    createInjector = shadowMode;
+    shadowMode = false;
+  } // Vue.extend constructor export interop.
+
+
+  var options = typeof script === 'function' ? script.options : script; // render functions
+
+  if (template && template.render) {
+    options.render = template.render;
+    options.staticRenderFns = template.staticRenderFns;
+    options._compiled = true; // functional template
+
+    if (isFunctionalTemplate) {
+      options.functional = true;
+    }
+  } // scopedId
+
+
+  if (scopeId) {
+    options._scopeId = scopeId;
+  }
+
+  var hook;
+
+  if (moduleIdentifier) {
+    // server build
+    hook = function hook(context) {
+      // 2.3 injection
+      context = context || // cached call
+      this.$vnode && this.$vnode.ssrContext || // stateful
+      this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext; // functional
+      // 2.2 with runInNewContext: true
+
+      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
+        context = __VUE_SSR_CONTEXT__;
+      } // inject component styles
+
+
+      if (style) {
+        style.call(this, createInjectorSSR(context));
+      } // register component module identifier for async chunk inference
+
+
+      if (context && context._registeredComponents) {
+        context._registeredComponents.add(moduleIdentifier);
+      }
+    }; // used by ssr in case component is cached and beforeCreate
+    // never gets called
+
+
+    options._ssrRegister = hook;
+  } else if (style) {
+    hook = shadowMode ? function (context) {
+      style.call(this, createInjectorShadow(context, this.$root.$options.shadowRoot));
+    } : function (context) {
+      style.call(this, createInjector(context));
+    };
+  }
+
+  if (hook) {
+    if (options.functional) {
+      // register for functional component in vue file
+      var originalRender = options.render;
+
+      options.render = function renderWithStyleInjection(h, context) {
+        hook.call(context);
+        return originalRender(h, context);
+      };
+    } else {
+      // inject component registration as beforeCreate hook
+      var existing = options.beforeCreate;
+      options.beforeCreate = existing ? [].concat(existing, hook) : [hook];
+    }
+  }
+
+  return script;
+}
+/* script */
+
+
+var LIcon_vue_script_ = LIcon_script;
+/* template */
+
+var LIcon_vue_render_ = function __vue_render__() {
+  var _vm = this;
+
+  var _h = _vm.$createElement;
+
+  var _c = _vm._self._c || _h;
+
+  return _c('div', [_vm._t("default")], 2);
+};
+
+var LIcon_vue_staticRenderFns_ = [];
+/* style */
+
+var LIcon_vue_inject_styles_ = undefined;
+/* scoped */
+
+var LIcon_vue_scope_id_ = undefined;
+/* module identifier */
+
+var LIcon_vue_module_identifier_ = undefined;
+/* functional template */
+
+var LIcon_vue_is_functional_template_ = false;
+/* style inject */
+
+/* style inject SSR */
+
+/* style inject shadow dom */
+
+var LIcon_vue_component_ = /*#__PURE__*/LIcon_normalizeComponent({
+  render: LIcon_vue_render_,
+  staticRenderFns: LIcon_vue_staticRenderFns_
+}, LIcon_vue_inject_styles_, LIcon_vue_script_, LIcon_vue_scope_id_, LIcon_vue_is_functional_template_, LIcon_vue_module_identifier_, false, undefined, undefined, undefined);
+
+/* harmony default export */ var LIcon = (LIcon_vue_component_);
+;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMarker.js
+
+
+
+
+
+
+
+
+
+
+var LMarker_debounce = function debounce(fn, time) {
+  var timeout;
+
+  var debouncedFunction = function debouncedFunction() {
+    var args = [],
+        len = arguments.length;
+
+    while (len--) {
+      args[len] = arguments[len];
+    }
+
+    var context = this;
+
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+
+    timeout = setTimeout(function () {
+      fn.apply(context, args);
+      timeout = null;
+    }, time);
+  };
+
+  debouncedFunction.cancel = function () {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  };
+
+  return debouncedFunction;
+};
+
+var LMarker_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
+  if (!string || typeof string.charAt !== 'function') {
+    return string;
+  }
+
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+var LMarker_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
+    var setMethodName = 'set' + LMarker_capitalizeFirstLetter(key);
+    var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
+
+    if (props[key].custom && vueElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        vueElement[setMethodName](newVal, oldVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (setMethodName === 'setOptions') {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        (0,leaflet_src.setOptions)(leafletElement, newVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (leafletElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        leafletElement[setMethodName](newVal);
+      }, {
+        deep: deepValue
+      });
+    }
+  };
+
+  for (var key in props) {
+    loop(key);
+  }
+};
+
+var LMarker_collectionCleaner = function collectionCleaner(options) {
+  var result = {};
+
+  for (var key in options) {
+    var value = options[key];
+
+    if (value !== null && value !== undefined) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+};
+
+var LMarker_optionsMerger = function optionsMerger(props, instance) {
+  var options = instance.options && instance.options.constructor === Object ? instance.options : {};
+  props = props && props.constructor === Object ? props : {};
+  var result = LMarker_collectionCleaner(options);
+  props = LMarker_collectionCleaner(props);
+  var defaultProps = instance.$options.props;
+
+  for (var key in props) {
+    var def = defaultProps[key] ? defaultProps[key].default && typeof defaultProps[key].default === 'function' ? defaultProps[key].default.call() : defaultProps[key].default : Symbol('unique');
+    var isEqual = false;
+
+    if (Array.isArray(def)) {
+      isEqual = JSON.stringify(def) === JSON.stringify(props[key]);
+    } else {
+      isEqual = def === props[key];
+    }
+
+    if (result[key] && !isEqual) {
+      console.warn(key + " props is overriding the value passed in the options props");
+      result[key] = props[key];
+    } else if (!result[key]) {
+      result[key] = props[key];
+    }
+  }
+
+  return result;
+};
+
+var LMarker_findRealParent = function findRealParent(firstVueParent) {
+  var found = false;
+
+  while (firstVueParent && !found) {
+    if (firstVueParent.mapObject === undefined) {
+      firstVueParent = firstVueParent.$parent;
+    } else {
+      found = true;
+    }
+  }
+
+  return firstVueParent;
+};
+
+var LMarker_Layer = {
+  props: {
+    pane: {
+      type: String,
+      default: 'overlayPane'
+    },
+    attribution: {
+      type: String,
+      default: null,
+      custom: true
+    },
+    name: {
+      type: String,
+      custom: true,
+      default: undefined
+    },
+    layerType: {
+      type: String,
+      custom: true,
+      default: undefined
+    },
+    visible: {
+      type: Boolean,
+      custom: true,
+      default: true
+    }
+  },
+  mounted: function mounted() {
+    this.layerOptions = {
+      attribution: this.attribution,
+      pane: this.pane
+    };
+  },
+  beforeDestroy: function beforeDestroy() {
+    this.unbindPopup();
+    this.unbindTooltip();
+    this.parentContainer.removeLayer(this);
+  },
+  methods: {
+    setAttribution: function setAttribution(val, old) {
+      var attributionControl = this.$parent.mapObject.attributionControl;
+      attributionControl.removeAttribution(old).addAttribution(val);
+    },
+    setName: function setName() {
+      this.parentContainer.removeLayer(this);
+
+      if (this.visible) {
+        this.parentContainer.addLayer(this);
+      }
+    },
+    setLayerType: function setLayerType() {
+      this.parentContainer.removeLayer(this);
+
+      if (this.visible) {
+        this.parentContainer.addLayer(this);
+      }
+    },
+    setVisible: function setVisible(isVisible) {
+      if (this.mapObject) {
+        if (isVisible) {
+          this.parentContainer.addLayer(this);
+        } else {
+          if (this.parentContainer.hideLayer) {
+            this.parentContainer.hideLayer(this);
+          } else {
+            this.parentContainer.removeLayer(this);
+          }
+        }
+      }
+    },
+    unbindTooltip: function unbindTooltip() {
+      var tooltip = this.mapObject ? this.mapObject.getTooltip() : null;
+
+      if (tooltip) {
+        tooltip.unbindTooltip();
+      }
+    },
+    unbindPopup: function unbindPopup() {
+      var popup = this.mapObject ? this.mapObject.getPopup() : null;
+
+      if (popup) {
+        popup.unbindPopup();
+      }
+    },
+    updateVisibleProp: function updateVisibleProp(value) {
+      /**
+       * Triggers when the visible prop needs to be updated
+       * @type {boolean}
+       * @property {boolean} value - value of the visible property
+       */
+      this.$emit('update:visible', value);
+    }
+  }
+};
+var LMarker_Options = {
+  props: {
+    /**
+     * Leaflet options to pass to the component constructor
+     */
+    options: {
+      type: Object,
+      default: function _default() {
+        return {};
+      }
+    }
+  }
+};
+/**
+ * Marker component, lets you add and personalize markers on the map
+ */
+
+var LMarker_script = {
+  name: 'LMarker',
+  mixins: [LMarker_Layer, LMarker_Options],
+  props: {
+    pane: {
+      type: String,
+      default: 'markerPane'
+    },
+    draggable: {
+      type: Boolean,
+      custom: true,
+      default: false
+    },
+    latLng: {
+      type: [Object, Array],
+      custom: true,
+      default: null
+    },
+    icon: {
+      type: [Object],
+      custom: false,
+      default: function _default() {
+        return new leaflet_src.Icon.Default();
+      }
+    },
+    opacity: {
+      type: Number,
+      custom: false,
+      default: 1.0
+    },
+    zIndexOffset: {
+      type: Number,
+      custom: false,
+      default: null
+    }
+  },
+  data: function data() {
+    return {
+      ready: false
+    };
+  },
+  beforeDestroy: function beforeDestroy() {
+    if (this.debouncedLatLngSync) {
+      this.debouncedLatLngSync.cancel();
+    }
+  },
+  mounted: function mounted() {
+    var this$1 = this;
+    var options = LMarker_optionsMerger(Object.assign({}, this.layerOptions, {
+      icon: this.icon,
+      zIndexOffset: this.zIndexOffset,
+      draggable: this.draggable,
+      opacity: this.opacity
+    }), this);
+    this.mapObject = (0,leaflet_src.marker)(this.latLng, options);
+    leaflet_src.DomEvent.on(this.mapObject, this.$listeners);
+    this.debouncedLatLngSync = LMarker_debounce(this.latLngSync, 100);
+    this.mapObject.on('move', this.debouncedLatLngSync);
+    LMarker_propsBinder(this, this.mapObject, this.$options.props);
+    this.parentContainer = LMarker_findRealParent(this.$parent);
+    this.parentContainer.addLayer(this, !this.visible);
+    this.ready = true;
+    this.$nextTick(function () {
+      /**
+       * Triggers when the component is ready
+       * @type {object}
+       * @property {object} mapObject - reference to leaflet map object
+       */
+      this$1.$emit('ready', this$1.mapObject);
+    });
+  },
+  methods: {
+    setDraggable: function setDraggable(newVal, oldVal) {
+      if (this.mapObject.dragging) {
+        newVal ? this.mapObject.dragging.enable() : this.mapObject.dragging.disable();
+      }
+    },
+    setLatLng: function setLatLng(newVal) {
+      if (newVal == null) {
+        return;
+      }
+
+      if (this.mapObject) {
+        var oldLatLng = this.mapObject.getLatLng();
+        var newLatLng = (0,leaflet_src.latLng)(newVal);
+
+        if (newLatLng.lat !== oldLatLng.lat || newLatLng.lng !== oldLatLng.lng) {
+          this.mapObject.setLatLng(newLatLng);
+        }
+      }
+    },
+    latLngSync: function latLngSync(event) {
+      this.$emit('update:latLng', event.latlng);
+      this.$emit('update:lat-lng', event.latlng);
+    }
+  },
+  render: function render(h) {
+    if (this.ready && this.$slots.default) {
+      return h('div', {
+        style: {
+          display: 'none'
+        }
+      }, this.$slots.default);
+    }
+
+    return null;
+  }
+};
+
+function LMarker_normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
+/* server only */
+, shadowMode, createInjector, createInjectorSSR, createInjectorShadow) {
+  if (typeof shadowMode !== 'boolean') {
+    createInjectorSSR = createInjector;
+    createInjector = shadowMode;
+    shadowMode = false;
+  } // Vue.extend constructor export interop.
+
+
+  var options = typeof script === 'function' ? script.options : script; // render functions
+
+  if (template && template.render) {
+    options.render = template.render;
+    options.staticRenderFns = template.staticRenderFns;
+    options._compiled = true; // functional template
+
+    if (isFunctionalTemplate) {
+      options.functional = true;
+    }
+  } // scopedId
+
+
+  if (scopeId) {
+    options._scopeId = scopeId;
+  }
+
+  var hook;
+
+  if (moduleIdentifier) {
+    // server build
+    hook = function hook(context) {
+      // 2.3 injection
+      context = context || // cached call
+      this.$vnode && this.$vnode.ssrContext || // stateful
+      this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext; // functional
+      // 2.2 with runInNewContext: true
+
+      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
+        context = __VUE_SSR_CONTEXT__;
+      } // inject component styles
+
+
+      if (style) {
+        style.call(this, createInjectorSSR(context));
+      } // register component module identifier for async chunk inference
+
+
+      if (context && context._registeredComponents) {
+        context._registeredComponents.add(moduleIdentifier);
+      }
+    }; // used by ssr in case component is cached and beforeCreate
+    // never gets called
+
+
+    options._ssrRegister = hook;
+  } else if (style) {
+    hook = shadowMode ? function (context) {
+      style.call(this, createInjectorShadow(context, this.$root.$options.shadowRoot));
+    } : function (context) {
+      style.call(this, createInjector(context));
+    };
+  }
+
+  if (hook) {
+    if (options.functional) {
+      // register for functional component in vue file
+      var originalRender = options.render;
+
+      options.render = function renderWithStyleInjection(h, context) {
+        hook.call(context);
+        return originalRender(h, context);
+      };
+    } else {
+      // inject component registration as beforeCreate hook
+      var existing = options.beforeCreate;
+      options.beforeCreate = existing ? [].concat(existing, hook) : [hook];
+    }
+  }
+
+  return script;
+}
+/* script */
+
+
+var LMarker_vue_script_ = LMarker_script;
+/* template */
+
+/* style */
+
+var LMarker_vue_inject_styles_ = undefined;
+/* scoped */
+
+var LMarker_vue_scope_id_ = undefined;
+/* module identifier */
+
+var LMarker_vue_module_identifier_ = undefined;
+/* functional template */
+
+var LMarker_vue_is_functional_template_ = undefined;
+/* style inject */
+
+/* style inject SSR */
+
+/* style inject shadow dom */
+
+var LMarker_vue_component_ = /*#__PURE__*/LMarker_normalizeComponent({}, LMarker_vue_inject_styles_, LMarker_vue_script_, LMarker_vue_scope_id_, LMarker_vue_is_functional_template_, LMarker_vue_module_identifier_, false, undefined, undefined, undefined);
+
+/* harmony default export */ var LMarker = (LMarker_vue_component_);
 // EXTERNAL MODULE: ./node_modules/axios/index.js
 var axios = __webpack_require__(6166);
 var axios_default = /*#__PURE__*/__webpack_require__.n(axios);
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayWithHoles.js
+function _arrayWithHoles(arr) {
+  if (Array.isArray(arr)) return arr;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.iterator.js
+var es_symbol_iterator = __webpack_require__(2165);
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/iterableToArrayLimit.js
+
+
+
+
+
+
+
+function _iterableToArrayLimit(arr, i) {
+  var _i = arr == null ? null : typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"];
+
+  if (_i == null) return;
+  var _arr = [];
+  var _n = true;
+  var _d = false;
+
+  var _s, _e;
+
+  try {
+    for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) {
+      _arr.push(_s.value);
+
+      if (i && _arr.length === i) break;
+    }
+  } catch (err) {
+    _d = true;
+    _e = err;
+  } finally {
+    try {
+      if (!_n && _i["return"] != null) _i["return"]();
+    } finally {
+      if (_d) throw _e;
+    }
+  }
+
+  return _arr;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.from.js
+var es_array_from = __webpack_require__(1038);
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayLikeToArray.js
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+
+  for (var i = 0, arr2 = new Array(len); i < len; i++) {
+    arr2[i] = arr[i];
+  }
+
+  return arr2;
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/unsupportedIterableToArray.js
+
+
+
+
+
+
+
+
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/nonIterableRest.js
+
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/slicedToArray.js
+
+
+
+
+function _slicedToArray(arr, i) {
+  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/createForOfIteratorHelper.js
+
+
+
+
+
+
+
+
+
+function _createForOfIteratorHelper(o, allowArrayLike) {
+  var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+
+  if (!it) {
+    if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+      if (it) o = it;
+      var i = 0;
+
+      var F = function F() {};
+
+      return {
+        s: F,
+        n: function n() {
+          if (i >= o.length) return {
+            done: true
+          };
+          return {
+            done: false,
+            value: o[i++]
+          };
+        },
+        e: function e(_e) {
+          throw _e;
+        },
+        f: F
+      };
+    }
+
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
+  var normalCompletion = true,
+      didErr = false,
+      err;
+  return {
+    s: function s() {
+      it = it.call(o);
+    },
+    n: function n() {
+      var step = it.next();
+      normalCompletion = step.done;
+      return step;
+    },
+    e: function e(_e2) {
+      didErr = true;
+      err = _e2;
+    },
+    f: function f() {
+      try {
+        if (!normalCompletion && it["return"] != null) it["return"]();
+      } finally {
+        if (didErr) throw err;
+      }
+    }
+  };
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/classCallCheck.js
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/createClass.js
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  Object.defineProperty(Constructor, "prototype", {
+    writable: false
+  });
+  return Constructor;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.math.fround.js
+var es_math_fround = __webpack_require__(4755);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.float32-array.js
+var es_typed_array_float32_array = __webpack_require__(4197);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.at.js
+var es_typed_array_at = __webpack_require__(8675);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.copy-within.js
+var es_typed_array_copy_within = __webpack_require__(2990);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.every.js
+var es_typed_array_every = __webpack_require__(8927);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.fill.js
+var es_typed_array_fill = __webpack_require__(3105);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.filter.js
+var es_typed_array_filter = __webpack_require__(5035);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.find.js
+var es_typed_array_find = __webpack_require__(4345);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.find-index.js
+var es_typed_array_find_index = __webpack_require__(7174);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.for-each.js
+var es_typed_array_for_each = __webpack_require__(2846);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.includes.js
+var es_typed_array_includes = __webpack_require__(4731);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.index-of.js
+var es_typed_array_index_of = __webpack_require__(7209);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.iterator.js
+var es_typed_array_iterator = __webpack_require__(6319);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.join.js
+var es_typed_array_join = __webpack_require__(8867);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.last-index-of.js
+var es_typed_array_last_index_of = __webpack_require__(7789);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.map.js
+var es_typed_array_map = __webpack_require__(3739);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.reduce.js
+var es_typed_array_reduce = __webpack_require__(9368);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.reduce-right.js
+var es_typed_array_reduce_right = __webpack_require__(4483);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.reverse.js
+var es_typed_array_reverse = __webpack_require__(2056);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.set.js
+var es_typed_array_set = __webpack_require__(4141);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.slice.js
+var es_typed_array_slice = __webpack_require__(678);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.some.js
+var es_typed_array_some = __webpack_require__(7462);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.sort.js
+var es_typed_array_sort = __webpack_require__(3824);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.subarray.js
+var es_typed_array_subarray = __webpack_require__(5021);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.to-locale-string.js
+var es_typed_array_to_locale_string = __webpack_require__(2974);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.to-string.js
+var es_typed_array_to_string = __webpack_require__(5016);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.float64-array.js
+var es_typed_array_float64_array = __webpack_require__(6495);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.uint16-array.js
+var es_typed_array_uint16_array = __webpack_require__(8255);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.uint32-array.js
+var es_typed_array_uint32_array = __webpack_require__(9135);
+;// CONCATENATED MODULE: ./node_modules/kdbush/src/sort.js
+function sortKD(ids, coords, nodeSize, left, right, depth) {
+  if (right - left <= nodeSize) return;
+  var m = left + right >> 1;
+  sort_select(ids, coords, m, left, right, depth % 2);
+  sortKD(ids, coords, nodeSize, left, m - 1, depth + 1);
+  sortKD(ids, coords, nodeSize, m + 1, right, depth + 1);
+}
+
+function sort_select(ids, coords, k, left, right, inc) {
+  while (right > left) {
+    if (right - left > 600) {
+      var n = right - left + 1;
+      var m = k - left + 1;
+      var z = Math.log(n);
+      var s = 0.5 * Math.exp(2 * z / 3);
+      var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+      var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+      var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+      sort_select(ids, coords, k, newLeft, newRight, inc);
+    }
+
+    var t = coords[2 * k + inc];
+    var i = left;
+    var j = right;
+    swapItem(ids, coords, left, k);
+    if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
+
+    while (i < j) {
+      swapItem(ids, coords, i, j);
+      i++;
+      j--;
+
+      while (coords[2 * i + inc] < t) {
+        i++;
+      }
+
+      while (coords[2 * j + inc] > t) {
+        j--;
+      }
+    }
+
+    if (coords[2 * left + inc] === t) swapItem(ids, coords, left, j);else {
+      j++;
+      swapItem(ids, coords, j, right);
+    }
+    if (j <= k) left = j + 1;
+    if (k <= j) right = j - 1;
+  }
+}
+
+function swapItem(ids, coords, i, j) {
+  swap(ids, i, j);
+  swap(coords, 2 * i, 2 * j);
+  swap(coords, 2 * i + 1, 2 * j + 1);
+}
+
+function swap(arr, i, j) {
+  var tmp = arr[i];
+  arr[i] = arr[j];
+  arr[j] = tmp;
+}
+;// CONCATENATED MODULE: ./node_modules/kdbush/src/range.js
+function range_range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
+  var stack = [0, ids.length - 1, 0];
+  var result = [];
+  var x, y;
+
+  while (stack.length) {
+    var axis = stack.pop();
+    var right = stack.pop();
+    var left = stack.pop();
+
+    if (right - left <= nodeSize) {
+      for (var i = left; i <= right; i++) {
+        x = coords[2 * i];
+        y = coords[2 * i + 1];
+        if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
+      }
+
+      continue;
+    }
+
+    var m = Math.floor((left + right) / 2);
+    x = coords[2 * m];
+    y = coords[2 * m + 1];
+    if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
+    var nextAxis = (axis + 1) % 2;
+
+    if (axis === 0 ? minX <= x : minY <= y) {
+      stack.push(left);
+      stack.push(m - 1);
+      stack.push(nextAxis);
+    }
+
+    if (axis === 0 ? maxX >= x : maxY >= y) {
+      stack.push(m + 1);
+      stack.push(right);
+      stack.push(nextAxis);
+    }
+  }
+
+  return result;
+}
+;// CONCATENATED MODULE: ./node_modules/kdbush/src/within.js
+function within_within(ids, coords, qx, qy, r, nodeSize) {
+  var stack = [0, ids.length - 1, 0];
+  var result = [];
+  var r2 = r * r;
+
+  while (stack.length) {
+    var axis = stack.pop();
+    var right = stack.pop();
+    var left = stack.pop();
+
+    if (right - left <= nodeSize) {
+      for (var i = left; i <= right; i++) {
+        if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
+      }
+
+      continue;
+    }
+
+    var m = Math.floor((left + right) / 2);
+    var x = coords[2 * m];
+    var y = coords[2 * m + 1];
+    if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
+    var nextAxis = (axis + 1) % 2;
+
+    if (axis === 0 ? qx - r <= x : qy - r <= y) {
+      stack.push(left);
+      stack.push(m - 1);
+      stack.push(nextAxis);
+    }
+
+    if (axis === 0 ? qx + r >= x : qy + r >= y) {
+      stack.push(m + 1);
+      stack.push(right);
+      stack.push(nextAxis);
+    }
+  }
+
+  return result;
+}
+
+function sqDist(ax, ay, bx, by) {
+  var dx = ax - bx;
+  var dy = ay - by;
+  return dx * dx + dy * dy;
+}
+;// CONCATENATED MODULE: ./node_modules/kdbush/src/index.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var defaultGetX = function defaultGetX(p) {
+  return p[0];
+};
+
+var defaultGetY = function defaultGetY(p) {
+  return p[1];
+};
+
+var KDBush = /*#__PURE__*/function () {
+  function KDBush(points) {
+    var getX = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : defaultGetX;
+    var getY = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : defaultGetY;
+    var nodeSize = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 64;
+    var ArrayType = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : Float64Array;
+
+    _classCallCheck(this, KDBush);
+
+    this.nodeSize = nodeSize;
+    this.points = points;
+    var IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
+    var ids = this.ids = new IndexArrayType(points.length);
+    var coords = this.coords = new ArrayType(points.length * 2);
+
+    for (var i = 0; i < points.length; i++) {
+      ids[i] = i;
+      coords[2 * i] = getX(points[i]);
+      coords[2 * i + 1] = getY(points[i]);
+    }
+
+    sortKD(ids, coords, nodeSize, 0, ids.length - 1, 0);
+  }
+
+  _createClass(KDBush, [{
+    key: "range",
+    value: function range(minX, minY, maxX, maxY) {
+      return range_range(this.ids, this.coords, minX, minY, maxX, maxY, this.nodeSize);
+    }
+  }, {
+    key: "within",
+    value: function within(x, y, r) {
+      return within_within(this.ids, this.coords, x, y, r, this.nodeSize);
+    }
+  }]);
+
+  return KDBush;
+}();
+
+
+;// CONCATENATED MODULE: ./node_modules/supercluster/index.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var defaultOptions = {
+  minZoom: 0,
+  // min zoom to generate clusters on
+  maxZoom: 16,
+  // max zoom level to cluster the points on
+  minPoints: 2,
+  // minimum points to form a cluster
+  radius: 40,
+  // cluster radius in pixels
+  extent: 512,
+  // tile extent (radius is calculated relative to it)
+  nodeSize: 64,
+  // size of the KD-tree leaf node, affects performance
+  log: false,
+  // whether to log timing info
+  // whether to generate numeric ids for input features (in vector tiles)
+  generateId: false,
+  // a reduce function for calculating custom cluster properties
+  reduce: null,
+  // (accumulated, props) => { accumulated.sum += props.sum; }
+  // properties to use for individual points when running the reducer
+  map: function map(props) {
+    return props;
+  } // props => ({sum: props.my_value})
+
+};
+
+var fround = Math.fround || function (tmp) {
+  return function (x) {
+    tmp[0] = +x;
+    return tmp[0];
+  };
+}(new Float32Array(1));
+
+var Supercluster = /*#__PURE__*/function () {
+  function Supercluster(options) {
+    _classCallCheck(this, Supercluster);
+
+    this.options = extend(Object.create(defaultOptions), options);
+    this.trees = new Array(this.options.maxZoom + 1);
+  }
+
+  _createClass(Supercluster, [{
+    key: "load",
+    value: function load(points) {
+      var _this$options = this.options,
+          log = _this$options.log,
+          minZoom = _this$options.minZoom,
+          maxZoom = _this$options.maxZoom,
+          nodeSize = _this$options.nodeSize;
+      if (log) console.time('total time');
+      var timerId = "prepare ".concat(points.length, " points");
+      if (log) console.time(timerId);
+      this.points = points; // generate a cluster object for each point and index input points into a KD-tree
+
+      var clusters = [];
+
+      for (var i = 0; i < points.length; i++) {
+        if (!points[i].geometry) continue;
+        clusters.push(createPointCluster(points[i], i));
+      }
+
+      this.trees[maxZoom + 1] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
+      if (log) console.timeEnd(timerId); // cluster points on max zoom, then cluster the results on previous zoom, etc.;
+      // results in a cluster hierarchy across zoom levels
+
+      for (var z = maxZoom; z >= minZoom; z--) {
+        var now = +Date.now(); // create a new set of clusters for the zoom and index them with a KD-tree
+
+        clusters = this._cluster(clusters, z);
+        this.trees[z] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
+        if (log) console.log('z%d: %d clusters in %dms', z, clusters.length, +Date.now() - now);
+      }
+
+      if (log) console.timeEnd('total time');
+      return this;
+    }
+  }, {
+    key: "getClusters",
+    value: function getClusters(bbox, zoom) {
+      var minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180;
+      var minLat = Math.max(-90, Math.min(90, bbox[1]));
+      var maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
+      var maxLat = Math.max(-90, Math.min(90, bbox[3]));
+
+      if (bbox[2] - bbox[0] >= 360) {
+        minLng = -180;
+        maxLng = 180;
+      } else if (minLng > maxLng) {
+        var easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom);
+        var westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+        return easternHem.concat(westernHem);
+      }
+
+      var tree = this.trees[this._limitZoom(zoom)];
+
+      var ids = tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat));
+      var clusters = [];
+
+      var _iterator = _createForOfIteratorHelper(ids),
+          _step;
+
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var id = _step.value;
+          var c = tree.points[id];
+          clusters.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+
+      return clusters;
+    }
+  }, {
+    key: "getChildren",
+    value: function getChildren(clusterId) {
+      var originId = this._getOriginId(clusterId);
+
+      var originZoom = this._getOriginZoom(clusterId);
+
+      var errorMsg = 'No cluster with the specified id.';
+      var index = this.trees[originZoom];
+      if (!index) throw new Error(errorMsg);
+      var origin = index.points[originId];
+      if (!origin) throw new Error(errorMsg);
+      var r = this.options.radius / (this.options.extent * Math.pow(2, originZoom - 1));
+      var ids = index.within(origin.x, origin.y, r);
+      var children = [];
+
+      var _iterator2 = _createForOfIteratorHelper(ids),
+          _step2;
+
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var id = _step2.value;
+          var c = index.points[id];
+
+          if (c.parentId === clusterId) {
+            children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+          }
+        }
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
+
+      if (children.length === 0) throw new Error(errorMsg);
+      return children;
+    }
+  }, {
+    key: "getLeaves",
+    value: function getLeaves(clusterId, limit, offset) {
+      limit = limit || 10;
+      offset = offset || 0;
+      var leaves = [];
+
+      this._appendLeaves(leaves, clusterId, limit, offset, 0);
+
+      return leaves;
+    }
+  }, {
+    key: "getTile",
+    value: function getTile(z, x, y) {
+      var tree = this.trees[this._limitZoom(z)];
+
+      var z2 = Math.pow(2, z);
+      var _this$options2 = this.options,
+          extent = _this$options2.extent,
+          radius = _this$options2.radius;
+      var p = radius / extent;
+      var top = (y - p) / z2;
+      var bottom = (y + 1 + p) / z2;
+      var tile = {
+        features: []
+      };
+
+      this._addTileFeatures(tree.range((x - p) / z2, top, (x + 1 + p) / z2, bottom), tree.points, x, y, z2, tile);
+
+      if (x === 0) {
+        this._addTileFeatures(tree.range(1 - p / z2, top, 1, bottom), tree.points, z2, y, z2, tile);
+      }
+
+      if (x === z2 - 1) {
+        this._addTileFeatures(tree.range(0, top, p / z2, bottom), tree.points, -1, y, z2, tile);
+      }
+
+      return tile.features.length ? tile : null;
+    }
+  }, {
+    key: "getClusterExpansionZoom",
+    value: function getClusterExpansionZoom(clusterId) {
+      var expansionZoom = this._getOriginZoom(clusterId) - 1;
+
+      while (expansionZoom <= this.options.maxZoom) {
+        var children = this.getChildren(clusterId);
+        expansionZoom++;
+        if (children.length !== 1) break;
+        clusterId = children[0].properties.cluster_id;
+      }
+
+      return expansionZoom;
+    }
+  }, {
+    key: "_appendLeaves",
+    value: function _appendLeaves(result, clusterId, limit, offset, skipped) {
+      var children = this.getChildren(clusterId);
+
+      var _iterator3 = _createForOfIteratorHelper(children),
+          _step3;
+
+      try {
+        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+          var child = _step3.value;
+          var props = child.properties;
+
+          if (props && props.cluster) {
+            if (skipped + props.point_count <= offset) {
+              // skip the whole cluster
+              skipped += props.point_count;
+            } else {
+              // enter the cluster
+              skipped = this._appendLeaves(result, props.cluster_id, limit, offset, skipped); // exit the cluster
+            }
+          } else if (skipped < offset) {
+            // skip a single point
+            skipped++;
+          } else {
+            // add a single point
+            result.push(child);
+          }
+
+          if (result.length === limit) break;
+        }
+      } catch (err) {
+        _iterator3.e(err);
+      } finally {
+        _iterator3.f();
+      }
+
+      return skipped;
+    }
+  }, {
+    key: "_addTileFeatures",
+    value: function _addTileFeatures(ids, points, x, y, z2, tile) {
+      var _iterator4 = _createForOfIteratorHelper(ids),
+          _step4;
+
+      try {
+        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+          var i = _step4.value;
+          var c = points[i];
+          var isCluster = c.numPoints;
+          var tags = void 0,
+              px = void 0,
+              py = void 0;
+
+          if (isCluster) {
+            tags = getClusterProperties(c);
+            px = c.x;
+            py = c.y;
+          } else {
+            var p = this.points[c.index];
+            tags = p.properties;
+            px = lngX(p.geometry.coordinates[0]);
+            py = latY(p.geometry.coordinates[1]);
+          }
+
+          var f = {
+            type: 1,
+            geometry: [[Math.round(this.options.extent * (px * z2 - x)), Math.round(this.options.extent * (py * z2 - y))]],
+            tags: tags
+          }; // assign id
+
+          var id = void 0;
+
+          if (isCluster) {
+            id = c.id;
+          } else if (this.options.generateId) {
+            // optionally generate id
+            id = c.index;
+          } else if (this.points[c.index].id) {
+            // keep id if already assigned
+            id = this.points[c.index].id;
+          }
+
+          if (id !== undefined) f.id = id;
+          tile.features.push(f);
+        }
+      } catch (err) {
+        _iterator4.e(err);
+      } finally {
+        _iterator4.f();
+      }
+    }
+  }, {
+    key: "_limitZoom",
+    value: function _limitZoom(z) {
+      return Math.max(this.options.minZoom, Math.min(Math.floor(+z), this.options.maxZoom + 1));
+    }
+  }, {
+    key: "_cluster",
+    value: function _cluster(points, zoom) {
+      var clusters = [];
+      var _this$options3 = this.options,
+          radius = _this$options3.radius,
+          extent = _this$options3.extent,
+          reduce = _this$options3.reduce,
+          minPoints = _this$options3.minPoints;
+      var r = radius / (extent * Math.pow(2, zoom)); // loop through each point
+
+      for (var i = 0; i < points.length; i++) {
+        var p = points[i]; // if we've already visited the point at this zoom level, skip it
+
+        if (p.zoom <= zoom) continue;
+        p.zoom = zoom; // find all nearby points
+
+        var tree = this.trees[zoom + 1];
+        var neighborIds = tree.within(p.x, p.y, r);
+        var numPointsOrigin = p.numPoints || 1;
+        var numPoints = numPointsOrigin; // count the number of points in a potential cluster
+
+        var _iterator5 = _createForOfIteratorHelper(neighborIds),
+            _step5;
+
+        try {
+          for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+            var _neighborId2 = _step5.value;
+            var _b2 = tree.points[_neighborId2]; // filter out neighbors that are already processed
+
+            if (_b2.zoom > zoom) numPoints += _b2.numPoints || 1;
+          } // if there were neighbors to merge, and there are enough points to form a cluster
+
+        } catch (err) {
+          _iterator5.e(err);
+        } finally {
+          _iterator5.f();
+        }
+
+        if (numPoints > numPointsOrigin && numPoints >= minPoints) {
+          var wx = p.x * numPointsOrigin;
+          var wy = p.y * numPointsOrigin;
+          var clusterProperties = reduce && numPointsOrigin > 1 ? this._map(p, true) : null; // encode both zoom and point index on which the cluster originated -- offset by total length of features
+
+          var id = (i << 5) + (zoom + 1) + this.points.length;
+
+          var _iterator6 = _createForOfIteratorHelper(neighborIds),
+              _step6;
+
+          try {
+            for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+              var neighborId = _step6.value;
+              var b = tree.points[neighborId];
+              if (b.zoom <= zoom) continue;
+              b.zoom = zoom; // save the zoom (so it doesn't get processed twice)
+
+              var numPoints2 = b.numPoints || 1;
+              wx += b.x * numPoints2; // accumulate coordinates for calculating weighted center
+
+              wy += b.y * numPoints2;
+              b.parentId = id;
+
+              if (reduce) {
+                if (!clusterProperties) clusterProperties = this._map(p, true);
+                reduce(clusterProperties, this._map(b));
+              }
+            }
+          } catch (err) {
+            _iterator6.e(err);
+          } finally {
+            _iterator6.f();
+          }
+
+          p.parentId = id;
+          clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
+        } else {
+          // left points as unclustered
+          clusters.push(p);
+
+          if (numPoints > 1) {
+            var _iterator7 = _createForOfIteratorHelper(neighborIds),
+                _step7;
+
+            try {
+              for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+                var _neighborId = _step7.value;
+                var _b = tree.points[_neighborId];
+                if (_b.zoom <= zoom) continue;
+                _b.zoom = zoom;
+                clusters.push(_b);
+              }
+            } catch (err) {
+              _iterator7.e(err);
+            } finally {
+              _iterator7.f();
+            }
+          }
+        }
+      }
+
+      return clusters;
+    } // get index of the point from which the cluster originated
+
+  }, {
+    key: "_getOriginId",
+    value: function _getOriginId(clusterId) {
+      return clusterId - this.points.length >> 5;
+    } // get zoom of the point from which the cluster originated
+
+  }, {
+    key: "_getOriginZoom",
+    value: function _getOriginZoom(clusterId) {
+      return (clusterId - this.points.length) % 32;
+    }
+  }, {
+    key: "_map",
+    value: function _map(point, clone) {
+      if (point.numPoints) {
+        return clone ? extend({}, point.properties) : point.properties;
+      }
+
+      var original = this.points[point.index].properties;
+      var result = this.options.map(original);
+      return clone && result === original ? extend({}, result) : result;
+    }
+  }]);
+
+  return Supercluster;
+}();
+
+
+
+function createCluster(x, y, id, numPoints, properties) {
+  return {
+    x: fround(x),
+    // weighted cluster center; round for consistency with Float32Array index
+    y: fround(y),
+    zoom: Infinity,
+    // the last zoom the cluster was processed at
+    id: id,
+    // encodes index of the first child of the cluster and its zoom level
+    parentId: -1,
+    // parent cluster id
+    numPoints: numPoints,
+    properties: properties
+  };
+}
+
+function createPointCluster(p, id) {
+  var _p$geometry$coordinat = _slicedToArray(p.geometry.coordinates, 2),
+      x = _p$geometry$coordinat[0],
+      y = _p$geometry$coordinat[1];
+
+  return {
+    x: fround(lngX(x)),
+    // projected point coordinates
+    y: fround(latY(y)),
+    zoom: Infinity,
+    // the last zoom the point was processed at
+    index: id,
+    // index of the source feature in the original input array,
+    parentId: -1 // parent cluster id
+
+  };
+}
+
+function getClusterJSON(cluster) {
+  return {
+    type: 'Feature',
+    id: cluster.id,
+    properties: getClusterProperties(cluster),
+    geometry: {
+      type: 'Point',
+      coordinates: [xLng(cluster.x), yLat(cluster.y)]
+    }
+  };
+}
+
+function getClusterProperties(cluster) {
+  var count = cluster.numPoints;
+  var abbrev = count >= 10000 ? "".concat(Math.round(count / 1000), "k") : count >= 1000 ? "".concat(Math.round(count / 100) / 10, "k") : count;
+  return extend(extend({}, cluster.properties), {
+    cluster: true,
+    cluster_id: cluster.id,
+    point_count: count,
+    point_count_abbreviated: abbrev
+  });
+} // longitude/latitude to spherical mercator in [0..1] range
+
+
+function lngX(lng) {
+  return lng / 360 + 0.5;
+}
+
+function latY(lat) {
+  var sin = Math.sin(lat * Math.PI / 180);
+  var y = 0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI;
+  return y < 0 ? 0 : y > 1 ? 1 : y;
+} // spherical mercator to longitude/latitude
+
+
+function xLng(x) {
+  return (x - 0.5) * 360;
+}
+
+function yLat(y) {
+  var y2 = (180 - y * 360) * Math.PI / 180;
+  return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
+}
+
+function extend(dest, src) {
+  for (var id in src) {
+    dest[id] = src[id];
+  }
+
+  return dest;
+}
+
+function getX(p) {
+  return p.x;
+}
+
+function getY(p) {
+  return p.y;
+}
 ;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-40[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=script&lang=js&
 
 
@@ -38255,7 +40875,24 @@ var axios_default = /*#__PURE__*/__webpack_require__.n(axios);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 // import L from 'leaflet';
+
 
 
 
@@ -38272,8 +40909,12 @@ leaflet_src.Icon.Default.mergeOptions({
   components: {
     LMap: LMap,
     LTileLayer: LTileLayer,
+    LLayerGroup: LLayerGroup,
     LCircleMarker: LCircleMarker,
-    LPopup: LPopup
+    LPopup: LPopup,
+    LIcon: LIcon,
+    LMarker: LMarker // LGeoJson
+
   },
   props: {
     // Propiedades de componentes
@@ -38285,7 +40926,7 @@ leaflet_src.Icon.Default.mergeOptions({
     code: String,
     base_url: String,
     // Propiedades que provienen del store
-    active_filters: Object,
+    active_filters: Array,
     info: Object,
     data: Object
   },
@@ -38298,29 +40939,32 @@ leaflet_src.Icon.Default.mergeOptions({
       center_default: [-33.472, -70.769],
       center: undefined,
       col_lat: undefined,
-      col_lon: undefined,
-      markers_data: {}
+      col_lng: undefined,
+      markers_data: {},
+      map: undefined,
+      circle: undefined,
+      clusters_markers: [],
+      index: []
     };
   },
   computed: {
-    markers: function markers() {
-      var _this = this;
-
-      if (!this.data.data || !this.col_lat || !this.col_lon) return [];
-      var markers = this.data.data.map(function (d) {
-        var lat = parseFloat(d[_this.col_lat].replace(/,/, '.'));
-        var lon = parseFloat(d[_this.col_lon].replace(/,/, '.'));
-        if (!lat || !lon) return;
-        return {
-          lat_lng: [lat, lon],
-          id: d.id,
-          data: _this.markers_data[d.id] || {},
-          has_data: !lodash_default().isEmpty(_this.markers_data[d.id])
-        };
-      }).filter(function (d) {
-        return d;
-      });
-      return markers;
+    markers_latlgn: function markers_latlgn() {
+      if (!this.data.data || !this.col_lat || !this.col_lng) return [];
+      return []; // let markers = this.data.data.map( d =>{
+      //     let lat;
+      //     let lon;
+      //     try {
+      //         lat = parseFloat(d[this.col_lat].replace(/,/, '.'));
+      //         lon = parseFloat(d[this.col_lng].replace(/,/, '.'));
+      //     } catch (error) {
+      //         console.log();
+      //         console.error(error);
+      //     }
+      //     if(!lat || !lon) return;
+      //     return [lat, lon];
+      // })
+      // .filter(d => d);      
+      // return markers;
     },
     visible_columns: function visible_columns() {
       if (!this.info.columns) return [];
@@ -38333,9 +40977,82 @@ leaflet_src.Icon.Default.mergeOptions({
         return d;
       });
       return visible_columns;
+    },
+    geo_json: function geo_json() {
+      var _this = this;
+
+      // Al recibir data, geo_json se construye a partir de esa data
+      // y las columnas configuradas como lat y lng
+      var geo_json = {
+        type: "FeatureCollection",
+        features: []
+      };
+      if (!this.data.data || !this.col_lat || !this.col_lng) return geo_json;
+      geo_json.features = this.data.data.map(function (d) {
+        try {
+          var lat = d[_this.col_lat];
+          var lng = d[_this.col_lng];
+          lat = typeof lat == 'string' ? parseFloat(d[_this.col_lat].replace(/,/, '.')) : lat;
+          lng = typeof lng == 'string' ? parseFloat(d[_this.col_lng].replace(/,/, '.')) : lng;
+          if (!lat || !lng) return;
+          var coordinates = [lng, lat]; // let coordinates = [marker.lat_lng[1],marker.lat_lng[0]];
+
+          return {
+            type: "Feature",
+            properties: {
+              id: d.id
+            },
+            geometry: {
+              type: "Point",
+              coordinates: coordinates
+            }
+          };
+        } catch (error) {
+          console.error(error);
+        }
+      });
+      return geo_json;
+    },
+    //Supercluster
+    clusters: function clusters() {
+      var clusters = this.clusters_markers.map(function (d) {
+        if (d.properties.cluster) {
+          var count = d.properties.point_count;
+          var size = count < 100 ? 'small' : count < 1000 ? 'medium' : 'large';
+          return {
+            lat_lng: [d.geometry.coordinates[1], d.geometry.coordinates[0]],
+            properties: d.properties,
+            size: size
+          };
+        }
+      }).filter(function (d) {
+        return d;
+      });
+      return clusters;
+    },
+    markers: function markers() {
+      var _this2 = this;
+
+      var markers = this.clusters_markers.map(function (d) {
+        if (!d.properties.cluster) {
+          return {
+            lat_lng: [d.geometry.coordinates[1], d.geometry.coordinates[0]],
+            id: d.properties.id,
+            data: _this2.markers_data[d.properties.id] || {},
+            has_data: !lodash_default().isEmpty(_this2.markers_data[d.properties.id])
+          };
+        }
+      }).filter(function (d) {
+        return d;
+      });
+      return markers;
     }
   },
   watch: {
+    geo_json: function geo_json() {
+      this.index.load(this.geo_json.features);
+      this.getClusterInfo();
+    },
     markers: function markers() {
       if (this.center_default != this.center) return;
       var total = this.markers.length;
@@ -38350,12 +41067,32 @@ leaflet_src.Icon.Default.mergeOptions({
   },
   created: function created() {
     this.center = this.center_default;
-    this.getMapConfiguration();
+    this.getMapConfiguration(); // Cuando geo_json es construido, se instancia Supercluster
+
+    this.index = new Supercluster({
+      radius: 40,
+      // clusterizar en un radio de (radio es relativo al zoom)
+      maxZoom: 17 // Maximo zoom a clusterizar
+
+    });
+    this.index.load([]);
   },
   mounted: function mounted() {},
   methods: {
     ready: function ready() {
       this.setTileLayer();
+      this.map = this.$refs.myMap.mapObject;
+      /*
+      let circlemarker = this.$refs.circlemarker;
+      this.circle = this.$refs.circlemarker;
+                let bounds = this.map.getBounds();
+      console.log(bounds);
+      console.log(this.geoJson);
+      console.log(circlemarker);
+      console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
+      this.map.on('update', this.getClusterInfo());
+      this.map.on('update', console.log('w'));
+      this.map.on('moveend', console.log('a'));*/
     },
     getPopupData: function getPopupData(marker, col) {
       return marker.data[col.id] === 'NULL' ? '-' : marker.data[col.id];
@@ -38364,7 +41101,7 @@ leaflet_src.Icon.Default.mergeOptions({
       this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     },
     getMarkerData: function getMarkerData(marker) {
-      var _this2 = this;
+      var _this3 = this;
 
       var url = "".concat(this.base_url, "/entity/data/").concat(this.entity_type_id, "/").concat(marker.id, "?page=1");
       axios_default().get(url).then(function (response) {
@@ -38372,7 +41109,7 @@ leaflet_src.Icon.Default.mergeOptions({
           var all_data = response.data.content;
           var marker_data = lodash_default().first(all_data.data) || {};
 
-          _this2.$set(_this2.markers_data, marker.id, marker_data);
+          _this3.$set(_this3.markers_data, marker.id, marker_data);
         } catch (error) {
           console.error(error);
         }
@@ -38383,18 +41120,16 @@ leaflet_src.Icon.Default.mergeOptions({
       });
     },
     getMapConfiguration: function getMapConfiguration() {
-      var _this3 = this;
+      var _this4 = this;
 
       //data
-      var url = "".concat(this.base_url || '').concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias"); //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
-      //
+      var url = "".concat(this.base_url).concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias"); //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
 
-      console.log(url);
       /*
       let data = this.getDataFrom(url);
               console.log('confMap-------------------------');
               console.log(data);
-          return data;
+      return data;
       },
       async getDataFrom(url){*/
 
@@ -38404,8 +41139,8 @@ leaflet_src.Icon.Default.mergeOptions({
         try {
           all_data = response.data.content;
           data = lodash_default().first(all_data.data);
-          _this3.col_lon = data.sh_map_column_longitude;
-          _this3.col_lat = data.sh_map_column_latitude;
+          _this4.col_lng = data.sh_map_column_longitude;
+          _this4.col_lat = data.sh_map_column_latitude;
         } catch (error) {
           console.error(error);
         }
@@ -38415,15 +41150,34 @@ leaflet_src.Icon.Default.mergeOptions({
         console.log('done data');
       }); //        console.log(data);
       // return data || undefined;
+    },
+    getClusterInfo: function getClusterInfo() {
+      console.log('getClusterInfo');
+      var bounds = this.map.getBounds();
+      var bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+      var zoom = this.map.getZoom();
+      var clusters_markers = this.index.getClusters(bbox, zoom);
+      this.clusters_markers = clusters_markers; //markers.clearLayers();
+      //markers.addData(clusters);
+
+      /*let circle = this.$refs.circlemarker;
+      if (this.$refs.circlemarker != undefined) {
+          console.log('circle--------');
+          console.log(circle[0].circleOptions);
+          console.log(circle[0].mapObject);
+          console.log(circle);
+          //this.markers.clearLayers();
+          console.log('circle');
+      }*/
     }
   }
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=7c4bd040&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=19761f3d&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=7c4bd040&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=19761f3d&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -38540,7 +41294,7 @@ var component = componentNormalizer_normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "7c4bd040",
+  "19761f3d",
   null
   
 )

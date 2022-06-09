@@ -145,7 +145,7 @@ export default {
     endpoint_config: String,
     code: String,
     base_url: String,
-    active_filters: Object,
+    active_filters: Array,
     info: Object,
     data: Object,
     data_pivots: {
@@ -266,7 +266,7 @@ export default {
     },
   },
 };
-</script>
+</script>Realizar llamados de aplicación capas
 
 <style scoped>
 .btn-outline-second {
