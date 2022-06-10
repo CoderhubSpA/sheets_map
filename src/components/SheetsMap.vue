@@ -118,7 +118,7 @@ export default {
             map             : undefined,
             circle          : undefined,
             clusters_markers: [],
-            active_filters  : [],
+            bounds_filters  : [],
             index           : []
         };
     },
@@ -375,14 +375,14 @@ export default {
             let bounds   = this.map.getBounds();
             let all_col  = this.info.columns;
 
-            let active_filters = all_col.filter((columns)=>{
+            let bounds_filters = all_col.filter((columns)=>{
                 if (columns.id == this.col_lat || columns.id == this.col_lng) {
                     return columns;
                 }
             }).map((columns,key)=>{
                 let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
                 let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
-                let active_filter = {
+                let bounds_filter = {
                     "column": columns,
                     "id": "external-filter-"+columns.id,
                     "order": key+1,
@@ -392,9 +392,9 @@ export default {
                     },
                     "type": "BETWEEN"
                 };
-                return active_filter;
+                return bounds_filter;
             });
-            this.active_filters = active_filters;
+            this.bounds_filters = bounds_filters;
         }
     }
 }
