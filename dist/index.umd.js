@@ -36368,8 +36368,8 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=19761f3d&scoped=true&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo()}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2)],1)],1),_c('div',[_c('h3',[_vm._v("Sheets Map!!!")]),_c('ul',[_c('li',[_vm._v("id: "+_vm._s(_vm.id)+" ")]),_c('li',[_vm._v("entity_type_id: "+_vm._s(_vm.entity_type_id)+" ")]),_c('li',[_vm._v("config_entity_id: "+_vm._s(_vm.config_entity_id)+" ")]),_c('li',[_vm._v("endpoint_config: "+_vm._s(_vm.endpoint_config)+" ")]),_c('li',[_vm._v("code: "+_vm._s(_vm.code)+" ")]),_c('li',[_vm._v("active_filters: "+_vm._s(_vm.active_filters)+" ")])])])])}
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=47357f6d&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){_vm.getClusterInfo(); _vm.findBounds();}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2)],1)],1),_c('div',[_c('h3',[_vm._v("Sheets Map!!!")]),_c('ul',[_c('li',[_vm._v("id: "+_vm._s(_vm.id)+" ")]),_c('li',[_vm._v("entity_type_id: "+_vm._s(_vm.entity_type_id)+" ")]),_c('li',[_vm._v("config_entity_id: "+_vm._s(_vm.config_entity_id)+" ")]),_c('li',[_vm._v("endpoint_config: "+_vm._s(_vm.endpoint_config)+" ")]),_c('li',[_vm._v("code: "+_vm._s(_vm.code)+" ")]),_c('li',[_vm._v("active_filters: "+_vm._s(_vm.active_filters)+" ")])])])])}
 var staticRenderFns = []
 
 
@@ -40945,7 +40945,7 @@ leaflet_src.Icon.Default.mergeOptions({
       // map: undefined,
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      zoom: 10,
+      zoom: 7,
       center_default: [-33.472, -70.769],
       center: undefined,
       col_lat: undefined,
@@ -40954,6 +40954,7 @@ leaflet_src.Icon.Default.mergeOptions({
       map: undefined,
       circle: undefined,
       clusters_markers: [],
+      bounds_filters: [],
       index: []
     };
   },
@@ -41020,6 +41021,8 @@ leaflet_src.Icon.Default.mergeOptions({
         } catch (error) {
           console.error(error);
         }
+      }).filter(function (d) {
+        return d;
       });
       return geo_json;
     },
@@ -41179,15 +41182,41 @@ leaflet_src.Icon.Default.mergeOptions({
           //this.markers.clearLayers();
           console.log('circle');
       }*/
+    },
+    findBounds: function findBounds() {
+      var _this5 = this;
+
+      var bounds = this.map.getBounds();
+      var all_col = this.info.columns;
+      var bounds_filters = all_col.filter(function (columns) {
+        if (columns.id == _this5.col_lat || columns.id == _this5.col_lng) {
+          return columns;
+        }
+      }).map(function (columns, key) {
+        var start = columns.id == _this5.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
+        var end = columns.id == _this5.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
+        var bounds_filter = {
+          "column": columns,
+          "id": "external-filter-" + columns.id,
+          "order": key + 1,
+          "search": {
+            "start": start,
+            "end": end
+          },
+          "type": "BETWEEN"
+        };
+        return bounds_filter;
+      });
+      this.bounds_filters = bounds_filters;
     }
   }
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=19761f3d&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=47357f6d&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=19761f3d&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=47357f6d&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -41304,7 +41333,7 @@ var component = componentNormalizer_normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "19761f3d",
+  "47357f6d",
   null
   
 )
