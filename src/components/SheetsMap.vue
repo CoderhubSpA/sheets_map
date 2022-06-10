@@ -109,16 +109,17 @@ export default {
             url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom: 10,
-            center_default : [-33.472 , -70.769],
-            center : undefined,
-            col_lat :undefined,
-            col_lng :undefined,
-            markers_data : {},
-            map : undefined,
-            circle : undefined,
-            clusters_markers:[],
-            index:[]
+            zoom            : 10,
+            center_default  : [-33.472 , -70.769],
+            center          : undefined,
+            col_lat         : undefined,
+            col_lng         : undefined,
+            markers_data    : {},
+            map             : undefined,
+            circle          : undefined,
+            clusters_markers: [],
+            active_filters  : [],
+            index           : []
         };
     },
     computed:{
@@ -269,18 +270,6 @@ export default {
     mounted(){
     },
     methods:{
-        findBounds(){
-            console.log('getBounds');
-            let bounds   = this.map.getBounds();
-            let all_col = this.info.columns;
-            let all_col_name = all_col.map((columns)=>{
-                return columns.alias;
-            });
-                console.log('circle--------');
-                console.log(bounds);
-                console.log(all_col_name);
-                console.log(this.info.columns);
-        },
         ready(){
             this.setTileLayer();
             this.map = this.$refs.myMap.mapObject;
@@ -381,6 +370,31 @@ export default {
                 console.log('circle');
             }*/
             
+        },
+        findBounds(){
+            let bounds   = this.map.getBounds();
+            let all_col  = this.info.columns;
+
+            let active_filters = all_col.filter((columns)=>{
+                if (columns.id == this.col_lat || columns.id == this.col_lng) {
+                    return columns;
+                }
+            }).map((columns,key)=>{
+                let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
+                let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
+                let active_filter = {
+                    "column": columns,
+                    "id": "external-filter-"+columns.id,
+                    "order": key+1,
+                    "search": {
+                        "start": start,
+                        "end": end
+                    },
+                    "type": "BETWEEN"
+                };
+                return active_filter;
+            });
+            this.active_filters = active_filters;
         }
     }
 }
