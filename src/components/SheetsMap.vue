@@ -109,7 +109,7 @@ export default {
             url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom            : 10,
+            zoom            : 7,
             center_default  : [-33.472 , -70.769],
             center          : undefined,
             col_lat         : undefined,
@@ -199,7 +199,7 @@ export default {
                 } catch (error) {
                     console.error(error);
                 }
-            });
+            }).filter( d => d);
             
             return geo_json;      
         },
