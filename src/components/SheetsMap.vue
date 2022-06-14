@@ -1,10 +1,13 @@
 <template>
     <div>
+        <button type="button" class="btn btn-filter" v-on:click="filter()">
+            Filtrar
+        </button>
         <div>
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
-                @ready="ready()" @moveend="getClusterInfo(); findBounds();" :zoom="zoom" :center="center" ref="myMap" class="myMap">
+                @ready="ready()" @moveend="getClusterInfo();" :zoom="zoom" :center="center" ref="myMap" class="myMap">
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
@@ -45,7 +48,7 @@
                         </l-popup>
                     </l-circle-marker>
                 </l-layer-group> 
-                <!--<l-geo-json :geojson="geoJson"></l-geo-json> -->
+                <l-geo-json v-if="analytic_geo_json != undefined" :geojson="analytic_geo_json"></l-geo-json>
             </l-map>
         </div>
         <div>
@@ -62,13 +65,15 @@
     </div>
         
 </template>
+<script src="https://unpkg.com/h3-js"></script>
 <script>
 // import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon } from 'vue2-leaflet';
+import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson } from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
+import {h3ToGeo} from "h3-js";
 import Supercluster from 'supercluster';
 
 delete Icon.Default.prototype._getIconUrl;
@@ -87,21 +92,24 @@ export default {
         LPopup,
         LIcon,
         LMarker,
-        // LGeoJson
+        LGeoJson
     },
     props: {
         // Propiedades de componentes
-        id              : String,
-        entity_type_id  : String,
-        config_entity_id: String,
+        id                   : String,
+        entity_type_id       : String,
+        config_entity_id     : String,
         config_entity_type_id: String,
-        endpoint_config : String,
-        code            : String,
-        base_url        : String,
+        endpoint_config      : String,
+        code                 : String,
+        base_url             : String,
         // Propiedades que provienen del store
-        active_filters  : Array,
-        info            : Object,
-        data            : Object
+        active_filters       : Array,
+        info                 : Object,
+        data                 : Object,
+        // SheetsMapTools
+        analytical_layer     : Array,
+        
     },
     data () {
         return {
@@ -109,17 +117,20 @@ export default {
             url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom            : 7,
-            center_default  : [-33.472 , -70.769],
-            center          : undefined,
-            col_lat         : undefined,
-            col_lng         : undefined,
-            markers_data    : {},
-            map             : undefined,
-            circle          : undefined,
-            clusters_markers: [],
-            bounds_filters  : [],
-            index           : []
+            zoom              : 7,
+            center_default    : [-33.472 , -70.769],
+            center            : undefined,
+            col_lat           : undefined,
+            col_lng           : undefined,
+            markers_data      : {},
+            map               : undefined,
+            circle            : undefined,
+            analytic_geo_json : undefined,
+            clusters_markers  : [],
+            bounds_filters    : [],
+            bounds            : [],
+            index             : [],
+            h3                : require("h3-js")
         };
     },
     computed:{
@@ -286,6 +297,113 @@ export default {
             this.map.on('update', this.getClusterInfo());
             this.map.on('update', console.log('w'));
             this.map.on('moveend', console.log('a'));*/
+        }, 
+        filter(){
+            this.findBounds();
+            this.getAnalyticalClusterGeoJson();
+        },        
+        getAnalyticalClusterGeoJson(){
+            if (!this.analytical_layer[0].active) {
+                this.analytic_geo_json = undefined; 
+            }else{
+                let bounds = this.map.getBounds();
+
+                let geojson_bounds = [
+                    [bounds._northEast.lng, bounds._northEast.lat],
+                    [bounds._southWest.lng, bounds._northEast.lat],
+                    [bounds._southWest.lng, bounds._southWest.lat],
+                    [bounds._northEast.lng, bounds._southWest.lat]
+                ];
+
+                var square_polygon = {
+                        "type": "Polygon",
+                        "coordinates": [geojson_bounds]
+                      };
+
+                var h = this.calculateH();
+                let polygon;
+                let square_feature;
+
+                var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h);
+                var filters    = this.getFilters(h3_indexes);
+                polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+
+                /*
+                //#agregar el cuadrado
+                square_feature = this.asFeature(null,square_polygon['coordinates'][0])
+                polygon        = this.asPolygon(polygon,[square_feature])
+                */
+                this.analytic_geo_json = polygon;
+            }
+
+        },
+        calculateH(){
+
+            var zoom = this.map.getZoom();
+            var h;
+            switch (zoom) {
+                case 1:
+                case 2:
+                case 3:{
+                    h = 1;
+                    break;
+                }
+                case 4:{
+                    h = 2;
+                    break;
+                }
+                case 5:
+                case 6:{
+                    h = 3;
+                    break;
+                }
+                case 7:{
+                    h = 4;
+                    break;
+                }
+                case 8:
+                case 9:{
+                    h = 5;
+                    break;
+                }
+                case 10:{
+                    h = 6;
+                    break;
+                }
+                case 11:
+                case 12:{
+                    h = 7;
+                    break;
+                }
+                case 13:{
+                    h = 8;
+                    break;
+                }
+
+                case 14:{
+                    h = 9;
+                    break;
+                }
+                case 15:
+                case 16:{
+                    h = 10;
+                    break;
+                }
+                case 17:{
+                    h = 11;
+                    break;
+                }
+                case 18:{
+                    h = 12;
+                    break;
+                }
+
+                default:{
+                    h = 1;
+                    break;
+                }
+            }
+            return h;
         },
         getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
@@ -354,6 +472,7 @@ export default {
             let bounds   = this.map.getBounds();
             let bbox     = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];      
             let zoom     = this.map.getZoom();
+
             let clusters_markers = this.index.getClusters(bbox, zoom);
             
             this.clusters_markers = clusters_markers;
@@ -372,6 +491,8 @@ export default {
             
         },
         findBounds(){
+            var h = this.map.getZoom();
+            console.log(h);
             let bounds   = this.map.getBounds();
             let all_col  = this.info.columns;
 
@@ -395,7 +516,145 @@ export default {
                 return bounds_filter;
             });
             this.bounds_filters = bounds_filters;
+        },       
+        //----------------------------------------------------------------------------------------------
+        // SCRIPT DE MAURICIO
+        //----------------------------------------------------------------------------------------------
+        //#Obtiene todos los pentagonos de h3 de resolucion h que estan contenidos dentro de un poligono.
+        //#Este incluye un nivel de vecinos para completar todos los espacios del poligono
+        polyfillNeighbors(polygon, h){
+
+            let polygons     = this.h3.polyfill(polygon, h, true);
+            let indexes      = [];
+            let unique_kring = {};
+            let poly;
+            let krings;
+            let kring;
+
+            for (let i = 0; i < polygons.length; i++) {
+                poly = polygons[i];
+                if (!unique_kring.hasOwnProperty(poly)){
+                    indexes.push(poly);
+                    unique_kring[poly] = null;
+                }
+            }
+            
+            for (let i = 0; i < polygons.length; i++) {
+                poly   = polygons[i];
+                krings = this.h3.kRing(poly, 1);
+                //#krings = h3.compact(krings)
+                for (let j = 0; j < krings.length; j++) {
+                    kring = krings[j];
+                    if (!unique_kring.hasOwnProperty(kring)){
+                        indexes.push(kring);
+                        unique_kring[kring] = null;
+                    }
+                }
+            }
+                
+            return indexes;
+        },
+
+        getFilters(indexes){
+            let filters_obj = {};
+            let filters     = [];
+            let index;
+            let r;
+            //indexes = h3.compact(indexes);
+            for (let i = 0; i < indexes.length; i++) {
+                index = indexes[i];
+                r     = this.h3.h3GetResolution(index);
+                if(!filters_obj.hasOwnProperty("h3r"+r)){
+                    filters_obj["h3r"+r] = [];
+                }
+                filters_obj["h3r"+r].push(index);
+            }
+            for (var key in filters_obj) {
+                filters.push({"column":key,"values":filters_obj[key]});
+            }
+            return filters;
+        },
+
+        //#Convierte una lista de Features en un FeatureCollection
+        asPolygon(obj,features){
+            if(obj == null){
+                obj = {
+                  "type": "FeatureCollection",
+                  "features": []
+                };
+            }
+            for(let i in features){
+                let feature = features[i];
+                obj['features'].push(feature);
+            }
+            return obj;
+        },
+
+        //#Convierte un arreglo de coordenadas en un objeto de tipo Feature
+        asFeature(obj, coordinates, properties = {}){
+            if(obj == null){
+
+                obj ={
+                      "type": "Feature",
+                      "properties": properties,
+                      "geometry": {
+                        "type": "Polygon",
+                        "coordinates": []
+                      }
+                    };
+            }
+
+            obj['geometry']['coordinates'].push(coordinates);
+            return obj;
+        },
+
+        isInt(value) {
+            return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
+        },
+
+        //#Dado un indice h3 (en hexadecimal o numérico), obtiene el pentagono que lo representa en formato feature
+        getBoundary(h3_index, properties = {}){
+            if (this.isInt(h3_index)){ //#si el indice es numérico, convertir a hexadecimal
+                h3_index = h3_index.toString(16);
+            }
+            let boundaries = this.h3.h3ToGeoBoundary(h3_index);
+            let res        = [];
+            for(let i in boundaries){
+                let boundary = boundaries[i];
+                let lat = boundary[0];
+                let lng = boundary[1];
+                res.push([lng, lat]);
+            }
+            res.push(res[0]);
+            return this.asFeature(null,res, properties);
+        },
+
+        //#obtiene todos los pentágonos hijos (contenidos) de un indice en h3
+        getChild(h3_index){
+            if(isinstance(h3_index, int)){
+                h3_index = h3_index.toString(16);
+            }
+            childs = this.h3.h3ToChildren(h3_index);
+            res = [];
+            for(let i in childs){
+                child = childs[i];
+                res.push(this.getBoundary(child));
+            }
+            return res;
+        },
+        //#Convierte un indice h3 en un objeto de tipo Feature
+        h3ToFeature(h3_indexes){
+            let features = [];
+            let index;
+            for(let i in h3_indexes){
+                index = h3_indexes[i];
+                features.push(this.getBoundary(index));
+            }
+            return features;
         }
+        //----------------------------------------------------------------------------------------------
+        // SCRIPT DE MAURICIO
+        //----------------------------------------------------------------------------------------------
     }
 }
 </script>
