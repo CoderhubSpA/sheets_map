@@ -254,6 +254,9 @@ export default {
             this.index.load(this.geo_json.features);
             this.getClusterInfo();
         },
+        analytic_geo_json(){
+            this.getAnalyticalClusterGeoJson();
+        },
         markers(){
             
             if(this.center_default != this.center) return;
