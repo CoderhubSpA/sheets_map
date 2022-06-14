@@ -18,10 +18,11 @@
     </div>
     <div>
       <div>
-        <b-dropdown
-          id="dropdown-dropleft"
+        <b-dropdown 
+          id="dropdown_cartography_base" 
           variant="btn-outline-second"
           dropleft
+          v-model ="dropdown_cartography_base"
         >
           <template #button-content>
             <svg
@@ -37,9 +38,9 @@
               />
             </svg>
           </template>
-          <b-dropdown-item
-            @click="getOption(option)"
-            v-for="option in cartography_base"
+          <b-dropdown-item 
+            @click="getOption(option)" 
+            v-for="option in dropdown_cartography_base.cartography_base"
             :key="option.key"
             :value="option.value"
             :class="{ 
@@ -53,7 +54,7 @@
     </div>
     <div>
       <div>
-        <b-dropdown
+        <b-dropdown 
           id="dropdown-dropleft"
           dropleft
           variant="btn-outline-second"
@@ -76,7 +77,7 @@
               />
             </svg>
           </template>
-          <b-dropdown-item
+          <b-dropdown-item 
             @click="getOption(option)"
             v-for="option in analytical_layer"
             :key="option.key"
@@ -115,7 +116,7 @@
               />
             </svg>
           </template>
-          <b-dropdown-item
+          <b-dropdown-item 
             @click="getOption(option)"
             v-for="option in operational_layer"
             :key="option.key"
@@ -161,10 +162,12 @@ export default {
     return {
       data_tools: [],
       data_tools_id: "",
-      cartography_base: [],
       analytical_layer: [],
       operational_layer: [],
       base_key : '',
+      dropdown_cartography_base: {
+         cartography_base: []
+      }
     };
   },
   watch: {
@@ -191,9 +194,17 @@ export default {
               option.active = !option_active_val;
               this.base_key = '';
           } else {
-            if (this.base_key == ''){
+             if (this.base_key == ''){
               option.active = !option_active_val
               this.base_key = option.key;
+            } else 
+              if (this.base_key !==  option.key){
+              let cb  = this.dropdown_cartography_base.cartography_base.find(
+                (elem) => elem.key == this.base_key
+              );
+               cb.active = option_active_val;
+               option.active = !option_active_val;
+               this.base_key = option.key
             } 
           }
         break;  
@@ -212,7 +223,7 @@ export default {
     getInfo(){
       let api_info = {};
       api_info = this.parseData(this.data_pivots, this.all_info);
-      this.cartography_base = api_info.filter((item) => item.type == "base");
+      this.dropdown_cartography_base.cartography_base = api_info.filter((item) => item.type == "base");
       this.analytical_layer = api_info.filter((item) => item.type == "analytic");
       this.operational_layer = api_info.filter((item) => item.type == "operative");
     },
