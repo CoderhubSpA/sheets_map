@@ -60,7 +60,7 @@ export default {
         data_pivots: {},
         all_info: {},
         //--------ESTO SE TIENE QUE SACAR---------
-        analytical_layer: [{"key":"cbc51ad4-def8-464f-86b0-908dfbff5a4f","type":"analytic","value":"Cluster","active":true}]
+        analytical_layer: [{"key":"cbc51ad4-def8-464f-86b0-908dfbff5a4f","type":"analytic","value":"Cluster","active":false}]
         //--------ESTO SE TIENE QUE SACAR---------
         };
     },

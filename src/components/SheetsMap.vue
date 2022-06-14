@@ -320,11 +320,12 @@ export default {
                         "coordinates": [geojson_bounds]
                       };
 
-                var h = this.calculateH();
+                var h3_zoom = this.calculateH3Zoom();
                 let polygon;
                 let square_feature;
 
-                var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h);
+                var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+                
                 var filters    = this.getFilters(h3_indexes);
                 polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
 
@@ -337,7 +338,7 @@ export default {
             }
 
         },
-        calculateH(){
+        calculateH3Zoom(){
 
             var zoom = this.map.getZoom();
             var h;
