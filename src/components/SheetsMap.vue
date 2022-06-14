@@ -108,7 +108,11 @@ export default {
         info                 : Object,
         data                 : Object,
         // SheetsMapTools
+        config               : Object, // Todas las capas
+        layers               : Object, // Todas las capas
         analytical_layer     : Array,
+        operational_layer    : Array,
+        base_layer           : String
         
     },
     data () {

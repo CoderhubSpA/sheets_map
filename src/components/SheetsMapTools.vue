@@ -164,7 +164,7 @@ export default {
       data_tools_id: "",
       analytical_layer: [],
       operational_layer: [],
-      base_key : '',
+      base_layer : '',
       dropdown_cartography_base: {
          cartography_base: []
       }
@@ -190,21 +190,21 @@ export default {
       switch (option.type) {
         case 'base' :
          // La capa base solo debe tener una activa
-          if (this.base_key ==  option.key  ){
+          if (this.base_layer ==  option.key  ){
               option.active = !option_active_val;
-              this.base_key = '';
+              this.base_layer = '';
           } else {
-             if (this.base_key == ''){
+             if (this.base_layer == ''){
               option.active = !option_active_val
-              this.base_key = option.key;
+              this.base_layer = option.key;
             } else 
-              if (this.base_key !==  option.key){
+              if (this.base_layer !==  option.key){
               let cb  = this.dropdown_cartography_base.cartography_base.find(
-                (elem) => elem.key == this.base_key
+                (elem) => elem.key == this.base_layer
               );
                cb.active = option_active_val;
                option.active = !option_active_val;
-               this.base_key = option.key
+               this.base_layer = option.key
             } 
           }
         break;  
