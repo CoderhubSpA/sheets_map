@@ -8,12 +8,14 @@ Vue.use(BootstrapVue);
 
 
 import SheetsMap from "./components/SheetsMap.vue";
+import SheetsMapTools from "./components/SheetsMapTools.vue";
 
 const SheetsMapOut = {
     install(Vue) {
         // Let's register our component globally
         // https://vuejs.org/v2/guide/components-registration.html
         Vue.component("sheets_map", SheetsMap);
+        Vue.component("sheets_map_tools", SheetsMapTools);
     }
 };
 

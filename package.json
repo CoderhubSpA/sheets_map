@@ -1,12 +1,12 @@
 {
   "name": "@paupololi/sheets_map",
-  "version": "0.0.71",
+  "version": "0.0.72",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "build-library": "vue-cli-service build --target lib --name index ./src/components/SheetsMap.vue"
+    "build-library": "vue-cli-service build --target wc --name index ./src/components/*.vue"
   },
   "dependencies": {
     "axios": "^0.27.2",
