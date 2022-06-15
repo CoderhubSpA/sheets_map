@@ -317,7 +317,7 @@ export default {
                 this.analytic_geo_json = undefined; 
             }else{
                 let bounds = this.map.getBounds();
-
+                this.getLayerInfo(this.analytical_layer[0]);
                 let geojson_bounds = [
                     [bounds._northEast.lng, bounds._northEast.lat],
                     [bounds._southWest.lng, bounds._northEast.lat],
@@ -347,7 +347,11 @@ export default {
                 this.analytic_geo_json = polygon;
             }
 
-        },
+        }, 
+        getLayerInfo(layer){
+            console.log('this.layers[layer.key]');
+            console.log(this.layers[layer.key]);
+        },  
         calculateH3Zoom(){
 
             var zoom = this.map.getZoom();
