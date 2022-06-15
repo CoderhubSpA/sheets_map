@@ -51,17 +51,6 @@
                 <l-geo-json v-if="analytic_geo_json != undefined" :geojson="analytic_geo_json"></l-geo-json>
             </l-map>
         </div>
-        <div>
-            <h3>Sheets Map!!!</h3>
-            <ul>
-                <li>id: {{id}} </li>
-                <li>entity_type_id: {{entity_type_id}} </li>
-                <li>config_entity_id: {{config_entity_id}} </li>
-                <li>endpoint_config: {{endpoint_config}} </li>
-                <li>code: {{code}} </li>
-                <li>active_filters: {{active_filters}} </li>
-            </ul>
-        </div>
     </div>
         
 </template>
@@ -313,7 +302,13 @@ export default {
             this.getAnalyticalClusterGeoJson();
         },        
         getAnalyticalClusterGeoJson(){
-            if (!this.analytical_layer[0].active) {
+            // TO DO: 
+            // Cuando exista la columna "code", recorrer capas hasta
+            // encontrar la capa de code analytic_cluster y si existe
+            // detectar si es active
+            let active_analytical = this.analytical_layer.find( l => l.active);
+
+            if (!active_analytical) {
                 this.analytic_geo_json = undefined; 
             }else{
                 let bounds = this.map.getBounds();
