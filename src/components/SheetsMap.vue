@@ -254,6 +254,12 @@ export default {
         }
     },
     watch:{
+        analytical_layer: {
+          handler() {
+            this.getAnalyticalClusterGeoJson();
+          },
+          deep: true
+        },
         geo_json(){
             this.index.load(this.geo_json.features);
             this.getClusterInfo();
