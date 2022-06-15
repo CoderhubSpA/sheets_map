@@ -1,28 +1,11 @@
 <template>
   <div>
-    <div class="btn-group dropleft">
-      <button type="button" class="btn" v-on:click="collapseRight()">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          fill="currentColor"
-          class="bi bi-pie-chart-fill"
-          viewBox="0 0 16 16"
-        >
-          <path
-            d="M15.985 8.5H8.207l-5.5 5.5a8 8 0 0 0 13.277-5.5zM2 13.292A8 8 0 0 1 7.5.015v7.778l-5.5 5.5zM8.5.015V7.5h7.485A8.001 8.001 0 0 0 8.5.015z"
-          />
-        </svg>
-      </button>
-    </div>
     <div>
       <div>
         <b-dropdown 
-          id="dropdown_cartography_base" 
+          id="dropdown_base_layers" 
           variant="btn-outline-second"
           dropleft
-          v-model ="dropdown_cartography_base"
         >
           <template #button-content>
             <svg
@@ -40,7 +23,7 @@
           </template>
           <b-dropdown-item 
             @click="getOption(option)" 
-            v-for="option in dropdown_cartography_base.cartography_base"
+            v-for="option in base_layers"
             :key="option.key"
             :value="option.value"
             :class="{ 
@@ -55,7 +38,7 @@
     <div>
       <div>
         <b-dropdown 
-          id="dropdown-dropleft"
+          id="dropdown_analytical_layer"
           dropleft
           variant="btn-outline-second"
         >
@@ -95,7 +78,7 @@
     <div>
       <div>
         <b-dropdown
-          id="dropdown-dropleft"
+          id="dropdown_operational_layer"
           dropleft
           variant="btn-outline-second"
         >
@@ -135,6 +118,14 @@
 </template>
 <script>
 
+import _ from 'lodash';
+import Vue from "vue";
+import BootstrapVue from 'bootstrap-vue/dist/bootstrap-vue.esm';
+import 'bootstrap-vue/dist/bootstrap-vue.css';
+import 'bootstrap/dist/css/bootstrap.css';
+
+Vue.use(BootstrapVue);
+
 export default {
 
   props: {
@@ -162,18 +153,31 @@ export default {
     return {
       data_tools: [],
       data_tools_id: "",
-      analytical_layer: [],
-      operational_layer: [],
       base_layer : '',
-      dropdown_cartography_base: {
-         cartography_base: []
-      }
+      base_layers: [],
+      operational_layer: [],
+      analytical_layer: [],
     };
   },
+  computed: {
+    api_info(){        
+      let api_info = [];
+      if(!_.isEmpty(this.data_pivots) && !_.isEmpty(this.all_info)){
+        api_info = this.parseData(this.data_pivots, this.all_info);
+      }
+      return api_info;
+    },
+  },
   watch: {
-    all_info(val) {
-      if (val)
-        this.getInfo()
+    api_info:{
+      handler(){
+        if(Array.isArray(this.api_info)){
+          this.base_layers       = this.api_info.filter((item) => item.type == "base");
+          this.operational_layer = this.api_info.filter((item) => item.type == "operative");
+          this.analytical_layer  = this.api_info.filter((item) => item.type == "analytic");
+        }
+      },
+      deep:true
     }
   },
   methods: {
@@ -199,7 +203,7 @@ export default {
               this.base_layer = option.key;
             } else 
               if (this.base_layer !==  option.key){
-              let cb  = this.dropdown_cartography_base.cartography_base.find(
+              let cb  = this.base_layers.find(
                 (elem) => elem.key == this.base_layer
               );
                cb.active = option_active_val;
@@ -219,13 +223,6 @@ export default {
       base
       analytic
       operative */
-    },
-    getInfo(){
-      let api_info = {};
-      api_info = this.parseData(this.data_pivots, this.all_info);
-      this.dropdown_cartography_base.cartography_base = api_info.filter((item) => item.type == "base");
-      this.analytical_layer = api_info.filter((item) => item.type == "analytic");
-      this.operational_layer = api_info.filter((item) => item.type == "operative");
     },
     parseData(data_pivots, all_info) {
       let info_columns;
