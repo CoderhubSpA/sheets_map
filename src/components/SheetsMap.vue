@@ -48,7 +48,7 @@
                         </l-popup>
                     </l-circle-marker>
                 </l-layer-group> 
-                <l-geo-json v-if="analytic_geo_json != undefined" :geojson="analytic_geo_json"></l-geo-json>
+                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster"></l-geo-json>
             </l-map>
         </div>
     </div>
@@ -110,20 +110,26 @@ export default {
             url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom              : 7,
-            center_default    : [-33.472 , -70.769],
-            center            : undefined,
-            col_lat           : undefined,
-            col_lng           : undefined,
-            markers_data      : {},
-            map               : undefined,
-            circle            : undefined,
-            analytic_geo_json : undefined,
-            clusters_markers  : [],
-            bounds_filters    : [],
-            bounds            : [],
-            index             : [],
-            h3                : require("h3-js")
+            zoom                  : 7,
+            center_default        : [-33.472 , -70.769],
+            center                : undefined,
+            col_lat               : undefined,
+            col_lng               : undefined,
+            markers_data          : {},
+            map                   : undefined,
+            circle                : undefined,
+            /*Layers*/
+            analytic_cluster      : undefined,
+            analytic_countour_map : undefined,
+            base_google_map       : undefined,
+            base_map_guide        : undefined,
+            base_open_street_map  : undefined,
+            /*Layers*/
+            clusters_markers      : [],
+            bounds_filters        : [],
+            bounds                : [],
+            index                 : [],
+            h3                    : require("h3-js")
         };
     },
     computed:{
@@ -245,7 +251,7 @@ export default {
     watch:{
         analytical_layer: {
           handler() {
-            this.getAnalyticalClusterGeoJson();
+            this.switchLayers(this.analytical_layer);
           },
           deep: true
         },
@@ -283,69 +289,132 @@ export default {
         ready(){
             this.setTileLayer();
             this.map = this.$refs.myMap.mapObject;
-
-            /*
-            let circlemarker = this.$refs.circlemarker;
-            this.circle = this.$refs.circlemarker;
-        
-            let bounds = this.map.getBounds();
-            console.log(bounds);
-            console.log(this.geoJson);
-            console.log(circlemarker);
-            console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
-            this.map.on('update', this.getClusterInfo());
-            this.map.on('update', console.log('w'));
-            this.map.on('moveend', console.log('a'));*/
         }, 
         filter(){
             this.findBounds();
-            this.getAnalyticalClusterGeoJson();
-        },        
-        getAnalyticalClusterGeoJson(){
-            // TO DO: 
-            // Cuando exista la columna "code", recorrer capas hasta
-            // encontrar la capa de code analytic_cluster y si existe
-            // detectar si es active
-            let active_analytical = this.analytical_layer.find( l => l.active);
+            this.makeLayers();
+        },  
+        makeLayers(){
 
-            if (!active_analytical) {
-                this.analytic_geo_json = undefined; 
-            }else{
-                let bounds = this.map.getBounds();
-                this.getLayerInfo(this.analytical_layer[0]);
-                let geojson_bounds = [
-                    [bounds._northEast.lng, bounds._northEast.lat],
-                    [bounds._southWest.lng, bounds._northEast.lat],
-                    [bounds._southWest.lng, bounds._southWest.lat],
-                    [bounds._northEast.lng, bounds._southWest.lat]
-                ];
+            //Una activa a la vez
+            if (this.base_layer != '') {
+                console.log('this.base_layer '+this.base_layer+' activo');
+            }
+            //de 0 a n activas
+            this.switchLayers(this.analytical_layer);
+            this.switchLayers(this.operational_layer);
 
-                var square_polygon = {
-                        "type": "Polygon",
-                        "coordinates": [geojson_bounds]
-                      };
+        },  
+        switchLayers(layer){
 
-                var h3_zoom = this.calculateH3Zoom();
-                let polygon;
-                let square_feature;
+            let active_layer  = layer.filter( l => l.active);
+            let disable_layer = layer.filter( l => !l.active);
 
-                var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-                
-                var filters    = this.getFilters(h3_indexes);
-                polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+            active_layer.forEach(l => {
+                this.activeLayers(l);
+            });
+            disable_layer.forEach(l => {
+                this.disableLayers(l);
+            });
+        }, 
+        activeLayers(layer){
+            switch(this.layers[layer.key].sh_map_has_layer_code){
+                case 'analytic_cluster' : {
+                    this.getAnalyticalClusterGeoJson(this.layers[layer.key]);
+                    break;
 
-                /*
-                //#agregar el cuadrado
-                square_feature = this.asFeature(null,square_polygon['coordinates'][0])
-                polygon        = this.asPolygon(polygon,[square_feature])
-                */
-                this.analytic_geo_json = polygon;
+                }
+                case 'analytic_countour_map' : {
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    break;
+
+                }
+                case 'base_google_map' : {
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    break;
+
+                }
+                case 'base_map_guide' : {
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    break;
+
+                }
+                case 'base_open_street_map' : {
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    break;
+
+                }
+
+                default:{
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_code+' sin exito');
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    break;
+                }
+
             }
 
         }, 
-        getLayerInfo(layer){
-            console.log('this.layers[layer.key]');
-            console.log(this.layers[layer.key]);
+        disableLayers(layer){
+            switch(this.layers[layer.key].sh_map_has_layer_code){
+                case 'analytic_cluster' : {
+                    this.analytic_cluster = undefined;
+                    break;
+
+                }
+                case 'analytic_countour_map' : {
+                    this.analytic_countour_map = undefined;
+                    break;
+
+                }
+                case 'base_google_map' : {
+                    this.base_google_map = undefined;
+                    break;
+
+                }
+                case 'base_map_guide' : {
+                    this.base_map_guide = undefined;
+                    break;
+
+                }
+                case 'base_open_street_map' : {
+
+                    this.base_open_street_mapbreak = undefined;;
+
+                }
+
+                default:{
+                    console.log('Intento de desactivar '+this.layers[layer.key].sh_map_has_layer_code+' sin exito');
+                    console.log('Intento de desactivar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+
+                    break;
+                }
+
+            }
+
+        },      
+        getAnalyticalClusterGeoJson(layer){
+            let bounds = this.map.getBounds();
+            let geojson_bounds = [
+                [bounds._northEast.lng, bounds._northEast.lat],
+                [bounds._southWest.lng, bounds._northEast.lat],
+                [bounds._southWest.lng, bounds._southWest.lat],
+                [bounds._northEast.lng, bounds._southWest.lat]
+            ];
+
+            let square_polygon = {
+                    "type": "Polygon",
+                    "coordinates": [geojson_bounds]
+                  };
+            let h3_zoom = this.calculateH3Zoom();
+            let polygon;
+            let square_feature;
+
+            var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+            var filters    = this.getFilters(h3_indexes);
+            polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+            this.analytic_cluster = polygon;
+            console.log(layer);
+
         },  
         calculateH3Zoom(){
 
@@ -420,6 +489,29 @@ export default {
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        },
+        getLayerData(layer_url){/*
+            WIP
+            const url = `${layer_url}`;
+            var  data = `${layer_url}`;
+            axios.get(url)
+            .then((response) => {
+                try {
+                    
+                    let all_data = response.data.content;
+                    let marker_data = _.first(all_data.data) || {};
+                    this.$set(this.markers_data, marker.id, marker_data);
+                    
+                } catch (error) {
+                    console.error(error);
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+            })
+            .finally(() => {
+                console.log('done data');
+            });*/
         },
         getMarkerData(marker){
             const url = `${this.base_url}/entity/data/${this.entity_type_id}/${marker.id}?page=1`
