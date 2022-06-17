@@ -117,7 +117,7 @@ export default {
                                 }
                                 
                             } catch (error) {
-                                console.error('ERROR: Ocurrión un error al intentar procesar la configuración de las capas', error,col);
+                                console.error('ERROR: Ocurrión un error al intentar procesar la configuración de las capas', error);
                             }
                             acc[key] = value;
                             return acc;
