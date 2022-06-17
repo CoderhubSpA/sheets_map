@@ -6,6 +6,7 @@
           id="dropdown_base_layers" 
           variant="btn-outline-second"
           dropleft
+          v-b-tooltip.hover.bottom title="Capa Base"
         >
           <template #button-content>
             <svg
@@ -41,6 +42,7 @@
           id="dropdown_analytical_layer"
           dropleft
           variant="btn-outline-second"
+           v-b-tooltip.hover.bottom title="Capa Analítica"
         >
           <template #button-content>
             <svg
@@ -81,6 +83,7 @@
           id="dropdown_operational_layer"
           dropleft
           variant="btn-outline-second"
+          v-b-tooltip.hover.bottom title="Capa Operativa"
         >
           <template #button-content>
             <svg
