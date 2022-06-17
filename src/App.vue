@@ -103,19 +103,21 @@ export default {
                             let key = col_id;
                             let value = pivot[col_id];
 
-                            try {
                                 const col = this.layers_info.columns.find( c => c.id == col_id);
+                            try {
 
                                 if(col){
                                     key = col.alias;
                                     if(col.entity_type_fk && col.entity_type_fk in this.layers_info.entities_fk){
                                         const entity_fk = this.layers_info.entities_fk[col.entity_type_fk].find((d) => d.id == value);
-                                        value = entity_fk[col.col_name_fk || 'name']
+                                        if (entity_fk) {
+                                            value = entity_fk[col.col_name_fk || 'name']
+                                        }
                                     }
                                 }
                                 
                             } catch (error) {
-                                console.error('ERROR: Ocurrión un error al intentar procesar la configuración de las capas', error);
+                                console.error('ERROR: Ocurrión un error al intentar procesar la configuración de las capas', error,col);
                             }
                             acc[key] = value;
                             return acc;

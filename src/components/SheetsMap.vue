@@ -421,8 +421,8 @@ export default {
             }
 
         },      
-        async getAnalyticalClusterGeoJson(layer){
-            let bounds = this.map.getBounds();
+        getAnalyticalClusterGeoJson(layer){
+            let bounds         = this.map.getBounds();
             let geojson_bounds = [
                 [bounds._northEast.lng, bounds._northEast.lat],
                 [bounds._southWest.lng, bounds._northEast.lat],
@@ -434,38 +434,61 @@ export default {
                     "type": "Polygon",
                     "coordinates": [geojson_bounds]
                   };
-            let h3_zoom = this.calculateH3Zoom();
+
             let polygon;
             let square_feature;
+            let h3_zoom       = this.calculateH3Zoom();
+            let url           = layer.sh_map_has_layer_url;
+            let metric        = layer.sh_map_has_layer_metric_id;
+            let calculation   = layer.sh_map_has_layer_calculation;
+            let filters       = this.formatFilter();
+            let dimension_ids = ["h3r".concat(h3_zoom)];
+            let body          = {
+                calculation   : calculation,
+                metric_id     : metric, // Viene de la configuracion de la capa (mapa tiene capas)
+                filters       : filters, // Son los active_filters formateados
+                dimension_ids : dimension_ids,
+            };
+            
+            axios.post(url, body).then(response => {
+                let all_cubes = response.data.content;
+            console.log(all_cubes);
+                /*
+                let data      = _.first(Object.values(all_data.data)) || {};
+                // ... parear h3
+                // h3_indexes = data // pero parseada
+                // ... parear h3
+                var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+                var filters    = this.getFilters(h3_indexes);
+                polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+                this.analytic_cluster = polygon;
+                console.log(layer);*/
+            });
 
-            // let url = layer.sh_map_has_layer_url
-            //     .replaceAll('{{param_1}}',layer.sh_map_has_layer_param_1)
-            //     .replaceAll('{{param_2}}',layer.sh_map_has_layer_param_2);
-        
+        },
+        formatFilter(){
+            if (_.isEmpty(this.active_filters)) {
+                return {};
+            }
 
-            //     axios.post(url, {
-            //         calculation: "COUNT",
-            //         metric_id: '', // Viene de la configuracion de la capa (mapa tiene capas)
-            //         filters:[], // Son los active_filters formateados
-            //         dimension_ids: ["h3r".concat(h3_zoom)],
-            //     } ).then(response => {
-            //         let all_cubes = response.data.content;
-            //         let data = _.first(Object.values(all_data.data)) || {};
+            let filters = this.active_filters.map(a_f => {
+                let value;
 
-            //         // ... parear h3
-            //         // h3_indexes = data // pero parseada
-            //         // ... parear h3
+                if (typeof a_f.type !== 'undefined') {
+                  value = (a_f.type == 'EQUAL') ? [a_f.search] : a_f.search;
+                }else{
+                    a_f.type = 'IN';
+                    value    = a_f.search;
+                }
 
-            //         var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-            //         var filters    = this.getFilters(h3_indexes);
-            //         polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
-            //         this.analytic_cluster = polygon;
-            //         console.log(layer);
-
-            //     });
-
-
-
+                let filter = {
+                    column : a_f.col_name,
+                    value  : value,
+                    type   : a_f.type,
+                };
+                return filter;
+            });
+            return filters;
         },
         calculateH3Zoom(){
 
@@ -540,29 +563,6 @@ export default {
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        },
-        getLayerData(layer_url){/*
-            WIP
-            const url = `${layer_url}`;
-            var  data = `${layer_url}`;
-            axios.get(url)
-            .then((response) => {
-                try {
-                    
-                    let all_data = response.data.content;
-                    let marker_data = _.first(all_data.data) || {};
-                    this.$set(this.markers_data, marker.id, marker_data);
-                    
-                } catch (error) {
-                    console.error(error);
-                }
-            })
-            .catch((error) => {
-                console.error(error);
-            })
-            .finally(() => {
-                console.log('done data');
-            });*/
         },
         getMarkerData(marker){
             const url = `${this.base_url}/entity/data/${this.entity_type_id}/${marker.id}?page=1`
