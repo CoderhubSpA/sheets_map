@@ -48,7 +48,21 @@
                         </l-popup>
                     </l-circle-marker>
                 </l-layer-group> 
+                <!-- Analytic layers -->
                 <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster"></l-geo-json>
+                <!-- Operative layers -->
+                <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
+                <l-wms-tile-layer
+                    v-for="layer in (operative_geoserver_wms || [])"
+                    :key="layer.id"
+                    :base-url="layer.sh_map_has_layer_url"
+                    layers="dac:DIVISION_COMUNAL"
+                    name="dac:DIVISION_COMUNAL"
+                    transparent="true"
+                    format="image/png"
+                    layer-type="base"
+                    service="WMS"
+                />
             </l-map>
         </div>
     </div>
@@ -58,7 +72,7 @@
 <script>
 // import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson } from 'vue2-leaflet';
+import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -81,7 +95,8 @@ export default {
         LPopup,
         LIcon,
         LMarker,
-        LGeoJson
+        LGeoJson,
+        "l-wms-tile-layer": LWMSTileLayer,
     },
     props: {
         // Propiedades de componentes
@@ -119,11 +134,12 @@ export default {
             map                   : undefined,
             circle                : undefined,
             /*Layers*/
-            analytic_cluster      : undefined,
-            analytic_countour_map : undefined,
-            base_google_map       : undefined,
-            base_map_guide        : undefined,
-            base_open_street_map  : undefined,
+            analytic_cluster        : undefined,
+            analytic_countour_map   : undefined,
+            base_google_map         : undefined,
+            base_map_guide          : undefined,
+            base_open_street_map    : undefined,
+            operative_geoserver_wms : undefined,
             /*Layers*/
             clusters_markers      : [],
             bounds_filters        : [],
@@ -246,12 +262,18 @@ export default {
             })
             .filter(d => d);      
             return markers;
-        }
+        },
     },
     watch:{
         analytical_layer: {
           handler() {
             this.switchLayers(this.analytical_layer);
+          },
+          deep: true
+        },
+        operational_layer: {
+          handler() {
+            this.switchLayers(this.operational_layer);
           },
           deep: true
         },
@@ -307,13 +329,16 @@ export default {
         },  
         switchLayers(layer){
 
-            let active_layer  = layer.filter( l => l.active);
-            let disable_layer = layer.filter( l => !l.active);
+            let active_layers  = layer.filter( l => l.active);
+            let disable_layers = layer.filter( l => !l.active);
+            
+            this.operative_geoserver_wms = [];
 
-            active_layer.forEach(l => {
+            active_layers.forEach(l => {
                 this.activeLayers(l);
             });
-            disable_layer.forEach(l => {
+
+            disable_layers.forEach(l => {
                 this.disableLayers(l);
             });
         }, 
@@ -344,10 +369,14 @@ export default {
                     break;
 
                 }
+                case 'operative_geoserver_wms' : {
+                    this.operative_geoserver_wms.push(this.layers[layer.key])
+                    break;
 
+                }
                 default:{
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_code+' sin exito');
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_code+' sin exito',
+                        'Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
                     break;
                 }
 
@@ -392,7 +421,7 @@ export default {
             }
 
         },      
-        getAnalyticalClusterGeoJson(layer){
+        async getAnalyticalClusterGeoJson(layer){
             let bounds = this.map.getBounds();
             let geojson_bounds = [
                 [bounds._northEast.lng, bounds._northEast.lat],
@@ -409,13 +438,35 @@ export default {
             let polygon;
             let square_feature;
 
-            var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-            var filters    = this.getFilters(h3_indexes);
-            polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
-            this.analytic_cluster = polygon;
-            console.log(layer);
+            // let url = layer.sh_map_has_layer_url
+            //     .replaceAll('{{param_1}}',layer.sh_map_has_layer_param_1)
+            //     .replaceAll('{{param_2}}',layer.sh_map_has_layer_param_2);
+        
 
-        },  
+            //     axios.post(url, {
+            //         calculation: "COUNT",
+            //         metric_id: '', // Viene de la configuracion de la capa (mapa tiene capas)
+            //         filters:[], // Son los active_filters formateados
+            //         dimension_ids: ["h3r".concat(h3_zoom)],
+            //     } ).then(response => {
+            //         let all_cubes = response.data.content;
+            //         let data = _.first(Object.values(all_data.data)) || {};
+
+            //         // ... parear h3
+            //         // h3_indexes = data // pero parseada
+            //         // ... parear h3
+
+            //         var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+            //         var filters    = this.getFilters(h3_indexes);
+            //         polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+            //         this.analytic_cluster = polygon;
+            //         console.log(layer);
+
+            //     });
+
+
+
+        },
         calculateH3Zoom(){
 
             var zoom = this.map.getZoom();
