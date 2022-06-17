@@ -355,6 +355,299 @@ module.exports = {
 
 /***/ }),
 
+/***/ 3331:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var uncurryThis = __webpack_require__(1702);
+var DESCRIPTORS = __webpack_require__(9781);
+var NATIVE_ARRAY_BUFFER = __webpack_require__(4019);
+var FunctionName = __webpack_require__(6530);
+var createNonEnumerableProperty = __webpack_require__(8880);
+var defineBuiltIns = __webpack_require__(9190);
+var fails = __webpack_require__(7293);
+var anInstance = __webpack_require__(5787);
+var toIntegerOrInfinity = __webpack_require__(9303);
+var toLength = __webpack_require__(7466);
+var toIndex = __webpack_require__(7067);
+var IEEE754 = __webpack_require__(1179);
+var getPrototypeOf = __webpack_require__(9518);
+var setPrototypeOf = __webpack_require__(7674);
+var getOwnPropertyNames = (__webpack_require__(8006).f);
+var defineProperty = (__webpack_require__(3070).f);
+var arrayFill = __webpack_require__(1285);
+var arraySlice = __webpack_require__(1589);
+var setToStringTag = __webpack_require__(8003);
+var InternalStateModule = __webpack_require__(9909);
+
+var PROPER_FUNCTION_NAME = FunctionName.PROPER;
+var CONFIGURABLE_FUNCTION_NAME = FunctionName.CONFIGURABLE;
+var getInternalState = InternalStateModule.get;
+var setInternalState = InternalStateModule.set;
+var ARRAY_BUFFER = 'ArrayBuffer';
+var DATA_VIEW = 'DataView';
+var PROTOTYPE = 'prototype';
+var WRONG_LENGTH = 'Wrong length';
+var WRONG_INDEX = 'Wrong index';
+var NativeArrayBuffer = global[ARRAY_BUFFER];
+var $ArrayBuffer = NativeArrayBuffer;
+var ArrayBufferPrototype = $ArrayBuffer && $ArrayBuffer[PROTOTYPE];
+var $DataView = global[DATA_VIEW];
+var DataViewPrototype = $DataView && $DataView[PROTOTYPE];
+var ObjectPrototype = Object.prototype;
+var Array = global.Array;
+var RangeError = global.RangeError;
+var fill = uncurryThis(arrayFill);
+var reverse = uncurryThis([].reverse);
+
+var packIEEE754 = IEEE754.pack;
+var unpackIEEE754 = IEEE754.unpack;
+
+var packInt8 = function (number) {
+  return [number & 0xFF];
+};
+
+var packInt16 = function (number) {
+  return [number & 0xFF, number >> 8 & 0xFF];
+};
+
+var packInt32 = function (number) {
+  return [number & 0xFF, number >> 8 & 0xFF, number >> 16 & 0xFF, number >> 24 & 0xFF];
+};
+
+var unpackInt32 = function (buffer) {
+  return buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0];
+};
+
+var packFloat32 = function (number) {
+  return packIEEE754(number, 23, 4);
+};
+
+var packFloat64 = function (number) {
+  return packIEEE754(number, 52, 8);
+};
+
+var addGetter = function (Constructor, key) {
+  defineProperty(Constructor[PROTOTYPE], key, { get: function () { return getInternalState(this)[key]; } });
+};
+
+var get = function (view, count, index, isLittleEndian) {
+  var intIndex = toIndex(index);
+  var store = getInternalState(view);
+  if (intIndex + count > store.byteLength) throw RangeError(WRONG_INDEX);
+  var bytes = getInternalState(store.buffer).bytes;
+  var start = intIndex + store.byteOffset;
+  var pack = arraySlice(bytes, start, start + count);
+  return isLittleEndian ? pack : reverse(pack);
+};
+
+var set = function (view, count, index, conversion, value, isLittleEndian) {
+  var intIndex = toIndex(index);
+  var store = getInternalState(view);
+  if (intIndex + count > store.byteLength) throw RangeError(WRONG_INDEX);
+  var bytes = getInternalState(store.buffer).bytes;
+  var start = intIndex + store.byteOffset;
+  var pack = conversion(+value);
+  for (var i = 0; i < count; i++) bytes[start + i] = pack[isLittleEndian ? i : count - i - 1];
+};
+
+if (!NATIVE_ARRAY_BUFFER) {
+  $ArrayBuffer = function ArrayBuffer(length) {
+    anInstance(this, ArrayBufferPrototype);
+    var byteLength = toIndex(length);
+    setInternalState(this, {
+      bytes: fill(Array(byteLength), 0),
+      byteLength: byteLength
+    });
+    if (!DESCRIPTORS) this.byteLength = byteLength;
+  };
+
+  ArrayBufferPrototype = $ArrayBuffer[PROTOTYPE];
+
+  $DataView = function DataView(buffer, byteOffset, byteLength) {
+    anInstance(this, DataViewPrototype);
+    anInstance(buffer, ArrayBufferPrototype);
+    var bufferLength = getInternalState(buffer).byteLength;
+    var offset = toIntegerOrInfinity(byteOffset);
+    if (offset < 0 || offset > bufferLength) throw RangeError('Wrong offset');
+    byteLength = byteLength === undefined ? bufferLength - offset : toLength(byteLength);
+    if (offset + byteLength > bufferLength) throw RangeError(WRONG_LENGTH);
+    setInternalState(this, {
+      buffer: buffer,
+      byteLength: byteLength,
+      byteOffset: offset
+    });
+    if (!DESCRIPTORS) {
+      this.buffer = buffer;
+      this.byteLength = byteLength;
+      this.byteOffset = offset;
+    }
+  };
+
+  DataViewPrototype = $DataView[PROTOTYPE];
+
+  if (DESCRIPTORS) {
+    addGetter($ArrayBuffer, 'byteLength');
+    addGetter($DataView, 'buffer');
+    addGetter($DataView, 'byteLength');
+    addGetter($DataView, 'byteOffset');
+  }
+
+  defineBuiltIns(DataViewPrototype, {
+    getInt8: function getInt8(byteOffset) {
+      return get(this, 1, byteOffset)[0] << 24 >> 24;
+    },
+    getUint8: function getUint8(byteOffset) {
+      return get(this, 1, byteOffset)[0];
+    },
+    getInt16: function getInt16(byteOffset /* , littleEndian */) {
+      var bytes = get(this, 2, byteOffset, arguments.length > 1 ? arguments[1] : undefined);
+      return (bytes[1] << 8 | bytes[0]) << 16 >> 16;
+    },
+    getUint16: function getUint16(byteOffset /* , littleEndian */) {
+      var bytes = get(this, 2, byteOffset, arguments.length > 1 ? arguments[1] : undefined);
+      return bytes[1] << 8 | bytes[0];
+    },
+    getInt32: function getInt32(byteOffset /* , littleEndian */) {
+      return unpackInt32(get(this, 4, byteOffset, arguments.length > 1 ? arguments[1] : undefined));
+    },
+    getUint32: function getUint32(byteOffset /* , littleEndian */) {
+      return unpackInt32(get(this, 4, byteOffset, arguments.length > 1 ? arguments[1] : undefined)) >>> 0;
+    },
+    getFloat32: function getFloat32(byteOffset /* , littleEndian */) {
+      return unpackIEEE754(get(this, 4, byteOffset, arguments.length > 1 ? arguments[1] : undefined), 23);
+    },
+    getFloat64: function getFloat64(byteOffset /* , littleEndian */) {
+      return unpackIEEE754(get(this, 8, byteOffset, arguments.length > 1 ? arguments[1] : undefined), 52);
+    },
+    setInt8: function setInt8(byteOffset, value) {
+      set(this, 1, byteOffset, packInt8, value);
+    },
+    setUint8: function setUint8(byteOffset, value) {
+      set(this, 1, byteOffset, packInt8, value);
+    },
+    setInt16: function setInt16(byteOffset, value /* , littleEndian */) {
+      set(this, 2, byteOffset, packInt16, value, arguments.length > 2 ? arguments[2] : undefined);
+    },
+    setUint16: function setUint16(byteOffset, value /* , littleEndian */) {
+      set(this, 2, byteOffset, packInt16, value, arguments.length > 2 ? arguments[2] : undefined);
+    },
+    setInt32: function setInt32(byteOffset, value /* , littleEndian */) {
+      set(this, 4, byteOffset, packInt32, value, arguments.length > 2 ? arguments[2] : undefined);
+    },
+    setUint32: function setUint32(byteOffset, value /* , littleEndian */) {
+      set(this, 4, byteOffset, packInt32, value, arguments.length > 2 ? arguments[2] : undefined);
+    },
+    setFloat32: function setFloat32(byteOffset, value /* , littleEndian */) {
+      set(this, 4, byteOffset, packFloat32, value, arguments.length > 2 ? arguments[2] : undefined);
+    },
+    setFloat64: function setFloat64(byteOffset, value /* , littleEndian */) {
+      set(this, 8, byteOffset, packFloat64, value, arguments.length > 2 ? arguments[2] : undefined);
+    }
+  });
+} else {
+  var INCORRECT_ARRAY_BUFFER_NAME = PROPER_FUNCTION_NAME && NativeArrayBuffer.name !== ARRAY_BUFFER;
+  /* eslint-disable no-new -- required for testing */
+  if (!fails(function () {
+    NativeArrayBuffer(1);
+  }) || !fails(function () {
+    new NativeArrayBuffer(-1);
+  }) || fails(function () {
+    new NativeArrayBuffer();
+    new NativeArrayBuffer(1.5);
+    new NativeArrayBuffer(NaN);
+    return INCORRECT_ARRAY_BUFFER_NAME && !CONFIGURABLE_FUNCTION_NAME;
+  })) {
+  /* eslint-enable no-new -- required for testing */
+    $ArrayBuffer = function ArrayBuffer(length) {
+      anInstance(this, ArrayBufferPrototype);
+      return new NativeArrayBuffer(toIndex(length));
+    };
+
+    $ArrayBuffer[PROTOTYPE] = ArrayBufferPrototype;
+
+    for (var keys = getOwnPropertyNames(NativeArrayBuffer), j = 0, key; keys.length > j;) {
+      if (!((key = keys[j++]) in $ArrayBuffer)) {
+        createNonEnumerableProperty($ArrayBuffer, key, NativeArrayBuffer[key]);
+      }
+    }
+
+    ArrayBufferPrototype.constructor = $ArrayBuffer;
+  } else if (INCORRECT_ARRAY_BUFFER_NAME && CONFIGURABLE_FUNCTION_NAME) {
+    createNonEnumerableProperty(NativeArrayBuffer, 'name', ARRAY_BUFFER);
+  }
+
+  // WebKit bug - the same parent prototype for typed arrays and data view
+  if (setPrototypeOf && getPrototypeOf(DataViewPrototype) !== ObjectPrototype) {
+    setPrototypeOf(DataViewPrototype, ObjectPrototype);
+  }
+
+  // iOS Safari 7.x bug
+  var testView = new $DataView(new $ArrayBuffer(2));
+  var $setInt8 = uncurryThis(DataViewPrototype.setInt8);
+  testView.setInt8(0, 2147483648);
+  testView.setInt8(1, 2147483649);
+  if (testView.getInt8(0) || !testView.getInt8(1)) defineBuiltIns(DataViewPrototype, {
+    setInt8: function setInt8(byteOffset, value) {
+      $setInt8(this, byteOffset, value << 24 >> 24);
+    },
+    setUint8: function setUint8(byteOffset, value) {
+      $setInt8(this, byteOffset, value << 24 >> 24);
+    }
+  }, { unsafe: true });
+}
+
+setToStringTag($ArrayBuffer, ARRAY_BUFFER);
+setToStringTag($DataView, DATA_VIEW);
+
+module.exports = {
+  ArrayBuffer: $ArrayBuffer,
+  DataView: $DataView
+};
+
+
+/***/ }),
+
+/***/ 1048:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var toObject = __webpack_require__(7908);
+var toAbsoluteIndex = __webpack_require__(1400);
+var lengthOfArrayLike = __webpack_require__(6244);
+
+var min = Math.min;
+
+// `Array.prototype.copyWithin` method implementation
+// https://tc39.es/ecma262/#sec-array.prototype.copywithin
+// eslint-disable-next-line es-x/no-array-prototype-copywithin -- safe
+module.exports = [].copyWithin || function copyWithin(target /* = 0 */, start /* = 0, end = @length */) {
+  var O = toObject(this);
+  var len = lengthOfArrayLike(O);
+  var to = toAbsoluteIndex(target, len);
+  var from = toAbsoluteIndex(start, len);
+  var end = arguments.length > 2 ? arguments[2] : undefined;
+  var count = min((end === undefined ? len : toAbsoluteIndex(end, len)) - from, len - to);
+  var inc = 1;
+  if (from < to && to < from + count) {
+    inc = -1;
+    from += count - 1;
+    to += count - 1;
+  }
+  while (count-- > 0) {
+    if (from in O) O[to] = O[from];
+    else delete O[to];
+    to += inc;
+    from += inc;
+  } return O;
+};
+
+
+/***/ }),
+
 /***/ 1285:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -396,6 +689,22 @@ module.exports = !STRICT_METHOD ? function forEach(callbackfn /* , thisArg */) {
   return $forEach(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
 // eslint-disable-next-line es-x/no-array-prototype-foreach -- safe
 } : [].forEach;
+
+
+/***/ }),
+
+/***/ 7745:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var lengthOfArrayLike = __webpack_require__(6244);
+
+module.exports = function (Constructor, list) {
+  var index = 0;
+  var length = lengthOfArrayLike(list);
+  var result = new Constructor(length);
+  while (length > index) result[index] = list[index++];
+  return result;
+};
 
 
 /***/ }),
@@ -574,6 +883,41 @@ module.exports = {
 
 /***/ }),
 
+/***/ 6583:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+/* eslint-disable es-x/no-array-prototype-lastindexof -- safe */
+var apply = __webpack_require__(2104);
+var toIndexedObject = __webpack_require__(5656);
+var toIntegerOrInfinity = __webpack_require__(9303);
+var lengthOfArrayLike = __webpack_require__(6244);
+var arrayMethodIsStrict = __webpack_require__(2133);
+
+var min = Math.min;
+var $lastIndexOf = [].lastIndexOf;
+var NEGATIVE_ZERO = !!$lastIndexOf && 1 / [1].lastIndexOf(1, -0) < 0;
+var STRICT_METHOD = arrayMethodIsStrict('lastIndexOf');
+var FORCED = NEGATIVE_ZERO || !STRICT_METHOD;
+
+// `Array.prototype.lastIndexOf` method implementation
+// https://tc39.es/ecma262/#sec-array.prototype.lastindexof
+module.exports = FORCED ? function lastIndexOf(searchElement /* , fromIndex = @[*-1] */) {
+  // convert -0 to +0
+  if (NEGATIVE_ZERO) return apply($lastIndexOf, this, arguments) || 0;
+  var O = toIndexedObject(this);
+  var length = lengthOfArrayLike(O);
+  var index = length - 1;
+  if (arguments.length > 1) index = min(index, toIntegerOrInfinity(arguments[1]));
+  if (index < 0) index = length + index;
+  for (;index >= 0; index--) if (index in O && O[index] === searchElement) return index || 0;
+  return -1;
+} : $lastIndexOf;
+
+
+/***/ }),
+
 /***/ 1194:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -613,6 +957,56 @@ module.exports = function (METHOD_NAME, argument) {
     // eslint-disable-next-line no-useless-call -- required for testing
     method.call(null, argument || function () { return 1; }, 1);
   });
+};
+
+
+/***/ }),
+
+/***/ 3671:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var global = __webpack_require__(7854);
+var aCallable = __webpack_require__(9662);
+var toObject = __webpack_require__(7908);
+var IndexedObject = __webpack_require__(8361);
+var lengthOfArrayLike = __webpack_require__(6244);
+
+var TypeError = global.TypeError;
+
+// `Array.prototype.{ reduce, reduceRight }` methods implementation
+var createMethod = function (IS_RIGHT) {
+  return function (that, callbackfn, argumentsLength, memo) {
+    aCallable(callbackfn);
+    var O = toObject(that);
+    var self = IndexedObject(O);
+    var length = lengthOfArrayLike(O);
+    var index = IS_RIGHT ? length - 1 : 0;
+    var i = IS_RIGHT ? -1 : 1;
+    if (argumentsLength < 2) while (true) {
+      if (index in self) {
+        memo = self[index];
+        index += i;
+        break;
+      }
+      index += i;
+      if (IS_RIGHT ? index < 0 : length <= index) {
+        throw TypeError('Reduce of empty array with no initial value');
+      }
+    }
+    for (;IS_RIGHT ? index >= 0 : length > index; index += i) if (index in self) {
+      memo = callbackfn(memo, self[index], index, O);
+    }
+    return memo;
+  };
+};
+
+module.exports = {
+  // `Array.prototype.reduce` method
+  // https://tc39.es/ecma262/#sec-array.prototype.reduce
+  left: createMethod(false),
+  // `Array.prototype.reduceRight` method
+  // https://tc39.es/ecma262/#sec-array.prototype.reduceright
+  right: createMethod(true)
 };
 
 
@@ -742,6 +1136,22 @@ var arraySpeciesConstructor = __webpack_require__(7475);
 // https://tc39.es/ecma262/#sec-arrayspeciescreate
 module.exports = function (originalArray, length) {
   return new (arraySpeciesConstructor(originalArray))(length === 0 ? 0 : length);
+};
+
+
+/***/ }),
+
+/***/ 4170:
+/***/ (function(module) {
+
+var itoc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+var ctoi = {};
+
+for (var index = 0; index < 66; index++) ctoi[itoc.charAt(index)] = index;
+
+module.exports = {
+  itoc: itoc,
+  ctoi: ctoi
 };
 
 
@@ -1226,6 +1636,28 @@ module.exports = function (target, source, exceptions) {
       defineProperty(target, key, getOwnPropertyDescriptor(source, key));
     }
   }
+};
+
+
+/***/ }),
+
+/***/ 4964:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var wellKnownSymbol = __webpack_require__(5112);
+
+var MATCH = wellKnownSymbol('match');
+
+module.exports = function (METHOD_NAME) {
+  var regexp = /./;
+  try {
+    '/./'[METHOD_NAME](regexp);
+  } catch (error1) {
+    try {
+      regexp[MATCH] = false;
+      return '/./'[METHOD_NAME](regexp);
+    } catch (error2) { /* empty */ }
+  } return false;
 };
 
 
@@ -1810,6 +2242,44 @@ module.exports = !fails(function () {
 
 /***/ }),
 
+/***/ 7762:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var DESCRIPTORS = __webpack_require__(9781);
+var fails = __webpack_require__(7293);
+var anObject = __webpack_require__(9670);
+var create = __webpack_require__(30);
+var normalizeStringArgument = __webpack_require__(6277);
+
+var nativeErrorToString = Error.prototype.toString;
+
+var INCORRECT_TO_STRING = fails(function () {
+  if (DESCRIPTORS) {
+    // Chrome 32- incorrectly call accessor
+    // eslint-disable-next-line es-x/no-object-defineproperty -- safe
+    var object = create(Object.defineProperty({}, 'name', { get: function () {
+      return this === object;
+    } }));
+    if (nativeErrorToString.call(object) !== 'true') return true;
+  }
+  // FF10- does not properly handle non-strings
+  return nativeErrorToString.call({ message: 1, name: 2 }) !== '2: 1'
+    // IE8 does not properly handle defaults
+    || nativeErrorToString.call({}) !== 'Error';
+});
+
+module.exports = INCORRECT_TO_STRING ? function toString() {
+  var O = anObject(this);
+  var name = normalizeStringArgument(O.name, 'Error');
+  var message = normalizeStringArgument(O.message);
+  return !name ? message : !message ? name : name + ': ' + message;
+} : nativeErrorToString;
+
+
+/***/ }),
+
 /***/ 2109:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -1963,6 +2433,50 @@ module.exports = function (KEY, exec, FORCED, SHAM) {
 
   if (SHAM) createNonEnumerableProperty(RegExpPrototype[SYMBOL], 'sham', true);
 };
+
+
+/***/ }),
+
+/***/ 6790:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var isArray = __webpack_require__(3157);
+var lengthOfArrayLike = __webpack_require__(6244);
+var bind = __webpack_require__(9974);
+
+var TypeError = global.TypeError;
+
+// `FlattenIntoArray` abstract operation
+// https://tc39.github.io/proposal-flatMap/#sec-FlattenIntoArray
+var flattenIntoArray = function (target, original, source, sourceLen, start, depth, mapper, thisArg) {
+  var targetIndex = start;
+  var sourceIndex = 0;
+  var mapFn = mapper ? bind(mapper, thisArg) : false;
+  var element, elementLen;
+
+  while (sourceIndex < sourceLen) {
+    if (sourceIndex in source) {
+      element = mapFn ? mapFn(source[sourceIndex], sourceIndex, original) : source[sourceIndex];
+
+      if (depth > 0 && isArray(element)) {
+        elementLen = lengthOfArrayLike(element);
+        targetIndex = flattenIntoArray(target, original, element, elementLen, targetIndex, depth - 1) - 1;
+      } else {
+        if (targetIndex >= 0x1FFFFFFFFFFFFF) throw TypeError('Exceed the acceptable array length');
+        target[targetIndex] = element;
+      }
+
+      targetIndex++;
+    }
+    sourceIndex++;
+  }
+  return targetIndex;
+};
+
+module.exports = flattenIntoArray;
 
 
 /***/ }),
@@ -2342,6 +2856,117 @@ module.exports = !DESCRIPTORS && !fails(function () {
     get: function () { return 7; }
   }).a != 7;
 });
+
+
+/***/ }),
+
+/***/ 1179:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// IEEE754 conversions based on https://github.com/feross/ieee754
+var global = __webpack_require__(7854);
+
+var Array = global.Array;
+var abs = Math.abs;
+var pow = Math.pow;
+var floor = Math.floor;
+var log = Math.log;
+var LN2 = Math.LN2;
+
+var pack = function (number, mantissaLength, bytes) {
+  var buffer = Array(bytes);
+  var exponentLength = bytes * 8 - mantissaLength - 1;
+  var eMax = (1 << exponentLength) - 1;
+  var eBias = eMax >> 1;
+  var rt = mantissaLength === 23 ? pow(2, -24) - pow(2, -77) : 0;
+  var sign = number < 0 || number === 0 && 1 / number < 0 ? 1 : 0;
+  var index = 0;
+  var exponent, mantissa, c;
+  number = abs(number);
+  // eslint-disable-next-line no-self-compare -- NaN check
+  if (number != number || number === Infinity) {
+    // eslint-disable-next-line no-self-compare -- NaN check
+    mantissa = number != number ? 1 : 0;
+    exponent = eMax;
+  } else {
+    exponent = floor(log(number) / LN2);
+    c = pow(2, -exponent);
+    if (number * c < 1) {
+      exponent--;
+      c *= 2;
+    }
+    if (exponent + eBias >= 1) {
+      number += rt / c;
+    } else {
+      number += rt * pow(2, 1 - eBias);
+    }
+    if (number * c >= 2) {
+      exponent++;
+      c /= 2;
+    }
+    if (exponent + eBias >= eMax) {
+      mantissa = 0;
+      exponent = eMax;
+    } else if (exponent + eBias >= 1) {
+      mantissa = (number * c - 1) * pow(2, mantissaLength);
+      exponent = exponent + eBias;
+    } else {
+      mantissa = number * pow(2, eBias - 1) * pow(2, mantissaLength);
+      exponent = 0;
+    }
+  }
+  while (mantissaLength >= 8) {
+    buffer[index++] = mantissa & 255;
+    mantissa /= 256;
+    mantissaLength -= 8;
+  }
+  exponent = exponent << mantissaLength | mantissa;
+  exponentLength += mantissaLength;
+  while (exponentLength > 0) {
+    buffer[index++] = exponent & 255;
+    exponent /= 256;
+    exponentLength -= 8;
+  }
+  buffer[--index] |= sign * 128;
+  return buffer;
+};
+
+var unpack = function (buffer, mantissaLength) {
+  var bytes = buffer.length;
+  var exponentLength = bytes * 8 - mantissaLength - 1;
+  var eMax = (1 << exponentLength) - 1;
+  var eBias = eMax >> 1;
+  var nBits = exponentLength - 7;
+  var index = bytes - 1;
+  var sign = buffer[index--];
+  var exponent = sign & 127;
+  var mantissa;
+  sign >>= 7;
+  while (nBits > 0) {
+    exponent = exponent * 256 + buffer[index--];
+    nBits -= 8;
+  }
+  mantissa = exponent & (1 << -nBits) - 1;
+  exponent >>= -nBits;
+  nBits += mantissaLength;
+  while (nBits > 0) {
+    mantissa = mantissa * 256 + buffer[index--];
+    nBits -= 8;
+  }
+  if (exponent === 0) {
+    exponent = 1 - eBias;
+  } else if (exponent === eMax) {
+    return mantissa ? NaN : sign ? -Infinity : Infinity;
+  } else {
+    mantissa = mantissa + pow(2, mantissaLength);
+    exponent = exponent - eBias;
+  } return (sign ? -1 : 1) * mantissa * pow(2, exponent - mantissaLength);
+};
+
+module.exports = {
+  pack: pack,
+  unpack: unpack
+};
 
 
 /***/ }),
@@ -2748,6 +3373,23 @@ module.exports = isForced;
 
 /***/ }),
 
+/***/ 5988:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var isObject = __webpack_require__(111);
+
+var floor = Math.floor;
+
+// `IsIntegralNumber` abstract operation
+// https://tc39.es/ecma262/#sec-isintegralnumber
+// eslint-disable-next-line es-x/no-number-isinteger -- safe
+module.exports = Number.isInteger || function isInteger(it) {
+  return !isObject(it) && isFinite(it) && floor(it) === it;
+};
+
+
+/***/ }),
+
 /***/ 111:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -3043,6 +3685,54 @@ Function.prototype.toString = makeBuiltIn(function toString() {
 
 /***/ }),
 
+/***/ 6130:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var sign = __webpack_require__(4310);
+
+var abs = Math.abs;
+var pow = Math.pow;
+var EPSILON = pow(2, -52);
+var EPSILON32 = pow(2, -23);
+var MAX32 = pow(2, 127) * (2 - EPSILON32);
+var MIN32 = pow(2, -126);
+
+var roundTiesToEven = function (n) {
+  return n + 1 / EPSILON - 1 / EPSILON;
+};
+
+// `Math.fround` method implementation
+// https://tc39.es/ecma262/#sec-math.fround
+// eslint-disable-next-line es-x/no-math-fround -- safe
+module.exports = Math.fround || function fround(x) {
+  var $abs = abs(x);
+  var $sign = sign(x);
+  var a, result;
+  if ($abs < MIN32) return $sign * roundTiesToEven($abs / MIN32 / EPSILON32) * MIN32 * EPSILON32;
+  a = (1 + EPSILON32 / EPSILON) * $abs;
+  result = a - (a - $abs);
+  // eslint-disable-next-line no-self-compare -- NaN check
+  if (result > MAX32 || result != result) return $sign * Infinity;
+  return $sign * result;
+};
+
+
+/***/ }),
+
+/***/ 4310:
+/***/ (function(module) {
+
+// `Math.sign` method implementation
+// https://tc39.es/ecma262/#sec-math.sign
+// eslint-disable-next-line es-x/no-math-sign -- safe
+module.exports = Math.sign || function sign(x) {
+  // eslint-disable-next-line no-self-compare -- NaN check
+  return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;
+};
+
+
+/***/ }),
+
 /***/ 5948:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -3214,6 +3904,23 @@ var toString = __webpack_require__(1340);
 
 module.exports = function (argument, $default) {
   return argument === undefined ? arguments.length < 2 ? '' : $default : toString(argument);
+};
+
+
+/***/ }),
+
+/***/ 3929:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var global = __webpack_require__(7854);
+var isRegExp = __webpack_require__(7850);
+
+var TypeError = global.TypeError;
+
+module.exports = function (it) {
+  if (isRegExp(it)) {
+    throw TypeError("The method doesn't accept regular expressions");
+  } return it;
 };
 
 
@@ -4461,6 +5168,59 @@ module.exports = {
 
 /***/ }),
 
+/***/ 4986:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// https://github.com/zloirock/core-js/issues/280
+var userAgent = __webpack_require__(8113);
+
+module.exports = /Version\/10(?:\.\d+){1,2}(?: [\w./]+)?(?: Mobile\/\w+)? Safari\//.test(userAgent);
+
+
+/***/ }),
+
+/***/ 6650:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// https://github.com/tc39/proposal-string-pad-start-end
+var uncurryThis = __webpack_require__(1702);
+var toLength = __webpack_require__(7466);
+var toString = __webpack_require__(1340);
+var $repeat = __webpack_require__(8415);
+var requireObjectCoercible = __webpack_require__(4488);
+
+var repeat = uncurryThis($repeat);
+var stringSlice = uncurryThis(''.slice);
+var ceil = Math.ceil;
+
+// `String.prototype.{ padStart, padEnd }` methods implementation
+var createMethod = function (IS_END) {
+  return function ($this, maxLength, fillString) {
+    var S = toString(requireObjectCoercible($this));
+    var intMaxLength = toLength(maxLength);
+    var stringLength = S.length;
+    var fillStr = fillString === undefined ? ' ' : toString(fillString);
+    var fillLen, stringFiller;
+    if (intMaxLength <= stringLength || fillStr == '') return S;
+    fillLen = intMaxLength - stringLength;
+    stringFiller = repeat(fillStr, ceil(fillLen / fillStr.length));
+    if (stringFiller.length > fillLen) stringFiller = stringSlice(stringFiller, 0, fillLen);
+    return IS_END ? S + stringFiller : stringFiller + S;
+  };
+};
+
+module.exports = {
+  // `String.prototype.padStart` method
+  // https://tc39.es/ecma262/#sec-string.prototype.padstart
+  start: createMethod(false),
+  // `String.prototype.padEnd` method
+  // https://tc39.es/ecma262/#sec-string.prototype.padend
+  end: createMethod(true)
+};
+
+
+/***/ }),
+
 /***/ 8415:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -4487,6 +5247,25 @@ module.exports = function repeat(count) {
 
 /***/ }),
 
+/***/ 365:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $trimEnd = (__webpack_require__(3111).end);
+var forcedStringTrimMethod = __webpack_require__(6091);
+
+// `String.prototype.{ trimEnd, trimRight }` method
+// https://tc39.es/ecma262/#sec-string.prototype.trimend
+// https://tc39.es/ecma262/#String.prototype.trimright
+module.exports = forcedStringTrimMethod('trimEnd') ? function trimEnd() {
+  return $trimEnd(this);
+// eslint-disable-next-line es-x/no-string-prototype-trimstart-trimend -- safe
+} : ''.trimEnd;
+
+
+/***/ }),
+
 /***/ 6091:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -4505,6 +5284,25 @@ module.exports = function (METHOD_NAME) {
       || (PROPER_FUNCTION_NAME && whitespaces[METHOD_NAME].name !== METHOD_NAME);
   });
 };
+
+
+/***/ }),
+
+/***/ 3217:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $trimStart = (__webpack_require__(3111).start);
+var forcedStringTrimMethod = __webpack_require__(6091);
+
+// `String.prototype.{ trimStart, trimLeft }` method
+// https://tc39.es/ecma262/#sec-string.prototype.trimstart
+// https://tc39.es/ecma262/#String.prototype.trimleft
+module.exports = forcedStringTrimMethod('trimStart') ? function trimStart() {
+  return $trimStart(this);
+// eslint-disable-next-line es-x/no-string-prototype-trimstart-trimend -- safe
+} : ''.trimStart;
 
 
 /***/ }),
@@ -4728,6 +5526,28 @@ module.exports = function (index, length) {
 
 /***/ }),
 
+/***/ 7067:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var global = __webpack_require__(7854);
+var toIntegerOrInfinity = __webpack_require__(9303);
+var toLength = __webpack_require__(7466);
+
+var RangeError = global.RangeError;
+
+// `ToIndex` abstract operation
+// https://tc39.es/ecma262/#sec-toindex
+module.exports = function (it) {
+  if (it === undefined) return 0;
+  var number = toIntegerOrInfinity(it);
+  var length = toLength(number);
+  if (number !== length) throw RangeError('Wrong length or index');
+  return length;
+};
+
+
+/***/ }),
+
 /***/ 5656:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -4787,6 +5607,40 @@ var Object = global.Object;
 // https://tc39.es/ecma262/#sec-toobject
 module.exports = function (argument) {
   return Object(requireObjectCoercible(argument));
+};
+
+
+/***/ }),
+
+/***/ 4590:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var global = __webpack_require__(7854);
+var toPositiveInteger = __webpack_require__(3002);
+
+var RangeError = global.RangeError;
+
+module.exports = function (it, BYTES) {
+  var offset = toPositiveInteger(it);
+  if (offset % BYTES) throw RangeError('Wrong offset');
+  return offset;
+};
+
+
+/***/ }),
+
+/***/ 3002:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var global = __webpack_require__(7854);
+var toIntegerOrInfinity = __webpack_require__(9303);
+
+var RangeError = global.RangeError;
+
+module.exports = function (it) {
+  var result = toIntegerOrInfinity(it);
+  if (result < 0) throw RangeError("The argument can't be less than 0");
+  return result;
 };
 
 
@@ -4872,6 +5726,21 @@ module.exports = function (argument) {
 
 /***/ }),
 
+/***/ 4038:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var IS_NODE = __webpack_require__(5268);
+
+module.exports = function (name) {
+  try {
+    // eslint-disable-next-line no-new-func -- safe
+    if (IS_NODE) return Function('return require("' + name + '")')();
+  } catch (error) { /* empty */ }
+};
+
+
+/***/ }),
+
 /***/ 6330:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
@@ -4885,6 +5754,359 @@ module.exports = function (argument) {
   } catch (error) {
     return 'Object';
   }
+};
+
+
+/***/ }),
+
+/***/ 9843:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var global = __webpack_require__(7854);
+var call = __webpack_require__(6916);
+var DESCRIPTORS = __webpack_require__(9781);
+var TYPED_ARRAYS_CONSTRUCTORS_REQUIRES_WRAPPERS = __webpack_require__(3832);
+var ArrayBufferViewCore = __webpack_require__(260);
+var ArrayBufferModule = __webpack_require__(3331);
+var anInstance = __webpack_require__(5787);
+var createPropertyDescriptor = __webpack_require__(9114);
+var createNonEnumerableProperty = __webpack_require__(8880);
+var isIntegralNumber = __webpack_require__(5988);
+var toLength = __webpack_require__(7466);
+var toIndex = __webpack_require__(7067);
+var toOffset = __webpack_require__(4590);
+var toPropertyKey = __webpack_require__(4948);
+var hasOwn = __webpack_require__(2597);
+var classof = __webpack_require__(648);
+var isObject = __webpack_require__(111);
+var isSymbol = __webpack_require__(2190);
+var create = __webpack_require__(30);
+var isPrototypeOf = __webpack_require__(7976);
+var setPrototypeOf = __webpack_require__(7674);
+var getOwnPropertyNames = (__webpack_require__(8006).f);
+var typedArrayFrom = __webpack_require__(7321);
+var forEach = (__webpack_require__(2092).forEach);
+var setSpecies = __webpack_require__(6340);
+var definePropertyModule = __webpack_require__(3070);
+var getOwnPropertyDescriptorModule = __webpack_require__(1236);
+var InternalStateModule = __webpack_require__(9909);
+var inheritIfRequired = __webpack_require__(9587);
+
+var getInternalState = InternalStateModule.get;
+var setInternalState = InternalStateModule.set;
+var nativeDefineProperty = definePropertyModule.f;
+var nativeGetOwnPropertyDescriptor = getOwnPropertyDescriptorModule.f;
+var round = Math.round;
+var RangeError = global.RangeError;
+var ArrayBuffer = ArrayBufferModule.ArrayBuffer;
+var ArrayBufferPrototype = ArrayBuffer.prototype;
+var DataView = ArrayBufferModule.DataView;
+var NATIVE_ARRAY_BUFFER_VIEWS = ArrayBufferViewCore.NATIVE_ARRAY_BUFFER_VIEWS;
+var TYPED_ARRAY_CONSTRUCTOR = ArrayBufferViewCore.TYPED_ARRAY_CONSTRUCTOR;
+var TYPED_ARRAY_TAG = ArrayBufferViewCore.TYPED_ARRAY_TAG;
+var TypedArray = ArrayBufferViewCore.TypedArray;
+var TypedArrayPrototype = ArrayBufferViewCore.TypedArrayPrototype;
+var aTypedArrayConstructor = ArrayBufferViewCore.aTypedArrayConstructor;
+var isTypedArray = ArrayBufferViewCore.isTypedArray;
+var BYTES_PER_ELEMENT = 'BYTES_PER_ELEMENT';
+var WRONG_LENGTH = 'Wrong length';
+
+var fromList = function (C, list) {
+  aTypedArrayConstructor(C);
+  var index = 0;
+  var length = list.length;
+  var result = new C(length);
+  while (length > index) result[index] = list[index++];
+  return result;
+};
+
+var addGetter = function (it, key) {
+  nativeDefineProperty(it, key, { get: function () {
+    return getInternalState(this)[key];
+  } });
+};
+
+var isArrayBuffer = function (it) {
+  var klass;
+  return isPrototypeOf(ArrayBufferPrototype, it) || (klass = classof(it)) == 'ArrayBuffer' || klass == 'SharedArrayBuffer';
+};
+
+var isTypedArrayIndex = function (target, key) {
+  return isTypedArray(target)
+    && !isSymbol(key)
+    && key in target
+    && isIntegralNumber(+key)
+    && key >= 0;
+};
+
+var wrappedGetOwnPropertyDescriptor = function getOwnPropertyDescriptor(target, key) {
+  key = toPropertyKey(key);
+  return isTypedArrayIndex(target, key)
+    ? createPropertyDescriptor(2, target[key])
+    : nativeGetOwnPropertyDescriptor(target, key);
+};
+
+var wrappedDefineProperty = function defineProperty(target, key, descriptor) {
+  key = toPropertyKey(key);
+  if (isTypedArrayIndex(target, key)
+    && isObject(descriptor)
+    && hasOwn(descriptor, 'value')
+    && !hasOwn(descriptor, 'get')
+    && !hasOwn(descriptor, 'set')
+    // TODO: add validation descriptor w/o calling accessors
+    && !descriptor.configurable
+    && (!hasOwn(descriptor, 'writable') || descriptor.writable)
+    && (!hasOwn(descriptor, 'enumerable') || descriptor.enumerable)
+  ) {
+    target[key] = descriptor.value;
+    return target;
+  } return nativeDefineProperty(target, key, descriptor);
+};
+
+if (DESCRIPTORS) {
+  if (!NATIVE_ARRAY_BUFFER_VIEWS) {
+    getOwnPropertyDescriptorModule.f = wrappedGetOwnPropertyDescriptor;
+    definePropertyModule.f = wrappedDefineProperty;
+    addGetter(TypedArrayPrototype, 'buffer');
+    addGetter(TypedArrayPrototype, 'byteOffset');
+    addGetter(TypedArrayPrototype, 'byteLength');
+    addGetter(TypedArrayPrototype, 'length');
+  }
+
+  $({ target: 'Object', stat: true, forced: !NATIVE_ARRAY_BUFFER_VIEWS }, {
+    getOwnPropertyDescriptor: wrappedGetOwnPropertyDescriptor,
+    defineProperty: wrappedDefineProperty
+  });
+
+  module.exports = function (TYPE, wrapper, CLAMPED) {
+    var BYTES = TYPE.match(/\d+$/)[0] / 8;
+    var CONSTRUCTOR_NAME = TYPE + (CLAMPED ? 'Clamped' : '') + 'Array';
+    var GETTER = 'get' + TYPE;
+    var SETTER = 'set' + TYPE;
+    var NativeTypedArrayConstructor = global[CONSTRUCTOR_NAME];
+    var TypedArrayConstructor = NativeTypedArrayConstructor;
+    var TypedArrayConstructorPrototype = TypedArrayConstructor && TypedArrayConstructor.prototype;
+    var exported = {};
+
+    var getter = function (that, index) {
+      var data = getInternalState(that);
+      return data.view[GETTER](index * BYTES + data.byteOffset, true);
+    };
+
+    var setter = function (that, index, value) {
+      var data = getInternalState(that);
+      if (CLAMPED) value = (value = round(value)) < 0 ? 0 : value > 0xFF ? 0xFF : value & 0xFF;
+      data.view[SETTER](index * BYTES + data.byteOffset, value, true);
+    };
+
+    var addElement = function (that, index) {
+      nativeDefineProperty(that, index, {
+        get: function () {
+          return getter(this, index);
+        },
+        set: function (value) {
+          return setter(this, index, value);
+        },
+        enumerable: true
+      });
+    };
+
+    if (!NATIVE_ARRAY_BUFFER_VIEWS) {
+      TypedArrayConstructor = wrapper(function (that, data, offset, $length) {
+        anInstance(that, TypedArrayConstructorPrototype);
+        var index = 0;
+        var byteOffset = 0;
+        var buffer, byteLength, length;
+        if (!isObject(data)) {
+          length = toIndex(data);
+          byteLength = length * BYTES;
+          buffer = new ArrayBuffer(byteLength);
+        } else if (isArrayBuffer(data)) {
+          buffer = data;
+          byteOffset = toOffset(offset, BYTES);
+          var $len = data.byteLength;
+          if ($length === undefined) {
+            if ($len % BYTES) throw RangeError(WRONG_LENGTH);
+            byteLength = $len - byteOffset;
+            if (byteLength < 0) throw RangeError(WRONG_LENGTH);
+          } else {
+            byteLength = toLength($length) * BYTES;
+            if (byteLength + byteOffset > $len) throw RangeError(WRONG_LENGTH);
+          }
+          length = byteLength / BYTES;
+        } else if (isTypedArray(data)) {
+          return fromList(TypedArrayConstructor, data);
+        } else {
+          return call(typedArrayFrom, TypedArrayConstructor, data);
+        }
+        setInternalState(that, {
+          buffer: buffer,
+          byteOffset: byteOffset,
+          byteLength: byteLength,
+          length: length,
+          view: new DataView(buffer)
+        });
+        while (index < length) addElement(that, index++);
+      });
+
+      if (setPrototypeOf) setPrototypeOf(TypedArrayConstructor, TypedArray);
+      TypedArrayConstructorPrototype = TypedArrayConstructor.prototype = create(TypedArrayPrototype);
+    } else if (TYPED_ARRAYS_CONSTRUCTORS_REQUIRES_WRAPPERS) {
+      TypedArrayConstructor = wrapper(function (dummy, data, typedArrayOffset, $length) {
+        anInstance(dummy, TypedArrayConstructorPrototype);
+        return inheritIfRequired(function () {
+          if (!isObject(data)) return new NativeTypedArrayConstructor(toIndex(data));
+          if (isArrayBuffer(data)) return $length !== undefined
+            ? new NativeTypedArrayConstructor(data, toOffset(typedArrayOffset, BYTES), $length)
+            : typedArrayOffset !== undefined
+              ? new NativeTypedArrayConstructor(data, toOffset(typedArrayOffset, BYTES))
+              : new NativeTypedArrayConstructor(data);
+          if (isTypedArray(data)) return fromList(TypedArrayConstructor, data);
+          return call(typedArrayFrom, TypedArrayConstructor, data);
+        }(), dummy, TypedArrayConstructor);
+      });
+
+      if (setPrototypeOf) setPrototypeOf(TypedArrayConstructor, TypedArray);
+      forEach(getOwnPropertyNames(NativeTypedArrayConstructor), function (key) {
+        if (!(key in TypedArrayConstructor)) {
+          createNonEnumerableProperty(TypedArrayConstructor, key, NativeTypedArrayConstructor[key]);
+        }
+      });
+      TypedArrayConstructor.prototype = TypedArrayConstructorPrototype;
+    }
+
+    if (TypedArrayConstructorPrototype.constructor !== TypedArrayConstructor) {
+      createNonEnumerableProperty(TypedArrayConstructorPrototype, 'constructor', TypedArrayConstructor);
+    }
+
+    createNonEnumerableProperty(TypedArrayConstructorPrototype, TYPED_ARRAY_CONSTRUCTOR, TypedArrayConstructor);
+
+    if (TYPED_ARRAY_TAG) {
+      createNonEnumerableProperty(TypedArrayConstructorPrototype, TYPED_ARRAY_TAG, CONSTRUCTOR_NAME);
+    }
+
+    var FORCED = TypedArrayConstructor != NativeTypedArrayConstructor;
+
+    exported[CONSTRUCTOR_NAME] = TypedArrayConstructor;
+
+    $({ global: true, constructor: true, forced: FORCED, sham: !NATIVE_ARRAY_BUFFER_VIEWS }, exported);
+
+    if (!(BYTES_PER_ELEMENT in TypedArrayConstructor)) {
+      createNonEnumerableProperty(TypedArrayConstructor, BYTES_PER_ELEMENT, BYTES);
+    }
+
+    if (!(BYTES_PER_ELEMENT in TypedArrayConstructorPrototype)) {
+      createNonEnumerableProperty(TypedArrayConstructorPrototype, BYTES_PER_ELEMENT, BYTES);
+    }
+
+    setSpecies(CONSTRUCTOR_NAME);
+  };
+} else module.exports = function () { /* empty */ };
+
+
+/***/ }),
+
+/***/ 3832:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+/* eslint-disable no-new -- required for testing */
+var global = __webpack_require__(7854);
+var fails = __webpack_require__(7293);
+var checkCorrectnessOfIteration = __webpack_require__(7072);
+var NATIVE_ARRAY_BUFFER_VIEWS = (__webpack_require__(260).NATIVE_ARRAY_BUFFER_VIEWS);
+
+var ArrayBuffer = global.ArrayBuffer;
+var Int8Array = global.Int8Array;
+
+module.exports = !NATIVE_ARRAY_BUFFER_VIEWS || !fails(function () {
+  Int8Array(1);
+}) || !fails(function () {
+  new Int8Array(-1);
+}) || !checkCorrectnessOfIteration(function (iterable) {
+  new Int8Array();
+  new Int8Array(null);
+  new Int8Array(1.5);
+  new Int8Array(iterable);
+}, true) || fails(function () {
+  // Safari (11+) bug - a reason why even Safari 13 should load a typed array polyfill
+  return new Int8Array(new ArrayBuffer(2), 1, undefined).length !== 1;
+});
+
+
+/***/ }),
+
+/***/ 3074:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var arrayFromConstructorAndList = __webpack_require__(7745);
+var typedArraySpeciesConstructor = __webpack_require__(6304);
+
+module.exports = function (instance, list) {
+  return arrayFromConstructorAndList(typedArraySpeciesConstructor(instance), list);
+};
+
+
+/***/ }),
+
+/***/ 7321:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var bind = __webpack_require__(9974);
+var call = __webpack_require__(6916);
+var aConstructor = __webpack_require__(9483);
+var toObject = __webpack_require__(7908);
+var lengthOfArrayLike = __webpack_require__(6244);
+var getIterator = __webpack_require__(8554);
+var getIteratorMethod = __webpack_require__(1246);
+var isArrayIteratorMethod = __webpack_require__(7659);
+var aTypedArrayConstructor = (__webpack_require__(260).aTypedArrayConstructor);
+
+module.exports = function from(source /* , mapfn, thisArg */) {
+  var C = aConstructor(this);
+  var O = toObject(source);
+  var argumentsLength = arguments.length;
+  var mapfn = argumentsLength > 1 ? arguments[1] : undefined;
+  var mapping = mapfn !== undefined;
+  var iteratorMethod = getIteratorMethod(O);
+  var i, length, result, step, iterator, next;
+  if (iteratorMethod && !isArrayIteratorMethod(iteratorMethod)) {
+    iterator = getIterator(O, iteratorMethod);
+    next = iterator.next;
+    O = [];
+    while (!(step = call(next, iterator)).done) {
+      O.push(step.value);
+    }
+  }
+  if (mapping && argumentsLength > 2) {
+    mapfn = bind(mapfn, arguments[2]);
+  }
+  length = lengthOfArrayLike(O);
+  result = new (aTypedArrayConstructor(C))(length);
+  for (i = 0; length > i; i++) {
+    result[i] = mapping ? mapfn(O[i], i) : O[i];
+  }
+  return result;
+};
+
+
+/***/ }),
+
+/***/ 6304:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var speciesConstructor = __webpack_require__(6707);
+
+var TYPED_ARRAY_CONSTRUCTOR = ArrayBufferViewCore.TYPED_ARRAY_CONSTRUCTOR;
+var aTypedArrayConstructor = ArrayBufferViewCore.aTypedArrayConstructor;
+
+// a part of `TypedArraySpeciesCreate` abstract operation
+// https://tc39.es/ecma262/#typedarray-species-create
+module.exports = function (originalArray) {
+  return aTypedArrayConstructor(speciesConstructor(originalArray, originalArray[TYPED_ARRAY_CONSTRUCTOR]));
 };
 
 
@@ -5074,6 +6296,31 @@ module.exports = function (FULL_NAME, wrapper, FORCED, IS_AGGREGATE_ERROR) {
 
   return WrappedError;
 };
+
+
+/***/ }),
+
+/***/ 8264:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var global = __webpack_require__(7854);
+var arrayBufferModule = __webpack_require__(3331);
+var setSpecies = __webpack_require__(6340);
+
+var ARRAY_BUFFER = 'ArrayBuffer';
+var ArrayBuffer = arrayBufferModule[ARRAY_BUFFER];
+var NativeArrayBuffer = global[ARRAY_BUFFER];
+
+// `ArrayBuffer` constructor
+// https://tc39.es/ecma262/#sec-arraybuffer-constructor
+$({ global: true, constructor: true, forced: NativeArrayBuffer !== ArrayBuffer }, {
+  ArrayBuffer: ArrayBuffer
+});
+
+setSpecies(ARRAY_BUFFER);
 
 
 /***/ }),
@@ -5273,6 +6520,35 @@ $({ target: 'Array', proto: true, forced: SKIPS_HOLES }, {
 
 // https://tc39.es/ecma262/#sec-array.prototype-@@unscopables
 addToUnscopables(FIND);
+
+
+/***/ }),
+
+/***/ 6535:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var flattenIntoArray = __webpack_require__(6790);
+var aCallable = __webpack_require__(9662);
+var toObject = __webpack_require__(7908);
+var lengthOfArrayLike = __webpack_require__(6244);
+var arraySpeciesCreate = __webpack_require__(5417);
+
+// `Array.prototype.flatMap` method
+// https://tc39.es/ecma262/#sec-array.prototype.flatmap
+$({ target: 'Array', proto: true }, {
+  flatMap: function flatMap(callbackfn /* , thisArg */) {
+    var O = toObject(this);
+    var sourceLen = lengthOfArrayLike(O);
+    var A;
+    aCallable(callbackfn);
+    A = arraySpeciesCreate(O, 0);
+    A.length = flattenIntoArray(A, O, O, sourceLen, 0, 1, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+    return A;
+  }
+});
 
 
 /***/ }),
@@ -5695,6 +6971,19 @@ $({ target: 'Array', proto: true, forced: !HAS_SPECIES_SUPPORT }, {
 
 /***/ }),
 
+/***/ 9244:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+// this method was added to unscopables after implementation
+// in popular engines, so it's moved to a separate module
+var addToUnscopables = __webpack_require__(1223);
+
+// https://tc39.es/ecma262/#sec-array.prototype-@@unscopables
+addToUnscopables('flatMap');
+
+
+/***/ }),
+
 /***/ 1703:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -5923,6 +7212,19 @@ __webpack_require__(9098);
 
 /***/ }),
 
+/***/ 4755:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var fround = __webpack_require__(6130);
+
+// `Math.fround` method
+// https://tc39.es/ecma262/#sec-math.fround
+$({ target: 'Math', stat: true }, { fround: fround });
+
+
+/***/ }),
+
 /***/ 2703:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -5931,6 +7233,25 @@ var setToStringTag = __webpack_require__(8003);
 // Math[@@toStringTag] property
 // https://tc39.es/ecma262/#sec-math-@@tostringtag
 setToStringTag(Math, 'Math', true);
+
+
+/***/ }),
+
+/***/ 3689:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+
+var ceil = Math.ceil;
+var floor = Math.floor;
+
+// `Math.trunc` method
+// https://tc39.es/ecma262/#sec-math.trunc
+$({ target: 'Math', stat: true }, {
+  trunc: function trunc(it) {
+    return (it > 0 ? floor : ceil)(it);
+  }
+});
 
 
 /***/ }),
@@ -6027,6 +7348,21 @@ if (isForced(NUMBER, !NativeNumber(' 0o1') || !NativeNumber('0b1') || NativeNumb
   NumberPrototype.constructor = NumberWrapper;
   defineBuiltIn(global, NUMBER, NumberWrapper, { constructor: true });
 }
+
+
+/***/ }),
+
+/***/ 3161:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var isIntegralNumber = __webpack_require__(5988);
+
+// `Number.isInteger` method
+// https://tc39.es/ecma262/#sec-number.isinteger
+$({ target: 'Number', stat: true }, {
+  isInteger: isIntegralNumber
+});
 
 
 /***/ }),
@@ -7379,6 +8715,32 @@ if (NOT_GENERIC || INCORRECT_NAME) {
 
 /***/ }),
 
+/***/ 7227:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var collection = __webpack_require__(7710);
+var collectionStrong = __webpack_require__(5631);
+
+// `Set` constructor
+// https://tc39.es/ecma262/#sec-set-objects
+collection('Set', function (init) {
+  return function Set() { return init(this, arguments.length ? arguments[0] : undefined); };
+}, collectionStrong);
+
+
+/***/ }),
+
+/***/ 189:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+// TODO: Remove this module from `core-js@4` since it's replaced to module below
+__webpack_require__(7227);
+
+
+/***/ }),
+
 /***/ 4506:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -7413,6 +8775,52 @@ $({ target: 'String', proto: true, forced: FORCED }, {
 
 /***/ }),
 
+/***/ 7852:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var uncurryThis = __webpack_require__(1702);
+var getOwnPropertyDescriptor = (__webpack_require__(1236).f);
+var toLength = __webpack_require__(7466);
+var toString = __webpack_require__(1340);
+var notARegExp = __webpack_require__(3929);
+var requireObjectCoercible = __webpack_require__(4488);
+var correctIsRegExpLogic = __webpack_require__(4964);
+var IS_PURE = __webpack_require__(1913);
+
+// eslint-disable-next-line es-x/no-string-prototype-endswith -- safe
+var un$EndsWith = uncurryThis(''.endsWith);
+var slice = uncurryThis(''.slice);
+var min = Math.min;
+
+var CORRECT_IS_REGEXP_LOGIC = correctIsRegExpLogic('endsWith');
+// https://github.com/zloirock/core-js/pull/702
+var MDN_POLYFILL_BUG = !IS_PURE && !CORRECT_IS_REGEXP_LOGIC && !!function () {
+  var descriptor = getOwnPropertyDescriptor(String.prototype, 'endsWith');
+  return descriptor && !descriptor.writable;
+}();
+
+// `String.prototype.endsWith` method
+// https://tc39.es/ecma262/#sec-string.prototype.endswith
+$({ target: 'String', proto: true, forced: !MDN_POLYFILL_BUG && !CORRECT_IS_REGEXP_LOGIC }, {
+  endsWith: function endsWith(searchString /* , endPosition = @length */) {
+    var that = toString(requireObjectCoercible(this));
+    notARegExp(searchString);
+    var endPosition = arguments.length > 1 ? arguments[1] : undefined;
+    var len = that.length;
+    var end = endPosition === undefined ? len : min(toLength(endPosition), len);
+    var search = toString(searchString);
+    return un$EndsWith
+      ? un$EndsWith(that, search, end)
+      : slice(that, end - search.length, end) === search;
+  }
+});
+
+
+/***/ }),
+
 /***/ 9253:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -7427,6 +8835,35 @@ var forcedStringHTMLMethod = __webpack_require__(3429);
 $({ target: 'String', proto: true, forced: forcedStringHTMLMethod('fixed') }, {
   fixed: function fixed() {
     return createHTML(this, 'tt', '', '');
+  }
+});
+
+
+/***/ }),
+
+/***/ 2023:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var uncurryThis = __webpack_require__(1702);
+var notARegExp = __webpack_require__(3929);
+var requireObjectCoercible = __webpack_require__(4488);
+var toString = __webpack_require__(1340);
+var correctIsRegExpLogic = __webpack_require__(4964);
+
+var stringIndexOf = uncurryThis(''.indexOf);
+
+// `String.prototype.includes` method
+// https://tc39.es/ecma262/#sec-string.prototype.includes
+$({ target: 'String', proto: true, forced: !correctIsRegExpLogic('includes') }, {
+  includes: function includes(searchString /* , position = 0 */) {
+    return !!~stringIndexOf(
+      toString(requireObjectCoercible(this)),
+      toString(notARegExp(searchString)),
+      arguments.length > 1 ? arguments[1] : undefined
+    );
   }
 });
 
@@ -7541,6 +8978,61 @@ fixRegExpWellKnownSymbolLogic('match', function (MATCH, nativeMatch, maybeCallNa
       return n === 0 ? null : A;
     }
   ];
+});
+
+
+/***/ }),
+
+/***/ 6528:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var $padEnd = (__webpack_require__(6650).end);
+var WEBKIT_BUG = __webpack_require__(4986);
+
+// `String.prototype.padEnd` method
+// https://tc39.es/ecma262/#sec-string.prototype.padend
+$({ target: 'String', proto: true, forced: WEBKIT_BUG }, {
+  padEnd: function padEnd(maxLength /* , fillString = ' ' */) {
+    return $padEnd(this, maxLength, arguments.length > 1 ? arguments[1] : undefined);
+  }
+});
+
+
+/***/ }),
+
+/***/ 3112:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var $padStart = (__webpack_require__(6650).start);
+var WEBKIT_BUG = __webpack_require__(4986);
+
+// `String.prototype.padStart` method
+// https://tc39.es/ecma262/#sec-string.prototype.padstart
+$({ target: 'String', proto: true, forced: WEBKIT_BUG }, {
+  padStart: function padStart(maxLength /* , fillString = ' ' */) {
+    return $padStart(this, maxLength, arguments.length > 1 ? arguments[1] : undefined);
+  }
+});
+
+
+/***/ }),
+
+/***/ 2481:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var repeat = __webpack_require__(8415);
+
+// `String.prototype.repeat` method
+// https://tc39.es/ecma262/#sec-string.prototype.repeat
+$({ target: 'String', proto: true }, {
+  repeat: repeat
 });
 
 
@@ -7915,6 +9407,118 @@ fixRegExpWellKnownSymbolLogic('split', function (SPLIT, nativeSplit, maybeCallNa
     }
   ];
 }, !SPLIT_WORKS_WITH_OVERWRITTEN_EXEC, UNSUPPORTED_Y);
+
+
+/***/ }),
+
+/***/ 6755:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var uncurryThis = __webpack_require__(1702);
+var getOwnPropertyDescriptor = (__webpack_require__(1236).f);
+var toLength = __webpack_require__(7466);
+var toString = __webpack_require__(1340);
+var notARegExp = __webpack_require__(3929);
+var requireObjectCoercible = __webpack_require__(4488);
+var correctIsRegExpLogic = __webpack_require__(4964);
+var IS_PURE = __webpack_require__(1913);
+
+// eslint-disable-next-line es-x/no-string-prototype-startswith -- safe
+var un$StartsWith = uncurryThis(''.startsWith);
+var stringSlice = uncurryThis(''.slice);
+var min = Math.min;
+
+var CORRECT_IS_REGEXP_LOGIC = correctIsRegExpLogic('startsWith');
+// https://github.com/zloirock/core-js/pull/702
+var MDN_POLYFILL_BUG = !IS_PURE && !CORRECT_IS_REGEXP_LOGIC && !!function () {
+  var descriptor = getOwnPropertyDescriptor(String.prototype, 'startsWith');
+  return descriptor && !descriptor.writable;
+}();
+
+// `String.prototype.startsWith` method
+// https://tc39.es/ecma262/#sec-string.prototype.startswith
+$({ target: 'String', proto: true, forced: !MDN_POLYFILL_BUG && !CORRECT_IS_REGEXP_LOGIC }, {
+  startsWith: function startsWith(searchString /* , position = 0 */) {
+    var that = toString(requireObjectCoercible(this));
+    notARegExp(searchString);
+    var index = toLength(min(arguments.length > 1 ? arguments[1] : undefined, that.length));
+    var search = toString(searchString);
+    return un$StartsWith
+      ? un$StartsWith(that, search, index)
+      : stringSlice(that, index, index + search.length) === search;
+  }
+});
+
+
+/***/ }),
+
+/***/ 8702:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+// TODO: Remove this line from `core-js@4`
+__webpack_require__(3462);
+var $ = __webpack_require__(2109);
+var trimEnd = __webpack_require__(365);
+
+// `String.prototype.trimEnd` method
+// https://tc39.es/ecma262/#sec-string.prototype.trimend
+// eslint-disable-next-line es-x/no-string-prototype-trimstart-trimend -- safe
+$({ target: 'String', proto: true, name: 'trimEnd', forced: ''.trimEnd !== trimEnd }, {
+  trimEnd: trimEnd
+});
+
+
+/***/ }),
+
+/***/ 9967:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var trimStart = __webpack_require__(3217);
+
+// `String.prototype.trimLeft` method
+// https://tc39.es/ecma262/#sec-string.prototype.trimleft
+// eslint-disable-next-line es-x/no-string-prototype-trimleft-trimright -- safe
+$({ target: 'String', proto: true, name: 'trimStart', forced: ''.trimLeft !== trimStart }, {
+  trimLeft: trimStart
+});
+
+
+/***/ }),
+
+/***/ 3462:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var trimEnd = __webpack_require__(365);
+
+// `String.prototype.trimRight` method
+// https://tc39.es/ecma262/#sec-string.prototype.trimend
+// eslint-disable-next-line es-x/no-string-prototype-trimleft-trimright -- safe
+$({ target: 'String', proto: true, name: 'trimEnd', forced: ''.trimRight !== trimEnd }, {
+  trimRight: trimEnd
+});
+
+
+/***/ }),
+
+/***/ 5674:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+// TODO: Remove this line from `core-js@4`
+__webpack_require__(9967);
+var $ = __webpack_require__(2109);
+var trimStart = __webpack_require__(3217);
+
+// `String.prototype.trimStart` method
+// https://tc39.es/ecma262/#sec-string.prototype.trimstart
+// eslint-disable-next-line es-x/no-string-prototype-trimstart-trimend -- safe
+$({ target: 'String', proto: true, name: 'trimStart', forced: ''.trimStart !== trimStart }, {
+  trimStart: trimStart
+});
 
 
 /***/ }),
@@ -8399,6 +10003,915 @@ exportTypedArrayMethod('at', function at(index) {
 
 /***/ }),
 
+/***/ 2990:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var uncurryThis = __webpack_require__(1702);
+var ArrayBufferViewCore = __webpack_require__(260);
+var $ArrayCopyWithin = __webpack_require__(1048);
+
+var u$ArrayCopyWithin = uncurryThis($ArrayCopyWithin);
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.copyWithin` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.copywithin
+exportTypedArrayMethod('copyWithin', function copyWithin(target, start /* , end */) {
+  return u$ArrayCopyWithin(aTypedArray(this), target, start, arguments.length > 2 ? arguments[2] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 8927:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $every = (__webpack_require__(2092).every);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.every` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.every
+exportTypedArrayMethod('every', function every(callbackfn /* , thisArg */) {
+  return $every(aTypedArray(this), callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 3105:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var call = __webpack_require__(6916);
+var $fill = __webpack_require__(1285);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.fill` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.fill
+exportTypedArrayMethod('fill', function fill(value /* , start, end */) {
+  var length = arguments.length;
+  return call(
+    $fill,
+    aTypedArray(this),
+    value,
+    length > 1 ? arguments[1] : undefined,
+    length > 2 ? arguments[2] : undefined
+  );
+});
+
+
+/***/ }),
+
+/***/ 5035:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $filter = (__webpack_require__(2092).filter);
+var fromSpeciesAndList = __webpack_require__(3074);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.filter` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.filter
+exportTypedArrayMethod('filter', function filter(callbackfn /* , thisArg */) {
+  var list = $filter(aTypedArray(this), callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+  return fromSpeciesAndList(this, list);
+});
+
+
+/***/ }),
+
+/***/ 7174:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $findIndex = (__webpack_require__(2092).findIndex);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.findIndex` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.findindex
+exportTypedArrayMethod('findIndex', function findIndex(predicate /* , thisArg */) {
+  return $findIndex(aTypedArray(this), predicate, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 4345:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $find = (__webpack_require__(2092).find);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.find` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.find
+exportTypedArrayMethod('find', function find(predicate /* , thisArg */) {
+  return $find(aTypedArray(this), predicate, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 4197:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Float32Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Float32', function (init) {
+  return function Float32Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 6495:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Float64Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Float64', function (init) {
+  return function Float64Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 2846:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $forEach = (__webpack_require__(2092).forEach);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.forEach` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.foreach
+exportTypedArrayMethod('forEach', function forEach(callbackfn /* , thisArg */) {
+  $forEach(aTypedArray(this), callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 4731:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $includes = (__webpack_require__(1318).includes);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.includes` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.includes
+exportTypedArrayMethod('includes', function includes(searchElement /* , fromIndex */) {
+  return $includes(aTypedArray(this), searchElement, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 7209:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $indexOf = (__webpack_require__(1318).indexOf);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.indexOf` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.indexof
+exportTypedArrayMethod('indexOf', function indexOf(searchElement /* , fromIndex */) {
+  return $indexOf(aTypedArray(this), searchElement, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 5109:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Int16Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Int16', function (init) {
+  return function Int16Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 5125:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Int32Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Int32', function (init) {
+  return function Int32Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 7145:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Int8Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Int8', function (init) {
+  return function Int8Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 6319:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var fails = __webpack_require__(7293);
+var uncurryThis = __webpack_require__(1702);
+var ArrayBufferViewCore = __webpack_require__(260);
+var ArrayIterators = __webpack_require__(6992);
+var wellKnownSymbol = __webpack_require__(5112);
+
+var ITERATOR = wellKnownSymbol('iterator');
+var Uint8Array = global.Uint8Array;
+var arrayValues = uncurryThis(ArrayIterators.values);
+var arrayKeys = uncurryThis(ArrayIterators.keys);
+var arrayEntries = uncurryThis(ArrayIterators.entries);
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+var TypedArrayPrototype = Uint8Array && Uint8Array.prototype;
+
+var GENERIC = !fails(function () {
+  TypedArrayPrototype[ITERATOR].call([1]);
+});
+
+var ITERATOR_IS_VALUES = !!TypedArrayPrototype
+  && TypedArrayPrototype.values
+  && TypedArrayPrototype[ITERATOR] === TypedArrayPrototype.values
+  && TypedArrayPrototype.values.name === 'values';
+
+var typedArrayValues = function values() {
+  return arrayValues(aTypedArray(this));
+};
+
+// `%TypedArray%.prototype.entries` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.entries
+exportTypedArrayMethod('entries', function entries() {
+  return arrayEntries(aTypedArray(this));
+}, GENERIC);
+// `%TypedArray%.prototype.keys` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.keys
+exportTypedArrayMethod('keys', function keys() {
+  return arrayKeys(aTypedArray(this));
+}, GENERIC);
+// `%TypedArray%.prototype.values` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.values
+exportTypedArrayMethod('values', typedArrayValues, GENERIC || !ITERATOR_IS_VALUES, { name: 'values' });
+// `%TypedArray%.prototype[@@iterator]` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype-@@iterator
+exportTypedArrayMethod(ITERATOR, typedArrayValues, GENERIC || !ITERATOR_IS_VALUES, { name: 'values' });
+
+
+/***/ }),
+
+/***/ 8867:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var uncurryThis = __webpack_require__(1702);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+var $join = uncurryThis([].join);
+
+// `%TypedArray%.prototype.join` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.join
+exportTypedArrayMethod('join', function join(separator) {
+  return $join(aTypedArray(this), separator);
+});
+
+
+/***/ }),
+
+/***/ 7789:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var apply = __webpack_require__(2104);
+var $lastIndexOf = __webpack_require__(6583);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.lastIndexOf` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.lastindexof
+exportTypedArrayMethod('lastIndexOf', function lastIndexOf(searchElement /* , fromIndex */) {
+  var length = arguments.length;
+  return apply($lastIndexOf, aTypedArray(this), length > 1 ? [searchElement, arguments[1]] : [searchElement]);
+});
+
+
+/***/ }),
+
+/***/ 3739:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $map = (__webpack_require__(2092).map);
+var typedArraySpeciesConstructor = __webpack_require__(6304);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.map` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.map
+exportTypedArrayMethod('map', function map(mapfn /* , thisArg */) {
+  return $map(aTypedArray(this), mapfn, arguments.length > 1 ? arguments[1] : undefined, function (O, length) {
+    return new (typedArraySpeciesConstructor(O))(length);
+  });
+});
+
+
+/***/ }),
+
+/***/ 4483:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $reduceRight = (__webpack_require__(3671).right);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.reduceRicht` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.reduceright
+exportTypedArrayMethod('reduceRight', function reduceRight(callbackfn /* , initialValue */) {
+  var length = arguments.length;
+  return $reduceRight(aTypedArray(this), callbackfn, length, length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 9368:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $reduce = (__webpack_require__(3671).left);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.reduce` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.reduce
+exportTypedArrayMethod('reduce', function reduce(callbackfn /* , initialValue */) {
+  var length = arguments.length;
+  return $reduce(aTypedArray(this), callbackfn, length, length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 2056:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+var floor = Math.floor;
+
+// `%TypedArray%.prototype.reverse` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.reverse
+exportTypedArrayMethod('reverse', function reverse() {
+  var that = this;
+  var length = aTypedArray(that).length;
+  var middle = floor(length / 2);
+  var index = 0;
+  var value;
+  while (index < middle) {
+    value = that[index];
+    that[index++] = that[--length];
+    that[length] = value;
+  } return that;
+});
+
+
+/***/ }),
+
+/***/ 4141:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var call = __webpack_require__(6916);
+var ArrayBufferViewCore = __webpack_require__(260);
+var lengthOfArrayLike = __webpack_require__(6244);
+var toOffset = __webpack_require__(4590);
+var toIndexedObject = __webpack_require__(7908);
+var fails = __webpack_require__(7293);
+
+var RangeError = global.RangeError;
+var Int8Array = global.Int8Array;
+var Int8ArrayPrototype = Int8Array && Int8Array.prototype;
+var $set = Int8ArrayPrototype && Int8ArrayPrototype.set;
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+var WORKS_WITH_OBJECTS_AND_GEERIC_ON_TYPED_ARRAYS = !fails(function () {
+  // eslint-disable-next-line es-x/no-typed-arrays -- required for testing
+  var array = new Uint8ClampedArray(2);
+  call($set, array, { length: 1, 0: 3 }, 1);
+  return array[1] !== 3;
+});
+
+// https://bugs.chromium.org/p/v8/issues/detail?id=11294 and other
+var TO_OBJECT_BUG = WORKS_WITH_OBJECTS_AND_GEERIC_ON_TYPED_ARRAYS && ArrayBufferViewCore.NATIVE_ARRAY_BUFFER_VIEWS && fails(function () {
+  var array = new Int8Array(2);
+  array.set(1);
+  array.set('2', 1);
+  return array[0] !== 0 || array[1] !== 2;
+});
+
+// `%TypedArray%.prototype.set` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.set
+exportTypedArrayMethod('set', function set(arrayLike /* , offset */) {
+  aTypedArray(this);
+  var offset = toOffset(arguments.length > 1 ? arguments[1] : undefined, 1);
+  var src = toIndexedObject(arrayLike);
+  if (WORKS_WITH_OBJECTS_AND_GEERIC_ON_TYPED_ARRAYS) return call($set, this, src, offset);
+  var length = this.length;
+  var len = lengthOfArrayLike(src);
+  var index = 0;
+  if (len + offset > length) throw RangeError('Wrong length');
+  while (index < len) this[offset + index] = src[index++];
+}, !WORKS_WITH_OBJECTS_AND_GEERIC_ON_TYPED_ARRAYS || TO_OBJECT_BUG);
+
+
+/***/ }),
+
+/***/ 678:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var typedArraySpeciesConstructor = __webpack_require__(6304);
+var fails = __webpack_require__(7293);
+var arraySlice = __webpack_require__(206);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+var FORCED = fails(function () {
+  // eslint-disable-next-line es-x/no-typed-arrays -- required for testing
+  new Int8Array(1).slice();
+});
+
+// `%TypedArray%.prototype.slice` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.slice
+exportTypedArrayMethod('slice', function slice(start, end) {
+  var list = arraySlice(aTypedArray(this), start, end);
+  var C = typedArraySpeciesConstructor(this);
+  var index = 0;
+  var length = list.length;
+  var result = new C(length);
+  while (length > index) result[index] = list[index++];
+  return result;
+}, FORCED);
+
+
+/***/ }),
+
+/***/ 7462:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var $some = (__webpack_require__(2092).some);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.some` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.some
+exportTypedArrayMethod('some', function some(callbackfn /* , thisArg */) {
+  return $some(aTypedArray(this), callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+});
+
+
+/***/ }),
+
+/***/ 3824:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var uncurryThis = __webpack_require__(1702);
+var fails = __webpack_require__(7293);
+var aCallable = __webpack_require__(9662);
+var internalSort = __webpack_require__(4362);
+var ArrayBufferViewCore = __webpack_require__(260);
+var FF = __webpack_require__(8886);
+var IE_OR_EDGE = __webpack_require__(256);
+var V8 = __webpack_require__(7392);
+var WEBKIT = __webpack_require__(8008);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+var Uint16Array = global.Uint16Array;
+var un$Sort = Uint16Array && uncurryThis(Uint16Array.prototype.sort);
+
+// WebKit
+var ACCEPT_INCORRECT_ARGUMENTS = !!un$Sort && !(fails(function () {
+  un$Sort(new Uint16Array(2), null);
+}) && fails(function () {
+  un$Sort(new Uint16Array(2), {});
+}));
+
+var STABLE_SORT = !!un$Sort && !fails(function () {
+  // feature detection can be too slow, so check engines versions
+  if (V8) return V8 < 74;
+  if (FF) return FF < 67;
+  if (IE_OR_EDGE) return true;
+  if (WEBKIT) return WEBKIT < 602;
+
+  var array = new Uint16Array(516);
+  var expected = Array(516);
+  var index, mod;
+
+  for (index = 0; index < 516; index++) {
+    mod = index % 4;
+    array[index] = 515 - index;
+    expected[index] = index - 2 * mod + 3;
+  }
+
+  un$Sort(array, function (a, b) {
+    return (a / 4 | 0) - (b / 4 | 0);
+  });
+
+  for (index = 0; index < 516; index++) {
+    if (array[index] !== expected[index]) return true;
+  }
+});
+
+var getSortCompare = function (comparefn) {
+  return function (x, y) {
+    if (comparefn !== undefined) return +comparefn(x, y) || 0;
+    // eslint-disable-next-line no-self-compare -- NaN check
+    if (y !== y) return -1;
+    // eslint-disable-next-line no-self-compare -- NaN check
+    if (x !== x) return 1;
+    if (x === 0 && y === 0) return 1 / x > 0 && 1 / y < 0 ? 1 : -1;
+    return x > y;
+  };
+};
+
+// `%TypedArray%.prototype.sort` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.sort
+exportTypedArrayMethod('sort', function sort(comparefn) {
+  if (comparefn !== undefined) aCallable(comparefn);
+  if (STABLE_SORT) return un$Sort(this, comparefn);
+
+  return internalSort(aTypedArray(this), getSortCompare(comparefn));
+}, !STABLE_SORT || ACCEPT_INCORRECT_ARGUMENTS);
+
+
+/***/ }),
+
+/***/ 5021:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var ArrayBufferViewCore = __webpack_require__(260);
+var toLength = __webpack_require__(7466);
+var toAbsoluteIndex = __webpack_require__(1400);
+var typedArraySpeciesConstructor = __webpack_require__(6304);
+
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+
+// `%TypedArray%.prototype.subarray` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.subarray
+exportTypedArrayMethod('subarray', function subarray(begin, end) {
+  var O = aTypedArray(this);
+  var length = O.length;
+  var beginIndex = toAbsoluteIndex(begin, length);
+  var C = typedArraySpeciesConstructor(O);
+  return new C(
+    O.buffer,
+    O.byteOffset + beginIndex * O.BYTES_PER_ELEMENT,
+    toLength((end === undefined ? length : toAbsoluteIndex(end, length)) - beginIndex)
+  );
+});
+
+
+/***/ }),
+
+/***/ 2974:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__(7854);
+var apply = __webpack_require__(2104);
+var ArrayBufferViewCore = __webpack_require__(260);
+var fails = __webpack_require__(7293);
+var arraySlice = __webpack_require__(206);
+
+var Int8Array = global.Int8Array;
+var aTypedArray = ArrayBufferViewCore.aTypedArray;
+var exportTypedArrayMethod = ArrayBufferViewCore.exportTypedArrayMethod;
+var $toLocaleString = [].toLocaleString;
+
+// iOS Safari 6.x fails here
+var TO_LOCALE_STRING_BUG = !!Int8Array && fails(function () {
+  $toLocaleString.call(new Int8Array(1));
+});
+
+var FORCED = fails(function () {
+  return [1, 2].toLocaleString() != new Int8Array([1, 2]).toLocaleString();
+}) || !fails(function () {
+  Int8Array.prototype.toLocaleString.call([1, 2]);
+});
+
+// `%TypedArray%.prototype.toLocaleString` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.tolocalestring
+exportTypedArrayMethod('toLocaleString', function toLocaleString() {
+  return apply(
+    $toLocaleString,
+    TO_LOCALE_STRING_BUG ? arraySlice(aTypedArray(this)) : aTypedArray(this),
+    arraySlice(arguments)
+  );
+}, FORCED);
+
+
+/***/ }),
+
+/***/ 5016:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var exportTypedArrayMethod = (__webpack_require__(260).exportTypedArrayMethod);
+var fails = __webpack_require__(7293);
+var global = __webpack_require__(7854);
+var uncurryThis = __webpack_require__(1702);
+
+var Uint8Array = global.Uint8Array;
+var Uint8ArrayPrototype = Uint8Array && Uint8Array.prototype || {};
+var arrayToString = [].toString;
+var join = uncurryThis([].join);
+
+if (fails(function () { arrayToString.call({}); })) {
+  arrayToString = function toString() {
+    return join(this);
+  };
+}
+
+var IS_NOT_ARRAY_METHOD = Uint8ArrayPrototype.toString != arrayToString;
+
+// `%TypedArray%.prototype.toString` method
+// https://tc39.es/ecma262/#sec-%typedarray%.prototype.tostring
+exportTypedArrayMethod('toString', arrayToString, IS_NOT_ARRAY_METHOD);
+
+
+/***/ }),
+
+/***/ 8255:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Uint16Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Uint16', function (init) {
+  return function Uint16Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 9135:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Uint32Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Uint32', function (init) {
+  return function Uint32Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 2472:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var createTypedArrayConstructor = __webpack_require__(9843);
+
+// `Uint8Array` constructor
+// https://tc39.es/ecma262/#sec-typedarray-objects
+createTypedArrayConstructor('Uint8', function (init) {
+  return function Uint8Array(data, byteOffset, length) {
+    return init(this, data, byteOffset, length);
+  };
+});
+
+
+/***/ }),
+
+/***/ 5505:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var getBuiltIn = __webpack_require__(5005);
+var uncurryThis = __webpack_require__(1702);
+var fails = __webpack_require__(7293);
+var toString = __webpack_require__(1340);
+var hasOwn = __webpack_require__(2597);
+var validateArgumentsLength = __webpack_require__(8053);
+var ctoi = (__webpack_require__(4170).ctoi);
+
+var disallowed = /[^\d+/a-z]/i;
+var whitespaces = /[\t\n\f\r ]+/g;
+var finalEq = /[=]+$/;
+
+var $atob = getBuiltIn('atob');
+var fromCharCode = String.fromCharCode;
+var charAt = uncurryThis(''.charAt);
+var replace = uncurryThis(''.replace);
+var exec = uncurryThis(disallowed.exec);
+
+var NO_SPACES_IGNORE = fails(function () {
+  return $atob(' ') !== '';
+});
+
+var NO_ENCODING_CHECK = !fails(function () {
+  $atob('a');
+});
+
+var NO_ARG_RECEIVING_CHECK = !NO_SPACES_IGNORE && !NO_ENCODING_CHECK && !fails(function () {
+  $atob();
+});
+
+var WRONG_ARITY = !NO_SPACES_IGNORE && !NO_ENCODING_CHECK && $atob.length !== 1;
+
+// `atob` method
+// https://html.spec.whatwg.org/multipage/webappapis.html#dom-atob
+$({ global: true, enumerable: true, forced: NO_SPACES_IGNORE || NO_ENCODING_CHECK || NO_ARG_RECEIVING_CHECK || WRONG_ARITY }, {
+  atob: function atob(data) {
+    validateArgumentsLength(arguments.length, 1);
+    if (NO_ARG_RECEIVING_CHECK || WRONG_ARITY) return $atob(data);
+    var string = replace(toString(data), whitespaces, '');
+    var output = '';
+    var position = 0;
+    var bc = 0;
+    var chr, bs;
+    if (string.length % 4 == 0) {
+      string = replace(string, finalEq, '');
+    }
+    if (string.length % 4 == 1 || exec(disallowed, string)) {
+      throw new (getBuiltIn('DOMException'))('The string is not correctly encoded', 'InvalidCharacterError');
+    }
+    while (chr = charAt(string, position++)) {
+      if (hasOwn(ctoi, chr)) {
+        bs = bc % 4 ? bs * 64 + ctoi[chr] : ctoi[chr];
+        if (bc++ % 4) output += fromCharCode(255 & bs >> (-2 * bc & 6));
+      }
+    } return output;
+  }
+});
+
+
+/***/ }),
+
+/***/ 7479:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var $ = __webpack_require__(2109);
+var getBuiltIn = __webpack_require__(5005);
+var uncurryThis = __webpack_require__(1702);
+var fails = __webpack_require__(7293);
+var toString = __webpack_require__(1340);
+var validateArgumentsLength = __webpack_require__(8053);
+var itoc = (__webpack_require__(4170).itoc);
+
+var $btoa = getBuiltIn('btoa');
+var charAt = uncurryThis(''.charAt);
+var charCodeAt = uncurryThis(''.charCodeAt);
+
+var NO_ARG_RECEIVING_CHECK = !!$btoa && !fails(function () {
+  $btoa();
+});
+
+var WRONG_ARG_CONVERSION = !!$btoa && fails(function () {
+  return $btoa(null) !== 'bnVsbA==';
+});
+
+var WRONG_ARITY = !!$btoa && $btoa.length !== 1;
+
+// `btoa` method
+// https://html.spec.whatwg.org/multipage/webappapis.html#dom-btoa
+$({ global: true, enumerable: true, forced: NO_ARG_RECEIVING_CHECK || WRONG_ARG_CONVERSION || WRONG_ARITY }, {
+  btoa: function btoa(data) {
+    validateArgumentsLength(arguments.length, 1);
+    if (NO_ARG_RECEIVING_CHECK || WRONG_ARG_CONVERSION || WRONG_ARITY) return $btoa(toString(data));
+    var string = toString(data);
+    var output = '';
+    var position = 0;
+    var map = itoc;
+    var block, charCode;
+    while (charAt(string, position) || (map = '=', position % 1)) {
+      charCode = charCodeAt(string, position += 3 / 4);
+      if (charCode > 0xFF) {
+        throw new (getBuiltIn('DOMException'))('The string contains characters outside of the Latin1 range', 'InvalidCharacterError');
+      }
+      block = block << 8 | charCode;
+      output += charAt(map, 63 & block >> 8 - position % 1 * 8);
+    } return output;
+  }
+});
+
+
+/***/ }),
+
 /***/ 4747:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -8473,6 +10986,155 @@ handlePrototype(DOMTokenListPrototype, 'DOMTokenList');
 
 /***/ }),
 
+/***/ 7714:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var tryNodeRequire = __webpack_require__(4038);
+var getBuiltIn = __webpack_require__(5005);
+var fails = __webpack_require__(7293);
+var create = __webpack_require__(30);
+var createPropertyDescriptor = __webpack_require__(9114);
+var defineProperty = (__webpack_require__(3070).f);
+var defineBuiltIn = __webpack_require__(8052);
+var defineBuiltInAccessor = __webpack_require__(7045);
+var hasOwn = __webpack_require__(2597);
+var anInstance = __webpack_require__(5787);
+var anObject = __webpack_require__(9670);
+var errorToString = __webpack_require__(7762);
+var normalizeStringArgument = __webpack_require__(6277);
+var DOMExceptionConstants = __webpack_require__(3678);
+var clearErrorStack = __webpack_require__(7741);
+var InternalStateModule = __webpack_require__(9909);
+var DESCRIPTORS = __webpack_require__(9781);
+var IS_PURE = __webpack_require__(1913);
+
+var DOM_EXCEPTION = 'DOMException';
+var DATA_CLONE_ERR = 'DATA_CLONE_ERR';
+var Error = getBuiltIn('Error');
+// NodeJS < 17.0 does not expose `DOMException` to global
+var NativeDOMException = getBuiltIn(DOM_EXCEPTION) || (function () {
+  try {
+    // NodeJS < 15.0 does not expose `MessageChannel` to global
+    var MessageChannel = getBuiltIn('MessageChannel') || tryNodeRequire('worker_threads').MessageChannel;
+    // eslint-disable-next-line es-x/no-weak-map, unicorn/require-post-message-target-origin -- safe
+    new MessageChannel().port1.postMessage(new WeakMap());
+  } catch (error) {
+    if (error.name == DATA_CLONE_ERR && error.code == 25) return error.constructor;
+  }
+})();
+var NativeDOMExceptionPrototype = NativeDOMException && NativeDOMException.prototype;
+var ErrorPrototype = Error.prototype;
+var setInternalState = InternalStateModule.set;
+var getInternalState = InternalStateModule.getterFor(DOM_EXCEPTION);
+var HAS_STACK = 'stack' in Error(DOM_EXCEPTION);
+
+var codeFor = function (name) {
+  return hasOwn(DOMExceptionConstants, name) && DOMExceptionConstants[name].m ? DOMExceptionConstants[name].c : 0;
+};
+
+var $DOMException = function DOMException() {
+  anInstance(this, DOMExceptionPrototype);
+  var argumentsLength = arguments.length;
+  var message = normalizeStringArgument(argumentsLength < 1 ? undefined : arguments[0]);
+  var name = normalizeStringArgument(argumentsLength < 2 ? undefined : arguments[1], 'Error');
+  var code = codeFor(name);
+  setInternalState(this, {
+    type: DOM_EXCEPTION,
+    name: name,
+    message: message,
+    code: code
+  });
+  if (!DESCRIPTORS) {
+    this.name = name;
+    this.message = message;
+    this.code = code;
+  }
+  if (HAS_STACK) {
+    var error = Error(message);
+    error.name = DOM_EXCEPTION;
+    defineProperty(this, 'stack', createPropertyDescriptor(1, clearErrorStack(error.stack, 1)));
+  }
+};
+
+var DOMExceptionPrototype = $DOMException.prototype = create(ErrorPrototype);
+
+var createGetterDescriptor = function (get) {
+  return { enumerable: true, configurable: true, get: get };
+};
+
+var getterFor = function (key) {
+  return createGetterDescriptor(function () {
+    return getInternalState(this)[key];
+  });
+};
+
+if (DESCRIPTORS) {
+  defineBuiltInAccessor(DOMExceptionPrototype, 'code', getterFor('code'));
+  defineBuiltInAccessor(DOMExceptionPrototype, 'message', getterFor('message'));
+  defineBuiltInAccessor(DOMExceptionPrototype, 'name', getterFor('name'));
+}
+
+defineProperty(DOMExceptionPrototype, 'constructor', createPropertyDescriptor(1, $DOMException));
+
+// FF36- DOMException is a function, but can't be constructed
+var INCORRECT_CONSTRUCTOR = fails(function () {
+  return !(new NativeDOMException() instanceof Error);
+});
+
+// Safari 10.1 / Chrome 32- / IE8- DOMException.prototype.toString bugs
+var INCORRECT_TO_STRING = INCORRECT_CONSTRUCTOR || fails(function () {
+  return ErrorPrototype.toString !== errorToString || String(new NativeDOMException(1, 2)) !== '2: 1';
+});
+
+// Deno 1.6.3- DOMException.prototype.code just missed
+var INCORRECT_CODE = INCORRECT_CONSTRUCTOR || fails(function () {
+  return new NativeDOMException(1, 'DataCloneError').code !== 25;
+});
+
+// Deno 1.6.3- DOMException constants just missed
+var MISSED_CONSTANTS = INCORRECT_CONSTRUCTOR
+  || NativeDOMException[DATA_CLONE_ERR] !== 25
+  || NativeDOMExceptionPrototype[DATA_CLONE_ERR] !== 25;
+
+var FORCED_CONSTRUCTOR = IS_PURE ? INCORRECT_TO_STRING || INCORRECT_CODE || MISSED_CONSTANTS : INCORRECT_CONSTRUCTOR;
+
+// `DOMException` constructor
+// https://webidl.spec.whatwg.org/#idl-DOMException
+$({ global: true, constructor: true, forced: FORCED_CONSTRUCTOR }, {
+  DOMException: FORCED_CONSTRUCTOR ? $DOMException : NativeDOMException
+});
+
+var PolyfilledDOMException = getBuiltIn(DOM_EXCEPTION);
+var PolyfilledDOMExceptionPrototype = PolyfilledDOMException.prototype;
+
+if (INCORRECT_TO_STRING && (IS_PURE || NativeDOMException === PolyfilledDOMException)) {
+  defineBuiltIn(PolyfilledDOMExceptionPrototype, 'toString', errorToString);
+}
+
+if (INCORRECT_CODE && DESCRIPTORS && NativeDOMException === PolyfilledDOMException) {
+  defineBuiltInAccessor(PolyfilledDOMExceptionPrototype, 'code', createGetterDescriptor(function () {
+    return codeFor(anObject(this).name);
+  }));
+}
+
+for (var key in DOMExceptionConstants) if (hasOwn(DOMExceptionConstants, key)) {
+  var constant = DOMExceptionConstants[key];
+  var constantName = constant.s;
+  var descriptor = createPropertyDescriptor(6, constant.c);
+  if (!hasOwn(PolyfilledDOMException, constantName)) {
+    defineProperty(PolyfilledDOMException, constantName, descriptor);
+  }
+  if (!hasOwn(PolyfilledDOMExceptionPrototype, constantName)) {
+    defineProperty(PolyfilledDOMExceptionPrototype, constantName, descriptor);
+  }
+}
+
+
+/***/ }),
+
 /***/ 2801:
 /***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 
@@ -8535,6 +11197,38 @@ if (PolyfilledDOMExceptionPrototype.constructor !== PolyfilledDOMException) {
     }
   }
 }
+
+
+/***/ }),
+
+/***/ 1174:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+var getBuiltIn = __webpack_require__(5005);
+var setToStringTag = __webpack_require__(8003);
+
+var DOM_EXCEPTION = 'DOMException';
+
+setToStringTag(getBuiltIn(DOM_EXCEPTION), DOM_EXCEPTION);
+
+
+/***/ }),
+
+/***/ 3753:
+/***/ (function(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__(2109);
+var call = __webpack_require__(6916);
+
+// `URL.prototype.toJSON` method
+// https://url.spec.whatwg.org/#dom-url-tojson
+$({ target: 'URL', proto: true, enumerable: true }, {
+  toJSON: function toJSON() {
+    return call(URL.prototype.toString, this);
+  }
+});
 
 
 /***/ }),
@@ -8681,7 +11375,19 @@ module.exports = __webpack_require__(9367);
 "use strict";
 
 
+__webpack_require__(1539);
+
+__webpack_require__(8674);
+
+__webpack_require__(7479);
+
+__webpack_require__(7714);
+
 __webpack_require__(2801);
+
+__webpack_require__(1174);
+
+__webpack_require__(4747);
 
 var utils = __webpack_require__(7725);
 
@@ -8701,7 +11407,7 @@ var transitionalDefaults = __webpack_require__(7258);
 
 var AxiosError = __webpack_require__(8274);
 
-var CanceledError = __webpack_require__(3753);
+var CanceledError = __webpack_require__(4457);
 
 var parseProtocol = __webpack_require__(8499);
 
@@ -8872,7 +11578,7 @@ module.exports = function xhrAdapter(config) {
     if (config.cancelToken || config.signal) {
       // Handle cancellation
       // eslint-disable-next-line func-names
-      onCanceled = function (cancel) {
+      onCanceled = function onCanceled(cancel) {
         if (!request) {
           return;
         }
@@ -8913,6 +11619,16 @@ module.exports = function xhrAdapter(config) {
 "use strict";
 
 
+__webpack_require__(6992);
+
+__webpack_require__(1539);
+
+__webpack_require__(8674);
+
+__webpack_require__(8783);
+
+__webpack_require__(3948);
+
 var utils = __webpack_require__(7725);
 
 var bind = __webpack_require__(7414);
@@ -8950,7 +11666,7 @@ var axios = createInstance(defaults); // Expose Axios class to allow class inher
 
 axios.Axios = Axios; // Expose Cancel & CancelToken
 
-axios.CanceledError = __webpack_require__(3753);
+axios.CanceledError = __webpack_require__(4457);
 axios.CancelToken = __webpack_require__(962);
 axios.isCancel = __webpack_require__(7357);
 axios.VERSION = (__webpack_require__(6869).version);
@@ -8981,7 +11697,13 @@ module.exports["default"] = axios;
 
 __webpack_require__(1703);
 
-var CanceledError = __webpack_require__(3753);
+__webpack_require__(1539);
+
+__webpack_require__(8674);
+
+__webpack_require__(561);
+
+var CanceledError = __webpack_require__(4457);
 /**
  * A `CancelToken` is an object that can be used to request cancellation of an operation.
  *
@@ -9103,11 +11825,13 @@ module.exports = CancelToken;
 
 /***/ }),
 
-/***/ 3753:
+/***/ 4457:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
+
+__webpack_require__(8309);
 
 var AxiosError = __webpack_require__(8274);
 
@@ -9150,6 +11874,14 @@ module.exports = function isCancel(value) {
 
 "use strict";
 
+
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
+__webpack_require__(2222);
+
+__webpack_require__(8674);
 
 var utils = __webpack_require__(7725);
 
@@ -9320,6 +12052,16 @@ module.exports = Axios;
 
 __webpack_require__(1703);
 
+__webpack_require__(8309);
+
+__webpack_require__(2526);
+
+__webpack_require__(1817);
+
+__webpack_require__(1539);
+
+__webpack_require__(9601);
+
 var utils = __webpack_require__(7725);
 /**
  * Create an Error with the specified message, config, error code, request and response.
@@ -9397,6 +12139,10 @@ module.exports = AxiosError;
 
 "use strict";
 
+
+__webpack_require__(1539);
+
+__webpack_require__(4747);
 
 var utils = __webpack_require__(7725);
 
@@ -9492,6 +12238,12 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
 "use strict";
 
 
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
+__webpack_require__(8674);
+
 var utils = __webpack_require__(7725);
 
 var transformData = __webpack_require__(1580);
@@ -9500,7 +12252,7 @@ var isCancel = __webpack_require__(7357);
 
 var defaults = __webpack_require__(3811);
 
-var CanceledError = __webpack_require__(3753);
+var CanceledError = __webpack_require__(4457);
 /**
  * Throws a `CanceledError` if cancellation has been requested.
  */
@@ -9560,6 +12312,16 @@ module.exports = function dispatchRequest(config) {
 
 "use strict";
 
+
+__webpack_require__(7042);
+
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
+__webpack_require__(2222);
+
+__webpack_require__(7941);
 
 var utils = __webpack_require__(7725);
 /**
@@ -9696,6 +12458,10 @@ module.exports = function settle(resolve, reject, response) {
 "use strict";
 
 
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
 var utils = __webpack_require__(7725);
 
 var defaults = __webpack_require__(3811);
@@ -9726,6 +12492,18 @@ module.exports = function transformData(data, headers, fns) {
 
 "use strict";
 
+
+__webpack_require__(1539);
+
+__webpack_require__(3210);
+
+__webpack_require__(8309);
+
+__webpack_require__(8862);
+
+__webpack_require__(9714);
+
+__webpack_require__(4747);
 
 var utils = __webpack_require__(7725);
 
@@ -9916,6 +12694,22 @@ module.exports = function bind(fn, thisArg) {
 "use strict";
 
 
+__webpack_require__(4916);
+
+__webpack_require__(5306);
+
+__webpack_require__(1539);
+
+__webpack_require__(9714);
+
+__webpack_require__(4747);
+
+__webpack_require__(8862);
+
+__webpack_require__(9600);
+
+__webpack_require__(7042);
+
 var utils = __webpack_require__(7725);
 
 function encode(val) {
@@ -9984,7 +12778,7 @@ module.exports = function buildURL(url, params, paramsSerializer) {
 /***/ }),
 
 /***/ 4856:
-/***/ (function(module) {
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
@@ -9995,6 +12789,10 @@ module.exports = function buildURL(url, params, paramsSerializer) {
  * @param {string} relativeURL The relative URL
  * @returns {string} The combined URL
  */
+
+__webpack_require__(4916);
+
+__webpack_require__(5306);
 
 module.exports = function combineURLs(baseURL, relativeURL) {
   return relativeURL ? baseURL.replace(/\/+$/, '') + '/' + relativeURL.replace(/^\/+/, '') : baseURL;
@@ -10007,6 +12805,20 @@ module.exports = function combineURLs(baseURL, relativeURL) {
 
 "use strict";
 
+
+__webpack_require__(9600);
+
+__webpack_require__(4916);
+
+__webpack_require__(4723);
+
+__webpack_require__(4603);
+
+__webpack_require__(8450);
+
+__webpack_require__(8386);
+
+__webpack_require__(9714);
 
 var utils = __webpack_require__(7725);
 
@@ -10057,7 +12869,7 @@ function nonStandardBrowserEnv() {
 /***/ }),
 
 /***/ 8843:
-/***/ (function(module) {
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
@@ -10067,6 +12879,10 @@ function nonStandardBrowserEnv() {
  * @param {string} url The URL to test
  * @returns {boolean} True if the specified URL is absolute, otherwise false
  */
+
+__webpack_require__(4916);
+
+__webpack_require__(7601);
 
 module.exports = function isAbsoluteURL(url) {
   // A URL is considered absolute if it begins with "<scheme>://" or "//" (protocol-relative URL).
@@ -10103,6 +12919,14 @@ module.exports = function isAxiosError(payload) {
 
 "use strict";
 
+
+__webpack_require__(4916);
+
+__webpack_require__(7601);
+
+__webpack_require__(5306);
+
+__webpack_require__(4765);
 
 var utils = __webpack_require__(7725);
 
@@ -10169,6 +12993,10 @@ function nonStandardBrowserEnv() {
 "use strict";
 
 
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
 var utils = __webpack_require__(7725);
 
 module.exports = function normalizeHeaderName(headers, normalizedName) {
@@ -10195,6 +13023,18 @@ module.exports = null;
 
 "use strict";
 
+
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
+__webpack_require__(4916);
+
+__webpack_require__(3123);
+
+__webpack_require__(3210);
+
+__webpack_require__(2222);
 
 var utils = __webpack_require__(7725); // Headers whose duplicates are ignored by node
 // c.f. https://nodejs.org/api/http.html#http_message_headers
@@ -10248,10 +13088,12 @@ module.exports = function parseHeaders(headers) {
 /***/ }),
 
 /***/ 8499:
-/***/ (function(module) {
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
+
+__webpack_require__(4916);
 
 module.exports = function parseProtocol(url) {
   var match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url);
@@ -10300,7 +13142,19 @@ module.exports = function spread(callback) {
 "use strict";
 
 
+var _typeof = (__webpack_require__(5602)["default"]);
+
 __webpack_require__(1703);
+
+__webpack_require__(1539);
+
+__webpack_require__(4747);
+
+__webpack_require__(7852);
+
+__webpack_require__(8862);
+
+__webpack_require__(8674);
 
 var utils = __webpack_require__(7725);
 /**
@@ -10342,7 +13196,7 @@ function toFormData(obj, formData) {
         var fullKey = parentKey ? parentKey + '.' + key : key;
         var arr;
 
-        if (value && !parentKey && typeof value === 'object') {
+        if (value && !parentKey && _typeof(value) === 'object') {
           if (utils.endsWith(key, '{}')) {
             // eslint-disable-next-line no-param-reassign
             value = JSON.stringify(value);
@@ -10377,6 +13231,12 @@ module.exports = toFormData;
 "use strict";
 
 
+var _typeof = (__webpack_require__(5602)["default"]);
+
+__webpack_require__(1539);
+
+__webpack_require__(7941);
+
 var VERSION = (__webpack_require__(6869).version);
 
 var AxiosError = __webpack_require__(8274);
@@ -10385,7 +13245,7 @@ var validators = {}; // eslint-disable-next-line func-names
 
 ['object', 'boolean', 'number', 'function', 'string', 'symbol'].forEach(function (type, i) {
   validators[type] = function validator(thing) {
-    return typeof thing === type || 'a' + (i < 1 ? 'n ' : ' ') + type;
+    return _typeof(thing) === type || 'a' + (i < 1 ? 'n ' : ' ') + type;
   };
 });
 var deprecatedWarnings = {};
@@ -10426,7 +13286,7 @@ validators.transitional = function transitional(validator, version, message) {
 
 
 function assertOptions(options, schema, allowUnknown) {
-  if (typeof options !== 'object') {
+  if (_typeof(options) !== 'object') {
     throw new AxiosError('options must be an object', AxiosError.ERR_BAD_OPTION_VALUE);
   }
 
@@ -10467,7 +13327,79 @@ module.exports = {
 "use strict";
 
 
+var _typeof = (__webpack_require__(5602)["default"]);
+
+__webpack_require__(1539);
+
+__webpack_require__(7042);
+
+__webpack_require__(8264);
+
+__webpack_require__(489);
+
+__webpack_require__(9714);
+
+__webpack_require__(3210);
+
+__webpack_require__(4916);
+
+__webpack_require__(5306);
+
+__webpack_require__(9601);
+
+__webpack_require__(6210);
+
+__webpack_require__(6992);
+
+__webpack_require__(2472);
+
 __webpack_require__(8675);
+
+__webpack_require__(2990);
+
+__webpack_require__(8927);
+
+__webpack_require__(3105);
+
+__webpack_require__(5035);
+
+__webpack_require__(4345);
+
+__webpack_require__(7174);
+
+__webpack_require__(2846);
+
+__webpack_require__(4731);
+
+__webpack_require__(7209);
+
+__webpack_require__(6319);
+
+__webpack_require__(8867);
+
+__webpack_require__(7789);
+
+__webpack_require__(3739);
+
+__webpack_require__(9368);
+
+__webpack_require__(4483);
+
+__webpack_require__(2056);
+
+__webpack_require__(4141);
+
+__webpack_require__(678);
+
+__webpack_require__(7462);
+
+__webpack_require__(3824);
+
+__webpack_require__(5021);
+
+__webpack_require__(2974);
+
+__webpack_require__(5016);
 
 var bind = __webpack_require__(7414); // utils is a library of generic helper functions non-specific to axios
 
@@ -10580,7 +13512,7 @@ function isNumber(val) {
 
 
 function isObject(val) {
-  return val !== null && typeof val === 'object';
+  return val !== null && _typeof(val) === 'object';
 }
 /**
  * Determine if a value is a plain Object
@@ -10732,7 +13664,7 @@ function forEach(obj, fn) {
   } // Force an array if not already something iterable
 
 
-  if (typeof obj !== 'object') {
+  if (_typeof(obj) !== 'object') {
     /*eslint no-param-reassign:0*/
     obj = [obj];
   }
@@ -11010,12 +13942,155 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "splitLongToh3Index": function() { return /* binding */ splitLongToh3Index; },
 /* harmony export */   "uncompact": function() { return /* binding */ uncompact; }
 /* harmony export */ });
-/* harmony import */ var core_js_modules_es_typed_array_at_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8675);
-/* harmony import */ var core_js_modules_es_typed_array_at_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_at_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var core_js_modules_es_error_cause_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1703);
-/* harmony import */ var core_js_modules_es_error_cause_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_error_cause_js__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var core_js_modules_web_dom_exception_stack_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(2801);
-/* harmony import */ var core_js_modules_web_dom_exception_stack_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_web_dom_exception_stack_js__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7336);
+/* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1539);
+/* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6992);
+/* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var core_js_modules_es_typed_array_int8_array_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(7145);
+/* harmony import */ var core_js_modules_es_typed_array_int8_array_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_int8_array_js__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var core_js_modules_es_typed_array_at_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8675);
+/* harmony import */ var core_js_modules_es_typed_array_at_js__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_at_js__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var core_js_modules_es_typed_array_copy_within_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(2990);
+/* harmony import */ var core_js_modules_es_typed_array_copy_within_js__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_copy_within_js__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var core_js_modules_es_typed_array_every_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(8927);
+/* harmony import */ var core_js_modules_es_typed_array_every_js__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_every_js__WEBPACK_IMPORTED_MODULE_6__);
+/* harmony import */ var core_js_modules_es_typed_array_fill_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(3105);
+/* harmony import */ var core_js_modules_es_typed_array_fill_js__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_fill_js__WEBPACK_IMPORTED_MODULE_7__);
+/* harmony import */ var core_js_modules_es_typed_array_filter_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(5035);
+/* harmony import */ var core_js_modules_es_typed_array_filter_js__WEBPACK_IMPORTED_MODULE_8___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_filter_js__WEBPACK_IMPORTED_MODULE_8__);
+/* harmony import */ var core_js_modules_es_typed_array_find_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(4345);
+/* harmony import */ var core_js_modules_es_typed_array_find_js__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_find_js__WEBPACK_IMPORTED_MODULE_9__);
+/* harmony import */ var core_js_modules_es_typed_array_find_index_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(7174);
+/* harmony import */ var core_js_modules_es_typed_array_find_index_js__WEBPACK_IMPORTED_MODULE_10___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_find_index_js__WEBPACK_IMPORTED_MODULE_10__);
+/* harmony import */ var core_js_modules_es_typed_array_for_each_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(2846);
+/* harmony import */ var core_js_modules_es_typed_array_for_each_js__WEBPACK_IMPORTED_MODULE_11___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_for_each_js__WEBPACK_IMPORTED_MODULE_11__);
+/* harmony import */ var core_js_modules_es_typed_array_includes_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(4731);
+/* harmony import */ var core_js_modules_es_typed_array_includes_js__WEBPACK_IMPORTED_MODULE_12___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_includes_js__WEBPACK_IMPORTED_MODULE_12__);
+/* harmony import */ var core_js_modules_es_typed_array_index_of_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(7209);
+/* harmony import */ var core_js_modules_es_typed_array_index_of_js__WEBPACK_IMPORTED_MODULE_13___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_index_of_js__WEBPACK_IMPORTED_MODULE_13__);
+/* harmony import */ var core_js_modules_es_typed_array_iterator_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(6319);
+/* harmony import */ var core_js_modules_es_typed_array_iterator_js__WEBPACK_IMPORTED_MODULE_14___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_iterator_js__WEBPACK_IMPORTED_MODULE_14__);
+/* harmony import */ var core_js_modules_es_typed_array_join_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(8867);
+/* harmony import */ var core_js_modules_es_typed_array_join_js__WEBPACK_IMPORTED_MODULE_15___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_join_js__WEBPACK_IMPORTED_MODULE_15__);
+/* harmony import */ var core_js_modules_es_typed_array_last_index_of_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(7789);
+/* harmony import */ var core_js_modules_es_typed_array_last_index_of_js__WEBPACK_IMPORTED_MODULE_16___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_last_index_of_js__WEBPACK_IMPORTED_MODULE_16__);
+/* harmony import */ var core_js_modules_es_typed_array_map_js__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(3739);
+/* harmony import */ var core_js_modules_es_typed_array_map_js__WEBPACK_IMPORTED_MODULE_17___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_map_js__WEBPACK_IMPORTED_MODULE_17__);
+/* harmony import */ var core_js_modules_es_typed_array_reduce_js__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(9368);
+/* harmony import */ var core_js_modules_es_typed_array_reduce_js__WEBPACK_IMPORTED_MODULE_18___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_reduce_js__WEBPACK_IMPORTED_MODULE_18__);
+/* harmony import */ var core_js_modules_es_typed_array_reduce_right_js__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(4483);
+/* harmony import */ var core_js_modules_es_typed_array_reduce_right_js__WEBPACK_IMPORTED_MODULE_19___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_reduce_right_js__WEBPACK_IMPORTED_MODULE_19__);
+/* harmony import */ var core_js_modules_es_typed_array_reverse_js__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(2056);
+/* harmony import */ var core_js_modules_es_typed_array_reverse_js__WEBPACK_IMPORTED_MODULE_20___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_reverse_js__WEBPACK_IMPORTED_MODULE_20__);
+/* harmony import */ var core_js_modules_es_typed_array_set_js__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(4141);
+/* harmony import */ var core_js_modules_es_typed_array_set_js__WEBPACK_IMPORTED_MODULE_21___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_set_js__WEBPACK_IMPORTED_MODULE_21__);
+/* harmony import */ var core_js_modules_es_typed_array_slice_js__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(678);
+/* harmony import */ var core_js_modules_es_typed_array_slice_js__WEBPACK_IMPORTED_MODULE_22___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_slice_js__WEBPACK_IMPORTED_MODULE_22__);
+/* harmony import */ var core_js_modules_es_typed_array_some_js__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(7462);
+/* harmony import */ var core_js_modules_es_typed_array_some_js__WEBPACK_IMPORTED_MODULE_23___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_some_js__WEBPACK_IMPORTED_MODULE_23__);
+/* harmony import */ var core_js_modules_es_typed_array_sort_js__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(3824);
+/* harmony import */ var core_js_modules_es_typed_array_sort_js__WEBPACK_IMPORTED_MODULE_24___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_sort_js__WEBPACK_IMPORTED_MODULE_24__);
+/* harmony import */ var core_js_modules_es_typed_array_subarray_js__WEBPACK_IMPORTED_MODULE_25__ = __webpack_require__(5021);
+/* harmony import */ var core_js_modules_es_typed_array_subarray_js__WEBPACK_IMPORTED_MODULE_25___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_subarray_js__WEBPACK_IMPORTED_MODULE_25__);
+/* harmony import */ var core_js_modules_es_typed_array_to_locale_string_js__WEBPACK_IMPORTED_MODULE_26__ = __webpack_require__(2974);
+/* harmony import */ var core_js_modules_es_typed_array_to_locale_string_js__WEBPACK_IMPORTED_MODULE_26___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_to_locale_string_js__WEBPACK_IMPORTED_MODULE_26__);
+/* harmony import */ var core_js_modules_es_typed_array_to_string_js__WEBPACK_IMPORTED_MODULE_27__ = __webpack_require__(5016);
+/* harmony import */ var core_js_modules_es_typed_array_to_string_js__WEBPACK_IMPORTED_MODULE_27___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_to_string_js__WEBPACK_IMPORTED_MODULE_27__);
+/* harmony import */ var core_js_modules_es_typed_array_int16_array_js__WEBPACK_IMPORTED_MODULE_28__ = __webpack_require__(5109);
+/* harmony import */ var core_js_modules_es_typed_array_int16_array_js__WEBPACK_IMPORTED_MODULE_28___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_int16_array_js__WEBPACK_IMPORTED_MODULE_28__);
+/* harmony import */ var core_js_modules_es_typed_array_int32_array_js__WEBPACK_IMPORTED_MODULE_29__ = __webpack_require__(5125);
+/* harmony import */ var core_js_modules_es_typed_array_int32_array_js__WEBPACK_IMPORTED_MODULE_29___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_int32_array_js__WEBPACK_IMPORTED_MODULE_29__);
+/* harmony import */ var core_js_modules_es_typed_array_uint8_array_js__WEBPACK_IMPORTED_MODULE_30__ = __webpack_require__(2472);
+/* harmony import */ var core_js_modules_es_typed_array_uint8_array_js__WEBPACK_IMPORTED_MODULE_30___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_uint8_array_js__WEBPACK_IMPORTED_MODULE_30__);
+/* harmony import */ var core_js_modules_es_typed_array_uint16_array_js__WEBPACK_IMPORTED_MODULE_31__ = __webpack_require__(8255);
+/* harmony import */ var core_js_modules_es_typed_array_uint16_array_js__WEBPACK_IMPORTED_MODULE_31___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_uint16_array_js__WEBPACK_IMPORTED_MODULE_31__);
+/* harmony import */ var core_js_modules_es_typed_array_uint32_array_js__WEBPACK_IMPORTED_MODULE_32__ = __webpack_require__(9135);
+/* harmony import */ var core_js_modules_es_typed_array_uint32_array_js__WEBPACK_IMPORTED_MODULE_32___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_uint32_array_js__WEBPACK_IMPORTED_MODULE_32__);
+/* harmony import */ var core_js_modules_es_typed_array_float32_array_js__WEBPACK_IMPORTED_MODULE_33__ = __webpack_require__(4197);
+/* harmony import */ var core_js_modules_es_typed_array_float32_array_js__WEBPACK_IMPORTED_MODULE_33___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_float32_array_js__WEBPACK_IMPORTED_MODULE_33__);
+/* harmony import */ var core_js_modules_es_typed_array_float64_array_js__WEBPACK_IMPORTED_MODULE_34__ = __webpack_require__(6495);
+/* harmony import */ var core_js_modules_es_typed_array_float64_array_js__WEBPACK_IMPORTED_MODULE_34___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_typed_array_float64_array_js__WEBPACK_IMPORTED_MODULE_34__);
+/* harmony import */ var core_js_modules_es_array_buffer_constructor_js__WEBPACK_IMPORTED_MODULE_35__ = __webpack_require__(8264);
+/* harmony import */ var core_js_modules_es_array_buffer_constructor_js__WEBPACK_IMPORTED_MODULE_35___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_buffer_constructor_js__WEBPACK_IMPORTED_MODULE_35__);
+/* harmony import */ var core_js_modules_es_string_starts_with_js__WEBPACK_IMPORTED_MODULE_36__ = __webpack_require__(6755);
+/* harmony import */ var core_js_modules_es_string_starts_with_js__WEBPACK_IMPORTED_MODULE_36___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_string_starts_with_js__WEBPACK_IMPORTED_MODULE_36__);
+/* harmony import */ var core_js_modules_es_regexp_exec_js__WEBPACK_IMPORTED_MODULE_37__ = __webpack_require__(4916);
+/* harmony import */ var core_js_modules_es_regexp_exec_js__WEBPACK_IMPORTED_MODULE_37___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_regexp_exec_js__WEBPACK_IMPORTED_MODULE_37__);
+/* harmony import */ var core_js_modules_es_string_replace_js__WEBPACK_IMPORTED_MODULE_38__ = __webpack_require__(5306);
+/* harmony import */ var core_js_modules_es_string_replace_js__WEBPACK_IMPORTED_MODULE_38___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_string_replace_js__WEBPACK_IMPORTED_MODULE_38__);
+/* harmony import */ var core_js_modules_es_error_cause_js__WEBPACK_IMPORTED_MODULE_39__ = __webpack_require__(1703);
+/* harmony import */ var core_js_modules_es_error_cause_js__WEBPACK_IMPORTED_MODULE_39___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_error_cause_js__WEBPACK_IMPORTED_MODULE_39__);
+/* harmony import */ var core_js_modules_es_regexp_to_string_js__WEBPACK_IMPORTED_MODULE_40__ = __webpack_require__(9714);
+/* harmony import */ var core_js_modules_es_regexp_to_string_js__WEBPACK_IMPORTED_MODULE_40___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_regexp_to_string_js__WEBPACK_IMPORTED_MODULE_40__);
+/* harmony import */ var core_js_modules_web_atob_js__WEBPACK_IMPORTED_MODULE_41__ = __webpack_require__(5505);
+/* harmony import */ var core_js_modules_web_atob_js__WEBPACK_IMPORTED_MODULE_41___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_web_atob_js__WEBPACK_IMPORTED_MODULE_41__);
+/* harmony import */ var core_js_modules_web_dom_exception_constructor_js__WEBPACK_IMPORTED_MODULE_42__ = __webpack_require__(7714);
+/* harmony import */ var core_js_modules_web_dom_exception_constructor_js__WEBPACK_IMPORTED_MODULE_42___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_web_dom_exception_constructor_js__WEBPACK_IMPORTED_MODULE_42__);
+/* harmony import */ var core_js_modules_web_dom_exception_stack_js__WEBPACK_IMPORTED_MODULE_43__ = __webpack_require__(2801);
+/* harmony import */ var core_js_modules_web_dom_exception_stack_js__WEBPACK_IMPORTED_MODULE_43___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_web_dom_exception_stack_js__WEBPACK_IMPORTED_MODULE_43__);
+/* harmony import */ var core_js_modules_web_dom_exception_to_string_tag_js__WEBPACK_IMPORTED_MODULE_44__ = __webpack_require__(1174);
+/* harmony import */ var core_js_modules_web_dom_exception_to_string_tag_js__WEBPACK_IMPORTED_MODULE_44___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_web_dom_exception_to_string_tag_js__WEBPACK_IMPORTED_MODULE_44__);
+/* harmony import */ var core_js_modules_es_array_slice_js__WEBPACK_IMPORTED_MODULE_45__ = __webpack_require__(7042);
+/* harmony import */ var core_js_modules_es_array_slice_js__WEBPACK_IMPORTED_MODULE_45___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_slice_js__WEBPACK_IMPORTED_MODULE_45__);
+/* harmony import */ var core_js_modules_es_number_is_integer_js__WEBPACK_IMPORTED_MODULE_46__ = __webpack_require__(3161);
+/* harmony import */ var core_js_modules_es_number_is_integer_js__WEBPACK_IMPORTED_MODULE_46___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_number_is_integer_js__WEBPACK_IMPORTED_MODULE_46__);
+/* harmony import */ var core_js_modules_es_number_constructor_js__WEBPACK_IMPORTED_MODULE_47__ = __webpack_require__(9653);
+/* harmony import */ var core_js_modules_es_number_constructor_js__WEBPACK_IMPORTED_MODULE_47___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_number_constructor_js__WEBPACK_IMPORTED_MODULE_47__);
+/* harmony import */ var core_js_modules_es_regexp_test_js__WEBPACK_IMPORTED_MODULE_48__ = __webpack_require__(7601);
+/* harmony import */ var core_js_modules_es_regexp_test_js__WEBPACK_IMPORTED_MODULE_48___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_regexp_test_js__WEBPACK_IMPORTED_MODULE_48__);
+/* harmony import */ var core_js_modules_es_array_map_js__WEBPACK_IMPORTED_MODULE_49__ = __webpack_require__(1249);
+/* harmony import */ var core_js_modules_es_array_map_js__WEBPACK_IMPORTED_MODULE_49___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_map_js__WEBPACK_IMPORTED_MODULE_49__);
+/* harmony import */ var core_js_modules_es_array_concat_js__WEBPACK_IMPORTED_MODULE_50__ = __webpack_require__(2222);
+/* harmony import */ var core_js_modules_es_array_concat_js__WEBPACK_IMPORTED_MODULE_50___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_concat_js__WEBPACK_IMPORTED_MODULE_50__);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11097,11 +14172,11 @@ var libh3 = function (libh3) {
 
   var tempRet0 = 0;
 
-  var setTempRet0 = function (value) {
+  var setTempRet0 = function setTempRet0(value) {
     tempRet0 = value;
   };
 
-  var getTempRet0 = function () {
+  var getTempRet0 = function getTempRet0() {
     return tempRet0;
   };
 
@@ -11200,7 +14275,7 @@ var libh3 = function (libh3) {
 
   function ccall(ident, returnType, argTypes, args, opts) {
     var toC = {
-      "string": function (str) {
+      "string": function string(str) {
         var ret = 0;
 
         if (str !== null && str !== undefined && str !== 0) {
@@ -11211,7 +14286,7 @@ var libh3 = function (libh3) {
 
         return ret;
       },
-      "array": function (arr) {
+      "array": function array(arr) {
         var ret = stackAlloc(arr.length);
         writeArrayToMemory(arr, ret);
         return ret;
@@ -24396,7 +27471,7 @@ var libh3 = function (libh3) {
     {
       addRunDependency("memory initializer");
 
-      var applyMemoryInitializer = function (data) {
+      var applyMemoryInitializer = function applyMemoryInitializer(data) {
         if (data.byteLength) {
           data = new Uint8Array(data);
         }
@@ -24410,7 +27485,7 @@ var libh3 = function (libh3) {
         removeRunDependency("memory initializer");
       };
 
-      var doBrowserLoad = function () {
+      var doBrowserLoad = function doBrowserLoad() {
         readAsync(memoryInitializer, applyMemoryInitializer, function () {
           throw "could not load memory initializer " + memoryInitializer;
         });
@@ -24421,7 +27496,7 @@ var libh3 = function (libh3) {
       if (memoryInitializerBytes) {
         applyMemoryInitializer(memoryInitializerBytes.buffer);
       } else if (Module["memoryInitializerRequest"]) {
-        var useRequest = function () {
+        var useRequest = function useRequest() {
           var request = Module["memoryInitializerRequest"];
           var response = request.response;
 
@@ -24538,7 +27613,7 @@ var libh3 = function (libh3) {
 
   run();
   return libh3;
-}(typeof libh3 === 'object' ? libh3 : {});
+}((0,C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
 /*
  * Copyright 2018-2019 Uber Technologies, Inc.
  *
@@ -26183,20 +29258,121 @@ function radsToDegs(rad) {
 /***/ }),
 
 /***/ 3814:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;var _typeof = (__webpack_require__(5602)["default"]);
+
+__webpack_require__(5837);
+
+__webpack_require__(7042);
+
+__webpack_require__(2222);
+
+__webpack_require__(3210);
+
+__webpack_require__(4916);
+
+__webpack_require__(5306);
+
+__webpack_require__(3123);
+
+__webpack_require__(9600);
 
 __webpack_require__(1703);
 
+__webpack_require__(1539);
+
 __webpack_require__(6699);
 
+__webpack_require__(2023);
+
+__webpack_require__(561);
+
+__webpack_require__(3689);
+
+__webpack_require__(7601);
+
+__webpack_require__(4603);
+
+__webpack_require__(8450);
+
+__webpack_require__(8386);
+
+__webpack_require__(9714);
+
+__webpack_require__(7327);
+
+__webpack_require__(2707);
+
+__webpack_require__(8309);
+
+__webpack_require__(6992);
+
+__webpack_require__(2472);
+
 __webpack_require__(8675);
+
+__webpack_require__(2990);
+
+__webpack_require__(8927);
+
+__webpack_require__(3105);
+
+__webpack_require__(5035);
+
+__webpack_require__(4345);
+
+__webpack_require__(7174);
+
+__webpack_require__(2846);
+
+__webpack_require__(4731);
+
+__webpack_require__(7209);
+
+__webpack_require__(6319);
+
+__webpack_require__(8867);
+
+__webpack_require__(7789);
+
+__webpack_require__(3739);
+
+__webpack_require__(9368);
+
+__webpack_require__(4483);
+
+__webpack_require__(2056);
+
+__webpack_require__(4141);
+
+__webpack_require__(678);
+
+__webpack_require__(7462);
+
+__webpack_require__(3824);
+
+__webpack_require__(5021);
+
+__webpack_require__(2974);
+
+__webpack_require__(5016);
+
+__webpack_require__(9653);
+
+__webpack_require__(3290);
+
+__webpack_require__(1249);
 
 /* @preserve
  * Leaflet 1.8.0, a JS library for interactive maps. https://leafletjs.com
  * (c) 2010-2022 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 (function (global, factory) {
-   true ? factory(exports) : 0;
+  ( false ? 0 : _typeof(exports)) === 'object' && "object" !== 'undefined' ? factory(exports) :  true ? !(__WEBPACK_AMD_DEFINE_ARRAY__ = [exports], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+		(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
+		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)) : (0);
 })(this, function (exports) {
   'use strict';
 
@@ -26273,7 +29449,7 @@ __webpack_require__(8675);
   function throttle(fn, time, context) {
     var lock, args, wrapperFn, later;
 
-    later = function () {
+    later = function later() {
       // reset lock and call if queued
       lock = false;
 
@@ -26283,7 +29459,7 @@ __webpack_require__(8675);
       }
     };
 
-    wrapperFn = function () {
+    wrapperFn = function wrapperFn() {
       if (lock) {
         // called too soon, queue to call later
         args = arguments;
@@ -26493,7 +29669,7 @@ __webpack_require__(8675);
     // @function extend(props: Object): Function
     // [Extends the current class](#class-inheritance) given the properties to be included.
     // Returns a Javascript function that is a class constructor (to be called with `new`).
-    var NewClass = function () {
+    var NewClass = function NewClass() {
       setOptions(this); // call the constructor
 
       if (this.initialize) {
@@ -26640,9 +29816,9 @@ __webpack_require__(8675);
      * @method on(eventMap: Object): this
      * Adds a set of type/listener pairs, e.g. `{click: onClick, mousemove: onMouseMove}`
      */
-    on: function (types, fn, context) {
+    on: function on(types, fn, context) {
       // types can be a map of types/handlers
-      if (typeof types === 'object') {
+      if (_typeof(types) === 'object') {
         for (var type in types) {
           // we don't process space-separated events here for performance;
           // it's a hot path since Layer uses the on(obj) syntax
@@ -26671,11 +29847,11 @@ __webpack_require__(8675);
      * @method off: this
      * Removes all listeners to all events on the object. This includes implicitly attached events.
      */
-    off: function (types, fn, context) {
+    off: function off(types, fn, context) {
       if (!arguments.length) {
         // clear all listeners if called without arguments
         delete this._events;
-      } else if (typeof types === 'object') {
+      } else if (_typeof(types) === 'object') {
         for (var type in types) {
           this._off(type, types[type], fn);
         }
@@ -26695,9 +29871,9 @@ __webpack_require__(8675);
       return this;
     },
     // attach listener (without syntactic sugar now)
-    _on: function (type, fn, context) {
+    _on: function _on(type, fn, context) {
       if (typeof fn !== 'function') {
-        console.warn('wrong listener type: ' + typeof fn);
+        console.warn('wrong listener type: ' + _typeof(fn));
         return;
       }
 
@@ -26730,7 +29906,7 @@ __webpack_require__(8675);
 
       listeners.push(newListener);
     },
-    _off: function (type, fn, context) {
+    _off: function _off(type, fn, context) {
       var listeners, i, len;
 
       if (!this._events) {
@@ -26763,7 +29939,7 @@ __webpack_require__(8675);
       }
 
       if (typeof fn !== 'function') {
-        console.warn('wrong listener type: ' + typeof fn);
+        console.warn('wrong listener type: ' + _typeof(fn));
         return;
       } // find fn and remove it
 
@@ -26795,7 +29971,7 @@ __webpack_require__(8675);
     // Fires an event of the specified type. You can optionally provide a data
     // object — the first argument of the listener function will contain its
     // properties. The event can optionally be propagated to event parents.
-    fire: function (type, data, propagate) {
+    fire: function fire(type, data, propagate) {
       if (!this.listens(type, propagate)) {
         return this;
       }
@@ -26831,7 +30007,7 @@ __webpack_require__(8675);
     // @method listens(type: String, propagate?: Boolean): Boolean
     // Returns `true` if a particular event type has any listeners attached to it.
     // The verification can optionally be propagated, it will return `true` if parents have the listener attached to it.
-    listens: function (type, propagate) {
+    listens: function listens(type, propagate) {
       if (typeof type !== 'string') {
         console.warn('"string" type argument expected');
       }
@@ -26855,8 +30031,8 @@ __webpack_require__(8675);
     },
     // @method once(…): this
     // Behaves as [`on(…)`](#evented-on), except the listener will only get fired once and then removed.
-    once: function (types, fn, context) {
-      if (typeof types === 'object') {
+    once: function once(types, fn, context) {
+      if (_typeof(types) === 'object') {
         for (var type in types) {
           this.once(type, types[type], fn);
         }
@@ -26872,21 +30048,21 @@ __webpack_require__(8675);
     },
     // @method addEventParent(obj: Evented): this
     // Adds an event parent - an `Evented` that will receive propagated events
-    addEventParent: function (obj) {
+    addEventParent: function addEventParent(obj) {
       this._eventParents = this._eventParents || {};
       this._eventParents[stamp(obj)] = obj;
       return this;
     },
     // @method removeEventParent(obj: Evented): this
     // Removes an event parent, so it will stop receiving propagated events
-    removeEventParent: function (obj) {
+    removeEventParent: function removeEventParent(obj) {
       if (this._eventParents) {
         delete this._eventParents[stamp(obj)];
       }
 
       return this;
     },
-    _propagateEvent: function (e) {
+    _propagateEvent: function _propagateEvent(e) {
       for (var id in this._eventParents) {
         this._eventParents[id].fire(e.type, extend({
           layer: e.target,
@@ -26952,16 +30128,16 @@ __webpack_require__(8675);
   Point.prototype = {
     // @method clone(): Point
     // Returns a copy of the current point.
-    clone: function () {
+    clone: function clone() {
       return new Point(this.x, this.y);
     },
     // @method add(otherPoint: Point): Point
     // Returns the result of addition of the current and the given points.
-    add: function (point) {
+    add: function add(point) {
       // non-destructive, returns a new point
       return this.clone()._add(toPoint(point));
     },
-    _add: function (point) {
+    _add: function _add(point) {
       // destructive, used directly for performance in situations where it's safe to modify existing point
       this.x += point.x;
       this.y += point.y;
@@ -26969,30 +30145,30 @@ __webpack_require__(8675);
     },
     // @method subtract(otherPoint: Point): Point
     // Returns the result of subtraction of the given point from the current.
-    subtract: function (point) {
+    subtract: function subtract(point) {
       return this.clone()._subtract(toPoint(point));
     },
-    _subtract: function (point) {
+    _subtract: function _subtract(point) {
       this.x -= point.x;
       this.y -= point.y;
       return this;
     },
     // @method divideBy(num: Number): Point
     // Returns the result of division of the current point by the given number.
-    divideBy: function (num) {
+    divideBy: function divideBy(num) {
       return this.clone()._divideBy(num);
     },
-    _divideBy: function (num) {
+    _divideBy: function _divideBy(num) {
       this.x /= num;
       this.y /= num;
       return this;
     },
     // @method multiplyBy(num: Number): Point
     // Returns the result of multiplication of the current point by the given number.
-    multiplyBy: function (num) {
+    multiplyBy: function multiplyBy(num) {
       return this.clone()._multiplyBy(num);
     },
-    _multiplyBy: function (num) {
+    _multiplyBy: function _multiplyBy(num) {
       this.x *= num;
       this.y *= num;
       return this;
@@ -27002,58 +30178,58 @@ __webpack_require__(8675);
     // `scale`. In linear algebra terms, multiply the point by the
     // [scaling matrix](https://en.wikipedia.org/wiki/Scaling_%28geometry%29#Matrix_representation)
     // defined by `scale`.
-    scaleBy: function (point) {
+    scaleBy: function scaleBy(point) {
       return new Point(this.x * point.x, this.y * point.y);
     },
     // @method unscaleBy(scale: Point): Point
     // Inverse of `scaleBy`. Divide each coordinate of the current point by
     // each coordinate of `scale`.
-    unscaleBy: function (point) {
+    unscaleBy: function unscaleBy(point) {
       return new Point(this.x / point.x, this.y / point.y);
     },
     // @method round(): Point
     // Returns a copy of the current point with rounded coordinates.
-    round: function () {
+    round: function round() {
       return this.clone()._round();
     },
-    _round: function () {
+    _round: function _round() {
       this.x = Math.round(this.x);
       this.y = Math.round(this.y);
       return this;
     },
     // @method floor(): Point
     // Returns a copy of the current point with floored coordinates (rounded down).
-    floor: function () {
+    floor: function floor() {
       return this.clone()._floor();
     },
-    _floor: function () {
+    _floor: function _floor() {
       this.x = Math.floor(this.x);
       this.y = Math.floor(this.y);
       return this;
     },
     // @method ceil(): Point
     // Returns a copy of the current point with ceiled coordinates (rounded up).
-    ceil: function () {
+    ceil: function ceil() {
       return this.clone()._ceil();
     },
-    _ceil: function () {
+    _ceil: function _ceil() {
       this.x = Math.ceil(this.x);
       this.y = Math.ceil(this.y);
       return this;
     },
     // @method trunc(): Point
     // Returns a copy of the current point with truncated coordinates (rounded towards zero).
-    trunc: function () {
+    trunc: function trunc() {
       return this.clone()._trunc();
     },
-    _trunc: function () {
+    _trunc: function _trunc() {
       this.x = trunc(this.x);
       this.y = trunc(this.y);
       return this;
     },
     // @method distanceTo(otherPoint: Point): Number
     // Returns the cartesian distance between the current and the given points.
-    distanceTo: function (point) {
+    distanceTo: function distanceTo(point) {
       point = toPoint(point);
       var x = point.x - this.x,
           y = point.y - this.y;
@@ -27061,19 +30237,19 @@ __webpack_require__(8675);
     },
     // @method equals(otherPoint: Point): Boolean
     // Returns `true` if the given point has the same coordinates.
-    equals: function (point) {
+    equals: function equals(point) {
       point = toPoint(point);
       return point.x === this.x && point.y === this.y;
     },
     // @method contains(otherPoint: Point): Boolean
     // Returns `true` if both coordinates of the given point are less than the corresponding current point coordinates (in absolute values).
-    contains: function (point) {
+    contains: function contains(point) {
       point = toPoint(point);
       return Math.abs(point.x) <= Math.abs(this.x) && Math.abs(point.y) <= Math.abs(this.y);
     },
     // @method toString(): String
     // Returns a string representation of the point for debugging purposes.
-    toString: function () {
+    toString: function toString() {
       return 'Point(' + formatNum(this.x) + ', ' + formatNum(this.y) + ')';
     }
   }; // @factory L.point(x: Number, y: Number, round?: Boolean)
@@ -27098,7 +30274,7 @@ __webpack_require__(8675);
       return x;
     }
 
-    if (typeof x === 'object' && 'x' in x && 'y' in x) {
+    if (_typeof(x) === 'object' && 'x' in x && 'y' in x) {
       return new Point(x.x, x.y);
     }
 
@@ -27145,7 +30321,7 @@ __webpack_require__(8675);
   Bounds.prototype = {
     // @method extend(point: Point): this
     // Extends the bounds to contain the given point.
-    extend: function (point) {
+    extend: function extend(point) {
       // (Point)
       point = toPoint(point); // @property min: Point
       // The top left corner of the rectangle.
@@ -27166,33 +30342,33 @@ __webpack_require__(8675);
     },
     // @method getCenter(round?: Boolean): Point
     // Returns the center point of the bounds.
-    getCenter: function (round) {
+    getCenter: function getCenter(round) {
       return new Point((this.min.x + this.max.x) / 2, (this.min.y + this.max.y) / 2, round);
     },
     // @method getBottomLeft(): Point
     // Returns the bottom-left point of the bounds.
-    getBottomLeft: function () {
+    getBottomLeft: function getBottomLeft() {
       return new Point(this.min.x, this.max.y);
     },
     // @method getTopRight(): Point
     // Returns the top-right point of the bounds.
-    getTopRight: function () {
+    getTopRight: function getTopRight() {
       // -> Point
       return new Point(this.max.x, this.min.y);
     },
     // @method getTopLeft(): Point
     // Returns the top-left point of the bounds (i.e. [`this.min`](#bounds-min)).
-    getTopLeft: function () {
+    getTopLeft: function getTopLeft() {
       return this.min; // left, top
     },
     // @method getBottomRight(): Point
     // Returns the bottom-right point of the bounds (i.e. [`this.max`](#bounds-max)).
-    getBottomRight: function () {
+    getBottomRight: function getBottomRight() {
       return this.max; // right, bottom
     },
     // @method getSize(): Point
     // Returns the size of the given bounds
-    getSize: function () {
+    getSize: function getSize() {
       return this.max.subtract(this.min);
     },
     // @method contains(otherBounds: Bounds): Boolean
@@ -27200,7 +30376,7 @@ __webpack_require__(8675);
     // @alternative
     // @method contains(point: Point): Boolean
     // Returns `true` if the rectangle contains the given point.
-    contains: function (obj) {
+    contains: function contains(obj) {
       var min, max;
 
       if (typeof obj[0] === 'number' || obj instanceof Point) {
@@ -27221,7 +30397,7 @@ __webpack_require__(8675);
     // @method intersects(otherBounds: Bounds): Boolean
     // Returns `true` if the rectangle intersects the given bounds. Two bounds
     // intersect if they have at least one point in common.
-    intersects: function (bounds) {
+    intersects: function intersects(bounds) {
       // (Bounds) -> Boolean
       bounds = toBounds(bounds);
       var min = this.min,
@@ -27235,7 +30411,7 @@ __webpack_require__(8675);
     // @method overlaps(otherBounds: Bounds): Boolean
     // Returns `true` if the rectangle overlaps the given bounds. Two bounds
     // overlap if their intersection is an area.
-    overlaps: function (bounds) {
+    overlaps: function overlaps(bounds) {
       // (Bounds) -> Boolean
       bounds = toBounds(bounds);
       var min = this.min,
@@ -27246,7 +30422,7 @@ __webpack_require__(8675);
           yOverlaps = max2.y > min.y && min2.y < max.y;
       return xOverlaps && yOverlaps;
     },
-    isValid: function () {
+    isValid: function isValid() {
       return !!(this.min && this.max);
     }
   }; // @factory L.bounds(corner1: Point, corner2: Point)
@@ -27312,7 +30488,7 @@ __webpack_require__(8675);
     // @alternative
     // @method extend(otherBounds: LatLngBounds): this
     // Extend the bounds to contain the given bounds
-    extend: function (obj) {
+    extend: function extend(obj) {
       var sw = this._southWest,
           ne = this._northEast,
           sw2,
@@ -27348,7 +30524,7 @@ __webpack_require__(8675);
     // Returns bounds created by extending or retracting the current bounds by a given ratio in each direction.
     // For example, a ratio of 0.5 extends the bounds by 50% in each direction.
     // Negative values will retract the bounds.
-    pad: function (bufferRatio) {
+    pad: function pad(bufferRatio) {
       var sw = this._southWest,
           ne = this._northEast,
           heightBuffer = Math.abs(sw.lat - ne.lat) * bufferRatio,
@@ -27357,47 +30533,47 @@ __webpack_require__(8675);
     },
     // @method getCenter(): LatLng
     // Returns the center point of the bounds.
-    getCenter: function () {
+    getCenter: function getCenter() {
       return new LatLng((this._southWest.lat + this._northEast.lat) / 2, (this._southWest.lng + this._northEast.lng) / 2);
     },
     // @method getSouthWest(): LatLng
     // Returns the south-west point of the bounds.
-    getSouthWest: function () {
+    getSouthWest: function getSouthWest() {
       return this._southWest;
     },
     // @method getNorthEast(): LatLng
     // Returns the north-east point of the bounds.
-    getNorthEast: function () {
+    getNorthEast: function getNorthEast() {
       return this._northEast;
     },
     // @method getNorthWest(): LatLng
     // Returns the north-west point of the bounds.
-    getNorthWest: function () {
+    getNorthWest: function getNorthWest() {
       return new LatLng(this.getNorth(), this.getWest());
     },
     // @method getSouthEast(): LatLng
     // Returns the south-east point of the bounds.
-    getSouthEast: function () {
+    getSouthEast: function getSouthEast() {
       return new LatLng(this.getSouth(), this.getEast());
     },
     // @method getWest(): Number
     // Returns the west longitude of the bounds
-    getWest: function () {
+    getWest: function getWest() {
       return this._southWest.lng;
     },
     // @method getSouth(): Number
     // Returns the south latitude of the bounds
-    getSouth: function () {
+    getSouth: function getSouth() {
       return this._southWest.lat;
     },
     // @method getEast(): Number
     // Returns the east longitude of the bounds
-    getEast: function () {
+    getEast: function getEast() {
       return this._northEast.lng;
     },
     // @method getNorth(): Number
     // Returns the north latitude of the bounds
-    getNorth: function () {
+    getNorth: function getNorth() {
       return this._northEast.lat;
     },
     // @method contains(otherBounds: LatLngBounds): Boolean
@@ -27405,7 +30581,7 @@ __webpack_require__(8675);
     // @alternative
     // @method contains (latlng: LatLng): Boolean
     // Returns `true` if the rectangle contains the given point.
-    contains: function (obj) {
+    contains: function contains(obj) {
       // (LatLngBounds) or (LatLng) -> Boolean
       if (typeof obj[0] === 'number' || obj instanceof LatLng || 'lat' in obj) {
         obj = toLatLng(obj);
@@ -27429,7 +30605,7 @@ __webpack_require__(8675);
     },
     // @method intersects(otherBounds: LatLngBounds): Boolean
     // Returns `true` if the rectangle intersects the given bounds. Two bounds intersect if they have at least one point in common.
-    intersects: function (bounds) {
+    intersects: function intersects(bounds) {
       bounds = toLatLngBounds(bounds);
       var sw = this._southWest,
           ne = this._northEast,
@@ -27441,7 +30617,7 @@ __webpack_require__(8675);
     },
     // @method overlaps(otherBounds: LatLngBounds): Boolean
     // Returns `true` if the rectangle overlaps the given bounds. Two bounds overlap if their intersection is an area.
-    overlaps: function (bounds) {
+    overlaps: function overlaps(bounds) {
       bounds = toLatLngBounds(bounds);
       var sw = this._southWest,
           ne = this._northEast,
@@ -27453,12 +30629,12 @@ __webpack_require__(8675);
     },
     // @method toBBoxString(): String
     // Returns a string with bounding box coordinates in a 'southwest_lng,southwest_lat,northeast_lng,northeast_lat' format. Useful for sending requests to web services that return geo data.
-    toBBoxString: function () {
+    toBBoxString: function toBBoxString() {
       return [this.getWest(), this.getSouth(), this.getEast(), this.getNorth()].join(',');
     },
     // @method equals(otherBounds: LatLngBounds, maxMargin?: Number): Boolean
     // Returns `true` if the rectangle is equivalent (within a small margin of error) to the given bounds. The margin of error can be overridden by setting `maxMargin` to a small number.
-    equals: function (bounds, maxMargin) {
+    equals: function equals(bounds, maxMargin) {
       if (!bounds) {
         return false;
       }
@@ -27468,7 +30644,7 @@ __webpack_require__(8675);
     },
     // @method isValid(): Boolean
     // Returns `true` if the bounds are properly initialized.
-    isValid: function () {
+    isValid: function isValid() {
       return !!(this._southWest && this._northEast);
     }
   }; // TODO International date line?
@@ -27532,7 +30708,7 @@ __webpack_require__(8675);
   LatLng.prototype = {
     // @method equals(otherLatLng: LatLng, maxMargin?: Number): Boolean
     // Returns `true` if the given `LatLng` point is at the same position (within a small margin of error). The margin of error can be overridden by setting `maxMargin` to a small number.
-    equals: function (obj, maxMargin) {
+    equals: function equals(obj, maxMargin) {
       if (!obj) {
         return false;
       }
@@ -27543,27 +30719,27 @@ __webpack_require__(8675);
     },
     // @method toString(): String
     // Returns a string representation of the point (for debugging purposes).
-    toString: function (precision) {
+    toString: function toString(precision) {
       return 'LatLng(' + formatNum(this.lat, precision) + ', ' + formatNum(this.lng, precision) + ')';
     },
     // @method distanceTo(otherLatLng: LatLng): Number
     // Returns the distance (in meters) to the given `LatLng` calculated using the [Spherical Law of Cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines).
-    distanceTo: function (other) {
+    distanceTo: function distanceTo(other) {
       return Earth.distance(this, toLatLng(other));
     },
     // @method wrap(): LatLng
     // Returns a new `LatLng` object with the longitude wrapped so it's always between -180 and +180 degrees.
-    wrap: function () {
+    wrap: function wrap() {
       return Earth.wrapLatLng(this);
     },
     // @method toBounds(sizeInMeters: Number): LatLngBounds
     // Returns a new `LatLngBounds` object in which each boundary is `sizeInMeters/2` meters apart from the `LatLng`.
-    toBounds: function (sizeInMeters) {
+    toBounds: function toBounds(sizeInMeters) {
       var latAccuracy = 180 * sizeInMeters / 40075017,
           lngAccuracy = latAccuracy / Math.cos(Math.PI / 180 * this.lat);
       return toLatLngBounds([this.lat - latAccuracy, this.lng - lngAccuracy], [this.lat + latAccuracy, this.lng + lngAccuracy]);
     },
-    clone: function () {
+    clone: function clone() {
       return new LatLng(this.lat, this.lng, this.alt);
     }
   }; // @factory L.latLng(latitude: Number, longitude: Number, altitude?: Number): LatLng
@@ -27580,7 +30756,7 @@ __webpack_require__(8675);
       return a;
     }
 
-    if (isArray(a) && typeof a[0] !== 'object') {
+    if (isArray(a) && _typeof(a[0]) !== 'object') {
       if (a.length === 3) {
         return new LatLng(a[0], a[1], a[2]);
       }
@@ -27596,7 +30772,7 @@ __webpack_require__(8675);
       return a;
     }
 
-    if (typeof a === 'object' && 'lat' in a) {
+    if (_typeof(a) === 'object' && 'lat' in a) {
       return new LatLng(a.lat, 'lng' in a ? a.lng : a.lon, a.alt);
     }
 
@@ -27627,7 +30803,7 @@ __webpack_require__(8675);
   var CRS = {
     // @method latLngToPoint(latlng: LatLng, zoom: Number): Point
     // Projects geographical coordinates into pixel coordinates for a given zoom.
-    latLngToPoint: function (latlng, zoom) {
+    latLngToPoint: function latLngToPoint(latlng, zoom) {
       var projectedPoint = this.projection.project(latlng),
           scale = this.scale(zoom);
       return this.transformation._transform(projectedPoint, scale);
@@ -27635,7 +30811,7 @@ __webpack_require__(8675);
     // @method pointToLatLng(point: Point, zoom: Number): LatLng
     // The inverse of `latLngToPoint`. Projects pixel coordinates on a given
     // zoom into geographical coordinates.
-    pointToLatLng: function (point, zoom) {
+    pointToLatLng: function pointToLatLng(point, zoom) {
       var scale = this.scale(zoom),
           untransformedPoint = this.transformation.untransform(point, scale);
       return this.projection.unproject(untransformedPoint);
@@ -27643,31 +30819,31 @@ __webpack_require__(8675);
     // @method project(latlng: LatLng): Point
     // Projects geographical coordinates into coordinates in units accepted for
     // this CRS (e.g. meters for EPSG:3857, for passing it to WMS services).
-    project: function (latlng) {
+    project: function project(latlng) {
       return this.projection.project(latlng);
     },
     // @method unproject(point: Point): LatLng
     // Given a projected coordinate returns the corresponding LatLng.
     // The inverse of `project`.
-    unproject: function (point) {
+    unproject: function unproject(point) {
       return this.projection.unproject(point);
     },
     // @method scale(zoom: Number): Number
     // Returns the scale used when transforming projected coordinates into
     // pixel coordinates for a particular zoom. For example, it returns
     // `256 * 2^zoom` for Mercator-based CRS.
-    scale: function (zoom) {
+    scale: function scale(zoom) {
       return 256 * Math.pow(2, zoom);
     },
     // @method zoom(scale: Number): Number
     // Inverse of `scale()`, returns the zoom level corresponding to a scale
     // factor of `scale`.
-    zoom: function (scale) {
+    zoom: function zoom(scale) {
       return Math.log(scale / 256) / Math.LN2;
     },
     // @method getProjectedBounds(zoom: Number): Bounds
     // Returns the projection's bounds scaled and transformed for the provided `zoom`.
-    getProjectedBounds: function (zoom) {
+    getProjectedBounds: function getProjectedBounds(zoom) {
       if (this.infinite) {
         return null;
       }
@@ -27698,7 +30874,7 @@ __webpack_require__(8675);
     // @method wrapLatLng(latlng: LatLng): LatLng
     // Returns a `LatLng` where lat and lng has been wrapped according to the
     // CRS's `wrapLat` and `wrapLng` properties, if they are outside the CRS's bounds.
-    wrapLatLng: function (latlng) {
+    wrapLatLng: function wrapLatLng(latlng) {
       var lng = this.wrapLng ? wrapNum(latlng.lng, this.wrapLng, true) : latlng.lng,
           lat = this.wrapLat ? wrapNum(latlng.lat, this.wrapLat, true) : latlng.lat,
           alt = latlng.alt;
@@ -27708,7 +30884,7 @@ __webpack_require__(8675);
     // Returns a `LatLngBounds` with the same size as the given one, ensuring
     // that its center is within the CRS's bounds.
     // Only accepts actual `L.LatLngBounds` instances, not arrays.
-    wrapLatLngBounds: function (bounds) {
+    wrapLatLngBounds: function wrapLatLngBounds(bounds) {
       var center = bounds.getCenter(),
           newCenter = this.wrapLatLng(center),
           latShift = center.lat - newCenter.lat,
@@ -27742,7 +30918,7 @@ __webpack_require__(8675);
     // see https://rosettacode.org/wiki/Haversine_formula
     R: 6371000,
     // distance between two geographical points using spherical law of cosines approximation
-    distance: function (latlng1, latlng2) {
+    distance: function distance(latlng1, latlng2) {
       var rad = Math.PI / 180,
           lat1 = latlng1.lat * rad,
           lat2 = latlng2.lat * rad,
@@ -27766,14 +30942,14 @@ __webpack_require__(8675);
   var SphericalMercator = {
     R: earthRadius,
     MAX_LATITUDE: 85.0511287798,
-    project: function (latlng) {
+    project: function project(latlng) {
       var d = Math.PI / 180,
           max = this.MAX_LATITUDE,
           lat = Math.max(Math.min(max, latlng.lat), -max),
           sin = Math.sin(lat * d);
       return new Point(this.R * latlng.lng * d, this.R * Math.log((1 + sin) / (1 - sin)) / 2);
     },
-    unproject: function (point) {
+    unproject: function unproject(point) {
       var d = 180 / Math.PI;
       return new LatLng((2 * Math.atan(Math.exp(point.y / this.R)) - Math.PI / 2) * d, point.x * d / this.R);
     },
@@ -27822,12 +30998,12 @@ __webpack_require__(8675);
     // @method transform(point: Point, scale?: Number): Point
     // Returns a transformed point, optionally multiplied by the given scale.
     // Only accepts actual `L.Point` instances, not arrays.
-    transform: function (point, scale) {
+    transform: function transform(point, scale) {
       // (Point, Number) -> Point
       return this._transform(point.clone(), scale);
     },
     // destructive transform (faster)
-    _transform: function (point, scale) {
+    _transform: function _transform(point, scale) {
       scale = scale || 1;
       point.x = scale * (this._a * point.x + this._b);
       point.y = scale * (this._c * point.y + this._d);
@@ -27836,7 +31012,7 @@ __webpack_require__(8675);
     // @method untransform(point: Point, scale?: Number): Point
     // Returns the reverse transformation of the given point, optionally divided
     // by the given scale. Only accepts actual `L.Point` instances, not arrays.
-    untransform: function (point, scale) {
+    untransform: function untransform(point, scale) {
       scale = scale || 1;
       return new Point((point.x / scale - this._b) / this._a, (point.y / scale - this._d) / this._c);
     }
@@ -28007,7 +31183,7 @@ __webpack_require__(8675);
 
     try {
       var opts = Object.defineProperty({}, 'passive', {
-        get: function () {
+        get: function get() {
           // eslint-disable-line getter-return
           supportsPassiveOption = true;
         }
@@ -28044,7 +31220,7 @@ __webpack_require__(8675);
       div.innerHTML = '<v:shape adj="1"/>';
       var shape = div.firstChild;
       shape.style.behavior = 'url(#default#VML)';
-      return shape && typeof shape.adj === 'object';
+      return shape && _typeof(shape.adj) === 'object';
     } catch (e) {
       return false;
     }
@@ -28322,7 +31498,7 @@ __webpack_require__(8675);
   // Removes `el` from its parent element
 
 
-  function remove(el) {
+  function _remove(el) {
     var parent = el.parentNode;
 
     if (parent) {
@@ -28420,7 +31596,7 @@ __webpack_require__(8675);
   // `opacity` must be a number from `0` to `1`.
 
 
-  function setOpacity(el, value) {
+  function _setOpacity(el, value) {
     if ('opacity' in el.style) {
       el.style.opacity = value;
     } else if ('filter' in el.style) {
@@ -28515,17 +31691,17 @@ __webpack_require__(8675);
   var _userSelect;
 
   if ('onselectstart' in document) {
-    disableTextSelection = function () {
+    disableTextSelection = function disableTextSelection() {
       on(window, 'selectstart', preventDefault);
     };
 
-    enableTextSelection = function () {
+    enableTextSelection = function enableTextSelection() {
       off(window, 'selectstart', preventDefault);
     };
   } else {
     var userSelectProperty = testProp(['userSelect', 'WebkitUserSelect', 'OUserSelect', 'MozUserSelect', 'msUserSelect']);
 
-    disableTextSelection = function () {
+    disableTextSelection = function disableTextSelection() {
       if (userSelectProperty) {
         var style = document.documentElement.style;
         _userSelect = style[userSelectProperty];
@@ -28533,7 +31709,7 @@ __webpack_require__(8675);
       }
     };
 
-    enableTextSelection = function () {
+    enableTextSelection = function enableTextSelection() {
       if (userSelectProperty) {
         document.documentElement.style[userSelectProperty] = _userSelect;
         _userSelect = undefined;
@@ -28622,7 +31798,7 @@ __webpack_require__(8675);
     get: get,
     getStyle: getStyle,
     create: create$1,
-    remove: remove,
+    remove: _remove,
     empty: empty,
     toFront: toFront,
     toBack: toBack,
@@ -28631,7 +31807,7 @@ __webpack_require__(8675);
     removeClass: removeClass,
     setClass: setClass,
     getClass: getClass,
-    setOpacity: setOpacity,
+    setOpacity: _setOpacity,
     testProp: testProp,
     setTransform: setTransform,
     setPosition: setPosition,
@@ -28667,7 +31843,7 @@ __webpack_require__(8675);
   // Adds a set of type/listener pairs, e.g. `{click: onClick, mousemove: onMouseMove}`
 
   function on(obj, types, fn, context) {
-    if (types && typeof types === 'object') {
+    if (types && _typeof(types) === 'object') {
       for (var type in types) {
         addOne(obj, type, types[type], fn);
       }
@@ -28700,7 +31876,7 @@ __webpack_require__(8675);
     if (arguments.length === 1) {
       batchRemove(obj);
       delete obj[eventsKey];
-    } else if (types && typeof types === 'object') {
+    } else if (types && _typeof(types) === 'object') {
       for (var type in types) {
         removeOne(obj, type, types[type], fn);
       }
@@ -28744,7 +31920,7 @@ __webpack_require__(8675);
       return this;
     }
 
-    var handler = function (e) {
+    var handler = function handler(e) {
       return fn.call(context || obj, e || window.event);
     };
 
@@ -28761,7 +31937,7 @@ __webpack_require__(8675);
           passive: false
         } : false);
       } else if (type === 'mouseenter' || type === 'mouseleave') {
-        handler = function (e) {
+        handler = function handler(e) {
           e = e || window.event;
 
           if (isExternalTarget(obj, e)) {
@@ -28954,7 +32130,7 @@ __webpack_require__(8675);
     // duration in seconds (`0.25` by default) and easing linearity factor (3rd
     // argument of the [cubic bezier curve](https://cubic-bezier.com/#0,0,.5,1),
     // `0.5` by default).
-    run: function (el, newPos, duration, easeLinearity) {
+    run: function run(el, newPos, duration, easeLinearity) {
       this.stop();
       this._el = el;
       this._inProgress = true;
@@ -28971,7 +32147,7 @@ __webpack_require__(8675);
     },
     // @method stop()
     // Stops the animation (if currently running).
-    stop: function () {
+    stop: function stop() {
       if (!this._inProgress) {
         return;
       }
@@ -28980,13 +32156,13 @@ __webpack_require__(8675);
 
       this._complete();
     },
-    _animate: function () {
+    _animate: function _animate() {
       // animation loop
       this._animId = requestAnimFrame(this._animate, this);
 
       this._step();
     },
-    _step: function (round) {
+    _step: function _step(round) {
       var elapsed = +new Date() - this._startTime,
           duration = this._duration * 1000;
 
@@ -28998,7 +32174,7 @@ __webpack_require__(8675);
         this._complete();
       }
     },
-    _runFrame: function (progress, round) {
+    _runFrame: function _runFrame(progress, round) {
       var pos = this._startPos.add(this._offset.multiplyBy(progress));
 
       if (round) {
@@ -29010,14 +32186,14 @@ __webpack_require__(8675);
 
       this.fire('step');
     },
-    _complete: function () {
+    _complete: function _complete() {
       cancelAnimFrame(this._animId);
       this._inProgress = false; // @event end: Event
       // Fired when the animation ends.
 
       this.fire('end');
     },
-    _easeOut: function (t) {
+    _easeOut: function _easeOut(t) {
       return 1 - Math.pow(1 - t, this._easeOutPower);
     }
   });
@@ -29117,7 +32293,7 @@ __webpack_require__(8675);
       // Whether the map automatically handles browser window resize to update itself.
       trackResize: true
     },
-    initialize: function (id, options) {
+    initialize: function initialize(id, options) {
       // (HTMLElement or String, Object)
       options = setOptions(this, options); // Make sure to assign internal flags at the beginning,
       // to avoid inconsistent state in some edge cases.
@@ -29167,7 +32343,7 @@ __webpack_require__(8675);
     // @method setView(center: LatLng, zoom: Number, options?: Zoom/pan options): this
     // Sets the view of the map (geographical center and zoom) with the given
     // animation options.
-    setView: function (center, zoom, options) {
+    setView: function setView(center, zoom, options) {
       zoom = zoom === undefined ? this._zoom : this._limitZoom(zoom);
       center = this._limitCenter(toLatLng(center), zoom, this.options.maxBounds);
       options = options || {};
@@ -29202,7 +32378,7 @@ __webpack_require__(8675);
     },
     // @method setZoom(zoom: Number, options?: Zoom/pan options): this
     // Sets the zoom of the map.
-    setZoom: function (zoom, options) {
+    setZoom: function setZoom(zoom, options) {
       if (!this._loaded) {
         this._zoom = zoom;
         return this;
@@ -29214,13 +32390,13 @@ __webpack_require__(8675);
     },
     // @method zoomIn(delta?: Number, options?: Zoom options): this
     // Increases the zoom of the map by `delta` ([`zoomDelta`](#map-zoomdelta) by default).
-    zoomIn: function (delta, options) {
+    zoomIn: function zoomIn(delta, options) {
       delta = delta || (Browser.any3d ? this.options.zoomDelta : 1);
       return this.setZoom(this._zoom + delta, options);
     },
     // @method zoomOut(delta?: Number, options?: Zoom options): this
     // Decreases the zoom of the map by `delta` ([`zoomDelta`](#map-zoomdelta) by default).
-    zoomOut: function (delta, options) {
+    zoomOut: function zoomOut(delta, options) {
       delta = delta || (Browser.any3d ? this.options.zoomDelta : 1);
       return this.setZoom(this._zoom - delta, options);
     },
@@ -29230,7 +32406,7 @@ __webpack_require__(8675);
     // @alternative
     // @method setZoomAround(offset: Point, zoom: Number, options: Zoom options): this
     // Zooms the map while keeping a specified pixel on the map (relative to the top-left corner) stationary.
-    setZoomAround: function (latlng, zoom, options) {
+    setZoomAround: function setZoomAround(latlng, zoom, options) {
       var scale = this.getZoomScale(zoom),
           viewHalf = this.getSize().divideBy(2),
           containerPoint = latlng instanceof Point ? latlng : this.latLngToContainerPoint(latlng),
@@ -29240,7 +32416,7 @@ __webpack_require__(8675);
         zoom: options
       });
     },
-    _getBoundsCenterZoom: function (bounds, options) {
+    _getBoundsCenterZoom: function _getBoundsCenterZoom(bounds, options) {
       options = options || {};
       bounds = bounds.getBounds ? bounds.getBounds() : toLatLngBounds(bounds);
       var paddingTL = toPoint(options.paddingTopLeft || options.padding || [0, 0]),
@@ -29267,7 +32443,7 @@ __webpack_require__(8675);
     // @method fitBounds(bounds: LatLngBounds, options?: fitBounds options): this
     // Sets a map view that contains the given geographical bounds with the
     // maximum zoom level possible.
-    fitBounds: function (bounds, options) {
+    fitBounds: function fitBounds(bounds, options) {
       bounds = toLatLngBounds(bounds);
 
       if (!bounds.isValid()) {
@@ -29281,12 +32457,12 @@ __webpack_require__(8675);
     // @method fitWorld(options?: fitBounds options): this
     // Sets a map view that mostly contains the whole world with the maximum
     // zoom level possible.
-    fitWorld: function (options) {
+    fitWorld: function fitWorld(options) {
       return this.fitBounds([[-90, -180], [90, 180]], options);
     },
     // @method panTo(latlng: LatLng, options?: Pan options): this
     // Pans the map to a given center.
-    panTo: function (center, options) {
+    panTo: function panTo(center, options) {
       // (LatLng)
       return this.setView(center, this._zoom, {
         pan: options
@@ -29294,7 +32470,7 @@ __webpack_require__(8675);
     },
     // @method panBy(offset: Point, options?: Pan options): this
     // Pans the map by a given number of pixels (animated).
-    panBy: function (offset, options) {
+    panBy: function panBy(offset, options) {
       offset = toPoint(offset).round();
       options = options || {};
 
@@ -29342,7 +32518,7 @@ __webpack_require__(8675);
     // @method flyTo(latlng: LatLng, zoom?: Number, options?: Zoom/pan options): this
     // Sets the view of the map (geographical center and zoom) performing a smooth
     // pan-zoom animation.
-    flyTo: function (targetCenter, targetZoom, options) {
+    flyTo: function flyTo(targetCenter, targetZoom, options) {
       options = options || {};
 
       if (options.animate === false || !Browser.any3d) {
@@ -29429,14 +32605,14 @@ __webpack_require__(8675);
     // @method flyToBounds(bounds: LatLngBounds, options?: fitBounds options): this
     // Sets the view of the map with a smooth animation like [`flyTo`](#map-flyto),
     // but takes a bounds parameter like [`fitBounds`](#map-fitbounds).
-    flyToBounds: function (bounds, options) {
+    flyToBounds: function flyToBounds(bounds, options) {
       var target = this._getBoundsCenterZoom(bounds, options);
 
       return this.flyTo(target.center, target.zoom, options);
     },
     // @method setMaxBounds(bounds: LatLngBounds): this
     // Restricts the map view to the given bounds (see the [maxBounds](#map-maxbounds) option).
-    setMaxBounds: function (bounds) {
+    setMaxBounds: function setMaxBounds(bounds) {
       bounds = toLatLngBounds(bounds);
 
       if (!bounds.isValid()) {
@@ -29456,7 +32632,7 @@ __webpack_require__(8675);
     },
     // @method setMinZoom(zoom: Number): this
     // Sets the lower limit for the available zoom levels (see the [minZoom](#map-minzoom) option).
-    setMinZoom: function (zoom) {
+    setMinZoom: function setMinZoom(zoom) {
       var oldZoom = this.options.minZoom;
       this.options.minZoom = zoom;
 
@@ -29472,7 +32648,7 @@ __webpack_require__(8675);
     },
     // @method setMaxZoom(zoom: Number): this
     // Sets the upper limit for the available zoom levels (see the [maxZoom](#map-maxzoom) option).
-    setMaxZoom: function (zoom) {
+    setMaxZoom: function setMaxZoom(zoom) {
       var oldZoom = this.options.maxZoom;
       this.options.maxZoom = zoom;
 
@@ -29488,7 +32664,7 @@ __webpack_require__(8675);
     },
     // @method panInsideBounds(bounds: LatLngBounds, options?: Pan options): this
     // Pans the map to the closest view that would lie inside the given bounds (if it's not already), controlling the animation using the options specific, if any.
-    panInsideBounds: function (bounds, options) {
+    panInsideBounds: function panInsideBounds(bounds, options) {
       this._enforcingBounds = true;
 
       var center = this.getCenter(),
@@ -29506,7 +32682,7 @@ __webpack_require__(8675);
     // padding options to fit the display to more restricted bounds.
     // If `latlng` is already within the (optionally padded) display bounds,
     // the map will not be panned.
-    panInside: function (latlng, options) {
+    panInside: function panInside(latlng, options) {
       options = options || {};
       var paddingTL = toPoint(options.paddingTopLeft || options.padding || [0, 0]),
           paddingBR = toPoint(options.paddingBottomRight || options.padding || [0, 0]),
@@ -29540,7 +32716,7 @@ __webpack_require__(8675);
     // Checks if the map container size changed and updates the map if so —
     // call it after you've changed the map size dynamically, also animating
     // pan by default.
-    invalidateSize: function (options) {
+    invalidateSize: function invalidateSize(options) {
       if (!this._loaded) {
         return this;
       }
@@ -29591,7 +32767,7 @@ __webpack_require__(8675);
     // @section Methods for modifying map state
     // @method stop(): this
     // Stops the currently running `panTo` or `flyTo` animation, if any.
-    stop: function () {
+    stop: function stop() {
       this.setZoom(this._limitZoom(this._zoom));
 
       if (!this.options.zoomSnap) {
@@ -29609,7 +32785,7 @@ __webpack_require__(8675);
     // Note that, if your page doesn't use HTTPS, this method will fail in
     // modern browsers ([Chrome 50 and newer](https://sites.google.com/a/chromium.org/dev/Home/chromium-security/deprecating-powerful-features-on-insecure-origins))
     // See `Locate options` for more details.
-    locate: function (options) {
+    locate: function locate(options) {
       options = this._locateOptions = extend({
         timeout: 10000,
         watch: false // setView: false
@@ -29643,7 +32819,7 @@ __webpack_require__(8675);
     // Stops watching location previously initiated by `map.locate({watch: true})`
     // and aborts resetting the map view if map.locate was called with
     // `{setView: true}`.
-    stopLocate: function () {
+    stopLocate: function stopLocate() {
       if (navigator.geolocation && navigator.geolocation.clearWatch) {
         navigator.geolocation.clearWatch(this._locationWatchId);
       }
@@ -29654,7 +32830,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    _handleGeolocationError: function (error) {
+    _handleGeolocationError: function _handleGeolocationError(error) {
       if (!this._container._leaflet_id) {
         return;
       }
@@ -29674,7 +32850,7 @@ __webpack_require__(8675);
         message: 'Geolocation error: ' + message + '.'
       });
     },
-    _handleGeolocationResponse: function (pos) {
+    _handleGeolocationResponse: function _handleGeolocationResponse(pos) {
       if (!this._container._leaflet_id) {
         return;
       }
@@ -29711,7 +32887,7 @@ __webpack_require__(8675);
     // @section Other Methods
     // @method addHandler(name: String, HandlerClass: Function): this
     // Adds a new `Handler` to the map, given its name and constructor function.
-    addHandler: function (name, HandlerClass) {
+    addHandler: function addHandler(name, HandlerClass) {
       if (!HandlerClass) {
         return this;
       }
@@ -29728,7 +32904,7 @@ __webpack_require__(8675);
     },
     // @method remove(): this
     // Destroys the map and clears all related event listeners.
-    remove: function () {
+    remove: function remove() {
       this._initEvents(true);
 
       if (this.options.maxBounds) {
@@ -29757,7 +32933,7 @@ __webpack_require__(8675);
 
       this._stop();
 
-      remove(this._mapPane);
+      _remove(this._mapPane);
 
       if (this._clearControlPos) {
         this._clearControlPos();
@@ -29784,7 +32960,7 @@ __webpack_require__(8675);
       }
 
       for (i in this._panes) {
-        remove(this._panes[i]);
+        _remove(this._panes[i]);
       }
 
       this._layers = [];
@@ -29798,7 +32974,7 @@ __webpack_require__(8675);
     // Creates a new [map pane](#map-pane) with the given name if it doesn't exist already,
     // then returns it. The pane is created as a child of `container`, or
     // as a child of the main map pane if not set.
-    createPane: function (name, container) {
+    createPane: function createPane(name, container) {
       var className = 'leaflet-pane' + (name ? ' leaflet-' + name.replace('Pane', '') + '-pane' : ''),
           pane = create$1('div', className, container || this._mapPane);
 
@@ -29811,7 +32987,7 @@ __webpack_require__(8675);
     // @section Methods for Getting Map State
     // @method getCenter(): LatLng
     // Returns the geographical center of the map view
-    getCenter: function () {
+    getCenter: function getCenter() {
       this._checkIfLoaded();
 
       if (this._lastCenter && !this._moved()) {
@@ -29822,12 +32998,12 @@ __webpack_require__(8675);
     },
     // @method getZoom(): Number
     // Returns the current zoom level of the map view
-    getZoom: function () {
+    getZoom: function getZoom() {
       return this._zoom;
     },
     // @method getBounds(): LatLngBounds
     // Returns the geographical bounds visible in the current map view
-    getBounds: function () {
+    getBounds: function getBounds() {
       var bounds = this.getPixelBounds(),
           sw = this.unproject(bounds.getBottomLeft()),
           ne = this.unproject(bounds.getTopRight());
@@ -29835,12 +33011,12 @@ __webpack_require__(8675);
     },
     // @method getMinZoom(): Number
     // Returns the minimum zoom level of the map (if set in the `minZoom` option of the map or of any layers), or `0` by default.
-    getMinZoom: function () {
+    getMinZoom: function getMinZoom() {
       return this.options.minZoom === undefined ? this._layersMinZoom || 0 : this.options.minZoom;
     },
     // @method getMaxZoom(): Number
     // Returns the maximum zoom level of the map (if set in the `maxZoom` option of the map or of any layers).
-    getMaxZoom: function () {
+    getMaxZoom: function getMaxZoom() {
       return this.options.maxZoom === undefined ? this._layersMaxZoom === undefined ? Infinity : this._layersMaxZoom : this.options.maxZoom;
     },
     // @method getBoundsZoom(bounds: LatLngBounds, inside?: Boolean, padding?: Point): Number
@@ -29848,7 +33024,7 @@ __webpack_require__(8675);
     // view in its entirety. If `inside` (optional) is set to `true`, the method
     // instead returns the minimum zoom level on which the map view fits into
     // the given bounds in its entirety.
-    getBoundsZoom: function (bounds, inside, padding) {
+    getBoundsZoom: function getBoundsZoom(bounds, inside, padding) {
       // (LatLngBounds[, Boolean, Point]) -> Number
       bounds = toLatLngBounds(bounds);
       padding = toPoint(padding || [0, 0]);
@@ -29875,7 +33051,7 @@ __webpack_require__(8675);
     },
     // @method getSize(): Point
     // Returns the current size of the map container (in pixels).
-    getSize: function () {
+    getSize: function getSize() {
       if (!this._size || this._sizeChanged) {
         this._size = new Point(this._container.clientWidth || 0, this._container.clientHeight || 0);
         this._sizeChanged = false;
@@ -29886,7 +33062,7 @@ __webpack_require__(8675);
     // @method getPixelBounds(): Bounds
     // Returns the bounds of the current map view in projected pixel
     // coordinates (sometimes useful in layer and overlay implementations).
-    getPixelBounds: function (center, zoom) {
+    getPixelBounds: function getPixelBounds(center, zoom) {
       var topLeftPoint = this._getTopLeftPoint(center, zoom);
 
       return new Bounds(topLeftPoint, topLeftPoint.add(this.getSize()));
@@ -29897,7 +33073,7 @@ __webpack_require__(8675);
     // @method getPixelOrigin(): Point
     // Returns the projected pixel coordinates of the top left point of
     // the map layer (useful in custom layer and overlay implementations).
-    getPixelOrigin: function () {
+    getPixelOrigin: function getPixelOrigin() {
       this._checkIfLoaded();
 
       return this._pixelOrigin;
@@ -29905,31 +33081,31 @@ __webpack_require__(8675);
     // @method getPixelWorldBounds(zoom?: Number): Bounds
     // Returns the world's bounds in pixel coordinates for zoom level `zoom`.
     // If `zoom` is omitted, the map's current zoom level is used.
-    getPixelWorldBounds: function (zoom) {
+    getPixelWorldBounds: function getPixelWorldBounds(zoom) {
       return this.options.crs.getProjectedBounds(zoom === undefined ? this.getZoom() : zoom);
     },
     // @section Other Methods
     // @method getPane(pane: String|HTMLElement): HTMLElement
     // Returns a [map pane](#map-pane), given its name or its HTML element (its identity).
-    getPane: function (pane) {
+    getPane: function getPane(pane) {
       return typeof pane === 'string' ? this._panes[pane] : pane;
     },
     // @method getPanes(): Object
     // Returns a plain object containing the names of all [panes](#map-pane) as keys and
     // the panes as values.
-    getPanes: function () {
+    getPanes: function getPanes() {
       return this._panes;
     },
     // @method getContainer: HTMLElement
     // Returns the HTML element that contains the map.
-    getContainer: function () {
+    getContainer: function getContainer() {
       return this._container;
     },
     // @section Conversion Methods
     // @method getZoomScale(toZoom: Number, fromZoom: Number): Number
     // Returns the scale factor to be applied to a map transition from zoom level
     // `fromZoom` to `toZoom`. Used internally to help with zoom animations.
-    getZoomScale: function (toZoom, fromZoom) {
+    getZoomScale: function getZoomScale(toZoom, fromZoom) {
       // TODO replace with universal implementation after refactoring projections
       var crs = this.options.crs;
       fromZoom = fromZoom === undefined ? this._zoom : fromZoom;
@@ -29939,7 +33115,7 @@ __webpack_require__(8675);
     // Returns the zoom level that the map would end up at, if it is at `fromZoom`
     // level and everything is scaled by a factor of `scale`. Inverse of
     // [`getZoomScale`](#map-getZoomScale).
-    getScaleZoom: function (scale, fromZoom) {
+    getScaleZoom: function getScaleZoom(scale, fromZoom) {
       var crs = this.options.crs;
       fromZoom = fromZoom === undefined ? this._zoom : fromZoom;
       var zoom = crs.zoom(scale * crs.scale(fromZoom));
@@ -29950,27 +33126,27 @@ __webpack_require__(8675);
     // of the map's CRS, then scales it according to `zoom` and the CRS's
     // `Transformation`. The result is pixel coordinate relative to
     // the CRS origin.
-    project: function (latlng, zoom) {
+    project: function project(latlng, zoom) {
       zoom = zoom === undefined ? this._zoom : zoom;
       return this.options.crs.latLngToPoint(toLatLng(latlng), zoom);
     },
     // @method unproject(point: Point, zoom: Number): LatLng
     // Inverse of [`project`](#map-project).
-    unproject: function (point, zoom) {
+    unproject: function unproject(point, zoom) {
       zoom = zoom === undefined ? this._zoom : zoom;
       return this.options.crs.pointToLatLng(toPoint(point), zoom);
     },
     // @method layerPointToLatLng(point: Point): LatLng
     // Given a pixel coordinate relative to the [origin pixel](#map-getpixelorigin),
     // returns the corresponding geographical coordinate (for the current zoom level).
-    layerPointToLatLng: function (point) {
+    layerPointToLatLng: function layerPointToLatLng(point) {
       var projectedPoint = toPoint(point).add(this.getPixelOrigin());
       return this.unproject(projectedPoint);
     },
     // @method latLngToLayerPoint(latlng: LatLng): Point
     // Given a geographical coordinate, returns the corresponding pixel coordinate
     // relative to the [origin pixel](#map-getpixelorigin).
-    latLngToLayerPoint: function (latlng) {
+    latLngToLayerPoint: function latLngToLayerPoint(latlng) {
       var projectedPoint = this.project(toLatLng(latlng))._round();
 
       return projectedPoint._subtract(this.getPixelOrigin());
@@ -29981,7 +33157,7 @@ __webpack_require__(8675);
     // CRS's bounds.
     // By default this means longitude is wrapped around the dateline so its
     // value is between -180 and +180 degrees.
-    wrapLatLng: function (latlng) {
+    wrapLatLng: function wrapLatLng(latlng) {
       return this.options.crs.wrapLatLng(toLatLng(latlng));
     },
     // @method wrapLatLngBounds(bounds: LatLngBounds): LatLngBounds
@@ -29990,63 +33166,63 @@ __webpack_require__(8675);
     // By default this means the center longitude is wrapped around the dateline so its
     // value is between -180 and +180 degrees, and the majority of the bounds
     // overlaps the CRS's bounds.
-    wrapLatLngBounds: function (latlng) {
+    wrapLatLngBounds: function wrapLatLngBounds(latlng) {
       return this.options.crs.wrapLatLngBounds(toLatLngBounds(latlng));
     },
     // @method distance(latlng1: LatLng, latlng2: LatLng): Number
     // Returns the distance between two geographical coordinates according to
     // the map's CRS. By default this measures distance in meters.
-    distance: function (latlng1, latlng2) {
+    distance: function distance(latlng1, latlng2) {
       return this.options.crs.distance(toLatLng(latlng1), toLatLng(latlng2));
     },
     // @method containerPointToLayerPoint(point: Point): Point
     // Given a pixel coordinate relative to the map container, returns the corresponding
     // pixel coordinate relative to the [origin pixel](#map-getpixelorigin).
-    containerPointToLayerPoint: function (point) {
+    containerPointToLayerPoint: function containerPointToLayerPoint(point) {
       // (Point)
       return toPoint(point).subtract(this._getMapPanePos());
     },
     // @method layerPointToContainerPoint(point: Point): Point
     // Given a pixel coordinate relative to the [origin pixel](#map-getpixelorigin),
     // returns the corresponding pixel coordinate relative to the map container.
-    layerPointToContainerPoint: function (point) {
+    layerPointToContainerPoint: function layerPointToContainerPoint(point) {
       // (Point)
       return toPoint(point).add(this._getMapPanePos());
     },
     // @method containerPointToLatLng(point: Point): LatLng
     // Given a pixel coordinate relative to the map container, returns
     // the corresponding geographical coordinate (for the current zoom level).
-    containerPointToLatLng: function (point) {
+    containerPointToLatLng: function containerPointToLatLng(point) {
       var layerPoint = this.containerPointToLayerPoint(toPoint(point));
       return this.layerPointToLatLng(layerPoint);
     },
     // @method latLngToContainerPoint(latlng: LatLng): Point
     // Given a geographical coordinate, returns the corresponding pixel coordinate
     // relative to the map container.
-    latLngToContainerPoint: function (latlng) {
+    latLngToContainerPoint: function latLngToContainerPoint(latlng) {
       return this.layerPointToContainerPoint(this.latLngToLayerPoint(toLatLng(latlng)));
     },
     // @method mouseEventToContainerPoint(ev: MouseEvent): Point
     // Given a MouseEvent object, returns the pixel coordinate relative to the
     // map container where the event took place.
-    mouseEventToContainerPoint: function (e) {
+    mouseEventToContainerPoint: function mouseEventToContainerPoint(e) {
       return getMousePosition(e, this._container);
     },
     // @method mouseEventToLayerPoint(ev: MouseEvent): Point
     // Given a MouseEvent object, returns the pixel coordinate relative to
     // the [origin pixel](#map-getpixelorigin) where the event took place.
-    mouseEventToLayerPoint: function (e) {
+    mouseEventToLayerPoint: function mouseEventToLayerPoint(e) {
       return this.containerPointToLayerPoint(this.mouseEventToContainerPoint(e));
     },
     // @method mouseEventToLatLng(ev: MouseEvent): LatLng
     // Given a MouseEvent object, returns geographical coordinate where the
     // event took place.
-    mouseEventToLatLng: function (e) {
+    mouseEventToLatLng: function mouseEventToLatLng(e) {
       // (MouseEvent)
       return this.layerPointToLatLng(this.mouseEventToLayerPoint(e));
     },
     // map initialization methods
-    _initContainer: function (id) {
+    _initContainer: function _initContainer(id) {
       var container = this._container = get(id);
 
       if (!container) {
@@ -30058,7 +33234,7 @@ __webpack_require__(8675);
       on(container, 'scroll', this._onScroll, this);
       this._containerId = stamp(container);
     },
-    _initLayout: function () {
+    _initLayout: function _initLayout() {
       var container = this._container;
       this._fadeAnimated = this.options.fadeAnimation && Browser.any3d;
       addClass(container, 'leaflet-container' + (Browser.touch ? ' leaflet-touch' : '') + (Browser.retina ? ' leaflet-retina' : '') + (Browser.ielt9 ? ' leaflet-oldie' : '') + (Browser.safari ? ' leaflet-safari' : '') + (this._fadeAnimated ? ' leaflet-fade-anim' : ''));
@@ -30074,7 +33250,7 @@ __webpack_require__(8675);
         this._initControlPos();
       }
     },
-    _initPanes: function () {
+    _initPanes: function _initPanes() {
       var panes = this._panes = {};
       this._paneRenderers = {}; // @section
       //
@@ -30116,7 +33292,7 @@ __webpack_require__(8675);
     },
     // private methods that modify map state
     // @section Map state change events
-    _resetView: function (center, zoom) {
+    _resetView: function _resetView(center, zoom) {
       setPosition(this._mapPane, new Point(0, 0));
       var loading = !this._loaded;
       this._loaded = true;
@@ -30137,7 +33313,7 @@ __webpack_require__(8675);
         this.fire('load');
       }
     },
-    _moveStart: function (zoomChanged, noMoveStart) {
+    _moveStart: function _moveStart(zoomChanged, noMoveStart) {
       // @event zoomstart: Event
       // Fired when the map zoom is about to change (e.g. before zoom animation).
       // @event movestart: Event
@@ -30152,7 +33328,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    _move: function (center, zoom, data, supressEvent) {
+    _move: function _move(center, zoom, data, supressEvent) {
       if (zoom === undefined) {
         zoom = this._zoom;
       }
@@ -30182,7 +33358,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    _moveEnd: function (zoomChanged) {
+    _moveEnd: function _moveEnd(zoomChanged) {
       // @event zoomend: Event
       // Fired when the map zoom changed, after any animations.
       if (zoomChanged) {
@@ -30194,7 +33370,7 @@ __webpack_require__(8675);
 
       return this.fire('moveend');
     },
-    _stop: function () {
+    _stop: function _stop() {
       cancelAnimFrame(this._flyToFrame);
 
       if (this._panAnim) {
@@ -30203,25 +33379,25 @@ __webpack_require__(8675);
 
       return this;
     },
-    _rawPanBy: function (offset) {
+    _rawPanBy: function _rawPanBy(offset) {
       setPosition(this._mapPane, this._getMapPanePos().subtract(offset));
     },
-    _getZoomSpan: function () {
+    _getZoomSpan: function _getZoomSpan() {
       return this.getMaxZoom() - this.getMinZoom();
     },
-    _panInsideMaxBounds: function () {
+    _panInsideMaxBounds: function _panInsideMaxBounds() {
       if (!this._enforcingBounds) {
         this.panInsideBounds(this.options.maxBounds);
       }
     },
-    _checkIfLoaded: function () {
+    _checkIfLoaded: function _checkIfLoaded() {
       if (!this._loaded) {
         throw new Error('Set map center and zoom first.');
       }
     },
     // DOM event handling
     // @section Interaction events
-    _initEvents: function (remove) {
+    _initEvents: function _initEvents(remove) {
       this._targets = {};
       this._targets[stamp(this._container)] = this;
       var onOff = remove ? off : on; // @event click: MouseEvent
@@ -30262,7 +33438,7 @@ __webpack_require__(8675);
         (remove ? this.off : this.on).call(this, 'moveend', this._onMoveEnd);
       }
     },
-    _onResize: function () {
+    _onResize: function _onResize() {
       cancelAnimFrame(this._resizeRequest);
       this._resizeRequest = requestAnimFrame(function () {
         this.invalidateSize({
@@ -30270,11 +33446,11 @@ __webpack_require__(8675);
         });
       }, this);
     },
-    _onScroll: function () {
+    _onScroll: function _onScroll() {
       this._container.scrollTop = 0;
       this._container.scrollLeft = 0;
     },
-    _onMoveEnd: function () {
+    _onMoveEnd: function _onMoveEnd() {
       var pos = this._getMapPanePos();
 
       if (Math.max(Math.abs(pos.x), Math.abs(pos.y)) >= this.options.transform3DLimit) {
@@ -30283,7 +33459,7 @@ __webpack_require__(8675);
         this._resetView(this.getCenter(), this.getZoom());
       }
     },
-    _findEventTargets: function (e, type) {
+    _findEventTargets: function _findEventTargets(e, type) {
       var targets = [],
           target,
           isHover = type === 'mouseout' || type === 'mouseover',
@@ -30324,7 +33500,7 @@ __webpack_require__(8675);
 
       return targets;
     },
-    _isClickDisabled: function (el) {
+    _isClickDisabled: function _isClickDisabled(el) {
       while (el !== this._container) {
         if (el['_leaflet_disable_click']) {
           return true;
@@ -30333,7 +33509,7 @@ __webpack_require__(8675);
         el = el.parentNode;
       }
     },
-    _handleDOMEvent: function (e) {
+    _handleDOMEvent: function _handleDOMEvent(e) {
       var el = e.target || e.srcElement;
 
       if (!this._loaded || el['_leaflet_disable_events'] || e.type === 'click' && this._isClickDisabled(el)) {
@@ -30350,7 +33526,7 @@ __webpack_require__(8675);
       this._fireDOMEvent(e, type);
     },
     _mouseEvents: ['click', 'dblclick', 'mouseover', 'mouseout', 'contextmenu'],
-    _fireDOMEvent: function (e, type, canvasTargets) {
+    _fireDOMEvent: function _fireDOMEvent(e, type, canvasTargets) {
       if (e.type === 'click') {
         // Fire a synthetic 'preclick' event which propagates up (mainly for closing popups).
         // @event preclick: MouseEvent
@@ -30406,11 +33582,11 @@ __webpack_require__(8675);
         }
       }
     },
-    _draggableMoved: function (obj) {
+    _draggableMoved: function _draggableMoved(obj) {
       obj = obj.dragging && obj.dragging.enabled() ? obj : this;
       return obj.dragging && obj.dragging.moved() || this.boxZoom && this.boxZoom.moved();
     },
-    _clearHandlers: function () {
+    _clearHandlers: function _clearHandlers() {
       for (var i = 0, len = this._handlers.length; i < len; i++) {
         this._handlers[i].disable();
       }
@@ -30420,7 +33596,7 @@ __webpack_require__(8675);
     // Runs the given function `fn` when the map gets initialized with
     // a view (center and zoom) and at least one layer, or immediately
     // if it's already initialized, optionally passing a function context.
-    whenReady: function (callback, context) {
+    whenReady: function whenReady(callback, context) {
       if (this._loaded) {
         callback.call(context || this, {
           target: this
@@ -30432,43 +33608,43 @@ __webpack_require__(8675);
       return this;
     },
     // private methods for getting map state
-    _getMapPanePos: function () {
+    _getMapPanePos: function _getMapPanePos() {
       return getPosition(this._mapPane) || new Point(0, 0);
     },
-    _moved: function () {
+    _moved: function _moved() {
       var pos = this._getMapPanePos();
 
       return pos && !pos.equals([0, 0]);
     },
-    _getTopLeftPoint: function (center, zoom) {
+    _getTopLeftPoint: function _getTopLeftPoint(center, zoom) {
       var pixelOrigin = center && zoom !== undefined ? this._getNewPixelOrigin(center, zoom) : this.getPixelOrigin();
       return pixelOrigin.subtract(this._getMapPanePos());
     },
-    _getNewPixelOrigin: function (center, zoom) {
+    _getNewPixelOrigin: function _getNewPixelOrigin(center, zoom) {
       var viewHalf = this.getSize()._divideBy(2);
 
       return this.project(center, zoom)._subtract(viewHalf)._add(this._getMapPanePos())._round();
     },
-    _latLngToNewLayerPoint: function (latlng, zoom, center) {
+    _latLngToNewLayerPoint: function _latLngToNewLayerPoint(latlng, zoom, center) {
       var topLeft = this._getNewPixelOrigin(center, zoom);
 
       return this.project(latlng, zoom)._subtract(topLeft);
     },
-    _latLngBoundsToNewLayerBounds: function (latLngBounds, zoom, center) {
+    _latLngBoundsToNewLayerBounds: function _latLngBoundsToNewLayerBounds(latLngBounds, zoom, center) {
       var topLeft = this._getNewPixelOrigin(center, zoom);
 
       return toBounds([this.project(latLngBounds.getSouthWest(), zoom)._subtract(topLeft), this.project(latLngBounds.getNorthWest(), zoom)._subtract(topLeft), this.project(latLngBounds.getSouthEast(), zoom)._subtract(topLeft), this.project(latLngBounds.getNorthEast(), zoom)._subtract(topLeft)]);
     },
     // layer point of the current center
-    _getCenterLayerPoint: function () {
+    _getCenterLayerPoint: function _getCenterLayerPoint() {
       return this.containerPointToLayerPoint(this.getSize()._divideBy(2));
     },
     // offset of the specified place to the current center in pixels
-    _getCenterOffset: function (latlng) {
+    _getCenterOffset: function _getCenterOffset(latlng) {
       return this.latLngToLayerPoint(latlng).subtract(this._getCenterLayerPoint());
     },
     // adjust center for view to get inside bounds
-    _limitCenter: function (center, zoom, bounds) {
+    _limitCenter: function _limitCenter(center, zoom, bounds) {
       if (!bounds) {
         return center;
       }
@@ -30488,7 +33664,7 @@ __webpack_require__(8675);
       return this.unproject(centerPoint.add(offset), zoom);
     },
     // adjust offset for view to get inside bounds
-    _limitOffset: function (offset, bounds) {
+    _limitOffset: function _limitOffset(offset, bounds) {
       if (!bounds) {
         return offset;
       }
@@ -30498,7 +33674,7 @@ __webpack_require__(8675);
       return offset.add(this._getBoundsOffset(newBounds, bounds));
     },
     // returns offset needed for pxBounds to get inside maxBounds at a specified zoom
-    _getBoundsOffset: function (pxBounds, maxBounds, zoom) {
+    _getBoundsOffset: function _getBoundsOffset(pxBounds, maxBounds, zoom) {
       var projectedMaxBounds = toBounds(this.project(maxBounds.getNorthEast(), zoom), this.project(maxBounds.getSouthWest(), zoom)),
           minOffset = projectedMaxBounds.min.subtract(pxBounds.min),
           maxOffset = projectedMaxBounds.max.subtract(pxBounds.max),
@@ -30507,10 +33683,10 @@ __webpack_require__(8675);
 
       return new Point(dx, dy);
     },
-    _rebound: function (left, right) {
+    _rebound: function _rebound(left, right) {
       return left + right > 0 ? Math.round(left - right) / 2 : Math.max(0, Math.ceil(left)) - Math.max(0, Math.floor(right));
     },
-    _limitZoom: function (zoom) {
+    _limitZoom: function _limitZoom(zoom) {
       var min = this.getMinZoom(),
           max = this.getMaxZoom(),
           snap = Browser.any3d ? this.options.zoomSnap : 1;
@@ -30521,14 +33697,14 @@ __webpack_require__(8675);
 
       return Math.max(min, Math.min(max, zoom));
     },
-    _onPanTransitionStep: function () {
+    _onPanTransitionStep: function _onPanTransitionStep() {
       this.fire('move');
     },
-    _onPanTransitionEnd: function () {
+    _onPanTransitionEnd: function _onPanTransitionEnd() {
       removeClass(this._mapPane, 'leaflet-pan-anim');
       this.fire('moveend');
     },
-    _tryAnimatedPan: function (center, options) {
+    _tryAnimatedPan: function _tryAnimatedPan(center, options) {
       // difference between the new and current centers in pixels
       var offset = this._getCenterOffset(center)._trunc(); // don't animate too far unless animate: true specified in options
 
@@ -30540,7 +33716,7 @@ __webpack_require__(8675);
       this.panBy(offset, options);
       return true;
     },
-    _createAnimProxy: function () {
+    _createAnimProxy: function _createAnimProxy() {
       var proxy = this._proxy = create$1('div', 'leaflet-proxy leaflet-zoom-animated');
 
       this._panes.mapPane.appendChild(proxy);
@@ -30558,25 +33734,26 @@ __webpack_require__(8675);
 
       this._on('unload', this._destroyAnimProxy, this);
     },
-    _destroyAnimProxy: function () {
-      remove(this._proxy);
+    _destroyAnimProxy: function _destroyAnimProxy() {
+      _remove(this._proxy);
+
       this.off('load moveend', this._animMoveEnd, this);
       delete this._proxy;
     },
-    _animMoveEnd: function () {
+    _animMoveEnd: function _animMoveEnd() {
       var c = this.getCenter(),
           z = this.getZoom();
       setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
     },
-    _catchTransitionEnd: function (e) {
+    _catchTransitionEnd: function _catchTransitionEnd(e) {
       if (this._animatingZoom && e.propertyName.indexOf('transform') >= 0) {
         this._onZoomTransitionEnd();
       }
     },
-    _nothingToAnimate: function () {
+    _nothingToAnimate: function _nothingToAnimate() {
       return !this._container.getElementsByClassName('leaflet-zoom-animated').length;
     },
-    _tryAnimatedZoom: function (center, zoom, options) {
+    _tryAnimatedZoom: function _tryAnimatedZoom(center, zoom, options) {
       if (this._animatingZoom) {
         return true;
       }
@@ -30601,7 +33778,7 @@ __webpack_require__(8675);
       }, this);
       return true;
     },
-    _animateZoom: function (center, zoom, startAnim, noUpdate) {
+    _animateZoom: function _animateZoom(center, zoom, startAnim, noUpdate) {
       if (!this._mapPane) {
         return;
       }
@@ -30632,7 +33809,7 @@ __webpack_require__(8675);
 
       setTimeout(bind(this._onZoomTransitionEnd, this), 250);
     },
-    _onZoomTransitionEnd: function () {
+    _onZoomTransitionEnd: function _onZoomTransitionEnd() {
       if (!this._animatingZoom) {
         return;
       }
@@ -30686,7 +33863,7 @@ __webpack_require__(8675);
       // `'topright'`, `'bottomleft'` or `'bottomright'`
       position: 'topright'
     },
-    initialize: function (options) {
+    initialize: function initialize(options) {
       setOptions(this, options);
     },
 
@@ -30696,12 +33873,12 @@ __webpack_require__(8675);
      * @method getPosition: string
      * Returns the position of the control.
      */
-    getPosition: function () {
+    getPosition: function getPosition() {
       return this.options.position;
     },
     // @method setPosition(position: string): this
     // Sets the position of the control.
-    setPosition: function (position) {
+    setPosition: function setPosition(position) {
       var map = this._map;
 
       if (map) {
@@ -30718,12 +33895,12 @@ __webpack_require__(8675);
     },
     // @method getContainer: HTMLElement
     // Returns the HTMLElement that contains the control.
-    getContainer: function () {
+    getContainer: function getContainer() {
       return this._container;
     },
     // @method addTo(map: Map): this
     // Adds the control to the given map.
-    addTo: function (map) {
+    addTo: function addTo(map) {
       this.remove();
       this._map = map;
       var container = this._container = this.onAdd(map),
@@ -30743,12 +33920,12 @@ __webpack_require__(8675);
     },
     // @method remove: this
     // Removes the control from the map it is currently active on.
-    remove: function () {
+    remove: function remove() {
       if (!this._map) {
         return this;
       }
 
-      remove(this._container);
+      _remove(this._container);
 
       if (this.onRemove) {
         this.onRemove(this._map);
@@ -30759,7 +33936,7 @@ __webpack_require__(8675);
       this._map = null;
       return this;
     },
-    _refocusOnMap: function (e) {
+    _refocusOnMap: function _refocusOnMap(e) {
       // if map exists and event is not a keyboard event
       if (this._map && e && e.screenX > 0 && e.screenY > 0) {
         this._map.getContainer().focus();
@@ -30767,7 +33944,7 @@ __webpack_require__(8675);
     }
   });
 
-  var control = function (options) {
+  var control = function control(options) {
     return new Control(options);
   };
   /* @section Extension methods
@@ -30790,17 +33967,17 @@ __webpack_require__(8675);
   Map.include({
     // @method addControl(control: Control): this
     // Adds the given control to the map
-    addControl: function (control) {
+    addControl: function addControl(control) {
       control.addTo(this);
       return this;
     },
     // @method removeControl(control: Control): this
     // Removes the given control from the map
-    removeControl: function (control) {
+    removeControl: function removeControl(control) {
       control.remove();
       return this;
     },
-    _initControlPos: function () {
+    _initControlPos: function _initControlPos() {
       var corners = this._controlCorners = {},
           l = 'leaflet-',
           container = this._controlContainer = create$1('div', l + 'control-container', this._container);
@@ -30815,12 +33992,13 @@ __webpack_require__(8675);
       createCorner('bottom', 'left');
       createCorner('bottom', 'right');
     },
-    _clearControlPos: function () {
+    _clearControlPos: function _clearControlPos() {
       for (var i in this._controlCorners) {
-        remove(this._controlCorners[i]);
+        _remove(this._controlCorners[i]);
       }
 
-      remove(this._controlContainer);
+      _remove(this._controlContainer);
+
       delete this._controlCorners;
       delete this._controlContainer;
     }
@@ -30888,11 +34066,11 @@ __webpack_require__(8675);
       // The function receives both the `L.Layer` instances and their names, as in
       // `sortFunction(layerA, layerB, nameA, nameB)`.
       // By default, it sorts layers alphabetically by their name.
-      sortFunction: function (layerA, layerB, nameA, nameB) {
+      sortFunction: function sortFunction(layerA, layerB, nameA, nameB) {
         return nameA < nameB ? -1 : nameB < nameA ? 1 : 0;
       }
     },
-    initialize: function (baseLayers, overlays, options) {
+    initialize: function initialize(baseLayers, overlays, options) {
       setOptions(this, options);
       this._layerControlInputs = [];
       this._layers = [];
@@ -30907,7 +34085,7 @@ __webpack_require__(8675);
         this._addLayer(overlays[i], i, true);
       }
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       this._initLayout();
 
       this._update();
@@ -30921,12 +34099,12 @@ __webpack_require__(8675);
 
       return this._container;
     },
-    addTo: function (map) {
+    addTo: function addTo(map) {
       Control.prototype.addTo.call(this, map); // Trigger expand after Layers Control has been inserted into DOM so that is now has an actual height.
 
       return this._expandIfNotCollapsed();
     },
-    onRemove: function () {
+    onRemove: function onRemove() {
       this._map.off('zoomend', this._checkDisabledLayers, this);
 
       for (var i = 0; i < this._layers.length; i++) {
@@ -30935,21 +34113,21 @@ __webpack_require__(8675);
     },
     // @method addBaseLayer(layer: Layer, name: String): this
     // Adds a base layer (radio button entry) with the given name to the control.
-    addBaseLayer: function (layer, name) {
+    addBaseLayer: function addBaseLayer(layer, name) {
       this._addLayer(layer, name);
 
       return this._map ? this._update() : this;
     },
     // @method addOverlay(layer: Layer, name: String): this
     // Adds an overlay (checkbox entry) with the given name to the control.
-    addOverlay: function (layer, name) {
+    addOverlay: function addOverlay(layer, name) {
       this._addLayer(layer, name, true);
 
       return this._map ? this._update() : this;
     },
     // @method removeLayer(layer: Layer): this
     // Remove the given layer from the control.
-    removeLayer: function (layer) {
+    removeLayer: function removeLayer(layer) {
       layer.off('add remove', this._onLayerChange, this);
 
       var obj = this._getLayer(stamp(layer));
@@ -30962,7 +34140,7 @@ __webpack_require__(8675);
     },
     // @method expand(): this
     // Expand the control container if collapsed.
-    expand: function () {
+    expand: function expand() {
       addClass(this._container, 'leaflet-control-layers-expanded');
       this._section.style.height = null;
       var acceptableHeight = this._map.getSize().y - (this._container.offsetTop + 50);
@@ -30980,11 +34158,11 @@ __webpack_require__(8675);
     },
     // @method collapse(): this
     // Collapse the control container if expanded.
-    collapse: function () {
+    collapse: function collapse() {
       removeClass(this._container, 'leaflet-control-layers-expanded');
       return this;
     },
-    _initLayout: function () {
+    _initLayout: function _initLayout() {
       var className = 'leaflet-control-layers',
           container = this._container = create$1('div', className),
           collapsed = this.options.collapsed; // makes this work on IE touch devices by stopping it from firing a mouseout event when the touch is released
@@ -30998,7 +34176,7 @@ __webpack_require__(8675);
         this._map.on('click', this.collapse, this);
 
         on(container, {
-          mouseenter: function () {
+          mouseenter: function mouseenter() {
             on(section, 'click', preventDefault);
             this.expand();
             setTimeout(function () {
@@ -31026,14 +34204,14 @@ __webpack_require__(8675);
       this._overlaysList = create$1('div', className + '-overlays', section);
       container.appendChild(section);
     },
-    _getLayer: function (id) {
+    _getLayer: function _getLayer(id) {
       for (var i = 0; i < this._layers.length; i++) {
         if (this._layers[i] && stamp(this._layers[i].layer) === id) {
           return this._layers[i];
         }
       }
     },
-    _addLayer: function (layer, name, overlay) {
+    _addLayer: function _addLayer(layer, name, overlay) {
       if (this._map) {
         layer.on('add remove', this._onLayerChange, this);
       }
@@ -31057,7 +34235,7 @@ __webpack_require__(8675);
 
       this._expandIfNotCollapsed();
     },
-    _update: function () {
+    _update: function _update() {
       if (!this._container) {
         return this;
       }
@@ -31090,7 +34268,7 @@ __webpack_require__(8675);
       this._separator.style.display = overlaysPresent && baseLayersPresent ? '' : 'none';
       return this;
     },
-    _onLayerChange: function (e) {
+    _onLayerChange: function _onLayerChange(e) {
       if (!this._handlingClick) {
         this._update();
       }
@@ -31113,13 +34291,13 @@ __webpack_require__(8675);
       }
     },
     // IE7 bugs out if you create a radio dynamically, so you have to do it this hacky way (see https://stackoverflow.com/a/119079)
-    _createRadioElement: function (name, checked) {
+    _createRadioElement: function _createRadioElement(name, checked) {
       var radioHtml = '<input type="radio" class="leaflet-control-layers-selector" name="' + name + '"' + (checked ? ' checked="checked"' : '') + '/>';
       var radioFragment = document.createElement('div');
       radioFragment.innerHTML = radioHtml;
       return radioFragment.firstChild;
     },
-    _addItem: function (obj) {
+    _addItem: function _addItem(obj) {
       var label = document.createElement('label'),
           checked = this._map.hasLayer(obj.layer),
           input;
@@ -31152,7 +34330,7 @@ __webpack_require__(8675);
 
       return label;
     },
-    _onInputClick: function () {
+    _onInputClick: function _onInputClick() {
       var inputs = this._layerControlInputs,
           input,
           layer;
@@ -31188,7 +34366,7 @@ __webpack_require__(8675);
 
       this._refocusOnMap();
     },
-    _checkDisabledLayers: function () {
+    _checkDisabledLayers: function _checkDisabledLayers() {
       var inputs = this._layerControlInputs,
           input,
           layer,
@@ -31200,7 +34378,7 @@ __webpack_require__(8675);
         input.disabled = layer.options.minZoom !== undefined && zoom < layer.options.minZoom || layer.options.maxZoom !== undefined && zoom > layer.options.maxZoom;
       }
     },
-    _expandIfNotCollapsed: function () {
+    _expandIfNotCollapsed: function _expandIfNotCollapsed() {
       if (this._map && !this.options.collapsed) {
         this.expand();
       }
@@ -31210,7 +34388,7 @@ __webpack_require__(8675);
   }); // @factory L.control.layers(baselayers?: Object, overlays?: Object, options?: Control.Layers options)
   // Creates a layers control with the given layers. Base layers will be switched with radio buttons, while overlays will be switched with checkboxes. Note that all base layers should be passed in the base layers object, but only one should be added to the map during map instantiation.
 
-  var layers = function (baseLayers, overlays, options) {
+  var layers = function layers(baseLayers, overlays, options) {
     return new Layers(baseLayers, overlays, options);
   };
   /*
@@ -31240,7 +34418,7 @@ __webpack_require__(8675);
       // The title set on the 'zoom out' button.
       zoomOutTitle: 'Zoom out'
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       var zoomName = 'leaflet-control-zoom',
           container = create$1('div', zoomName + ' leaflet-bar'),
           options = this.options;
@@ -31252,34 +34430,34 @@ __webpack_require__(8675);
       map.on('zoomend zoomlevelschange', this._updateDisabled, this);
       return container;
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       map.off('zoomend zoomlevelschange', this._updateDisabled, this);
     },
-    disable: function () {
+    disable: function disable() {
       this._disabled = true;
 
       this._updateDisabled();
 
       return this;
     },
-    enable: function () {
+    enable: function enable() {
       this._disabled = false;
 
       this._updateDisabled();
 
       return this;
     },
-    _zoomIn: function (e) {
+    _zoomIn: function _zoomIn(e) {
       if (!this._disabled && this._map._zoom < this._map.getMaxZoom()) {
         this._map.zoomIn(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1));
       }
     },
-    _zoomOut: function (e) {
+    _zoomOut: function _zoomOut(e) {
       if (!this._disabled && this._map._zoom > this._map.getMinZoom()) {
         this._map.zoomOut(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1));
       }
     },
-    _createButton: function (html, title, className, container, fn) {
+    _createButton: function _createButton(html, title, className, container, fn) {
       var link = create$1('a', className, container);
       link.innerHTML = html;
       link.href = '#';
@@ -31296,7 +34474,7 @@ __webpack_require__(8675);
       on(link, 'click', this._refocusOnMap, this);
       return link;
     },
-    _updateDisabled: function () {
+    _updateDisabled: function _updateDisabled() {
       var map = this._map,
           className = 'leaflet-disabled';
       removeClass(this._zoomInButton, className);
@@ -31339,7 +34517,7 @@ __webpack_require__(8675);
   // @factory L.control.zoom(options: Control.Zoom options)
   // Creates a zoom control
 
-  var zoom = function (options) {
+  var zoom = function zoom(options) {
     return new Zoom(options);
   };
   /*
@@ -31374,7 +34552,7 @@ __webpack_require__(8675);
       // If `true`, the control is updated on [`moveend`](#map-moveend), otherwise it's always up-to-date (updated on [`move`](#map-move)).
 
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       var className = 'leaflet-control-scale',
           container = create$1('div', className),
           options = this.options;
@@ -31385,10 +34563,10 @@ __webpack_require__(8675);
       map.whenReady(this._update, this);
       return container;
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       map.off(this.options.updateWhenIdle ? 'moveend' : 'move', this._update, this);
     },
-    _addScales: function (options, className, container) {
+    _addScales: function _addScales(options, className, container) {
       if (options.metric) {
         this._mScale = create$1('div', className, container);
       }
@@ -31397,14 +34575,14 @@ __webpack_require__(8675);
         this._iScale = create$1('div', className, container);
       }
     },
-    _update: function () {
+    _update: function _update() {
       var map = this._map,
           y = map.getSize().y / 2;
       var maxMeters = map.distance(map.containerPointToLatLng([0, y]), map.containerPointToLatLng([this.options.maxWidth, y]));
 
       this._updateScales(maxMeters);
     },
-    _updateScales: function (maxMeters) {
+    _updateScales: function _updateScales(maxMeters) {
       if (this.options.metric && maxMeters) {
         this._updateMetric(maxMeters);
       }
@@ -31413,13 +34591,13 @@ __webpack_require__(8675);
         this._updateImperial(maxMeters);
       }
     },
-    _updateMetric: function (maxMeters) {
+    _updateMetric: function _updateMetric(maxMeters) {
       var meters = this._getRoundNum(maxMeters),
           label = meters < 1000 ? meters + ' m' : meters / 1000 + ' km';
 
       this._updateScale(this._mScale, label, meters / maxMeters);
     },
-    _updateImperial: function (maxMeters) {
+    _updateImperial: function _updateImperial(maxMeters) {
       var maxFeet = maxMeters * 3.2808399,
           maxMiles,
           miles,
@@ -31436,11 +34614,11 @@ __webpack_require__(8675);
         this._updateScale(this._iScale, feet + ' ft', feet / maxFeet);
       }
     },
-    _updateScale: function (scale, text, ratio) {
+    _updateScale: function _updateScale(scale, text, ratio) {
       scale.style.width = Math.round(this.options.maxWidth * ratio) + 'px';
       scale.innerHTML = text;
     },
-    _getRoundNum: function (num) {
+    _getRoundNum: function _getRoundNum(num) {
       var pow10 = Math.pow(10, (Math.floor(num) + '').length - 1),
           d = num / pow10;
       d = d >= 10 ? 10 : d >= 5 ? 5 : d >= 3 ? 3 : d >= 2 ? 2 : 1;
@@ -31449,7 +34627,7 @@ __webpack_require__(8675);
   }); // @factory L.control.scale(options?: Control.Scale options)
   // Creates an scale control with the given options.
 
-  var scale = function (options) {
+  var scale = function scale(options) {
     return new Scale(options);
   };
 
@@ -31471,11 +34649,11 @@ __webpack_require__(8675);
       // The HTML text shown before the attributions. Pass `false` to disable.
       prefix: '<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">' + (Browser.inlineSvg ? ukrainianFlag + ' ' : '') + 'Leaflet</a>'
     },
-    initialize: function (options) {
+    initialize: function initialize(options) {
       setOptions(this, options);
       this._attributions = {};
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       map.attributionControl = this;
       this._container = create$1('div', 'leaflet-control-attribution');
       disableClickPropagation(this._container); // TODO ugly, refactor
@@ -31491,10 +34669,10 @@ __webpack_require__(8675);
       map.on('layeradd', this._addAttribution, this);
       return this._container;
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       map.off('layeradd', this._addAttribution, this);
     },
-    _addAttribution: function (ev) {
+    _addAttribution: function _addAttribution(ev) {
       if (ev.layer.getAttribution) {
         this.addAttribution(ev.layer.getAttribution());
         ev.layer.once('remove', function () {
@@ -31504,7 +34682,7 @@ __webpack_require__(8675);
     },
     // @method setPrefix(prefix: String|false): this
     // The HTML text shown before the attributions. Pass `false` to disable.
-    setPrefix: function (prefix) {
+    setPrefix: function setPrefix(prefix) {
       this.options.prefix = prefix;
 
       this._update();
@@ -31513,7 +34691,7 @@ __webpack_require__(8675);
     },
     // @method addAttribution(text: String): this
     // Adds an attribution text (e.g. `'Vector data &copy; Mapbox'`).
-    addAttribution: function (text) {
+    addAttribution: function addAttribution(text) {
       if (!text) {
         return this;
       }
@@ -31530,7 +34708,7 @@ __webpack_require__(8675);
     },
     // @method removeAttribution(text: String): this
     // Removes an attribution text.
-    removeAttribution: function (text) {
+    removeAttribution: function removeAttribution(text) {
       if (!text) {
         return this;
       }
@@ -31543,7 +34721,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    _update: function () {
+    _update: function _update() {
       if (!this._map) {
         return;
       }
@@ -31584,7 +34762,7 @@ __webpack_require__(8675);
   // @factory L.control.attribution(options: Control.Attribution options)
   // Creates an attribution control.
 
-  var attribution = function (options) {
+  var attribution = function attribution(options) {
     return new Attribution(options);
   };
 
@@ -31605,12 +34783,12 @@ __webpack_require__(8675);
   // Abstract class for map interaction handlers
 
   var Handler = Class.extend({
-    initialize: function (map) {
+    initialize: function initialize(map) {
       this._map = map;
     },
     // @method enable(): this
     // Enables the handler
-    enable: function () {
+    enable: function enable() {
       if (this._enabled) {
         return this;
       }
@@ -31621,7 +34799,7 @@ __webpack_require__(8675);
     },
     // @method disable(): this
     // Disables the handler
-    disable: function () {
+    disable: function disable() {
       if (!this._enabled) {
         return this;
       }
@@ -31632,7 +34810,7 @@ __webpack_require__(8675);
     },
     // @method enabled(): Boolean
     // Returns `true` if the handler is enabled
-    enabled: function () {
+    enabled: function enabled() {
       return !!this._enabled;
     } // @section Extension methods
     // Classes inheriting from `Handler` must implement the two following methods:
@@ -31681,7 +34859,7 @@ __webpack_require__(8675);
     },
     // @constructor L.Draggable(el: HTMLElement, dragHandle?: HTMLElement, preventOutline?: Boolean, options?: Draggable options)
     // Creates a `Draggable` object for moving `el` when you start dragging the `dragHandle` element (equals `el` itself by default).
-    initialize: function (element, dragStartTarget, preventOutline, options) {
+    initialize: function initialize(element, dragStartTarget, preventOutline, options) {
       setOptions(this, options);
       this._element = element;
       this._dragStartTarget = dragStartTarget || element;
@@ -31689,7 +34867,7 @@ __webpack_require__(8675);
     },
     // @method enable()
     // Enables the dragging ability
-    enable: function () {
+    enable: function enable() {
       if (this._enabled) {
         return;
       }
@@ -31699,7 +34877,7 @@ __webpack_require__(8675);
     },
     // @method disable()
     // Disables the dragging ability
-    disable: function () {
+    disable: function disable() {
       if (!this._enabled) {
         return;
       } // If we're currently dragging this draggable,
@@ -31714,7 +34892,7 @@ __webpack_require__(8675);
       this._enabled = false;
       this._moved = false;
     },
-    _onDown: function (e) {
+    _onDown: function _onDown(e) {
       // Ignore the event if disabled; this happens in IE11
       // under some circumstances, see #3666.
       if (!this._enabled) {
@@ -31766,7 +34944,7 @@ __webpack_require__(8675);
       on(document, mouseevent ? 'mousemove' : 'touchmove', this._onMove, this);
       on(document, mouseevent ? 'mouseup' : 'touchend touchcancel', this._onUp, this);
     },
-    _onMove: function (e) {
+    _onMove: function _onMove(e) {
       // Ignore the event if disabled; this happens in IE11
       // under some circumstances, see #3666.
       if (!this._enabled) {
@@ -31818,7 +34996,7 @@ __webpack_require__(8675);
 
       this._updatePosition();
     },
-    _updatePosition: function () {
+    _updatePosition: function _updatePosition() {
       var e = {
         originalEvent: this._lastEvent
       }; // @event predrag: Event
@@ -31831,7 +35009,7 @@ __webpack_require__(8675);
 
       this.fire('drag', e);
     },
-    _onUp: function () {
+    _onUp: function _onUp() {
       // Ignore the event if disabled; this happens in IE11
       // under some circumstances, see #3666.
       if (!this._enabled) {
@@ -31840,7 +35018,7 @@ __webpack_require__(8675);
 
       this.finishDrag();
     },
-    finishDrag: function (noInertia) {
+    finishDrag: function finishDrag(noInertia) {
       removeClass(document.body, 'leaflet-dragging');
 
       if (this._lastTarget) {
@@ -31910,7 +35088,7 @@ __webpack_require__(8675);
 
   function _simplifyDP(points, sqTolerance) {
     var len = points.length,
-        ArrayConstructor = typeof Uint8Array !== undefined + '' ? Uint8Array : Array,
+        ArrayConstructor = (typeof Uint8Array === "undefined" ? "undefined" : _typeof(Uint8Array)) !== undefined + '' ? Uint8Array : Array,
         markers = new ArrayConstructor(len);
     markers[0] = markers[len - 1] = 1;
 
@@ -32100,7 +35278,7 @@ __webpack_require__(8675);
 
 
   function isFlat(latlngs) {
-    return !isArray(latlngs[0]) || typeof latlngs[0][0] !== 'object' && typeof latlngs[0][0] !== 'undefined';
+    return !isArray(latlngs[0]) || _typeof(latlngs[0][0]) !== 'object' && typeof latlngs[0][0] !== 'undefined';
   }
 
   function _flat(latlngs) {
@@ -32197,10 +35375,10 @@ __webpack_require__(8675);
    */
 
   var LonLat = {
-    project: function (latlng) {
+    project: function project(latlng) {
       return new Point(latlng.lng, latlng.lat);
     },
-    unproject: function (point) {
+    unproject: function unproject(point) {
       return new LatLng(point.y, point.x);
     },
     bounds: new Bounds([-180, -90], [180, 90])
@@ -32216,7 +35394,7 @@ __webpack_require__(8675);
     R: 6378137,
     R_MINOR: 6356752.314245179,
     bounds: new Bounds([-20037508.34279, -15496570.73972], [20037508.34279, 18764656.23138]),
-    project: function (latlng) {
+    project: function project(latlng) {
       var d = Math.PI / 180,
           r = this.R,
           y = latlng.lat * d,
@@ -32227,7 +35405,7 @@ __webpack_require__(8675);
       y = -r * Math.log(Math.max(ts, 1E-10));
       return new Point(latlng.lng * d * r, y);
     },
-    unproject: function (point) {
+    unproject: function unproject(point) {
       var d = 180 / Math.PI,
           r = this.R,
           tmp = this.R_MINOR / r,
@@ -32314,13 +35492,13 @@ __webpack_require__(8675);
   var Simple = extend({}, CRS, {
     projection: LonLat,
     transformation: toTransformation(1, 0, -1, 0),
-    scale: function (zoom) {
+    scale: function scale(zoom) {
       return Math.pow(2, zoom);
     },
-    zoom: function (scale) {
+    zoom: function zoom(scale) {
       return Math.log(scale) / Math.LN2;
     },
-    distance: function (latlng1, latlng2) {
+    distance: function distance(latlng1, latlng2) {
       var dx = latlng2.lng - latlng1.lng,
           dy = latlng2.lat - latlng1.lat;
       return Math.sqrt(dx * dx + dy * dy);
@@ -32375,13 +35553,13 @@ __webpack_require__(8675);
      * @method addTo(map: Map|LayerGroup): this
      * Adds the layer to the given map or layer group.
      */
-    addTo: function (map) {
+    addTo: function addTo(map) {
       map.addLayer(this);
       return this;
     },
     // @method remove: this
     // Removes the layer from the map it is currently active on.
-    remove: function () {
+    remove: function remove() {
       return this.removeFrom(this._map || this._mapToAdd);
     },
     // @method removeFrom(map: Map): this
@@ -32390,7 +35568,7 @@ __webpack_require__(8675);
     // @alternative
     // @method removeFrom(group: LayerGroup): this
     // Removes the layer from the given `LayerGroup`
-    removeFrom: function (obj) {
+    removeFrom: function removeFrom(obj) {
       if (obj) {
         obj.removeLayer(this);
       }
@@ -32399,23 +35577,23 @@ __webpack_require__(8675);
     },
     // @method getPane(name? : String): HTMLElement
     // Returns the `HTMLElement` representing the named pane on the map. If `name` is omitted, returns the pane for this layer.
-    getPane: function (name) {
+    getPane: function getPane(name) {
       return this._map.getPane(name ? this.options[name] || name : this.options.pane);
     },
-    addInteractiveTarget: function (targetEl) {
+    addInteractiveTarget: function addInteractiveTarget(targetEl) {
       this._map._targets[stamp(targetEl)] = this;
       return this;
     },
-    removeInteractiveTarget: function (targetEl) {
+    removeInteractiveTarget: function removeInteractiveTarget(targetEl) {
       delete this._map._targets[stamp(targetEl)];
       return this;
     },
     // @method getAttribution: String
     // Used by the `attribution control`, returns the [attribution option](#gridlayer-attribution).
-    getAttribution: function () {
+    getAttribution: function getAttribution() {
       return this.options.attribution;
     },
-    _layerAdd: function (e) {
+    _layerAdd: function _layerAdd(e) {
       var map = e.target; // check in case layer gets added and then removed before the map is ready
 
       if (!map.hasLayer(this)) {
@@ -32476,7 +35654,7 @@ __webpack_require__(8675);
   Map.include({
     // @method addLayer(layer: Layer): this
     // Adds the given layer to the map
-    addLayer: function (layer) {
+    addLayer: function addLayer(layer) {
       if (!layer._layerAdd) {
         throw new Error('The provided object is not a Layer.');
       }
@@ -32499,7 +35677,7 @@ __webpack_require__(8675);
     },
     // @method removeLayer(layer: Layer): this
     // Removes the given layer from the map.
-    removeLayer: function (layer) {
+    removeLayer: function removeLayer(layer) {
       var id = stamp(layer);
 
       if (!this._layers[id]) {
@@ -32524,7 +35702,7 @@ __webpack_require__(8675);
     },
     // @method hasLayer(layer: Layer): Boolean
     // Returns `true` if the given layer is currently added to the map
-    hasLayer: function (layer) {
+    hasLayer: function hasLayer(layer) {
       return stamp(layer) in this._layers;
     },
 
@@ -32536,28 +35714,28 @@ __webpack_require__(8675);
      * });
      * ```
      */
-    eachLayer: function (method, context) {
+    eachLayer: function eachLayer(method, context) {
       for (var i in this._layers) {
         method.call(context, this._layers[i]);
       }
 
       return this;
     },
-    _addLayers: function (layers) {
+    _addLayers: function _addLayers(layers) {
       layers = layers ? isArray(layers) ? layers : [layers] : [];
 
       for (var i = 0, len = layers.length; i < len; i++) {
         this.addLayer(layers[i]);
       }
     },
-    _addZoomLimit: function (layer) {
+    _addZoomLimit: function _addZoomLimit(layer) {
       if (!isNaN(layer.options.maxZoom) || !isNaN(layer.options.minZoom)) {
         this._zoomBoundLayers[stamp(layer)] = layer;
 
         this._updateZoomLevels();
       }
     },
-    _removeZoomLimit: function (layer) {
+    _removeZoomLimit: function _removeZoomLimit(layer) {
       var id = stamp(layer);
 
       if (this._zoomBoundLayers[id]) {
@@ -32566,7 +35744,7 @@ __webpack_require__(8675);
         this._updateZoomLevels();
       }
     },
-    _updateZoomLevels: function () {
+    _updateZoomLevels: function _updateZoomLevels() {
       var minZoom = Infinity,
           maxZoom = -Infinity,
           oldZoomSpan = this._getZoomSpan();
@@ -32615,7 +35793,7 @@ __webpack_require__(8675);
    */
 
   var LayerGroup = Layer.extend({
-    initialize: function (layers, options) {
+    initialize: function initialize(layers, options) {
       setOptions(this, options);
       this._layers = {};
       var i, len;
@@ -32628,7 +35806,7 @@ __webpack_require__(8675);
     },
     // @method addLayer(layer: Layer): this
     // Adds the given layer to the group.
-    addLayer: function (layer) {
+    addLayer: function addLayer(layer) {
       var id = this.getLayerId(layer);
       this._layers[id] = layer;
 
@@ -32643,7 +35821,7 @@ __webpack_require__(8675);
     // @alternative
     // @method removeLayer(id: Number): this
     // Removes the layer with the given internal ID from the group.
-    removeLayer: function (layer) {
+    removeLayer: function removeLayer(layer) {
       var id = layer in this._layers ? layer : this.getLayerId(layer);
 
       if (this._map && this._layers[id]) {
@@ -32658,20 +35836,20 @@ __webpack_require__(8675);
     // @alternative
     // @method hasLayer(id: Number): Boolean
     // Returns `true` if the given internal ID is currently added to the group.
-    hasLayer: function (layer) {
+    hasLayer: function hasLayer(layer) {
       var layerId = typeof layer === 'number' ? layer : this.getLayerId(layer);
       return layerId in this._layers;
     },
     // @method clearLayers(): this
     // Removes all the layers from the group.
-    clearLayers: function () {
+    clearLayers: function clearLayers() {
       return this.eachLayer(this.removeLayer, this);
     },
     // @method invoke(methodName: String, …): this
     // Calls `methodName` on every layer contained in this group, passing any
     // additional parameters. Has no effect if the layers contained do not
     // implement `methodName`.
-    invoke: function (methodName) {
+    invoke: function invoke(methodName) {
       var args = Array.prototype.slice.call(arguments, 1),
           i,
           layer;
@@ -32686,10 +35864,10 @@ __webpack_require__(8675);
 
       return this;
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       this.eachLayer(map.addLayer, map);
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       this.eachLayer(map.removeLayer, map);
     },
     // @method eachLayer(fn: Function, context?: Object): this
@@ -32699,7 +35877,7 @@ __webpack_require__(8675);
     // 	layer.bindPopup('Hello');
     // });
     // ```
-    eachLayer: function (method, context) {
+    eachLayer: function eachLayer(method, context) {
       for (var i in this._layers) {
         method.call(context, this._layers[i]);
       }
@@ -32708,30 +35886,30 @@ __webpack_require__(8675);
     },
     // @method getLayer(id: Number): Layer
     // Returns the layer with the given internal ID.
-    getLayer: function (id) {
+    getLayer: function getLayer(id) {
       return this._layers[id];
     },
     // @method getLayers(): Layer[]
     // Returns an array of all the layers added to the group.
-    getLayers: function () {
+    getLayers: function getLayers() {
       var layers = [];
       this.eachLayer(layers.push, layers);
       return layers;
     },
     // @method setZIndex(zIndex: Number): this
     // Calls `setZIndex` on every layer contained in this group, passing the z-index.
-    setZIndex: function (zIndex) {
+    setZIndex: function setZIndex(zIndex) {
       return this.invoke('setZIndex', zIndex);
     },
     // @method getLayerId(layer: Layer): Number
     // Returns the internal ID for a layer
-    getLayerId: function (layer) {
+    getLayerId: function getLayerId(layer) {
       return stamp(layer);
     }
   }); // @factory L.layerGroup(layers?: Layer[], options?: Object)
   // Create a layer group, optionally given an initial set of layers and an `options` object.
 
-  var layerGroup = function (layers, options) {
+  var layerGroup = function layerGroup(layers, options) {
     return new LayerGroup(layers, options);
   };
   /*
@@ -32758,7 +35936,7 @@ __webpack_require__(8675);
 
 
   var FeatureGroup = LayerGroup.extend({
-    addLayer: function (layer) {
+    addLayer: function addLayer(layer) {
       if (this.hasLayer(layer)) {
         return this;
       }
@@ -32771,7 +35949,7 @@ __webpack_require__(8675);
         layer: layer
       });
     },
-    removeLayer: function (layer) {
+    removeLayer: function removeLayer(layer) {
       if (!this.hasLayer(layer)) {
         return this;
       }
@@ -32790,22 +35968,22 @@ __webpack_require__(8675);
     },
     // @method setStyle(style: Path options): this
     // Sets the given path options to each layer of the group that has a `setStyle` method.
-    setStyle: function (style) {
+    setStyle: function setStyle(style) {
       return this.invoke('setStyle', style);
     },
     // @method bringToFront(): this
     // Brings the layer group to the top of all other layers
-    bringToFront: function () {
+    bringToFront: function bringToFront() {
       return this.invoke('bringToFront');
     },
     // @method bringToBack(): this
     // Brings the layer group to the back of all other layers
-    bringToBack: function () {
+    bringToBack: function bringToBack() {
       return this.invoke('bringToBack');
     },
     // @method getBounds(): LatLngBounds
     // Returns the LatLngBounds of the Feature Group (created from bounds and coordinates of its children).
-    getBounds: function () {
+    getBounds: function getBounds() {
       var bounds = new LatLngBounds();
 
       for (var id in this._layers) {
@@ -32818,7 +35996,7 @@ __webpack_require__(8675);
   }); // @factory L.featureGroup(layers?: Layer[], options?: Object)
   // Create a feature group, optionally given an initial set of layers and an `options` object.
 
-  var featureGroup = function (layers, options) {
+  var featureGroup = function featureGroup(layers, options) {
     return new FeatureGroup(layers, options);
   };
   /*
@@ -32899,21 +36077,21 @@ __webpack_require__(8675);
       // Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
       crossOrigin: false
     },
-    initialize: function (options) {
+    initialize: function initialize(options) {
       setOptions(this, options);
     },
     // @method createIcon(oldIcon?: HTMLElement): HTMLElement
     // Called internally when the icon has to be shown, returns a `<img>` HTML element
     // styled according to the options.
-    createIcon: function (oldIcon) {
+    createIcon: function createIcon(oldIcon) {
       return this._createIcon('icon', oldIcon);
     },
     // @method createShadow(oldIcon?: HTMLElement): HTMLElement
     // As `createIcon`, but for the shadow beneath it.
-    createShadow: function (oldIcon) {
+    createShadow: function createShadow(oldIcon) {
       return this._createIcon('shadow', oldIcon);
     },
-    _createIcon: function (name, oldIcon) {
+    _createIcon: function _createIcon(name, oldIcon) {
       var src = this._getIconUrl(name);
 
       if (!src) {
@@ -32934,7 +36112,7 @@ __webpack_require__(8675);
 
       return img;
     },
-    _setIconStyles: function (img, name) {
+    _setIconStyles: function _setIconStyles(img, name) {
       var options = this.options;
       var sizeOption = options[name + 'Size'];
 
@@ -32956,12 +36134,12 @@ __webpack_require__(8675);
         img.style.height = size.y + 'px';
       }
     },
-    _createImg: function (src, el) {
+    _createImg: function _createImg(src, el) {
       el = el || document.createElement('img');
       el.src = src;
       return el;
     },
-    _getIconUrl: function (name) {
+    _getIconUrl: function _getIconUrl(name) {
       return Browser.retina && this.options[name + 'RetinaUrl'] || this.options[name + 'Url'];
     }
   }); // @factory L.icon(options: Icon options)
@@ -32998,7 +36176,7 @@ __webpack_require__(8675);
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41]
     },
-    _getIconUrl: function (name) {
+    _getIconUrl: function _getIconUrl(name) {
       if (typeof IconDefault.imagePath !== 'string') {
         // Deprecated, backwards-compatibility only
         IconDefault.imagePath = this._detectIconPath();
@@ -33010,9 +36188,9 @@ __webpack_require__(8675);
 
       return (this.options.imagePath || IconDefault.imagePath) + Icon.prototype._getIconUrl.call(this, name);
     },
-    _stripUrl: function (path) {
+    _stripUrl: function _stripUrl(path) {
       // separate function to use in tests
-      var strip = function (str, re, idx) {
+      var strip = function strip(str, re, idx) {
         var match = re.exec(str);
         return match && match[idx];
       };
@@ -33020,7 +36198,7 @@ __webpack_require__(8675);
       path = strip(path, /^url\((['"])?(.+)\1\)$/, 2);
       return path && strip(path, /^(.*)marker-icon\.png$/, 1);
     },
-    _detectIconPath: function () {
+    _detectIconPath: function _detectIconPath() {
       var el = create$1('div', 'leaflet-default-icon-path', document.body);
       var path = getStyle(el, 'background-image') || getStyle(el, 'backgroundImage'); // IE8
 
@@ -33058,10 +36236,10 @@ __webpack_require__(8675);
    */
 
   var MarkerDrag = Handler.extend({
-    initialize: function (marker) {
+    initialize: function initialize(marker) {
       this._marker = marker;
     },
-    addHooks: function () {
+    addHooks: function addHooks() {
       var icon = this._marker._icon;
 
       if (!this._draggable) {
@@ -33077,7 +36255,7 @@ __webpack_require__(8675);
 
       addClass(icon, 'leaflet-marker-draggable');
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       this._draggable.off({
         dragstart: this._onDragStart,
         predrag: this._onPreDrag,
@@ -33089,10 +36267,10 @@ __webpack_require__(8675);
         removeClass(this._marker._icon, 'leaflet-marker-draggable');
       }
     },
-    moved: function () {
+    moved: function moved() {
       return this._draggable && this._draggable._moved;
     },
-    _adjustPan: function (e) {
+    _adjustPan: function _adjustPan(e) {
       var marker = this._marker,
           map = marker._map,
           speed = this._marker.options.autoPanSpeed,
@@ -33120,7 +36298,7 @@ __webpack_require__(8675);
         this._panRequest = requestAnimFrame(this._adjustPan.bind(this, e));
       }
     },
-    _onDragStart: function () {
+    _onDragStart: function _onDragStart() {
       // @section Dragging events
       // @event dragstart: Event
       // Fired when the user starts dragging the marker.
@@ -33132,13 +36310,13 @@ __webpack_require__(8675);
 
       this._marker.fire('movestart').fire('dragstart');
     },
-    _onPreDrag: function (e) {
+    _onPreDrag: function _onPreDrag(e) {
       if (this._marker.options.autoPan) {
         cancelAnimFrame(this._panRequest);
         this._panRequest = requestAnimFrame(this._adjustPan.bind(this, e));
       }
     },
-    _onDrag: function (e) {
+    _onDrag: function _onDrag(e) {
       var marker = this._marker,
           shadow = marker._shadow,
           iconPos = getPosition(marker._icon),
@@ -33156,7 +36334,7 @@ __webpack_require__(8675);
 
       marker.fire('move', e).fire('drag', e);
     },
-    _onDragEnd: function (e) {
+    _onDragEnd: function _onDragEnd(e) {
       // @event dragend: DragEndEvent
       // Fired when the user stops dragging the marker.
       cancelAnimFrame(this._panRequest); // @event moveend: Event
@@ -33249,11 +36427,11 @@ __webpack_require__(8675);
      *
      * In addition to [shared layer methods](#Layer) like `addTo()` and `remove()` and [popup methods](#Popup) like bindPopup() you can also use the following methods:
      */
-    initialize: function (latlng, options) {
+    initialize: function initialize(latlng, options) {
       setOptions(this, options);
       this._latlng = toLatLng(latlng);
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       this._zoomAnimated = this._zoomAnimated && map.options.markerZoomAnimation;
 
       if (this._zoomAnimated) {
@@ -33264,7 +36442,7 @@ __webpack_require__(8675);
 
       this.update();
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       if (this.dragging && this.dragging.enabled()) {
         this.options.draggable = true;
         this.dragging.removeHooks();
@@ -33280,7 +36458,7 @@ __webpack_require__(8675);
 
       this._removeShadow();
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       return {
         zoom: this.update,
         viewreset: this.update
@@ -33288,12 +36466,12 @@ __webpack_require__(8675);
     },
     // @method getLatLng: LatLng
     // Returns the current geographical position of the marker.
-    getLatLng: function () {
+    getLatLng: function getLatLng() {
       return this._latlng;
     },
     // @method setLatLng(latlng: LatLng): this
     // Changes the marker position to the given point.
-    setLatLng: function (latlng) {
+    setLatLng: function setLatLng(latlng) {
       var oldLatLng = this._latlng;
       this._latlng = toLatLng(latlng);
       this.update(); // @event move: Event
@@ -33306,18 +36484,18 @@ __webpack_require__(8675);
     },
     // @method setZIndexOffset(offset: Number): this
     // Changes the [zIndex offset](#marker-zindexoffset) of the marker.
-    setZIndexOffset: function (offset) {
+    setZIndexOffset: function setZIndexOffset(offset) {
       this.options.zIndexOffset = offset;
       return this.update();
     },
     // @method getIcon: Icon
     // Returns the current icon used by the marker
-    getIcon: function () {
+    getIcon: function getIcon() {
       return this.options.icon;
     },
     // @method setIcon(icon: Icon): this
     // Changes the marker icon.
-    setIcon: function (icon) {
+    setIcon: function setIcon(icon) {
       this.options.icon = icon;
 
       if (this._map) {
@@ -33332,10 +36510,10 @@ __webpack_require__(8675);
 
       return this;
     },
-    getElement: function () {
+    getElement: function getElement() {
       return this._icon;
     },
-    update: function () {
+    update: function update() {
       if (this._icon && this._map) {
         var pos = this._map.latLngToLayerPoint(this._latlng).round();
 
@@ -33344,7 +36522,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    _initIcon: function () {
+    _initIcon: function _initIcon() {
       var options = this.options,
           classToAdd = 'leaflet-zoom-' + (this._zoomAnimated ? 'animated' : 'hide');
       var icon = options.icon.createIcon(this._icon),
@@ -33416,7 +36594,7 @@ __webpack_require__(8675);
         this.getPane(options.shadowPane).appendChild(this._shadow);
       }
     },
-    _removeIcon: function () {
+    _removeIcon: function _removeIcon() {
       if (this.options.riseOnHover) {
         this.off({
           mouseover: this._bringToFront,
@@ -33428,18 +36606,19 @@ __webpack_require__(8675);
         off(this._icon, 'focus', this._panOnFocus, this);
       }
 
-      remove(this._icon);
+      _remove(this._icon);
+
       this.removeInteractiveTarget(this._icon);
       this._icon = null;
     },
-    _removeShadow: function () {
+    _removeShadow: function _removeShadow() {
       if (this._shadow) {
-        remove(this._shadow);
+        _remove(this._shadow);
       }
 
       this._shadow = null;
     },
-    _setPos: function (pos) {
+    _setPos: function _setPos(pos) {
       if (this._icon) {
         setPosition(this._icon, pos);
       }
@@ -33452,17 +36631,17 @@ __webpack_require__(8675);
 
       this._resetZIndex();
     },
-    _updateZIndex: function (offset) {
+    _updateZIndex: function _updateZIndex(offset) {
       if (this._icon) {
         this._icon.style.zIndex = this._zIndex + offset;
       }
     },
-    _animateZoom: function (opt) {
+    _animateZoom: function _animateZoom(opt) {
       var pos = this._map._latLngToNewLayerPoint(this._latlng, opt.zoom, opt.center).round();
 
       this._setPos(pos);
     },
-    _initInteraction: function () {
+    _initInteraction: function _initInteraction() {
       if (!this.options.interactive) {
         return;
       }
@@ -33487,7 +36666,7 @@ __webpack_require__(8675);
     },
     // @method setOpacity(opacity: Number): this
     // Changes the opacity of the marker.
-    setOpacity: function (opacity) {
+    setOpacity: function setOpacity(opacity) {
       this.options.opacity = opacity;
 
       if (this._map) {
@@ -33496,24 +36675,24 @@ __webpack_require__(8675);
 
       return this;
     },
-    _updateOpacity: function () {
+    _updateOpacity: function _updateOpacity() {
       var opacity = this.options.opacity;
 
       if (this._icon) {
-        setOpacity(this._icon, opacity);
+        _setOpacity(this._icon, opacity);
       }
 
       if (this._shadow) {
-        setOpacity(this._shadow, opacity);
+        _setOpacity(this._shadow, opacity);
       }
     },
-    _bringToFront: function () {
+    _bringToFront: function _bringToFront() {
       this._updateZIndex(this.options.riseOffset);
     },
-    _resetZIndex: function () {
+    _resetZIndex: function _resetZIndex() {
       this._updateZIndex(0);
     },
-    _panOnFocus: function () {
+    _panOnFocus: function _panOnFocus() {
       var map = this._map;
 
       if (!map) {
@@ -33528,10 +36707,10 @@ __webpack_require__(8675);
         paddingBottomRight: size.subtract(anchor)
       });
     },
-    _getPopupAnchor: function () {
+    _getPopupAnchor: function _getPopupAnchor() {
       return this.options.icon.options.popupAnchor;
     },
-    _getTooltipAnchor: function () {
+    _getTooltipAnchor: function _getTooltipAnchor() {
       return this.options.icon.options.tooltipAnchor;
     }
   }); // factory L.marker(latlng: LatLng, options? : Marker options)
@@ -33599,24 +36778,24 @@ __webpack_require__(8675);
       // (unless [`L.DomEvent.stopPropagation`](#domevent-stoppropagation) is used).
       bubblingMouseEvents: true
     },
-    beforeAdd: function (map) {
+    beforeAdd: function beforeAdd(map) {
       // Renderer is set here because we need to call renderer.getEvents
       // before this.getEvents.
       this._renderer = map.getRenderer(this);
     },
-    onAdd: function () {
+    onAdd: function onAdd() {
       this._renderer._initPath(this);
 
       this._reset();
 
       this._renderer._addPath(this);
     },
-    onRemove: function () {
+    onRemove: function onRemove() {
       this._renderer._removePath(this);
     },
     // @method redraw(): this
     // Redraws the layer. Sometimes useful after you changed the coordinates that the path uses.
-    redraw: function () {
+    redraw: function redraw() {
       if (this._map) {
         this._renderer._updatePath(this);
       }
@@ -33625,7 +36804,7 @@ __webpack_require__(8675);
     },
     // @method setStyle(style: Path options): this
     // Changes the appearance of a Path based on the options in the `Path options` object.
-    setStyle: function (style) {
+    setStyle: function setStyle(style) {
       setOptions(this, style);
 
       if (this._renderer) {
@@ -33640,7 +36819,7 @@ __webpack_require__(8675);
     },
     // @method bringToFront(): this
     // Brings the layer to the top of all path layers.
-    bringToFront: function () {
+    bringToFront: function bringToFront() {
       if (this._renderer) {
         this._renderer._bringToFront(this);
       }
@@ -33649,23 +36828,23 @@ __webpack_require__(8675);
     },
     // @method bringToBack(): this
     // Brings the layer to the bottom of all path layers.
-    bringToBack: function () {
+    bringToBack: function bringToBack() {
       if (this._renderer) {
         this._renderer._bringToBack(this);
       }
 
       return this;
     },
-    getElement: function () {
+    getElement: function getElement() {
       return this._path;
     },
-    _reset: function () {
+    _reset: function _reset() {
       // defined in child classes
       this._project();
 
       this._update();
     },
-    _clickTolerance: function () {
+    _clickTolerance: function _clickTolerance() {
       // used when doing hit detection for Canvas layers
       return (this.options.stroke ? this.options.weight / 2 : 0) + (this._renderer.options.tolerance || 0);
     }
@@ -33687,14 +36866,14 @@ __webpack_require__(8675);
       // Radius of the circle marker, in pixels
       radius: 10
     },
-    initialize: function (latlng, options) {
+    initialize: function initialize(latlng, options) {
       setOptions(this, options);
       this._latlng = toLatLng(latlng);
       this._radius = this.options.radius;
     },
     // @method setLatLng(latLng: LatLng): this
     // Sets the position of a circle marker to a new location.
-    setLatLng: function (latlng) {
+    setLatLng: function setLatLng(latlng) {
       var oldLatLng = this._latlng;
       this._latlng = toLatLng(latlng);
       this.redraw(); // @event move: Event
@@ -33707,32 +36886,32 @@ __webpack_require__(8675);
     },
     // @method getLatLng(): LatLng
     // Returns the current geographical position of the circle marker
-    getLatLng: function () {
+    getLatLng: function getLatLng() {
       return this._latlng;
     },
     // @method setRadius(radius: Number): this
     // Sets the radius of a circle marker. Units are in pixels.
-    setRadius: function (radius) {
+    setRadius: function setRadius(radius) {
       this.options.radius = this._radius = radius;
       return this.redraw();
     },
     // @method getRadius(): Number
     // Returns the current radius of the circle
-    getRadius: function () {
+    getRadius: function getRadius() {
       return this._radius;
     },
-    setStyle: function (options) {
+    setStyle: function setStyle(options) {
       var radius = options && options.radius || this._radius;
       Path.prototype.setStyle.call(this, options);
       this.setRadius(radius);
       return this;
     },
-    _project: function () {
+    _project: function _project() {
       this._point = this._map.latLngToLayerPoint(this._latlng);
 
       this._updateBounds();
     },
-    _updateBounds: function () {
+    _updateBounds: function _updateBounds() {
       var r = this._radius,
           r2 = this._radiusY || r,
           w = this._clickTolerance(),
@@ -33740,19 +36919,19 @@ __webpack_require__(8675);
 
       this._pxBounds = new Bounds(this._point.subtract(p), this._point.add(p));
     },
-    _update: function () {
+    _update: function _update() {
       if (this._map) {
         this._updatePath();
       }
     },
-    _updatePath: function () {
+    _updatePath: function _updatePath() {
       this._renderer._updateCircle(this);
     },
-    _empty: function () {
+    _empty: function _empty() {
       return this._radius && !this._renderer._bounds.intersects(this._pxBounds);
     },
     // Needed by the `Canvas` renderer for interactivity
-    _containsPoint: function (p) {
+    _containsPoint: function _containsPoint(p) {
       return p.distanceTo(this._point) <= this._radius + this._clickTolerance();
     }
   }); // @factory L.circleMarker(latlng: LatLng, options?: CircleMarker options)
@@ -33779,7 +36958,7 @@ __webpack_require__(8675);
 
 
   var Circle = CircleMarker.extend({
-    initialize: function (latlng, options, legacyOptions) {
+    initialize: function initialize(latlng, options, legacyOptions) {
       if (typeof options === 'number') {
         // Backwards compatibility with 0.7.x factory (latlng, radius, options?)
         options = extend({}, legacyOptions, {
@@ -33801,23 +36980,23 @@ __webpack_require__(8675);
     },
     // @method setRadius(radius: Number): this
     // Sets the radius of a circle. Units are in meters.
-    setRadius: function (radius) {
+    setRadius: function setRadius(radius) {
       this._mRadius = radius;
       return this.redraw();
     },
     // @method getRadius(): Number
     // Returns the current radius of a circle. Units are in meters.
-    getRadius: function () {
+    getRadius: function getRadius() {
       return this._mRadius;
     },
     // @method getBounds(): LatLngBounds
     // Returns the `LatLngBounds` of the path.
-    getBounds: function () {
+    getBounds: function getBounds() {
       var half = [this._radius, this._radiusY || this._radius];
       return new LatLngBounds(this._map.layerPointToLatLng(this._point.subtract(half)), this._map.layerPointToLatLng(this._point.add(half)));
     },
     setStyle: Path.prototype.setStyle,
-    _project: function () {
+    _project: function _project() {
       var lng = this._latlng.lng,
           lat = this._latlng.lat,
           map = this._map,
@@ -33909,31 +37088,31 @@ __webpack_require__(8675);
       // Disable polyline clipping.
       noClip: false
     },
-    initialize: function (latlngs, options) {
+    initialize: function initialize(latlngs, options) {
       setOptions(this, options);
 
       this._setLatLngs(latlngs);
     },
     // @method getLatLngs(): LatLng[]
     // Returns an array of the points in the path, or nested arrays of points in case of multi-polyline.
-    getLatLngs: function () {
+    getLatLngs: function getLatLngs() {
       return this._latlngs;
     },
     // @method setLatLngs(latlngs: LatLng[]): this
     // Replaces all the points in the polyline with the given array of geographical points.
-    setLatLngs: function (latlngs) {
+    setLatLngs: function setLatLngs(latlngs) {
       this._setLatLngs(latlngs);
 
       return this.redraw();
     },
     // @method isEmpty(): Boolean
     // Returns `true` if the Polyline has no LatLngs.
-    isEmpty: function () {
+    isEmpty: function isEmpty() {
       return !this._latlngs.length;
     },
     // @method closestLayerPoint(p: Point): Point
     // Returns the point closest to `p` on the Polyline.
-    closestLayerPoint: function (p) {
+    closestLayerPoint: function closestLayerPoint(p) {
       var minDistance = Infinity,
           minPoint = null,
           closest = _sqClosestPointOnSegment,
@@ -33963,7 +37142,7 @@ __webpack_require__(8675);
     },
     // @method getCenter(): LatLng
     // Returns the center ([centroid](https://en.wikipedia.org/wiki/Centroid)) of the polyline.
-    getCenter: function () {
+    getCenter: function getCenter() {
       // throws error when not yet added to map as this center calculation requires projected coordinates
       if (!this._map) {
         throw new Error('Must add layer to map before using getCenter()');
@@ -34007,14 +37186,14 @@ __webpack_require__(8675);
     },
     // @method getBounds(): LatLngBounds
     // Returns the `LatLngBounds` of the path.
-    getBounds: function () {
+    getBounds: function getBounds() {
       return this._bounds;
     },
     // @method addLatLng(latlng: LatLng, latlngs?: LatLng[]): this
     // Adds a given point to the polyline. By default, adds to the first ring of
     // the polyline in case of a multi-polyline, but can be overridden by passing
     // a specific ring as a LatLng array (that you can earlier access with [`getLatLngs`](#polyline-getlatlngs)).
-    addLatLng: function (latlng, latlngs) {
+    addLatLng: function addLatLng(latlng, latlngs) {
       latlngs = latlngs || this._defaultShape();
       latlng = toLatLng(latlng);
       latlngs.push(latlng);
@@ -34023,15 +37202,15 @@ __webpack_require__(8675);
 
       return this.redraw();
     },
-    _setLatLngs: function (latlngs) {
+    _setLatLngs: function _setLatLngs(latlngs) {
       this._bounds = new LatLngBounds();
       this._latlngs = this._convertLatLngs(latlngs);
     },
-    _defaultShape: function () {
+    _defaultShape: function _defaultShape() {
       return isFlat(this._latlngs) ? this._latlngs : this._latlngs[0];
     },
     // recursively convert latlngs input into actual LatLng instances; calculate bounds along the way
-    _convertLatLngs: function (latlngs) {
+    _convertLatLngs: function _convertLatLngs(latlngs) {
       var result = [],
           flat = isFlat(latlngs);
 
@@ -34047,7 +37226,7 @@ __webpack_require__(8675);
 
       return result;
     },
-    _project: function () {
+    _project: function _project() {
       var pxBounds = new Bounds();
       this._rings = [];
 
@@ -34059,7 +37238,7 @@ __webpack_require__(8675);
         this._updateBounds();
       }
     },
-    _updateBounds: function () {
+    _updateBounds: function _updateBounds() {
       var w = this._clickTolerance(),
           p = new Point(w, w);
 
@@ -34070,7 +37249,7 @@ __webpack_require__(8675);
       this._pxBounds = new Bounds([this._rawPxBounds.min.subtract(p), this._rawPxBounds.max.add(p)]);
     },
     // recursively turns latlngs into a set of rings with projected coordinates
-    _projectLatlngs: function (latlngs, result, projectedBounds) {
+    _projectLatlngs: function _projectLatlngs(latlngs, result, projectedBounds) {
       var flat = latlngs[0] instanceof LatLng,
           len = latlngs.length,
           i,
@@ -34092,7 +37271,7 @@ __webpack_require__(8675);
       }
     },
     // clip polyline by renderer bounds so that we have less to render for performance
-    _clipPoints: function () {
+    _clipPoints: function _clipPoints() {
       var bounds = this._renderer._bounds;
       this._parts = [];
 
@@ -34135,7 +37314,7 @@ __webpack_require__(8675);
       }
     },
     // simplify each clipped part of the polyline for performance
-    _simplifyPoints: function () {
+    _simplifyPoints: function _simplifyPoints() {
       var parts = this._parts,
           tolerance = this.options.smoothFactor;
 
@@ -34143,7 +37322,7 @@ __webpack_require__(8675);
         parts[i] = simplify(parts[i], tolerance);
       }
     },
-    _update: function () {
+    _update: function _update() {
       if (!this._map) {
         return;
       }
@@ -34154,11 +37333,11 @@ __webpack_require__(8675);
 
       this._updatePath();
     },
-    _updatePath: function () {
+    _updatePath: function _updatePath() {
       this._renderer._updatePoly(this);
     },
     // Needed by the `Canvas` renderer for interactivity
-    _containsPoint: function (p, closed) {
+    _containsPoint: function _containsPoint(p, closed) {
       var i,
           j,
           k,
@@ -34250,10 +37429,10 @@ __webpack_require__(8675);
     options: {
       fill: true
     },
-    isEmpty: function () {
+    isEmpty: function isEmpty() {
       return !this._latlngs.length || !this._latlngs[0].length;
     },
-    getCenter: function () {
+    getCenter: function getCenter() {
       // throws error when not yet added to map as this center calculation requires projected coordinates
       if (!this._map) {
         throw new Error('Must add layer to map before using getCenter()');
@@ -34296,7 +37475,7 @@ __webpack_require__(8675);
 
       return this._map.layerPointToLatLng(center);
     },
-    _convertLatLngs: function (latlngs) {
+    _convertLatLngs: function _convertLatLngs(latlngs) {
       var result = Polyline.prototype._convertLatLngs.call(this, latlngs),
           len = result.length; // remove last point if it equals first one
 
@@ -34307,17 +37486,17 @@ __webpack_require__(8675);
 
       return result;
     },
-    _setLatLngs: function (latlngs) {
+    _setLatLngs: function _setLatLngs(latlngs) {
       Polyline.prototype._setLatLngs.call(this, latlngs);
 
       if (isFlat(this._latlngs)) {
         this._latlngs = [this._latlngs];
       }
     },
-    _defaultShape: function () {
+    _defaultShape: function _defaultShape() {
       return isFlat(this._latlngs[0]) ? this._latlngs[0] : this._latlngs[0][0];
     },
-    _clipPoints: function () {
+    _clipPoints: function _clipPoints() {
       // polygons need a different clipping algorithm so we redefine that
       var bounds = this._renderer._bounds,
           w = this.options.weight,
@@ -34343,11 +37522,11 @@ __webpack_require__(8675);
         }
       }
     },
-    _updatePath: function () {
+    _updatePath: function _updatePath() {
       this._renderer._updatePoly(this, true);
     },
     // Needed by the `Canvas` renderer for interactivity
-    _containsPoint: function (p) {
+    _containsPoint: function _containsPoint(p) {
       var inside = false,
           part,
           p1,
@@ -34456,7 +37635,7 @@ __webpack_require__(8675);
      * @option markersInheritOptions: Boolean = false
      * Whether default Markers for "Point" type Features inherit from group options.
      */
-    initialize: function (geojson, options) {
+    initialize: function initialize(geojson, options) {
       setOptions(this, options);
       this._layers = {};
 
@@ -34466,7 +37645,7 @@ __webpack_require__(8675);
     },
     // @method addData( <GeoJSON> data ): this
     // Adds a GeoJSON object to the layer.
-    addData: function (geojson) {
+    addData: function addData(geojson) {
       var features = isArray(geojson) ? geojson : geojson.features,
           i,
           len,
@@ -34510,7 +37689,7 @@ __webpack_require__(8675);
     // @method resetStyle( <Path> layer? ): this
     // Resets the given vector layer's style to the original GeoJSON style, useful for resetting style after hover events.
     // If `layer` is omitted, the style of all features in the current layer is reset.
-    resetStyle: function (layer) {
+    resetStyle: function resetStyle(layer) {
       if (layer === undefined) {
         return this.eachLayer(this.resetStyle, this);
       } // reset any custom styles
@@ -34524,12 +37703,12 @@ __webpack_require__(8675);
     },
     // @method setStyle( <Function> style ): this
     // Changes styles of GeoJSON vector layers with the given style function.
-    setStyle: function (style) {
+    setStyle: function setStyle(style) {
       return this.eachLayer(function (layer) {
         this._setLayerStyle(layer, style);
       }, this);
     },
-    _setLayerStyle: function (layer, style) {
+    _setLayerStyle: function _setLayerStyle(layer, style) {
       if (layer.setStyle) {
         if (typeof style === 'function') {
           style = style(layer.feature);
@@ -34676,7 +37855,7 @@ __webpack_require__(8675);
   }
 
   var PointToGeoJSON = {
-    toGeoJSON: function (precision) {
+    toGeoJSON: function toGeoJSON(precision) {
       return getFeature(this, {
         type: 'Point',
         coordinates: latLngToCoords(this.getLatLng(), precision)
@@ -34700,7 +37879,7 @@ __webpack_require__(8675);
   // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the polyline (as a GeoJSON `LineString` or `MultiLineString` Feature).
 
   Polyline.include({
-    toGeoJSON: function (precision) {
+    toGeoJSON: function toGeoJSON(precision) {
       var multi = !isFlat(this._latlngs);
       var coords = latLngsToCoords(this._latlngs, multi ? 1 : 0, false, precision);
       return getFeature(this, {
@@ -34714,7 +37893,7 @@ __webpack_require__(8675);
   // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the polygon (as a GeoJSON `Polygon` or `MultiPolygon` Feature).
 
   Polygon.include({
-    toGeoJSON: function (precision) {
+    toGeoJSON: function toGeoJSON(precision) {
       var holes = !isFlat(this._latlngs),
           multi = holes && !isFlat(this._latlngs[0]);
       var coords = latLngsToCoords(this._latlngs, multi ? 2 : holes ? 1 : 0, true, precision);
@@ -34731,7 +37910,7 @@ __webpack_require__(8675);
   }); // @namespace LayerGroup
 
   LayerGroup.include({
-    toMultiPoint: function (precision) {
+    toMultiPoint: function toMultiPoint(precision) {
       var coords = [];
       this.eachLayer(function (layer) {
         coords.push(layer.toGeoJSON(precision).geometry.coordinates);
@@ -34744,7 +37923,7 @@ __webpack_require__(8675);
     // @method toGeoJSON(precision?: Number|false): Object
     // Coordinates values are rounded with [`formatNum`](#util-formatnum) function with given `precision`.
     // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the layer group (as a GeoJSON `FeatureCollection`, `GeometryCollection`, or `MultiPoint`).
-    toGeoJSON: function (precision) {
+    toGeoJSON: function toGeoJSON(precision) {
       var type = this.feature && this.feature.geometry && this.feature.geometry.type;
 
       if (type === 'MultiPoint') {
@@ -34839,13 +38018,13 @@ __webpack_require__(8675);
       // A custom class name to assign to the image. Empty by default.
       className: ''
     },
-    initialize: function (url, bounds, options) {
+    initialize: function initialize(url, bounds, options) {
       // (String, LatLngBounds, Object)
       this._url = url;
       this._bounds = toLatLngBounds(bounds);
       setOptions(this, options);
     },
-    onAdd: function () {
+    onAdd: function onAdd() {
       if (!this._image) {
         this._initImage();
 
@@ -34863,8 +38042,8 @@ __webpack_require__(8675);
 
       this._reset();
     },
-    onRemove: function () {
-      remove(this._image);
+    onRemove: function onRemove() {
+      _remove(this._image);
 
       if (this.options.interactive) {
         this.removeInteractiveTarget(this._image);
@@ -34872,7 +38051,7 @@ __webpack_require__(8675);
     },
     // @method setOpacity(opacity: Number): this
     // Sets the opacity of the overlay.
-    setOpacity: function (opacity) {
+    setOpacity: function setOpacity(opacity) {
       this.options.opacity = opacity;
 
       if (this._image) {
@@ -34881,7 +38060,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    setStyle: function (styleOpts) {
+    setStyle: function setStyle(styleOpts) {
       if (styleOpts.opacity) {
         this.setOpacity(styleOpts.opacity);
       }
@@ -34890,7 +38069,7 @@ __webpack_require__(8675);
     },
     // @method bringToFront(): this
     // Brings the layer to the top of all overlays.
-    bringToFront: function () {
+    bringToFront: function bringToFront() {
       if (this._map) {
         toFront(this._image);
       }
@@ -34899,7 +38078,7 @@ __webpack_require__(8675);
     },
     // @method bringToBack(): this
     // Brings the layer to the bottom of all overlays.
-    bringToBack: function () {
+    bringToBack: function bringToBack() {
       if (this._map) {
         toBack(this._image);
       }
@@ -34908,7 +38087,7 @@ __webpack_require__(8675);
     },
     // @method setUrl(url: String): this
     // Changes the URL of the image.
-    setUrl: function (url) {
+    setUrl: function setUrl(url) {
       this._url = url;
 
       if (this._image) {
@@ -34919,7 +38098,7 @@ __webpack_require__(8675);
     },
     // @method setBounds(bounds: LatLngBounds): this
     // Update the bounds that this ImageOverlay covers
-    setBounds: function (bounds) {
+    setBounds: function setBounds(bounds) {
       this._bounds = toLatLngBounds(bounds);
 
       if (this._map) {
@@ -34928,7 +38107,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = {
         zoom: this._reset,
         viewreset: this._reset
@@ -34942,7 +38121,7 @@ __webpack_require__(8675);
     },
     // @method setZIndex(value: Number): this
     // Changes the [zIndex](#imageoverlay-zindex) of the image overlay.
-    setZIndex: function (value) {
+    setZIndex: function setZIndex(value) {
       this.options.zIndex = value;
 
       this._updateZIndex();
@@ -34951,16 +38130,16 @@ __webpack_require__(8675);
     },
     // @method getBounds(): LatLngBounds
     // Get the bounds that this ImageOverlay covers
-    getBounds: function () {
+    getBounds: function getBounds() {
       return this._bounds;
     },
     // @method getElement(): HTMLElement
     // Returns the instance of [`HTMLImageElement`](https://developer.mozilla.org/docs/Web/API/HTMLImageElement)
     // used by this overlay.
-    getElement: function () {
+    getElement: function getElement() {
       return this._image;
     },
-    _initImage: function () {
+    _initImage: function _initImage() {
       var wasElementSupplied = this._url.tagName === 'IMG';
       var img = this._image = wasElementSupplied ? this._url : create$1('img');
       addClass(img, 'leaflet-image-layer');
@@ -34996,13 +38175,13 @@ __webpack_require__(8675);
       img.src = this._url;
       img.alt = this.options.alt;
     },
-    _animateZoom: function (e) {
+    _animateZoom: function _animateZoom(e) {
       var scale = this._map.getZoomScale(e.zoom),
           offset = this._map._latLngBoundsToNewLayerBounds(this._bounds, e.zoom, e.center).min;
 
       setTransform(this._image, offset, scale);
     },
-    _reset: function () {
+    _reset: function _reset() {
       var image = this._image,
           bounds = new Bounds(this._map.latLngToLayerPoint(this._bounds.getNorthWest()), this._map.latLngToLayerPoint(this._bounds.getSouthEast())),
           size = bounds.getSize();
@@ -35010,15 +38189,15 @@ __webpack_require__(8675);
       image.style.width = size.x + 'px';
       image.style.height = size.y + 'px';
     },
-    _updateOpacity: function () {
-      setOpacity(this._image, this.options.opacity);
+    _updateOpacity: function _updateOpacity() {
+      _setOpacity(this._image, this.options.opacity);
     },
-    _updateZIndex: function () {
+    _updateZIndex: function _updateZIndex() {
       if (this._image && this.options.zIndex !== undefined && this.options.zIndex !== null) {
         this._image.style.zIndex = this.options.zIndex;
       }
     },
-    _overlayOnError: function () {
+    _overlayOnError: function _overlayOnError() {
       // @event error: Event
       // Fired when the ImageOverlay layer fails to load its image
       this.fire('error');
@@ -35031,14 +38210,14 @@ __webpack_require__(8675);
     },
     // @method getCenter(): LatLng
     // Returns the center of the ImageOverlay.
-    getCenter: function () {
+    getCenter: function getCenter() {
       return this._bounds.getCenter();
     }
   }); // @factory L.imageOverlay(imageUrl: String, bounds: LatLngBounds, options?: ImageOverlay options)
   // Instantiates an image overlay object given the URL of the image and the
   // geographical bounds it is tied to.
 
-  var imageOverlay = function (url, bounds, options) {
+  var imageOverlay = function imageOverlay(url, bounds, options) {
     return new ImageOverlay(url, bounds, options);
   };
   /*
@@ -35083,7 +38262,7 @@ __webpack_require__(8675);
       // Mobile browsers will play the video right where it is instead of open it up in fullscreen mode.
       playsInline: true
     },
-    _initImage: function () {
+    _initImage: function _initImage() {
       var wasElementSupplied = this._url.tagName === 'VIDEO';
       var vid = this._image = wasElementSupplied ? this._url : create$1('video');
       addClass(vid, 'leaflet-image-layer');
@@ -35166,7 +38345,7 @@ __webpack_require__(8675);
 
 
   var SVGOverlay = ImageOverlay.extend({
-    _initImage: function () {
+    _initImage: function _initImage() {
       var el = this._image = this._url;
       addClass(el, 'leaflet-image-layer');
 
@@ -35217,14 +38396,14 @@ __webpack_require__(8675);
       // `Map pane` where the overlay will be added.
       pane: undefined
     },
-    initialize: function (options, source) {
+    initialize: function initialize(options, source) {
       setOptions(this, options);
       this._source = source;
     },
     // @method openOn(map: Map): this
     // Adds the overlay to the map.
     // Alternative to `map.openPopup(popup)`/`.openTooltip(tooltip)`.
-    openOn: function (map) {
+    openOn: function openOn(map) {
       map = arguments.length ? map : this._source._map; // experimental, not the part of public api
 
       if (!map.hasLayer(this)) {
@@ -35237,7 +38416,7 @@ __webpack_require__(8675);
     // Closes the overlay.
     // Alternative to `map.closePopup(popup)`/`.closeTooltip(tooltip)`
     // and `layer.closePopup()`/`.closeTooltip()`.
-    close: function () {
+    close: function close() {
       if (this._map) {
         this._map.removeLayer(this);
       }
@@ -35248,7 +38427,7 @@ __webpack_require__(8675);
     // Opens or closes the overlay bound to layer depending on its current state.
     // Argument may be omitted only for overlay bound to layer.
     // Alternative to `layer.togglePopup()`/`.toggleTooltip()`.
-    toggle: function (layer) {
+    toggle: function toggle(layer) {
       if (this._map) {
         this.close();
       } else {
@@ -35266,7 +38445,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       this._zoomAnimated = map._zoomAnimated;
 
       if (!this._container) {
@@ -35274,7 +38453,7 @@ __webpack_require__(8675);
       }
 
       if (map._fadeAnimated) {
-        setOpacity(this._container, 0);
+        _setOpacity(this._container, 0);
       }
 
       clearTimeout(this._removeTimeout);
@@ -35282,7 +38461,7 @@ __webpack_require__(8675);
       this.update();
 
       if (map._fadeAnimated) {
-        setOpacity(this._container, 1);
+        _setOpacity(this._container, 1);
       }
 
       this.bringToFront();
@@ -35292,12 +38471,13 @@ __webpack_require__(8675);
         this.addInteractiveTarget(this._container);
       }
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       if (map._fadeAnimated) {
-        setOpacity(this._container, 0);
-        this._removeTimeout = setTimeout(bind(remove, undefined, this._container), 200);
+        _setOpacity(this._container, 0);
+
+        this._removeTimeout = setTimeout(bind(_remove, undefined, this._container), 200);
       } else {
-        remove(this._container);
+        _remove(this._container);
       }
 
       if (this.options.interactive) {
@@ -35308,12 +38488,12 @@ __webpack_require__(8675);
     // @namespace DivOverlay
     // @method getLatLng: LatLng
     // Returns the geographical point of the overlay.
-    getLatLng: function () {
+    getLatLng: function getLatLng() {
       return this._latlng;
     },
     // @method setLatLng(latlng: LatLng): this
     // Sets the geographical point where the overlay will open.
-    setLatLng: function (latlng) {
+    setLatLng: function setLatLng(latlng) {
       this._latlng = toLatLng(latlng);
 
       if (this._map) {
@@ -35326,25 +38506,25 @@ __webpack_require__(8675);
     },
     // @method getContent: String|HTMLElement
     // Returns the content of the overlay.
-    getContent: function () {
+    getContent: function getContent() {
       return this._content;
     },
     // @method setContent(htmlContent: String|HTMLElement|Function): this
     // Sets the HTML content of the overlay. If a function is passed the source layer will be passed to the function.
     // The function should return a `String` or `HTMLElement` to be used in the overlay.
-    setContent: function (content) {
+    setContent: function setContent(content) {
       this._content = content;
       this.update();
       return this;
     },
     // @method getElement: String|HTMLElement
     // Returns the HTML container of the overlay.
-    getElement: function () {
+    getElement: function getElement() {
       return this._container;
     },
     // @method update: null
     // Updates the overlay content, layout and position. Useful for updating the overlay after something inside changed, e.g. image loaded.
-    update: function () {
+    update: function update() {
       if (!this._map) {
         return;
       }
@@ -35361,7 +38541,7 @@ __webpack_require__(8675);
 
       this._adjustPan();
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = {
         zoom: this._updatePosition,
         viewreset: this._updatePosition
@@ -35375,12 +38555,12 @@ __webpack_require__(8675);
     },
     // @method isOpen: Boolean
     // Returns `true` when the overlay is visible on the map.
-    isOpen: function () {
+    isOpen: function isOpen() {
       return !!this._map && this._map.hasLayer(this);
     },
     // @method bringToFront: this
     // Brings this overlay in front of other overlays (in the same map pane).
-    bringToFront: function () {
+    bringToFront: function bringToFront() {
       if (this._map) {
         toFront(this._container);
       }
@@ -35389,7 +38569,7 @@ __webpack_require__(8675);
     },
     // @method bringToBack: this
     // Brings this overlay to the back of other overlays (in the same map pane).
-    bringToBack: function () {
+    bringToBack: function bringToBack() {
       if (this._map) {
         toBack(this._container);
       }
@@ -35397,7 +38577,7 @@ __webpack_require__(8675);
       return this;
     },
     // prepare bound overlay to open: update latlng pos / content source (for FeatureGroup)
-    _prepareOpen: function (latlng) {
+    _prepareOpen: function _prepareOpen(latlng) {
       var source = this._source;
 
       if (!source._map) {
@@ -35445,7 +38625,7 @@ __webpack_require__(8675);
 
       return true;
     },
-    _updateContent: function () {
+    _updateContent: function _updateContent() {
       if (!this._content) {
         return;
       }
@@ -35469,7 +38649,7 @@ __webpack_require__(8675);
 
       this.fire('contentupdate');
     },
-    _updatePosition: function () {
+    _updatePosition: function _updatePosition() {
       if (!this._map) {
         return;
       }
@@ -35490,12 +38670,12 @@ __webpack_require__(8675);
       this._container.style.bottom = bottom + 'px';
       this._container.style.left = left + 'px';
     },
-    _getAnchor: function () {
+    _getAnchor: function _getAnchor() {
       return [0, 0];
     }
   });
   Map.include({
-    _initOverlay: function (OverlayClass, content, latlng, options) {
+    _initOverlay: function _initOverlay(OverlayClass, content, latlng, options) {
       var overlay = content;
 
       if (!(overlay instanceof OverlayClass)) {
@@ -35510,7 +38690,7 @@ __webpack_require__(8675);
     }
   });
   Layer.include({
-    _initOverlay: function (OverlayClass, old, content, options) {
+    _initOverlay: function _initOverlay(OverlayClass, old, content, options) {
       var overlay = content;
 
       if (overlay instanceof OverlayClass) {
@@ -35612,7 +38792,7 @@ __webpack_require__(8675);
     // @method openOn(map: Map): this
     // Alternative to `map.openPopup(popup)`.
     // Adds the popup to the map and closes the previous one.
-    openOn: function (map) {
+    openOn: function openOn(map) {
       map = arguments.length ? map : this._source._map; // experimental, not the part of public api
 
       if (!map.hasLayer(this) && map._popup && map._popup.options.autoClose) {
@@ -35622,7 +38802,7 @@ __webpack_require__(8675);
       map._popup = this;
       return DivOverlay.prototype.openOn.call(this, map);
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       DivOverlay.prototype.onAdd.call(this, map); // @namespace Map
       // @section Popup events
       // @event popupopen: PopupEvent
@@ -35648,7 +38828,7 @@ __webpack_require__(8675);
         }
       }
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       DivOverlay.prototype.onRemove.call(this, map); // @namespace Map
       // @section Popup events
       // @event popupclose: PopupEvent
@@ -35672,7 +38852,7 @@ __webpack_require__(8675);
         }
       }
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = DivOverlay.prototype.getEvents.call(this);
 
       if (this.options.closeOnClick !== undefined ? this.options.closeOnClick : this._map.options.closePopupOnClick) {
@@ -35685,7 +38865,7 @@ __webpack_require__(8675);
 
       return events;
     },
-    _initLayout: function () {
+    _initLayout: function _initLayout() {
       var prefix = 'leaflet-popup',
           container = this._container = create$1('div', prefix + ' ' + (this.options.className || '') + ' leaflet-zoom-animated');
       var wrapper = this._wrapper = create$1('div', prefix + '-content-wrapper', container);
@@ -35706,7 +38886,7 @@ __webpack_require__(8675);
         on(closeButton, 'click', this.close, this);
       }
     },
-    _updateLayout: function () {
+    _updateLayout: function _updateLayout() {
       var container = this._contentNode,
           style = container.style;
       style.width = '';
@@ -35730,13 +38910,13 @@ __webpack_require__(8675);
 
       this._containerWidth = this._container.offsetWidth;
     },
-    _animateZoom: function (e) {
+    _animateZoom: function _animateZoom(e) {
       var pos = this._map._latLngToNewLayerPoint(this._latlng, e.zoom, e.center),
           anchor = this._getAnchor();
 
       setPosition(this._container, pos.add(anchor));
     },
-    _adjustPan: function (e) {
+    _adjustPan: function _adjustPan(e) {
       if (!this.options.autoPan) {
         return;
       }
@@ -35791,7 +38971,7 @@ __webpack_require__(8675);
         });
       }
     },
-    _getAnchor: function () {
+    _getAnchor: function _getAnchor() {
       // Where should we anchor the popup on the source layer?
       return toPoint(this._source && this._source._getPopupAnchor ? this._source._getPopupAnchor() : [0, 0]);
     }
@@ -35799,7 +38979,7 @@ __webpack_require__(8675);
   // @factory L.popup(options?: Popup options, source?: Layer)
   // Instantiates a `Popup` object given an optional `options` object that describes its appearance and location and an optional `source` object that is used to tag the popup with a reference to the Layer to which it refers.
 
-  var popup = function (options, source) {
+  var popup = function popup(options, source) {
     return new Popup(options, source);
   };
   /* @namespace Map
@@ -35820,14 +39000,14 @@ __webpack_require__(8675);
     // @alternative
     // @method openPopup(content: String|HTMLElement, latlng: LatLng, options?: Popup options): this
     // Creates a popup with the specified content and options and opens it in the given point on a map.
-    openPopup: function (popup, latlng, options) {
+    openPopup: function openPopup(popup, latlng, options) {
       this._initOverlay(Popup, popup, latlng, options).openOn(this);
 
       return this;
     },
     // @method closePopup(popup?: Popup): this
     // Closes the popup previously opened with [openPopup](#map-openpopup) (or the given one).
-    closePopup: function (popup) {
+    closePopup: function closePopup(popup) {
       popup = arguments.length ? popup : this._popup;
 
       if (popup) {
@@ -35858,7 +39038,7 @@ __webpack_require__(8675);
     // Binds a popup to the layer with the passed `content` and sets up the
     // necessary event listeners. If a `Function` is passed it will receive
     // the layer as the first argument and should return a `String` or `HTMLElement`.
-    bindPopup: function (content, options) {
+    bindPopup: function bindPopup(content, options) {
       this._popup = this._initOverlay(Popup, this._popup, content, options);
 
       if (!this._popupHandlersAdded) {
@@ -35875,7 +39055,7 @@ __webpack_require__(8675);
     },
     // @method unbindPopup(): this
     // Removes the popup previously bound with `bindPopup`.
-    unbindPopup: function () {
+    unbindPopup: function unbindPopup() {
       if (this._popup) {
         this.off({
           click: this._openPopup,
@@ -35891,7 +39071,7 @@ __webpack_require__(8675);
     },
     // @method openPopup(latlng?: LatLng): this
     // Opens the bound popup at the specified `latlng` or at the default popup anchor if no `latlng` is passed.
-    openPopup: function (latlng) {
+    openPopup: function openPopup(latlng) {
       if (this._popup && this._popup._prepareOpen(latlng)) {
         // open the popup on the map
         this._popup.openOn(this._map);
@@ -35901,7 +39081,7 @@ __webpack_require__(8675);
     },
     // @method closePopup(): this
     // Closes the popup bound to this layer if it is open.
-    closePopup: function () {
+    closePopup: function closePopup() {
       if (this._popup) {
         this._popup.close();
       }
@@ -35910,7 +39090,7 @@ __webpack_require__(8675);
     },
     // @method togglePopup(): this
     // Opens or closes the popup bound to this layer depending on its current state.
-    togglePopup: function () {
+    togglePopup: function togglePopup() {
       if (this._popup) {
         this._popup.toggle(this);
       }
@@ -35919,12 +39099,12 @@ __webpack_require__(8675);
     },
     // @method isPopupOpen(): boolean
     // Returns `true` if the popup bound to this layer is currently open.
-    isPopupOpen: function () {
+    isPopupOpen: function isPopupOpen() {
       return this._popup ? this._popup.isOpen() : false;
     },
     // @method setPopupContent(content: String|HTMLElement|Popup): this
     // Sets the content of the popup bound to this layer.
-    setPopupContent: function (content) {
+    setPopupContent: function setPopupContent(content) {
       if (this._popup) {
         this._popup.setContent(content);
       }
@@ -35933,10 +39113,10 @@ __webpack_require__(8675);
     },
     // @method getPopup(): Popup
     // Returns the popup bound to this layer.
-    getPopup: function () {
+    getPopup: function getPopup() {
       return this._popup;
     },
-    _openPopup: function (e) {
+    _openPopup: function _openPopup(e) {
       if (!this._popup || !this._map) {
         return;
       } // prevent map click
@@ -35960,10 +39140,10 @@ __webpack_require__(8675);
       this._popup._source = target;
       this.openPopup(e.latlng);
     },
-    _movePopup: function (e) {
+    _movePopup: function _movePopup(e) {
       this._popup.setLatLng(e.latlng);
     },
-    _onKeyPress: function (e) {
+    _onKeyPress: function _onKeyPress(e) {
       if (e.originalEvent.keyCode === 13) {
         this._openPopup(e);
       }
@@ -36016,7 +39196,7 @@ __webpack_require__(8675);
       // Tooltip container opacity.
       opacity: 0.9
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       DivOverlay.prototype.onAdd.call(this, map);
       this.setOpacity(this.options.opacity); // @namespace Map
       // @section Tooltip events
@@ -36038,7 +39218,7 @@ __webpack_require__(8675);
         }, true);
       }
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       DivOverlay.prototype.onRemove.call(this, map); // @namespace Map
       // @section Tooltip events
       // @event tooltipclose: TooltipEvent
@@ -36059,7 +39239,7 @@ __webpack_require__(8675);
         }, true);
       }
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = DivOverlay.prototype.getEvents.call(this);
 
       if (!this.options.permanent) {
@@ -36068,14 +39248,14 @@ __webpack_require__(8675);
 
       return events;
     },
-    _initLayout: function () {
+    _initLayout: function _initLayout() {
       var prefix = 'leaflet-tooltip',
           className = prefix + ' ' + (this.options.className || '') + ' leaflet-zoom-' + (this._zoomAnimated ? 'animated' : 'hide');
       this._contentNode = this._container = create$1('div', className);
     },
-    _updateLayout: function () {},
-    _adjustPan: function () {},
-    _setPosition: function (pos) {
+    _updateLayout: function _updateLayout() {},
+    _adjustPan: function _adjustPan() {},
+    _setPosition: function _setPosition(pos) {
       var subX,
           subY,
           map = this._map,
@@ -36121,24 +39301,24 @@ __webpack_require__(8675);
       addClass(container, 'leaflet-tooltip-' + direction);
       setPosition(container, pos);
     },
-    _updatePosition: function () {
+    _updatePosition: function _updatePosition() {
       var pos = this._map.latLngToLayerPoint(this._latlng);
 
       this._setPosition(pos);
     },
-    setOpacity: function (opacity) {
+    setOpacity: function setOpacity(opacity) {
       this.options.opacity = opacity;
 
       if (this._container) {
-        setOpacity(this._container, opacity);
+        _setOpacity(this._container, opacity);
       }
     },
-    _animateZoom: function (e) {
+    _animateZoom: function _animateZoom(e) {
       var pos = this._map._latLngToNewLayerPoint(this._latlng, e.zoom, e.center);
 
       this._setPosition(pos);
     },
-    _getAnchor: function () {
+    _getAnchor: function _getAnchor() {
       // Where should we anchor the tooltip on the source layer?
       return toPoint(this._source && this._source._getTooltipAnchor && !this.options.sticky ? this._source._getTooltipAnchor() : [0, 0]);
     }
@@ -36146,7 +39326,7 @@ __webpack_require__(8675);
   // @factory L.tooltip(options?: Tooltip options, source?: Layer)
   // Instantiates a Tooltip object given an optional `options` object that describes its appearance and location and an optional `source` object that is used to tag the tooltip with a reference to the Layer to which it refers.
 
-  var tooltip = function (options, source) {
+  var tooltip = function tooltip(options, source) {
     return new Tooltip(options, source);
   }; // @namespace Map
   // @section Methods for Layers and Controls
@@ -36158,14 +39338,14 @@ __webpack_require__(8675);
     // @alternative
     // @method openTooltip(content: String|HTMLElement, latlng: LatLng, options?: Tooltip options): this
     // Creates a tooltip with the specified content and options and open it.
-    openTooltip: function (tooltip, latlng, options) {
+    openTooltip: function openTooltip(tooltip, latlng, options) {
       this._initOverlay(Tooltip, tooltip, latlng, options).openOn(this);
 
       return this;
     },
     // @method closeTooltip(tooltip: Tooltip): this
     // Closes the tooltip given as parameter.
-    closeTooltip: function (tooltip) {
+    closeTooltip: function closeTooltip(tooltip) {
       tooltip.close();
       return this;
     }
@@ -36189,7 +39369,7 @@ __webpack_require__(8675);
     // Binds a tooltip to the layer with the passed `content` and sets up the
     // necessary event listeners. If a `Function` is passed it will receive
     // the layer as the first argument and should return a `String` or `HTMLElement`.
-    bindTooltip: function (content, options) {
+    bindTooltip: function bindTooltip(content, options) {
       if (this._tooltip && this.isTooltipOpen()) {
         this.unbindTooltip();
       }
@@ -36206,7 +39386,7 @@ __webpack_require__(8675);
     },
     // @method unbindTooltip(): this
     // Removes the tooltip previously bound with `bindTooltip`.
-    unbindTooltip: function () {
+    unbindTooltip: function unbindTooltip() {
       if (this._tooltip) {
         this._initTooltipInteractions(true);
 
@@ -36216,7 +39396,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    _initTooltipInteractions: function (remove) {
+    _initTooltipInteractions: function _initTooltipInteractions(remove) {
       if (!remove && this._tooltipHandlersAdded) {
         return;
       }
@@ -36244,7 +39424,7 @@ __webpack_require__(8675);
     },
     // @method openTooltip(latlng?: LatLng): this
     // Opens the bound tooltip at the specified `latlng` or at the default tooltip anchor if no `latlng` is passed.
-    openTooltip: function (latlng) {
+    openTooltip: function openTooltip(latlng) {
       if (this._tooltip && this._tooltip._prepareOpen(latlng)) {
         // open the tooltip on the map
         this._tooltip.openOn(this._map);
@@ -36254,14 +39434,14 @@ __webpack_require__(8675);
     },
     // @method closeTooltip(): this
     // Closes the tooltip bound to this layer if it is open.
-    closeTooltip: function () {
+    closeTooltip: function closeTooltip() {
       if (this._tooltip) {
         return this._tooltip.close();
       }
     },
     // @method toggleTooltip(): this
     // Opens or closes the tooltip bound to this layer depending on its current state.
-    toggleTooltip: function () {
+    toggleTooltip: function toggleTooltip() {
       if (this._tooltip) {
         this._tooltip.toggle(this);
       }
@@ -36270,12 +39450,12 @@ __webpack_require__(8675);
     },
     // @method isTooltipOpen(): boolean
     // Returns `true` if the tooltip bound to this layer is currently open.
-    isTooltipOpen: function () {
+    isTooltipOpen: function isTooltipOpen() {
       return this._tooltip.isOpen();
     },
     // @method setTooltipContent(content: String|HTMLElement|Tooltip): this
     // Sets the content of the tooltip bound to this layer.
-    setTooltipContent: function (content) {
+    setTooltipContent: function setTooltipContent(content) {
       if (this._tooltip) {
         this._tooltip.setContent(content);
       }
@@ -36284,10 +39464,10 @@ __webpack_require__(8675);
     },
     // @method getTooltip(): Tooltip
     // Returns the tooltip bound to this layer.
-    getTooltip: function () {
+    getTooltip: function getTooltip() {
       return this._tooltip;
     },
-    _openTooltip: function (e) {
+    _openTooltip: function _openTooltip(e) {
       if (!this._tooltip || !this._map || this._map.dragging && this._map.dragging.moving()) {
         return;
       }
@@ -36295,7 +39475,7 @@ __webpack_require__(8675);
       this._tooltip._source = e.layer || e.target;
       this.openTooltip(this._tooltip.options.sticky ? e.latlng : undefined);
     },
-    _moveTooltip: function (e) {
+    _moveTooltip: function _moveTooltip(e) {
       var latlng = e.latlng,
           containerPoint,
           layerPoint;
@@ -36345,7 +39525,7 @@ __webpack_require__(8675);
       bgPos: null,
       className: 'leaflet-div-icon'
     },
-    createIcon: function (oldIcon) {
+    createIcon: function createIcon(oldIcon) {
       var div = oldIcon && oldIcon.tagName === 'DIV' ? oldIcon : document.createElement('div'),
           options = this.options;
 
@@ -36365,7 +39545,7 @@ __webpack_require__(8675);
 
       return div;
     },
-    createShadow: function () {
+    createShadow: function createShadow() {
       return null;
     }
   }); // @factory L.divIcon(options: DivIcon options)
@@ -36502,10 +39682,10 @@ __webpack_require__(8675);
       // When panning the map, keep this many rows and columns of tiles before unloading them.
       keepBuffer: 2
     },
-    initialize: function (options) {
+    initialize: function initialize(options) {
       setOptions(this, options);
     },
-    onAdd: function () {
+    onAdd: function onAdd() {
       this._initContainer();
 
       this._levels = {};
@@ -36514,13 +39694,13 @@ __webpack_require__(8675);
       this._resetView(); // implicit _update() call
 
     },
-    beforeAdd: function (map) {
+    beforeAdd: function beforeAdd(map) {
       map._addZoomLimit(this);
     },
-    onRemove: function (map) {
+    onRemove: function onRemove(map) {
       this._removeAllTiles();
 
-      remove(this._container);
+      _remove(this._container);
 
       map._removeZoomLimit(this);
 
@@ -36529,7 +39709,7 @@ __webpack_require__(8675);
     },
     // @method bringToFront: this
     // Brings the tile layer to the top of all tile layers.
-    bringToFront: function () {
+    bringToFront: function bringToFront() {
       if (this._map) {
         toFront(this._container);
 
@@ -36540,7 +39720,7 @@ __webpack_require__(8675);
     },
     // @method bringToBack: this
     // Brings the tile layer to the bottom of all tile layers.
-    bringToBack: function () {
+    bringToBack: function bringToBack() {
       if (this._map) {
         toBack(this._container);
 
@@ -36551,12 +39731,12 @@ __webpack_require__(8675);
     },
     // @method getContainer: HTMLElement
     // Returns the HTML element that contains the tiles for this layer.
-    getContainer: function () {
+    getContainer: function getContainer() {
       return this._container;
     },
     // @method setOpacity(opacity: Number): this
     // Changes the [opacity](#gridlayer-opacity) of the grid layer.
-    setOpacity: function (opacity) {
+    setOpacity: function setOpacity(opacity) {
       this.options.opacity = opacity;
 
       this._updateOpacity();
@@ -36565,7 +39745,7 @@ __webpack_require__(8675);
     },
     // @method setZIndex(zIndex: Number): this
     // Changes the [zIndex](#gridlayer-zindex) of the grid layer.
-    setZIndex: function (zIndex) {
+    setZIndex: function setZIndex(zIndex) {
       this.options.zIndex = zIndex;
 
       this._updateZIndex();
@@ -36574,12 +39754,12 @@ __webpack_require__(8675);
     },
     // @method isLoading: Boolean
     // Returns `true` if any tile in the grid layer has not finished loading.
-    isLoading: function () {
+    isLoading: function isLoading() {
       return this._loading;
     },
     // @method redraw: this
     // Causes the layer to clear all the tiles and request them again.
-    redraw: function () {
+    redraw: function redraw() {
       if (this._map) {
         this._removeAllTiles();
 
@@ -36596,7 +39776,7 @@ __webpack_require__(8675);
 
       return this;
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = {
         viewprereset: this._invalidateAll,
         viewreset: this._resetView,
@@ -36625,22 +39805,22 @@ __webpack_require__(8675);
     // Called only internally, must be overridden by classes extending `GridLayer`.
     // Returns the `HTMLElement` corresponding to the given `coords`. If the `done` callback
     // is specified, it must be called when the tile has finished loading and drawing.
-    createTile: function () {
+    createTile: function createTile() {
       return document.createElement('div');
     },
     // @section
     // @method getTileSize: Point
     // Normalizes the [tileSize option](#gridlayer-tilesize) into a point. Used by the `createTile()` method.
-    getTileSize: function () {
+    getTileSize: function getTileSize() {
       var s = this.options.tileSize;
       return s instanceof Point ? s : new Point(s, s);
     },
-    _updateZIndex: function () {
+    _updateZIndex: function _updateZIndex() {
       if (this._container && this.options.zIndex !== undefined && this.options.zIndex !== null) {
         this._container.style.zIndex = this.options.zIndex;
       }
     },
-    _setAutoZIndex: function (compare) {
+    _setAutoZIndex: function _setAutoZIndex(compare) {
       // go through all other layers of the same pane, set zIndex to max + 1 (front) or min - 1 (back)
       var layers = this.getPane().children,
           edgeZIndex = -compare(-Infinity, Infinity); // -Infinity for max, Infinity for min
@@ -36659,7 +39839,7 @@ __webpack_require__(8675);
         this._updateZIndex();
       }
     },
-    _updateOpacity: function () {
+    _updateOpacity: function _updateOpacity() {
       if (!this._map) {
         return;
       } // IE doesn't inherit filter opacity properly, so we're forced to set it on tiles
@@ -36669,7 +39849,8 @@ __webpack_require__(8675);
         return;
       }
 
-      setOpacity(this._container, this.options.opacity);
+      _setOpacity(this._container, this.options.opacity);
+
       var now = +new Date(),
           nextFrame = false,
           willPrune = false;
@@ -36682,7 +39863,8 @@ __webpack_require__(8675);
         }
 
         var fade = Math.min(1, (now - tile.loaded) / 200);
-        setOpacity(tile.el, fade);
+
+        _setOpacity(tile.el, fade);
 
         if (fade < 1) {
           nextFrame = true;
@@ -36707,7 +39889,7 @@ __webpack_require__(8675);
       }
     },
     _onOpaqueTile: falseFn,
-    _initContainer: function () {
+    _initContainer: function _initContainer() {
       if (this._container) {
         return;
       }
@@ -36722,7 +39904,7 @@ __webpack_require__(8675);
 
       this.getPane().appendChild(this._container);
     },
-    _updateLevels: function () {
+    _updateLevels: function _updateLevels() {
       var zoom = this._tileZoom,
           maxZoom = this.options.maxZoom;
 
@@ -36738,7 +39920,7 @@ __webpack_require__(8675);
 
           this._onUpdateLevel(z);
         } else {
-          remove(this._levels[z].el);
+          _remove(this._levels[z].el);
 
           this._removeTilesAtZoom(z);
 
@@ -36772,7 +39954,7 @@ __webpack_require__(8675);
     _onUpdateLevel: falseFn,
     _onRemoveLevel: falseFn,
     _onCreateLevel: falseFn,
-    _pruneTiles: function () {
+    _pruneTiles: function _pruneTiles() {
       if (!this._map) {
         return;
       }
@@ -36810,7 +39992,7 @@ __webpack_require__(8675);
         }
       }
     },
-    _removeTilesAtZoom: function (zoom) {
+    _removeTilesAtZoom: function _removeTilesAtZoom(zoom) {
       for (var key in this._tiles) {
         if (this._tiles[key].coords.z !== zoom) {
           continue;
@@ -36819,14 +40001,14 @@ __webpack_require__(8675);
         this._removeTile(key);
       }
     },
-    _removeAllTiles: function () {
+    _removeAllTiles: function _removeAllTiles() {
       for (var key in this._tiles) {
         this._removeTile(key);
       }
     },
-    _invalidateAll: function () {
+    _invalidateAll: function _invalidateAll() {
       for (var z in this._levels) {
-        remove(this._levels[z].el);
+        _remove(this._levels[z].el);
 
         this._onRemoveLevel(Number(z));
 
@@ -36837,7 +40019,7 @@ __webpack_require__(8675);
 
       this._tileZoom = undefined;
     },
-    _retainParent: function (x, y, z, minZoom) {
+    _retainParent: function _retainParent(x, y, z, minZoom) {
       var x2 = Math.floor(x / 2),
           y2 = Math.floor(y / 2),
           z2 = z - 1,
@@ -36860,7 +40042,7 @@ __webpack_require__(8675);
 
       return false;
     },
-    _retainChildren: function (x, y, z, maxZoom) {
+    _retainChildren: function _retainChildren(x, y, z, maxZoom) {
       for (var i = 2 * x; i < 2 * x + 2; i++) {
         for (var j = 2 * y; j < 2 * y + 2; j++) {
           var coords = new Point(i, j);
@@ -36882,15 +40064,15 @@ __webpack_require__(8675);
         }
       }
     },
-    _resetView: function (e) {
+    _resetView: function _resetView(e) {
       var animating = e && (e.pinch || e.flyTo);
 
       this._setView(this._map.getCenter(), this._map.getZoom(), animating, animating);
     },
-    _animateZoom: function (e) {
+    _animateZoom: function _animateZoom(e) {
       this._setView(e.center, e.zoom, true, e.noUpdate);
     },
-    _clampZoom: function (zoom) {
+    _clampZoom: function _clampZoom(zoom) {
       var options = this.options;
 
       if (undefined !== options.minNativeZoom && zoom < options.minNativeZoom) {
@@ -36903,7 +40085,7 @@ __webpack_require__(8675);
 
       return zoom;
     },
-    _setView: function (center, zoom, noPrune, noUpdate) {
+    _setView: function _setView(center, zoom, noPrune, noUpdate) {
       var tileZoom = Math.round(zoom);
 
       if (this.options.maxZoom !== undefined && tileZoom > this.options.maxZoom || this.options.minZoom !== undefined && tileZoom < this.options.minZoom) {
@@ -36940,12 +40122,12 @@ __webpack_require__(8675);
 
       this._setZoomTransforms(center, zoom);
     },
-    _setZoomTransforms: function (center, zoom) {
+    _setZoomTransforms: function _setZoomTransforms(center, zoom) {
       for (var i in this._levels) {
         this._setZoomTransform(this._levels[i], center, zoom);
       }
     },
-    _setZoomTransform: function (level, center, zoom) {
+    _setZoomTransform: function _setZoomTransform(level, center, zoom) {
       var scale = this._map.getZoomScale(zoom, level.zoom),
           translate = level.origin.multiplyBy(scale).subtract(this._map._getNewPixelOrigin(center, zoom)).round();
 
@@ -36955,7 +40137,7 @@ __webpack_require__(8675);
         setPosition(level.el, translate);
       }
     },
-    _resetGrid: function () {
+    _resetGrid: function _resetGrid() {
       var map = this._map,
           crs = map.options.crs,
           tileSize = this._tileSize = this.getTileSize(),
@@ -36970,14 +40152,14 @@ __webpack_require__(8675);
       this._wrapX = crs.wrapLng && !this.options.noWrap && [Math.floor(map.project([0, crs.wrapLng[0]], tileZoom).x / tileSize.x), Math.ceil(map.project([0, crs.wrapLng[1]], tileZoom).x / tileSize.y)];
       this._wrapY = crs.wrapLat && !this.options.noWrap && [Math.floor(map.project([crs.wrapLat[0], 0], tileZoom).y / tileSize.x), Math.ceil(map.project([crs.wrapLat[1], 0], tileZoom).y / tileSize.y)];
     },
-    _onMoveEnd: function () {
+    _onMoveEnd: function _onMoveEnd() {
       if (!this._map || this._map._animatingZoom) {
         return;
       }
 
       this._update();
     },
-    _getTiledPixelBounds: function (center) {
+    _getTiledPixelBounds: function _getTiledPixelBounds(center) {
       var map = this._map,
           mapZoom = map._animatingZoom ? Math.max(map._animateToZoom, map.getZoom()) : map.getZoom(),
           scale = map.getZoomScale(mapZoom, this._tileZoom),
@@ -36986,7 +40168,7 @@ __webpack_require__(8675);
       return new Bounds(pixelCenter.subtract(halfSize), pixelCenter.add(halfSize));
     },
     // Private method to load tiles in the grid's active zoom level according to map bounds
-    _update: function (center) {
+    _update: function _update(center) {
       var map = this._map;
 
       if (!map) {
@@ -37076,7 +40258,7 @@ __webpack_require__(8675);
         this._level.el.appendChild(fragment);
       }
     },
-    _isValidTile: function (coords) {
+    _isValidTile: function _isValidTile(coords) {
       var crs = this._map.options.crs;
 
       if (!crs.infinite) {
@@ -37097,10 +40279,10 @@ __webpack_require__(8675);
 
       return toLatLngBounds(this.options.bounds).overlaps(tileBounds);
     },
-    _keyToBounds: function (key) {
+    _keyToBounds: function _keyToBounds(key) {
       return this._tileCoordsToBounds(this._keyToTileCoords(key));
     },
-    _tileCoordsToNwSe: function (coords) {
+    _tileCoordsToNwSe: function _tileCoordsToNwSe(coords) {
       var map = this._map,
           tileSize = this.getTileSize(),
           nwPoint = coords.scaleBy(tileSize),
@@ -37110,7 +40292,7 @@ __webpack_require__(8675);
       return [nw, se];
     },
     // converts tile coordinates to its geographical bounds
-    _tileCoordsToBounds: function (coords) {
+    _tileCoordsToBounds: function _tileCoordsToBounds(coords) {
       var bp = this._tileCoordsToNwSe(coords),
           bounds = new LatLngBounds(bp[0], bp[1]);
 
@@ -37121,24 +40303,25 @@ __webpack_require__(8675);
       return bounds;
     },
     // converts tile coordinates to key for the tile cache
-    _tileCoordsToKey: function (coords) {
+    _tileCoordsToKey: function _tileCoordsToKey(coords) {
       return coords.x + ':' + coords.y + ':' + coords.z;
     },
     // converts tile cache key to coordinates
-    _keyToTileCoords: function (key) {
+    _keyToTileCoords: function _keyToTileCoords(key) {
       var k = key.split(':'),
           coords = new Point(+k[0], +k[1]);
       coords.z = +k[2];
       return coords;
     },
-    _removeTile: function (key) {
+    _removeTile: function _removeTile(key) {
       var tile = this._tiles[key];
 
       if (!tile) {
         return;
       }
 
-      remove(tile.el);
+      _remove(tile.el);
+
       delete this._tiles[key]; // @event tileunload: TileEvent
       // Fired when a tile is removed (e.g. when a tile goes off the screen).
 
@@ -37147,7 +40330,7 @@ __webpack_require__(8675);
         coords: this._keyToTileCoords(key)
       });
     },
-    _initTile: function (tile) {
+    _initTile: function _initTile(tile) {
       addClass(tile, 'leaflet-tile');
       var tileSize = this.getTileSize();
       tile.style.width = tileSize.x + 'px';
@@ -37156,10 +40339,10 @@ __webpack_require__(8675);
       tile.onmousemove = falseFn; // update opacity on tiles in IE7-8 because of filter inheritance problems
 
       if (Browser.ielt9 && this.options.opacity < 1) {
-        setOpacity(tile, this.options.opacity);
+        _setOpacity(tile, this.options.opacity);
       }
     },
-    _addTile: function (coords, container) {
+    _addTile: function _addTile(coords, container) {
       var tilePos = this._getTilePos(coords),
           key = this._tileCoordsToKey(coords);
 
@@ -37189,7 +40372,7 @@ __webpack_require__(8675);
         coords: coords
       });
     },
-    _tileReady: function (coords, err, tile) {
+    _tileReady: function _tileReady(coords, err, tile) {
       if (err) {
         // @event tileerror: TileErrorEvent
         // Fired when there is an error loading a tile.
@@ -37211,7 +40394,8 @@ __webpack_require__(8675);
       tile.loaded = +new Date();
 
       if (this._map._fadeAnimated) {
-        setOpacity(tile.el, 0);
+        _setOpacity(tile.el, 0);
+
         cancelAnimFrame(this._fadeFrame);
         this._fadeFrame = requestAnimFrame(this._updateOpacity, this);
       } else {
@@ -37245,19 +40429,19 @@ __webpack_require__(8675);
         }
       }
     },
-    _getTilePos: function (coords) {
+    _getTilePos: function _getTilePos(coords) {
       return coords.scaleBy(this.getTileSize()).subtract(this._level.origin);
     },
-    _wrapCoords: function (coords) {
+    _wrapCoords: function _wrapCoords(coords) {
       var newCoords = new Point(this._wrapX ? wrapNum(coords.x, this._wrapX) : coords.x, this._wrapY ? wrapNum(coords.y, this._wrapY) : coords.y);
       newCoords.z = coords.z;
       return newCoords;
     },
-    _pxBoundsToTileRange: function (bounds) {
+    _pxBoundsToTileRange: function _pxBoundsToTileRange(bounds) {
       var tileSize = this.getTileSize();
       return new Bounds(bounds.min.unscaleBy(tileSize).floor(), bounds.max.unscaleBy(tileSize).ceil().subtract([1, 1]));
     },
-    _noTilesToLoad: function () {
+    _noTilesToLoad: function _noTilesToLoad() {
       for (var key in this._tiles) {
         if (!this._tiles[key].loaded) {
           return false;
@@ -37344,7 +40528,7 @@ __webpack_require__(8675);
       // Refer to [HTMLImageElement.referrerPolicy](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/referrerPolicy) for valid String values.
       referrerPolicy: false
     },
-    initialize: function (url, options) {
+    initialize: function initialize(url, options) {
       this._url = url;
       options = setOptions(this, options); // detecting retina displays, adjusting tileSize and zoom levels
 
@@ -37372,7 +40556,7 @@ __webpack_require__(8675);
     // Updates the layer's URL template and redraws it (unless `noRedraw` is set to `true`).
     // If the URL does not change, the layer will not be redrawn unless
     // the noRedraw parameter is set to false.
-    setUrl: function (url, noRedraw) {
+    setUrl: function setUrl(url, noRedraw) {
       if (this._url === url && noRedraw === undefined) {
         noRedraw = true;
       }
@@ -37389,7 +40573,7 @@ __webpack_require__(8675);
     // Called only internally, overrides GridLayer's [`createTile()`](#gridlayer-createtile)
     // to return an `<img>` HTML element with the appropriate image URL given `coords`. The `done`
     // callback is called when the tile has been loaded.
-    createTile: function (coords, done) {
+    createTile: function createTile(coords, done) {
       var tile = document.createElement('img');
       on(tile, 'load', bind(this._tileOnLoad, this, done, tile));
       on(tile, 'error', bind(this._tileOnError, this, done, tile));
@@ -37425,7 +40609,7 @@ __webpack_require__(8675);
     // @method getTileUrl(coords: Object): String
     // Called only internally, returns the URL for a tile given its coordinates.
     // Classes extending `TileLayer` can override this function to provide custom tile URL naming schemes.
-    getTileUrl: function (coords) {
+    getTileUrl: function getTileUrl(coords) {
       var data = {
         r: Browser.retina ? '@2x' : '',
         s: this._getSubdomain(coords),
@@ -37446,7 +40630,7 @@ __webpack_require__(8675);
 
       return template(this._url, extend(data, this.options));
     },
-    _tileOnLoad: function (done, tile) {
+    _tileOnLoad: function _tileOnLoad(done, tile) {
       // For https://github.com/Leaflet/Leaflet/issues/3332
       if (Browser.ielt9) {
         setTimeout(bind(done, this, null, tile), 0);
@@ -37454,7 +40638,7 @@ __webpack_require__(8675);
         done(null, tile);
       }
     },
-    _tileOnError: function (done, tile, e) {
+    _tileOnError: function _tileOnError(done, tile, e) {
       var errorUrl = this.options.errorTileUrl;
 
       if (errorUrl && tile.getAttribute('src') !== errorUrl) {
@@ -37463,10 +40647,10 @@ __webpack_require__(8675);
 
       done(e, tile);
     },
-    _onTileRemove: function (e) {
+    _onTileRemove: function _onTileRemove(e) {
       e.tile.onload = null;
     },
-    _getZoomForUrl: function () {
+    _getZoomForUrl: function _getZoomForUrl() {
       var zoom = this._tileZoom,
           maxZoom = this.options.maxZoom,
           zoomReverse = this.options.zoomReverse,
@@ -37478,12 +40662,12 @@ __webpack_require__(8675);
 
       return zoom + zoomOffset;
     },
-    _getSubdomain: function (tilePoint) {
+    _getSubdomain: function _getSubdomain(tilePoint) {
       var index = Math.abs(tilePoint.x + tilePoint.y) % this.options.subdomains.length;
       return this.options.subdomains[index];
     },
     // stops loading all tiles in the background layer
-    _abortLoading: function () {
+    _abortLoading: function _abortLoading() {
       var i, tile;
 
       for (i in this._tiles) {
@@ -37495,7 +40679,9 @@ __webpack_require__(8675);
           if (!tile.complete) {
             tile.src = emptyImageUrl;
             var coords = this._tiles[i].coords;
-            remove(tile);
+
+            _remove(tile);
+
             delete this._tiles[i]; // @event tileabort: TileEvent
             // Fired when a tile was loading but is now not wanted.
 
@@ -37507,7 +40693,7 @@ __webpack_require__(8675);
         }
       }
     },
-    _removeTile: function (key) {
+    _removeTile: function _removeTile(key) {
       var tile = this._tiles[key];
 
       if (!tile) {
@@ -37518,7 +40704,7 @@ __webpack_require__(8675);
       tile.el.setAttribute('src', emptyImageUrl);
       return GridLayer.prototype._removeTile.call(this, key);
     },
-    _tileReady: function (coords, err, tile) {
+    _tileReady: function _tileReady(coords, err, tile) {
       if (!this._map || tile && tile.getAttribute('src') === emptyImageUrl) {
         return;
       }
@@ -37584,7 +40770,7 @@ __webpack_require__(8675);
       // If `true`, WMS request parameter keys will be uppercase.
       uppercase: false
     },
-    initialize: function (url, options) {
+    initialize: function initialize(url, options) {
       this._url = url;
       var wmsParams = extend({}, this.defaultWmsParams); // all keys that are not TileLayer options go to WMS params
 
@@ -37601,14 +40787,14 @@ __webpack_require__(8675);
       wmsParams.height = tileSize.y * realRetina;
       this.wmsParams = wmsParams;
     },
-    onAdd: function (map) {
+    onAdd: function onAdd(map) {
       this._crs = this.options.crs || map.options.crs;
       this._wmsVersion = parseFloat(this.wmsParams.version);
       var projectionKey = this._wmsVersion >= 1.3 ? 'crs' : 'srs';
       this.wmsParams[projectionKey] = this._crs.code;
       TileLayer.prototype.onAdd.call(this, map);
     },
-    getTileUrl: function (coords) {
+    getTileUrl: function getTileUrl(coords) {
       var tileBounds = this._tileCoordsToNwSe(coords),
           crs = this._crs,
           bounds = toBounds(crs.project(tileBounds[0]), crs.project(tileBounds[1])),
@@ -37621,7 +40807,7 @@ __webpack_require__(8675);
     },
     // @method setParams(params: Object, noRedraw?: Boolean): this
     // Merges an object with the new parameters and re-requests tiles on the current screen (unless `noRedraw` was set to true).
-    setParams: function (params, noRedraw) {
+    setParams: function setParams(params, noRedraw) {
       extend(this.wmsParams, params);
 
       if (!noRedraw) {
@@ -37668,12 +40854,12 @@ __webpack_require__(8675);
       // e.g. 0.1 would be 10% of map view in each direction
       padding: 0.1
     },
-    initialize: function (options) {
+    initialize: function initialize(options) {
       setOptions(this, options);
       stamp(this);
       this._layers = this._layers || {};
     },
-    onAdd: function () {
+    onAdd: function onAdd() {
       if (!this._container) {
         this._initContainer(); // defined by renderer implementations
 
@@ -37689,12 +40875,12 @@ __webpack_require__(8675);
 
       this.on('update', this._updatePaths, this);
     },
-    onRemove: function () {
+    onRemove: function onRemove() {
       this.off('update', this._updatePaths, this);
 
       this._destroyContainer();
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = {
         viewreset: this._reset,
         zoom: this._onZoom,
@@ -37708,13 +40894,13 @@ __webpack_require__(8675);
 
       return events;
     },
-    _onAnimZoom: function (ev) {
+    _onAnimZoom: function _onAnimZoom(ev) {
       this._updateTransform(ev.center, ev.zoom);
     },
-    _onZoom: function () {
+    _onZoom: function _onZoom() {
       this._updateTransform(this._map.getCenter(), this._map.getZoom());
     },
-    _updateTransform: function (center, zoom) {
+    _updateTransform: function _updateTransform(center, zoom) {
       var scale = this._map.getZoomScale(zoom, this._zoom),
           viewHalf = this._map.getSize().multiplyBy(0.5 + this.options.padding),
           currentCenterPoint = this._map.project(this._center, zoom),
@@ -37726,7 +40912,7 @@ __webpack_require__(8675);
         setPosition(this._container, topLeftOffset);
       }
     },
-    _reset: function () {
+    _reset: function _reset() {
       this._update();
 
       this._updateTransform(this._center, this._zoom);
@@ -37735,17 +40921,17 @@ __webpack_require__(8675);
         this._layers[id]._reset();
       }
     },
-    _onZoomEnd: function () {
+    _onZoomEnd: function _onZoomEnd() {
       for (var id in this._layers) {
         this._layers[id]._project();
       }
     },
-    _updatePaths: function () {
+    _updatePaths: function _updatePaths() {
       for (var id in this._layers) {
         this._layers[id]._update();
       }
     },
-    _update: function () {
+    _update: function _update() {
       // Update pixel bounds of renderer container (for positioning/sizing/clipping later)
       // Subclasses are responsible of firing the 'update' event.
       var p = this.options.padding,
@@ -37797,22 +40983,22 @@ __webpack_require__(8675);
       // How much to extend the click tolerance around a path/object on the map.
       tolerance: 0
     },
-    getEvents: function () {
+    getEvents: function getEvents() {
       var events = Renderer.prototype.getEvents.call(this);
       events.viewprereset = this._onViewPreReset;
       return events;
     },
-    _onViewPreReset: function () {
+    _onViewPreReset: function _onViewPreReset() {
       // Set a flag so that a viewprereset+moveend+viewreset only updates&redraws once
       this._postponeUpdatePaths = true;
     },
-    onAdd: function () {
+    onAdd: function onAdd() {
       Renderer.prototype.onAdd.call(this); // Redraw vectors since canvas is cleared upon removal,
       // in case of removing the renderer itself from the map.
 
       this._draw();
     },
-    _initContainer: function () {
+    _initContainer: function _initContainer() {
       var container = this._container = document.createElement('canvas');
       on(container, 'mousemove', this._onMouseMove, this);
       on(container, 'click dblclick mousedown mouseup contextmenu', this._onClick, this);
@@ -37820,14 +41006,16 @@ __webpack_require__(8675);
       container['_leaflet_disable_events'] = true;
       this._ctx = container.getContext('2d');
     },
-    _destroyContainer: function () {
+    _destroyContainer: function _destroyContainer() {
       cancelAnimFrame(this._redrawRequest);
       delete this._ctx;
-      remove(this._container);
+
+      _remove(this._container);
+
       off(this._container);
       delete this._container;
     },
-    _updatePaths: function () {
+    _updatePaths: function _updatePaths() {
       if (this._postponeUpdatePaths) {
         return;
       }
@@ -37843,7 +41031,7 @@ __webpack_require__(8675);
 
       this._redraw();
     },
-    _update: function () {
+    _update: function _update() {
       if (this._map._animatingZoom && this._bounds) {
         return;
       }
@@ -37871,7 +41059,7 @@ __webpack_require__(8675);
 
       this.fire('update');
     },
-    _reset: function () {
+    _reset: function _reset() {
       Renderer.prototype._reset.call(this);
 
       if (this._postponeUpdatePaths) {
@@ -37880,7 +41068,7 @@ __webpack_require__(8675);
         this._updatePaths();
       }
     },
-    _initPath: function (layer) {
+    _initPath: function _initPath(layer) {
       this._updateDashArray(layer);
 
       this._layers[stamp(layer)] = layer;
@@ -37897,10 +41085,10 @@ __webpack_require__(8675);
       this._drawLast = order;
       this._drawFirst = this._drawFirst || this._drawLast;
     },
-    _addPath: function (layer) {
+    _addPath: function _addPath(layer) {
       this._requestRedraw(layer);
     },
-    _removePath: function (layer) {
+    _removePath: function _removePath(layer) {
       var order = layer._order;
       var next = order.next;
       var prev = order.prev;
@@ -37922,7 +41110,7 @@ __webpack_require__(8675);
 
       this._requestRedraw(layer);
     },
-    _updatePath: function (layer) {
+    _updatePath: function _updatePath(layer) {
       // Redraw the union of the layer's old pixel
       // bounds and the new pixel bounds.
       this._extendRedrawBounds(layer);
@@ -37935,12 +41123,12 @@ __webpack_require__(8675);
 
       this._requestRedraw(layer);
     },
-    _updateStyle: function (layer) {
+    _updateStyle: function _updateStyle(layer) {
       this._updateDashArray(layer);
 
       this._requestRedraw(layer);
     },
-    _updateDashArray: function (layer) {
+    _updateDashArray: function _updateDashArray(layer) {
       if (typeof layer.options.dashArray === 'string') {
         var parts = layer.options.dashArray.split(/[, ]+/),
             dashArray = [],
@@ -37962,7 +41150,7 @@ __webpack_require__(8675);
         layer.options._dashArray = layer.options.dashArray;
       }
     },
-    _requestRedraw: function (layer) {
+    _requestRedraw: function _requestRedraw(layer) {
       if (!this._map) {
         return;
       }
@@ -37971,7 +41159,7 @@ __webpack_require__(8675);
 
       this._redrawRequest = this._redrawRequest || requestAnimFrame(this._redraw, this);
     },
-    _extendRedrawBounds: function (layer) {
+    _extendRedrawBounds: function _extendRedrawBounds(layer) {
       if (layer._pxBounds) {
         var padding = (layer.options.weight || 0) + 1;
         this._redrawBounds = this._redrawBounds || new Bounds();
@@ -37981,7 +41169,7 @@ __webpack_require__(8675);
         this._redrawBounds.extend(layer._pxBounds.max.add([padding, padding]));
       }
     },
-    _redraw: function () {
+    _redraw: function _redraw() {
       this._redrawRequest = null;
 
       if (this._redrawBounds) {
@@ -37998,7 +41186,7 @@ __webpack_require__(8675);
 
       this._redrawBounds = null;
     },
-    _clear: function () {
+    _clear: function _clear() {
       var bounds = this._redrawBounds;
 
       if (bounds) {
@@ -38015,7 +41203,7 @@ __webpack_require__(8675);
         this._ctx.restore();
       }
     },
-    _draw: function () {
+    _draw: function _draw() {
       var layer,
           bounds = this._redrawBounds;
 
@@ -38046,7 +41234,7 @@ __webpack_require__(8675);
       this._ctx.restore(); // Restore state before clipping.
 
     },
-    _updatePoly: function (layer, closed) {
+    _updatePoly: function _updatePoly(layer, closed) {
       if (!this._drawing) {
         return;
       }
@@ -38079,7 +41267,7 @@ __webpack_require__(8675);
       this._fillStroke(ctx, layer); // TODO optimization: 1 fill/stroke for all features with equal style instead of 1 for each feature
 
     },
-    _updateCircle: function (layer) {
+    _updateCircle: function _updateCircle(layer) {
       if (!this._drawing || layer._empty()) {
         return;
       }
@@ -38103,7 +41291,7 @@ __webpack_require__(8675);
 
       this._fillStroke(ctx, layer);
     },
-    _fillStroke: function (ctx, layer) {
+    _fillStroke: function _fillStroke(ctx, layer) {
       var options = layer.options;
 
       if (options.fill) {
@@ -38127,7 +41315,7 @@ __webpack_require__(8675);
     },
     // Canvas obviously doesn't have mouse events for individual drawn objects,
     // so we emulate that by calculating what's under the mouse on mousemove/click manually
-    _onClick: function (e) {
+    _onClick: function _onClick(e) {
       var point = this._map.mouseEventToLayerPoint(e),
           layer,
           clickedLayer;
@@ -38144,7 +41332,7 @@ __webpack_require__(8675);
 
       this._fireEvent(clickedLayer ? [clickedLayer] : false, e);
     },
-    _onMouseMove: function (e) {
+    _onMouseMove: function _onMouseMove(e) {
       if (!this._map || this._map.dragging.moving() || this._map._animatingZoom) {
         return;
       }
@@ -38153,7 +41341,7 @@ __webpack_require__(8675);
 
       this._handleMouseHover(e, point);
     },
-    _handleMouseOut: function (e) {
+    _handleMouseOut: function _handleMouseOut(e) {
       var layer = this._hoveredLayer;
 
       if (layer) {
@@ -38166,7 +41354,7 @@ __webpack_require__(8675);
         this._mouseHoverThrottled = false;
       }
     },
-    _handleMouseHover: function (e, point) {
+    _handleMouseHover: function _handleMouseHover(e, point) {
       if (this._mouseHoverThrottled) {
         return;
       }
@@ -38200,10 +41388,10 @@ __webpack_require__(8675);
         this._mouseHoverThrottled = false;
       }, this), 32);
     },
-    _fireEvent: function (layers, e, type) {
+    _fireEvent: function _fireEvent(layers, e, type) {
       this._map._fireDOMEvent(e, type || e.type, layers);
     },
-    _bringToFront: function (layer) {
+    _bringToFront: function _bringToFront(layer) {
       var order = layer._order;
 
       if (!order) {
@@ -38235,7 +41423,7 @@ __webpack_require__(8675);
 
       this._requestRedraw(layer);
     },
-    _bringToBack: function (layer) {
+    _bringToBack: function _bringToBack(layer) {
       var order = layer._order;
 
       if (!order) {
@@ -38303,10 +41491,10 @@ __webpack_require__(8675);
 
 
   var vmlMixin = {
-    _initContainer: function () {
+    _initContainer: function _initContainer() {
       this._container = create$1('div', 'leaflet-vml-container');
     },
-    _update: function () {
+    _update: function _update() {
       if (this._map._animatingZoom) {
         return;
       }
@@ -38315,7 +41503,7 @@ __webpack_require__(8675);
 
       this.fire('update');
     },
-    _initPath: function (layer) {
+    _initPath: function _initPath(layer) {
       var container = layer._container = vmlCreate('shape');
       addClass(container, 'leaflet-vml-shape ' + (this.options.className || ''));
       container.coordsize = '1 1';
@@ -38326,7 +41514,7 @@ __webpack_require__(8675);
 
       this._layers[stamp(layer)] = layer;
     },
-    _addPath: function (layer) {
+    _addPath: function _addPath(layer) {
       var container = layer._container;
 
       this._container.appendChild(container);
@@ -38335,13 +41523,15 @@ __webpack_require__(8675);
         layer.addInteractiveTarget(container);
       }
     },
-    _removePath: function (layer) {
+    _removePath: function _removePath(layer) {
       var container = layer._container;
-      remove(container);
+
+      _remove(container);
+
       layer.removeInteractiveTarget(container);
       delete this._layers[stamp(layer)];
     },
-    _updateStyle: function (layer) {
+    _updateStyle: function _updateStyle(layer) {
       var stroke = layer._stroke,
           fill = layer._fill,
           options = layer.options,
@@ -38385,20 +41575,20 @@ __webpack_require__(8675);
         layer._fill = null;
       }
     },
-    _updateCircle: function (layer) {
+    _updateCircle: function _updateCircle(layer) {
       var p = layer._point.round(),
           r = Math.round(layer._radius),
           r2 = Math.round(layer._radiusY || r);
 
       this._setPath(layer, layer._empty() ? 'M0 0' : 'AL ' + p.x + ',' + p.y + ' ' + r + ',' + r2 + ' 0,' + 65535 * 360);
     },
-    _setPath: function (layer, path) {
+    _setPath: function _setPath(layer, path) {
       layer._path.v = path;
     },
-    _bringToFront: function (layer) {
+    _bringToFront: function _bringToFront(layer) {
       toFront(layer._container);
     },
-    _bringToBack: function (layer) {
+    _bringToBack: function _bringToBack(layer) {
       toBack(layer._container);
     }
   };
@@ -38440,7 +41630,7 @@ __webpack_require__(8675);
    */
 
   var SVG = Renderer.extend({
-    _initContainer: function () {
+    _initContainer: function _initContainer() {
       this._container = create('svg'); // makes it possible to click through svg root; we'll reset it back in individual paths
 
       this._container.setAttribute('pointer-events', 'none');
@@ -38449,14 +41639,15 @@ __webpack_require__(8675);
 
       this._container.appendChild(this._rootGroup);
     },
-    _destroyContainer: function () {
-      remove(this._container);
+    _destroyContainer: function _destroyContainer() {
+      _remove(this._container);
+
       off(this._container);
       delete this._container;
       delete this._rootGroup;
       delete this._svgSize;
     },
-    _update: function () {
+    _update: function _update() {
       if (this._map._animatingZoom && this._bounds) {
         return;
       }
@@ -38479,7 +41670,7 @@ __webpack_require__(8675);
       this.fire('update');
     },
     // methods below are called by vector layers implementations
-    _initPath: function (layer) {
+    _initPath: function _initPath(layer) {
       var path = layer._path = create('path'); // @namespace Path
       // @option className: String = null
       // Custom class name set on an element. Only for SVG renderer.
@@ -38496,7 +41687,7 @@ __webpack_require__(8675);
 
       this._layers[stamp(layer)] = layer;
     },
-    _addPath: function (layer) {
+    _addPath: function _addPath(layer) {
       if (!this._rootGroup) {
         this._initContainer();
       }
@@ -38505,17 +41696,18 @@ __webpack_require__(8675);
 
       layer.addInteractiveTarget(layer._path);
     },
-    _removePath: function (layer) {
-      remove(layer._path);
+    _removePath: function _removePath(layer) {
+      _remove(layer._path);
+
       layer.removeInteractiveTarget(layer._path);
       delete this._layers[stamp(layer)];
     },
-    _updatePath: function (layer) {
+    _updatePath: function _updatePath(layer) {
       layer._project();
 
       layer._update();
     },
-    _updateStyle: function (layer) {
+    _updateStyle: function _updateStyle(layer) {
       var path = layer._path,
           options = layer.options;
 
@@ -38553,10 +41745,10 @@ __webpack_require__(8675);
         path.setAttribute('fill', 'none');
       }
     },
-    _updatePoly: function (layer, closed) {
+    _updatePoly: function _updatePoly(layer, closed) {
       this._setPath(layer, pointsToPath(layer._parts, closed));
     },
-    _updateCircle: function (layer) {
+    _updateCircle: function _updateCircle(layer) {
       var p = layer._point,
           r = Math.max(Math.round(layer._radius), 1),
           r2 = Math.max(Math.round(layer._radiusY), 1) || r,
@@ -38566,14 +41758,14 @@ __webpack_require__(8675);
 
       this._setPath(layer, d);
     },
-    _setPath: function (layer, path) {
+    _setPath: function _setPath(layer, path) {
       layer._path.setAttribute('d', path);
     },
     // SVG does not have the concept of zIndex so we resort to changing the DOM order of elements
-    _bringToFront: function (layer) {
+    _bringToFront: function _bringToFront(layer) {
       toFront(layer._path);
     },
-    _bringToBack: function (layer) {
+    _bringToBack: function _bringToBack(layer) {
       toBack(layer._path);
     }
   });
@@ -38594,7 +41786,7 @@ __webpack_require__(8675);
     // Returns the instance of `Renderer` that should be used to render the given
     // `Path`. It will ensure that the `renderer` options of the map and paths
     // are respected, and that the renderers do exist on the map.
-    getRenderer: function (layer) {
+    getRenderer: function getRenderer(layer) {
       // @namespace Path; @option renderer: Renderer
       // Use this specific instance of `Renderer` for this path. Takes
       // precedence over the map's [default renderer](#map-renderer).
@@ -38610,7 +41802,7 @@ __webpack_require__(8675);
 
       return renderer;
     },
-    _getPaneRenderer: function (name) {
+    _getPaneRenderer: function _getPaneRenderer(name) {
       if (name === 'overlayPane' || name === undefined) {
         return false;
       }
@@ -38626,7 +41818,7 @@ __webpack_require__(8675);
 
       return renderer;
     },
-    _createRenderer: function (options) {
+    _createRenderer: function _createRenderer(options) {
       // @namespace Map; @option preferCanvas: Boolean = false
       // Whether `Path`s should be rendered on a `Canvas` renderer.
       // By default, all `Path`s are rendered in a `SVG` renderer.
@@ -38660,15 +41852,15 @@ __webpack_require__(8675);
    */
 
   var Rectangle = Polygon.extend({
-    initialize: function (latLngBounds, options) {
+    initialize: function initialize(latLngBounds, options) {
       Polygon.prototype.initialize.call(this, this._boundsToLatLngs(latLngBounds), options);
     },
     // @method setBounds(latLngBounds: LatLngBounds): this
     // Redraws the rectangle with the passed bounds.
-    setBounds: function (latLngBounds) {
+    setBounds: function setBounds(latLngBounds) {
       return this.setLatLngs(this._boundsToLatLngs(latLngBounds));
     },
-    _boundsToLatLngs: function (latLngBounds) {
+    _boundsToLatLngs: function _boundsToLatLngs(latLngBounds) {
       latLngBounds = toLatLngBounds(latLngBounds);
       return [latLngBounds.getSouthWest(), latLngBounds.getNorthWest(), latLngBounds.getNorthEast(), latLngBounds.getSouthEast()];
     }
@@ -38701,37 +41893,38 @@ __webpack_require__(8675);
     boxZoom: true
   });
   var BoxZoom = Handler.extend({
-    initialize: function (map) {
+    initialize: function initialize(map) {
       this._map = map;
       this._container = map._container;
       this._pane = map._panes.overlayPane;
       this._resetStateTimeout = 0;
       map.on('unload', this._destroy, this);
     },
-    addHooks: function () {
+    addHooks: function addHooks() {
       on(this._container, 'mousedown', this._onMouseDown, this);
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       off(this._container, 'mousedown', this._onMouseDown, this);
     },
-    moved: function () {
+    moved: function moved() {
       return this._moved;
     },
-    _destroy: function () {
-      remove(this._pane);
+    _destroy: function _destroy() {
+      _remove(this._pane);
+
       delete this._pane;
     },
-    _resetState: function () {
+    _resetState: function _resetState() {
       this._resetStateTimeout = 0;
       this._moved = false;
     },
-    _clearDeferredResetState: function () {
+    _clearDeferredResetState: function _clearDeferredResetState() {
       if (this._resetStateTimeout !== 0) {
         clearTimeout(this._resetStateTimeout);
         this._resetStateTimeout = 0;
       }
     },
-    _onMouseDown: function (e) {
+    _onMouseDown: function _onMouseDown(e) {
       if (!e.shiftKey || e.which !== 1 && e.button !== 1) {
         return false;
       } // Clear the deferred resetState if it hasn't executed yet, otherwise it
@@ -38752,7 +41945,7 @@ __webpack_require__(8675);
         keydown: this._onKeyDown
       }, this);
     },
-    _onMouseMove: function (e) {
+    _onMouseMove: function _onMouseMove(e) {
       if (!this._moved) {
         this._moved = true;
         this._box = create$1('div', 'leaflet-zoom-box', this._container);
@@ -38768,9 +41961,10 @@ __webpack_require__(8675);
       this._box.style.width = size.x + 'px';
       this._box.style.height = size.y + 'px';
     },
-    _finish: function () {
+    _finish: function _finish() {
       if (this._moved) {
-        remove(this._box);
+        _remove(this._box);
+
         removeClass(this._container, 'leaflet-crosshair');
       }
 
@@ -38783,7 +41977,7 @@ __webpack_require__(8675);
         keydown: this._onKeyDown
       }, this);
     },
-    _onMouseUp: function (e) {
+    _onMouseUp: function _onMouseUp(e) {
       if (e.which !== 1 && e.button !== 1) {
         return;
       }
@@ -38805,7 +41999,7 @@ __webpack_require__(8675);
         boxZoomBounds: bounds
       });
     },
-    _onKeyDown: function (e) {
+    _onKeyDown: function _onKeyDown(e) {
       if (e.keyCode === 27) {
         this._finish();
 
@@ -38834,13 +42028,13 @@ __webpack_require__(8675);
     doubleClickZoom: true
   });
   var DoubleClickZoom = Handler.extend({
-    addHooks: function () {
+    addHooks: function addHooks() {
       this._map.on('dblclick', this._onDoubleClick, this);
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       this._map.off('dblclick', this._onDoubleClick, this);
     },
-    _onDoubleClick: function (e) {
+    _onDoubleClick: function _onDoubleClick(e) {
       var map = this._map,
           oldZoom = map.getZoom(),
           delta = map.options.zoomDelta,
@@ -38908,7 +42102,7 @@ __webpack_require__(8675);
     maxBoundsViscosity: 0.0
   });
   var Drag = Handler.extend({
-    addHooks: function () {
+    addHooks: function addHooks() {
       if (!this._draggable) {
         var map = this._map;
         this._draggable = new Draggable(map._mapPane, map._container);
@@ -38936,19 +42130,19 @@ __webpack_require__(8675);
       this._positions = [];
       this._times = [];
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       removeClass(this._map._container, 'leaflet-grab');
       removeClass(this._map._container, 'leaflet-touch-drag');
 
       this._draggable.disable();
     },
-    moved: function () {
+    moved: function moved() {
       return this._draggable && this._draggable._moved;
     },
-    moving: function () {
+    moving: function moving() {
       return this._draggable && this._draggable._moving;
     },
-    _onDragStart: function () {
+    _onDragStart: function _onDragStart() {
       var map = this._map;
 
       map._stop();
@@ -38968,7 +42162,7 @@ __webpack_require__(8675);
         this._times = [];
       }
     },
-    _onDrag: function (e) {
+    _onDrag: function _onDrag(e) {
       if (this._map.options.inertia) {
         var time = this._lastTime = +new Date(),
             pos = this._lastPos = this._draggable._absPos || this._draggable._newPos;
@@ -38982,24 +42176,24 @@ __webpack_require__(8675);
 
       this._map.fire('move', e).fire('drag', e);
     },
-    _prunePositions: function (time) {
+    _prunePositions: function _prunePositions(time) {
       while (this._positions.length > 1 && time - this._times[0] > 50) {
         this._positions.shift();
 
         this._times.shift();
       }
     },
-    _onZoomEnd: function () {
+    _onZoomEnd: function _onZoomEnd() {
       var pxCenter = this._map.getSize().divideBy(2),
           pxWorldCenter = this._map.latLngToLayerPoint([0, 0]);
 
       this._initialWorldOffset = pxWorldCenter.subtract(pxCenter).x;
       this._worldWidth = this._map.getPixelWorldBounds().getSize().x;
     },
-    _viscousLimit: function (value, threshold) {
+    _viscousLimit: function _viscousLimit(value, threshold) {
       return value - (value - threshold) * this._viscosity;
     },
-    _onPreDragLimit: function () {
+    _onPreDragLimit: function _onPreDragLimit() {
       if (!this._viscosity || !this._offsetLimit) {
         return;
       }
@@ -39026,7 +42220,7 @@ __webpack_require__(8675);
 
       this._draggable._newPos = this._draggable._startPos.add(offset);
     },
-    _onPreDragWrap: function () {
+    _onPreDragWrap: function _onPreDragWrap() {
       // TODO refactor to be able to adjust map pane position after zoom
       var worldWidth = this._worldWidth,
           halfWidth = Math.round(worldWidth / 2),
@@ -39038,7 +42232,7 @@ __webpack_require__(8675);
       this._draggable._absPos = this._draggable._newPos.clone();
       this._draggable._newPos.x = newX;
     },
-    _onDragEnd: function (e) {
+    _onDragEnd: function _onDragEnd(e) {
       var map = this._map,
           options = map.options,
           noInertia = !options.inertia || e.noInertia || this._times.length < 2;
@@ -39103,14 +42297,14 @@ __webpack_require__(8675);
       zoomIn: [187, 107, 61, 171],
       zoomOut: [189, 109, 54, 173]
     },
-    initialize: function (map) {
+    initialize: function initialize(map) {
       this._map = map;
 
       this._setPanDelta(map.options.keyboardPanDelta);
 
       this._setZoomDelta(map.options.zoomDelta);
     },
-    addHooks: function () {
+    addHooks: function addHooks() {
       var container = this._map._container; // make the container focusable by tabbing
 
       if (container.tabIndex <= 0) {
@@ -39128,7 +42322,7 @@ __webpack_require__(8675);
         blur: this._removeHooks
       }, this);
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       this._removeHooks();
 
       off(this._map._container, {
@@ -39142,7 +42336,7 @@ __webpack_require__(8675);
         blur: this._removeHooks
       }, this);
     },
-    _onMouseDown: function () {
+    _onMouseDown: function _onMouseDown() {
       if (this._focused) {
         return;
       }
@@ -39156,17 +42350,17 @@ __webpack_require__(8675);
 
       window.scrollTo(left, top);
     },
-    _onFocus: function () {
+    _onFocus: function _onFocus() {
       this._focused = true;
 
       this._map.fire('focus');
     },
-    _onBlur: function () {
+    _onBlur: function _onBlur() {
       this._focused = false;
 
       this._map.fire('blur');
     },
-    _setPanDelta: function (panDelta) {
+    _setPanDelta: function _setPanDelta(panDelta) {
       var keys = this._panKeys = {},
           codes = this.keyCodes,
           i,
@@ -39188,7 +42382,7 @@ __webpack_require__(8675);
         keys[codes.up[i]] = [0, -1 * panDelta];
       }
     },
-    _setZoomDelta: function (zoomDelta) {
+    _setZoomDelta: function _setZoomDelta(zoomDelta) {
       var keys = this._zoomKeys = {},
           codes = this.keyCodes,
           i,
@@ -39202,13 +42396,13 @@ __webpack_require__(8675);
         keys[codes.zoomOut[i]] = -zoomDelta;
       }
     },
-    _addHooks: function () {
+    _addHooks: function _addHooks() {
       on(document, 'keydown', this._onKeyDown, this);
     },
-    _removeHooks: function () {
+    _removeHooks: function _removeHooks() {
       off(document, 'keydown', this._onKeyDown, this);
     },
-    _onKeyDown: function (e) {
+    _onKeyDown: function _onKeyDown(e) {
       if (e.altKey || e.ctrlKey || e.metaKey) {
         return;
       }
@@ -39270,14 +42464,14 @@ __webpack_require__(8675);
     wheelPxPerZoomLevel: 60
   });
   var ScrollWheelZoom = Handler.extend({
-    addHooks: function () {
+    addHooks: function addHooks() {
       on(this._map._container, 'wheel', this._onWheelScroll, this);
       this._delta = 0;
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       off(this._map._container, 'wheel', this._onWheelScroll, this);
     },
-    _onWheelScroll: function (e) {
+    _onWheelScroll: function _onWheelScroll(e) {
       var delta = getWheelDelta(e);
       var debounce = this._map.options.wheelDebounceTime;
       this._delta += delta;
@@ -39292,7 +42486,7 @@ __webpack_require__(8675);
       this._timer = setTimeout(bind(this._performZoom, this), left);
       stop(e);
     },
-    _performZoom: function () {
+    _performZoom: function _performZoom() {
       var map = this._map,
           zoom = map.getZoom(),
           snap = this._map.options.zoomSnap || 0;
@@ -39342,13 +42536,13 @@ __webpack_require__(8675);
     tapTolerance: 15
   });
   var TapHold = Handler.extend({
-    addHooks: function () {
+    addHooks: function addHooks() {
       on(this._map._container, 'touchstart', this._onDown, this);
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       off(this._map._container, 'touchstart', this._onDown, this);
     },
-    _onDown: function (e) {
+    _onDown: function _onDown(e) {
       clearTimeout(this._holdTimeout);
 
       if (e.touches.length !== 1) {
@@ -39377,19 +42571,19 @@ __webpack_require__(8675);
       off(document, 'touchend', preventDefault);
       off(document, 'touchend touchcancel', cancelClickPrevent);
     },
-    _cancel: function () {
+    _cancel: function _cancel() {
       clearTimeout(this._holdTimeout);
       off(document, 'touchend touchcancel contextmenu', this._cancel, this);
       off(document, 'touchmove', this._onMove, this);
     },
-    _onMove: function (e) {
+    _onMove: function _onMove(e) {
       var first = e.touches[0];
       this._newPos = new Point(first.clientX, first.clientY);
     },
-    _isTapValid: function () {
+    _isTapValid: function _isTapValid() {
       return this._newPos.distanceTo(this._startPos) <= this._map.options.tapTolerance;
     },
-    _simulateEvent: function (type, e) {
+    _simulateEvent: function _simulateEvent(type, e) {
       var simulatedEvent = new MouseEvent(type, {
         bubbles: true,
         cancelable: true,
@@ -39430,15 +42624,15 @@ __webpack_require__(8675);
     bounceAtZoomLimits: true
   });
   var TouchZoom = Handler.extend({
-    addHooks: function () {
+    addHooks: function addHooks() {
       addClass(this._map._container, 'leaflet-touch-zoom');
       on(this._map._container, 'touchstart', this._onTouchStart, this);
     },
-    removeHooks: function () {
+    removeHooks: function removeHooks() {
       removeClass(this._map._container, 'leaflet-touch-zoom');
       off(this._map._container, 'touchstart', this._onTouchStart, this);
     },
-    _onTouchStart: function (e) {
+    _onTouchStart: function _onTouchStart(e) {
       var map = this._map;
 
       if (!e.touches || e.touches.length !== 2 || map._animatingZoom || this._zooming) {
@@ -39465,7 +42659,7 @@ __webpack_require__(8675);
       on(document, 'touchend touchcancel', this._onTouchEnd, this);
       preventDefault(e);
     },
-    _onTouchMove: function (e) {
+    _onTouchMove: function _onTouchMove(e) {
       if (!e.touches || e.touches.length !== 2 || !this._zooming) {
         return;
       }
@@ -39512,7 +42706,7 @@ __webpack_require__(8675);
       this._animRequest = requestAnimFrame(moveFn, this, true);
       preventDefault(e);
     },
-    _onTouchEnd: function () {
+    _onTouchEnd: function _onTouchEnd() {
       if (!this._moved || !this._zooming) {
         this._zooming = false;
         return;
@@ -39636,7 +42830,7 @@ __webpack_require__(8675);
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
-var __WEBPACK_AMD_DEFINE_RESULT__;__webpack_require__(2262);__webpack_require__(4506);__webpack_require__(6699);/**
+var __WEBPACK_AMD_DEFINE_RESULT__;var _typeof=(__webpack_require__(5602)["default"]);__webpack_require__(4603);__webpack_require__(8450);__webpack_require__(4916);__webpack_require__(8386);__webpack_require__(9714);__webpack_require__(9600);__webpack_require__(3123);__webpack_require__(4723);__webpack_require__(2707);__webpack_require__(5306);__webpack_require__(7042);__webpack_require__(7601);__webpack_require__(1539);__webpack_require__(4747);__webpack_require__(6992);__webpack_require__(3948);__webpack_require__(561);__webpack_require__(8309);__webpack_require__(1249);__webpack_require__(8264);__webpack_require__(4765);__webpack_require__(2262);__webpack_require__(4506);__webpack_require__(2222);__webpack_require__(8674);__webpack_require__(3290);__webpack_require__(7327);__webpack_require__(6535);__webpack_require__(9244);__webpack_require__(7852);__webpack_require__(9826);__webpack_require__(4553);__webpack_require__(6699);__webpack_require__(2023);__webpack_require__(6528);__webpack_require__(3112);__webpack_require__(2481);__webpack_require__(6755);__webpack_require__(3210);__webpack_require__(8702);__webpack_require__(5674);__webpack_require__(3753);/**
  * @license
  * Lodash <https://lodash.com/>
  * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
@@ -39658,12 +42852,12 @@ var __WEBPACK_AMD_DEFINE_RESULT__;__webpack_require__(2262);__webpack_require__(
    */var reForbiddenIdentifierChars=/[()=,{}\[\]\/\s]/;/** Used to match backslashes in property paths. */var reEscapeChar=/\\(\\)?/g;/**
    * Used to match
    * [ES template delimiters](http://ecma-international.org/ecma-262/7.0/#sec-template-literal-lexical-components).
-   */var reEsTemplate=/\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;/** Used to match `RegExp` flags from their coerced string values. */var reFlags=/\w*$/;/** Used to detect bad signed hexadecimal string values. */var reIsBadHex=/^[-+]0x[0-9a-f]+$/i;/** Used to detect binary string values. */var reIsBinary=/^0b[01]+$/i;/** Used to detect host constructors (Safari). */var reIsHostCtor=/^\[object .+?Constructor\]$/;/** Used to detect octal string values. */var reIsOctal=/^0o[0-7]+$/i;/** Used to detect unsigned integer values. */var reIsUint=/^(?:0|[1-9]\d*)$/;/** Used to match Latin Unicode letters (excluding mathematical operators). */var reLatin=/[\xc0-\xd6\xd8-\xf6\xf8-\xff\u0100-\u017f]/g;/** Used to ensure capturing order of template delimiters. */var reNoMatch=/($^)/;/** Used to match unescaped characters in compiled string literals. */var reUnescapedString=/['\n\r\u2028\u2029\\]/g;/** Used to compose unicode character classes. */var rsAstralRange='\\ud800-\\udfff',rsComboMarksRange='\\u0300-\\u036f',reComboHalfMarksRange='\\ufe20-\\ufe2f',rsComboSymbolsRange='\\u20d0-\\u20ff',rsComboRange=rsComboMarksRange+reComboHalfMarksRange+rsComboSymbolsRange,rsDingbatRange='\\u2700-\\u27bf',rsLowerRange='a-z\\xdf-\\xf6\\xf8-\\xff',rsMathOpRange='\\xac\\xb1\\xd7\\xf7',rsNonCharRange='\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf',rsPunctuationRange='\\u2000-\\u206f',rsSpaceRange=' \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000',rsUpperRange='A-Z\\xc0-\\xd6\\xd8-\\xde',rsVarRange='\\ufe0e\\ufe0f',rsBreakRange=rsMathOpRange+rsNonCharRange+rsPunctuationRange+rsSpaceRange;/** Used to compose unicode capture groups. */var rsApos="['\u2019]",rsAstral='['+rsAstralRange+']',rsBreak='['+rsBreakRange+']',rsCombo='['+rsComboRange+']',rsDigits='\\d+',rsDingbat='['+rsDingbatRange+']',rsLower='['+rsLowerRange+']',rsMisc='[^'+rsAstralRange+rsBreakRange+rsDigits+rsDingbatRange+rsLowerRange+rsUpperRange+']',rsFitz='\\ud83c[\\udffb-\\udfff]',rsModifier='(?:'+rsCombo+'|'+rsFitz+')',rsNonAstral='[^'+rsAstralRange+']',rsRegional='(?:\\ud83c[\\udde6-\\uddff]){2}',rsSurrPair='[\\ud800-\\udbff][\\udc00-\\udfff]',rsUpper='['+rsUpperRange+']',rsZWJ='\\u200d';/** Used to compose unicode regexes. */var rsMiscLower='(?:'+rsLower+'|'+rsMisc+')',rsMiscUpper='(?:'+rsUpper+'|'+rsMisc+')',rsOptContrLower='(?:'+rsApos+'(?:d|ll|m|re|s|t|ve))?',rsOptContrUpper='(?:'+rsApos+'(?:D|LL|M|RE|S|T|VE))?',reOptMod=rsModifier+'?',rsOptVar='['+rsVarRange+']?',rsOptJoin='(?:'+rsZWJ+'(?:'+[rsNonAstral,rsRegional,rsSurrPair].join('|')+')'+rsOptVar+reOptMod+')*',rsOrdLower='\\d*(?:1st|2nd|3rd|(?![123])\\dth)(?=\\b|[A-Z_])',rsOrdUpper='\\d*(?:1ST|2ND|3RD|(?![123])\\dTH)(?=\\b|[a-z_])',rsSeq=rsOptVar+reOptMod+rsOptJoin,rsEmoji='(?:'+[rsDingbat,rsRegional,rsSurrPair].join('|')+')'+rsSeq,rsSymbol='(?:'+[rsNonAstral+rsCombo+'?',rsCombo,rsRegional,rsSurrPair,rsAstral].join('|')+')';/** Used to match apostrophes. */var reApos=RegExp(rsApos,'g');/**
+   */var reEsTemplate=/\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;/** Used to match `RegExp` flags from their coerced string values. */var reFlags=/\w*$/;/** Used to detect bad signed hexadecimal string values. */var reIsBadHex=/^[-+]0x[0-9a-f]+$/i;/** Used to detect binary string values. */var reIsBinary=/^0b[01]+$/i;/** Used to detect host constructors (Safari). */var reIsHostCtor=/^\[object .+?Constructor\]$/;/** Used to detect octal string values. */var reIsOctal=/^0o[0-7]+$/i;/** Used to detect unsigned integer values. */var reIsUint=/^(?:0|[1-9]\d*)$/;/** Used to match Latin Unicode letters (excluding mathematical operators). */var reLatin=/[\xc0-\xd6\xd8-\xf6\xf8-\xff\u0100-\u017f]/g;/** Used to ensure capturing order of template delimiters. */var reNoMatch=/($^)/;/** Used to match unescaped characters in compiled string literals. */var reUnescapedString=/['\n\r\u2028\u2029\\]/g;/** Used to compose unicode character classes. */var rsAstralRange="\\ud800-\\udfff",rsComboMarksRange="\\u0300-\\u036f",reComboHalfMarksRange="\\ufe20-\\ufe2f",rsComboSymbolsRange="\\u20d0-\\u20ff",rsComboRange=rsComboMarksRange+reComboHalfMarksRange+rsComboSymbolsRange,rsDingbatRange="\\u2700-\\u27bf",rsLowerRange='a-z\\xdf-\\xf6\\xf8-\\xff',rsMathOpRange='\\xac\\xb1\\xd7\\xf7',rsNonCharRange='\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf',rsPunctuationRange="\\u2000-\\u206f",rsSpaceRange=" \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000",rsUpperRange='A-Z\\xc0-\\xd6\\xd8-\\xde',rsVarRange="\\ufe0e\\ufe0f",rsBreakRange=rsMathOpRange+rsNonCharRange+rsPunctuationRange+rsSpaceRange;/** Used to compose unicode capture groups. */var rsApos="['\u2019]",rsAstral='['+rsAstralRange+']',rsBreak='['+rsBreakRange+']',rsCombo='['+rsComboRange+']',rsDigits='\\d+',rsDingbat='['+rsDingbatRange+']',rsLower='['+rsLowerRange+']',rsMisc='[^'+rsAstralRange+rsBreakRange+rsDigits+rsDingbatRange+rsLowerRange+rsUpperRange+']',rsFitz="\\ud83c[\\udffb-\\udfff]",rsModifier='(?:'+rsCombo+'|'+rsFitz+')',rsNonAstral='[^'+rsAstralRange+']',rsRegional="(?:\\ud83c[\\udde6-\\uddff]){2}",rsSurrPair="[\\ud800-\\udbff][\\udc00-\\udfff]",rsUpper='['+rsUpperRange+']',rsZWJ="\\u200d";/** Used to compose unicode regexes. */var rsMiscLower='(?:'+rsLower+'|'+rsMisc+')',rsMiscUpper='(?:'+rsUpper+'|'+rsMisc+')',rsOptContrLower='(?:'+rsApos+'(?:d|ll|m|re|s|t|ve))?',rsOptContrUpper='(?:'+rsApos+'(?:D|LL|M|RE|S|T|VE))?',reOptMod=rsModifier+'?',rsOptVar='['+rsVarRange+']?',rsOptJoin='(?:'+rsZWJ+'(?:'+[rsNonAstral,rsRegional,rsSurrPair].join('|')+')'+rsOptVar+reOptMod+')*',rsOrdLower='\\d*(?:1st|2nd|3rd|(?![123])\\dth)(?=\\b|[A-Z_])',rsOrdUpper='\\d*(?:1ST|2ND|3RD|(?![123])\\dTH)(?=\\b|[a-z_])',rsSeq=rsOptVar+reOptMod+rsOptJoin,rsEmoji='(?:'+[rsDingbat,rsRegional,rsSurrPair].join('|')+')'+rsSeq,rsSymbol='(?:'+[rsNonAstral+rsCombo+'?',rsCombo,rsRegional,rsSurrPair,rsAstral].join('|')+')';/** Used to match apostrophes. */var reApos=RegExp(rsApos,'g');/**
    * Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) and
    * [combining diacritical marks for symbols](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks_for_Symbols).
    */var reComboMark=RegExp(rsCombo,'g');/** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */var reUnicode=RegExp(rsFitz+'(?='+rsFitz+')|'+rsSymbol+rsSeq,'g');/** Used to match complex or compound words. */var reUnicodeWord=RegExp([rsUpper+'?'+rsLower+'+'+rsOptContrLower+'(?='+[rsBreak,rsUpper,'$'].join('|')+')',rsMiscUpper+'+'+rsOptContrUpper+'(?='+[rsBreak,rsUpper+rsMiscLower,'$'].join('|')+')',rsUpper+'?'+rsMiscLower+'+'+rsOptContrLower,rsUpper+'+'+rsOptContrUpper,rsOrdUpper,rsOrdLower,rsDigits,rsEmoji].join('|'),'g');/** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */var reHasUnicode=RegExp('['+rsZWJ+rsAstralRange+rsComboRange+rsVarRange+']');/** Used to detect strings that need a more robust regexp to match words. */var reHasUnicodeWord=/[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/;/** Used to assign default `context` object properties. */var contextProps=['Array','Buffer','DataView','Date','Error','Float32Array','Float64Array','Function','Int8Array','Int16Array','Int32Array','Map','Math','Object','Promise','RegExp','Set','String','Symbol','TypeError','Uint8Array','Uint8ClampedArray','Uint16Array','Uint32Array','WeakMap','_','clearTimeout','isFinite','parseInt','setTimeout'];/** Used to make template sourceURLs easier to identify. */var templateCounter=-1;/** Used to identify `toStringTag` values of typed arrays. */var typedArrayTags={};typedArrayTags[float32Tag]=typedArrayTags[float64Tag]=typedArrayTags[int8Tag]=typedArrayTags[int16Tag]=typedArrayTags[int32Tag]=typedArrayTags[uint8Tag]=typedArrayTags[uint8ClampedTag]=typedArrayTags[uint16Tag]=typedArrayTags[uint32Tag]=true;typedArrayTags[argsTag]=typedArrayTags[arrayTag]=typedArrayTags[arrayBufferTag]=typedArrayTags[boolTag]=typedArrayTags[dataViewTag]=typedArrayTags[dateTag]=typedArrayTags[errorTag]=typedArrayTags[funcTag]=typedArrayTags[mapTag]=typedArrayTags[numberTag]=typedArrayTags[objectTag]=typedArrayTags[regexpTag]=typedArrayTags[setTag]=typedArrayTags[stringTag]=typedArrayTags[weakMapTag]=false;/** Used to identify `toStringTag` values supported by `_.clone`. */var cloneableTags={};cloneableTags[argsTag]=cloneableTags[arrayTag]=cloneableTags[arrayBufferTag]=cloneableTags[dataViewTag]=cloneableTags[boolTag]=cloneableTags[dateTag]=cloneableTags[float32Tag]=cloneableTags[float64Tag]=cloneableTags[int8Tag]=cloneableTags[int16Tag]=cloneableTags[int32Tag]=cloneableTags[mapTag]=cloneableTags[numberTag]=cloneableTags[objectTag]=cloneableTags[regexpTag]=cloneableTags[setTag]=cloneableTags[stringTag]=cloneableTags[symbolTag]=cloneableTags[uint8Tag]=cloneableTags[uint8ClampedTag]=cloneableTags[uint16Tag]=cloneableTags[uint32Tag]=true;cloneableTags[errorTag]=cloneableTags[funcTag]=cloneableTags[weakMapTag]=false;/** Used to map Latin Unicode letters to basic Latin letters. */var deburredLetters={// Latin-1 Supplement block.
 '\xc0':'A','\xc1':'A','\xc2':'A','\xc3':'A','\xc4':'A','\xc5':'A','\xe0':'a','\xe1':'a','\xe2':'a','\xe3':'a','\xe4':'a','\xe5':'a','\xc7':'C','\xe7':'c','\xd0':'D','\xf0':'d','\xc8':'E','\xc9':'E','\xca':'E','\xcb':'E','\xe8':'e','\xe9':'e','\xea':'e','\xeb':'e','\xcc':'I','\xcd':'I','\xce':'I','\xcf':'I','\xec':'i','\xed':'i','\xee':'i','\xef':'i','\xd1':'N','\xf1':'n','\xd2':'O','\xd3':'O','\xd4':'O','\xd5':'O','\xd6':'O','\xd8':'O','\xf2':'o','\xf3':'o','\xf4':'o','\xf5':'o','\xf6':'o','\xf8':'o','\xd9':'U','\xda':'U','\xdb':'U','\xdc':'U','\xf9':'u','\xfa':'u','\xfb':'u','\xfc':'u','\xdd':'Y','\xfd':'y','\xff':'y','\xc6':'Ae','\xe6':'ae','\xde':'Th','\xfe':'th','\xdf':'ss',// Latin Extended-A block.
-'\u0100':'A','\u0102':'A','\u0104':'A','\u0101':'a','\u0103':'a','\u0105':'a','\u0106':'C','\u0108':'C','\u010a':'C','\u010c':'C','\u0107':'c','\u0109':'c','\u010b':'c','\u010d':'c','\u010e':'D','\u0110':'D','\u010f':'d','\u0111':'d','\u0112':'E','\u0114':'E','\u0116':'E','\u0118':'E','\u011a':'E','\u0113':'e','\u0115':'e','\u0117':'e','\u0119':'e','\u011b':'e','\u011c':'G','\u011e':'G','\u0120':'G','\u0122':'G','\u011d':'g','\u011f':'g','\u0121':'g','\u0123':'g','\u0124':'H','\u0126':'H','\u0125':'h','\u0127':'h','\u0128':'I','\u012a':'I','\u012c':'I','\u012e':'I','\u0130':'I','\u0129':'i','\u012b':'i','\u012d':'i','\u012f':'i','\u0131':'i','\u0134':'J','\u0135':'j','\u0136':'K','\u0137':'k','\u0138':'k','\u0139':'L','\u013b':'L','\u013d':'L','\u013f':'L','\u0141':'L','\u013a':'l','\u013c':'l','\u013e':'l','\u0140':'l','\u0142':'l','\u0143':'N','\u0145':'N','\u0147':'N','\u014a':'N','\u0144':'n','\u0146':'n','\u0148':'n','\u014b':'n','\u014c':'O','\u014e':'O','\u0150':'O','\u014d':'o','\u014f':'o','\u0151':'o','\u0154':'R','\u0156':'R','\u0158':'R','\u0155':'r','\u0157':'r','\u0159':'r','\u015a':'S','\u015c':'S','\u015e':'S','\u0160':'S','\u015b':'s','\u015d':'s','\u015f':'s','\u0161':'s','\u0162':'T','\u0164':'T','\u0166':'T','\u0163':'t','\u0165':'t','\u0167':'t','\u0168':'U','\u016a':'U','\u016c':'U','\u016e':'U','\u0170':'U','\u0172':'U','\u0169':'u','\u016b':'u','\u016d':'u','\u016f':'u','\u0171':'u','\u0173':'u','\u0174':'W','\u0175':'w','\u0176':'Y','\u0177':'y','\u0178':'Y','\u0179':'Z','\u017b':'Z','\u017d':'Z','\u017a':'z','\u017c':'z','\u017e':'z','\u0132':'IJ','\u0133':'ij','\u0152':'Oe','\u0153':'oe','\u0149':"'n",'\u017f':'s'};/** Used to map characters to HTML entities. */var htmlEscapes={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};/** Used to map HTML entities to characters. */var htmlUnescapes={'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&#39;':"'"};/** Used to escape characters for inclusion in compiled string literals. */var stringEscapes={'\\':'\\',"'":"'",'\n':'n','\r':'r','\u2028':'u2028','\u2029':'u2029'};/** Built-in method references without a dependency on `root`. */var freeParseFloat=parseFloat,freeParseInt=parseInt;/** Detect free variable `global` from Node.js. */var freeGlobal=typeof __webpack_require__.g=='object'&&__webpack_require__.g&&__webpack_require__.g.Object===Object&&__webpack_require__.g;/** Detect free variable `self`. */var freeSelf=typeof self=='object'&&self&&self.Object===Object&&self;/** Used as a reference to the global object. */var root=freeGlobal||freeSelf||Function('return this')();/** Detect free variable `exports`. */var freeExports= true&&exports&&!exports.nodeType&&exports;/** Detect free variable `module`. */var freeModule=freeExports&&"object"=='object'&&module&&!module.nodeType&&module;/** Detect the popular CommonJS extension `module.exports`. */var moduleExports=freeModule&&freeModule.exports===freeExports;/** Detect free variable `process` from Node.js. */var freeProcess=moduleExports&&freeGlobal.process;/** Used to access faster Node.js helpers. */var nodeUtil=function(){try{// Use `util.types` for Node.js 10+.
+"\u0100":'A',"\u0102":'A',"\u0104":'A',"\u0101":'a',"\u0103":'a',"\u0105":'a',"\u0106":'C',"\u0108":'C',"\u010A":'C',"\u010C":'C',"\u0107":'c',"\u0109":'c',"\u010B":'c',"\u010D":'c',"\u010E":'D',"\u0110":'D',"\u010F":'d',"\u0111":'d',"\u0112":'E',"\u0114":'E',"\u0116":'E',"\u0118":'E',"\u011A":'E',"\u0113":'e',"\u0115":'e',"\u0117":'e',"\u0119":'e',"\u011B":'e',"\u011C":'G',"\u011E":'G',"\u0120":'G',"\u0122":'G',"\u011D":'g',"\u011F":'g',"\u0121":'g',"\u0123":'g',"\u0124":'H',"\u0126":'H',"\u0125":'h',"\u0127":'h',"\u0128":'I',"\u012A":'I',"\u012C":'I',"\u012E":'I',"\u0130":'I',"\u0129":'i',"\u012B":'i',"\u012D":'i',"\u012F":'i',"\u0131":'i',"\u0134":'J',"\u0135":'j',"\u0136":'K',"\u0137":'k',"\u0138":'k',"\u0139":'L',"\u013B":'L',"\u013D":'L',"\u013F":'L',"\u0141":'L',"\u013A":'l',"\u013C":'l',"\u013E":'l',"\u0140":'l',"\u0142":'l',"\u0143":'N',"\u0145":'N',"\u0147":'N',"\u014A":'N',"\u0144":'n',"\u0146":'n',"\u0148":'n',"\u014B":'n',"\u014C":'O',"\u014E":'O',"\u0150":'O',"\u014D":'o',"\u014F":'o',"\u0151":'o',"\u0154":'R',"\u0156":'R',"\u0158":'R',"\u0155":'r',"\u0157":'r',"\u0159":'r',"\u015A":'S',"\u015C":'S',"\u015E":'S',"\u0160":'S',"\u015B":'s',"\u015D":'s',"\u015F":'s',"\u0161":'s',"\u0162":'T',"\u0164":'T',"\u0166":'T',"\u0163":'t',"\u0165":'t',"\u0167":'t',"\u0168":'U',"\u016A":'U',"\u016C":'U',"\u016E":'U',"\u0170":'U',"\u0172":'U',"\u0169":'u',"\u016B":'u',"\u016D":'u',"\u016F":'u',"\u0171":'u',"\u0173":'u',"\u0174":'W',"\u0175":'w',"\u0176":'Y',"\u0177":'y',"\u0178":'Y',"\u0179":'Z',"\u017B":'Z',"\u017D":'Z',"\u017A":'z',"\u017C":'z',"\u017E":'z',"\u0132":'IJ',"\u0133":'ij',"\u0152":'Oe',"\u0153":'oe',"\u0149":"'n","\u017F":'s'};/** Used to map characters to HTML entities. */var htmlEscapes={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};/** Used to map HTML entities to characters. */var htmlUnescapes={'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&#39;':"'"};/** Used to escape characters for inclusion in compiled string literals. */var stringEscapes={'\\':'\\',"'":"'",'\n':'n','\r':'r',"\u2028":'u2028',"\u2029":'u2029'};/** Built-in method references without a dependency on `root`. */var freeParseFloat=parseFloat,freeParseInt=parseInt;/** Detect free variable `global` from Node.js. */var freeGlobal=(typeof __webpack_require__.g==="undefined"?"undefined":_typeof(__webpack_require__.g))=='object'&&__webpack_require__.g&&__webpack_require__.g.Object===Object&&__webpack_require__.g;/** Detect free variable `self`. */var freeSelf=(typeof self==="undefined"?"undefined":_typeof(self))=='object'&&self&&self.Object===Object&&self;/** Used as a reference to the global object. */var root=freeGlobal||freeSelf||Function('return this')();/** Detect free variable `exports`. */var freeExports=( false?0:_typeof(exports))=='object'&&exports&&!exports.nodeType&&exports;/** Detect free variable `module`. */var freeModule=freeExports&&( false?0:_typeof(module))=='object'&&module&&!module.nodeType&&module;/** Detect the popular CommonJS extension `module.exports`. */var moduleExports=freeModule&&freeModule.exports===freeExports;/** Detect free variable `process` from Node.js. */var freeProcess=moduleExports&&freeGlobal.process;/** Used to access faster Node.js helpers. */var nodeUtil=function(){try{// Use `util.types` for Node.js 10+.
 var types=freeModule&&freeModule.require&&freeModule.require('util').types;if(types){return types;}// Legacy `process.binding('util')` for Node.js < 10.
 return freeProcess&&freeProcess.binding&&freeProcess.binding('util');}catch(e){}}();/* Node.js helper references. */var nodeIsArrayBuffer=nodeUtil&&nodeUtil.isArrayBuffer,nodeIsDate=nodeUtil&&nodeUtil.isDate,nodeIsMap=nodeUtil&&nodeUtil.isMap,nodeIsRegExp=nodeUtil&&nodeUtil.isRegExp,nodeIsSet=nodeUtil&&nodeUtil.isSet,nodeIsTypedArray=nodeUtil&&nodeUtil.isTypedArray;/*--------------------------------------------------------------------------*/ /**
    * A faster alternative to `Function#apply`, this function invokes `func`
@@ -40125,7 +43319,7 @@ return freeProcess&&freeProcess.binding&&freeProcess.binding('util');}catch(e){}
      * Used to resolve the
      * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
      * of values.
-     */var nativeObjectToString=objectProto.toString;/** Used to infer the `Object` constructor. */var objectCtorString=funcToString.call(Object);/** Used to restore the original `_` reference in `_.noConflict`. */var oldDash=root._;/** Used to detect if a method is native. */var reIsNative=RegExp('^'+funcToString.call(hasOwnProperty).replace(reRegExpChar,'\\$&').replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g,'$1.*?')+'$');/** Built-in value references. */var Buffer=moduleExports?context.Buffer:undefined,Symbol=context.Symbol,Uint8Array=context.Uint8Array,allocUnsafe=Buffer?Buffer.allocUnsafe:undefined,getPrototype=overArg(Object.getPrototypeOf,Object),objectCreate=Object.create,propertyIsEnumerable=objectProto.propertyIsEnumerable,splice=arrayProto.splice,spreadableSymbol=Symbol?Symbol.isConcatSpreadable:undefined,symIterator=Symbol?Symbol.iterator:undefined,symToStringTag=Symbol?Symbol.toStringTag:undefined;var defineProperty=function(){try{var func=getNative(Object,'defineProperty');func({},'',{});return func;}catch(e){}}();/** Mocked built-ins. */var ctxClearTimeout=context.clearTimeout!==root.clearTimeout&&context.clearTimeout,ctxNow=Date&&Date.now!==root.Date.now&&Date.now,ctxSetTimeout=context.setTimeout!==root.setTimeout&&context.setTimeout;/* Built-in method references for those with the same name as other `lodash` methods. */var nativeCeil=Math.ceil,nativeFloor=Math.floor,nativeGetSymbols=Object.getOwnPropertySymbols,nativeIsBuffer=Buffer?Buffer.isBuffer:undefined,nativeIsFinite=context.isFinite,nativeJoin=arrayProto.join,nativeKeys=overArg(Object.keys,Object),nativeMax=Math.max,nativeMin=Math.min,nativeNow=Date.now,nativeParseInt=context.parseInt,nativeRandom=Math.random,nativeReverse=arrayProto.reverse;/* Built-in method references that are verified to be native. */var DataView=getNative(context,'DataView'),Map=getNative(context,'Map'),Promise=getNative(context,'Promise'),Set=getNative(context,'Set'),WeakMap=getNative(context,'WeakMap'),nativeCreate=getNative(Object,'create');/** Used to store function metadata. */var metaMap=WeakMap&&new WeakMap();/** Used to lookup unminified function names. */var realNames={};/** Used to detect maps, sets, and weakmaps. */var dataViewCtorString=toSource(DataView),mapCtorString=toSource(Map),promiseCtorString=toSource(Promise),setCtorString=toSource(Set),weakMapCtorString=toSource(WeakMap);/** Used to convert symbols to primitives and strings. */var symbolProto=Symbol?Symbol.prototype:undefined,symbolValueOf=symbolProto?symbolProto.valueOf:undefined,symbolToString=symbolProto?symbolProto.toString:undefined;/*------------------------------------------------------------------------*/ /**
+     */var nativeObjectToString=objectProto.toString;/** Used to infer the `Object` constructor. */var objectCtorString=funcToString.call(Object);/** Used to restore the original `_` reference in `_.noConflict`. */var oldDash=root._;/** Used to detect if a method is native. */var reIsNative=RegExp('^'+funcToString.call(hasOwnProperty).replace(reRegExpChar,'\\$&').replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g,'$1.*?')+'$');/** Built-in value references. */var Buffer=moduleExports?context.Buffer:undefined,_Symbol=context.Symbol,Uint8Array=context.Uint8Array,allocUnsafe=Buffer?Buffer.allocUnsafe:undefined,getPrototype=overArg(Object.getPrototypeOf,Object),objectCreate=Object.create,propertyIsEnumerable=objectProto.propertyIsEnumerable,splice=arrayProto.splice,spreadableSymbol=_Symbol?_Symbol.isConcatSpreadable:undefined,symIterator=_Symbol?_Symbol.iterator:undefined,symToStringTag=_Symbol?_Symbol.toStringTag:undefined;var defineProperty=function(){try{var func=getNative(Object,'defineProperty');func({},'',{});return func;}catch(e){}}();/** Mocked built-ins. */var ctxClearTimeout=context.clearTimeout!==root.clearTimeout&&context.clearTimeout,ctxNow=Date&&Date.now!==root.Date.now&&Date.now,ctxSetTimeout=context.setTimeout!==root.setTimeout&&context.setTimeout;/* Built-in method references for those with the same name as other `lodash` methods. */var nativeCeil=Math.ceil,nativeFloor=Math.floor,nativeGetSymbols=Object.getOwnPropertySymbols,nativeIsBuffer=Buffer?Buffer.isBuffer:undefined,nativeIsFinite=context.isFinite,nativeJoin=arrayProto.join,nativeKeys=overArg(Object.keys,Object),nativeMax=Math.max,nativeMin=Math.min,nativeNow=Date.now,nativeParseInt=context.parseInt,nativeRandom=Math.random,nativeReverse=arrayProto.reverse;/* Built-in method references that are verified to be native. */var DataView=getNative(context,'DataView'),Map=getNative(context,'Map'),Promise=getNative(context,'Promise'),Set=getNative(context,'Set'),WeakMap=getNative(context,'WeakMap'),nativeCreate=getNative(Object,'create');/** Used to store function metadata. */var metaMap=WeakMap&&new WeakMap();/** Used to lookup unminified function names. */var realNames={};/** Used to detect maps, sets, and weakmaps. */var dataViewCtorString=toSource(DataView),mapCtorString=toSource(Map),promiseCtorString=toSource(Promise),setCtorString=toSource(Set),weakMapCtorString=toSource(WeakMap);/** Used to convert symbols to primitives and strings. */var symbolProto=_Symbol?_Symbol.prototype:undefined,symbolValueOf=symbolProto?symbolProto.valueOf:undefined,symbolToString=symbolProto?symbolProto.toString:undefined;/*------------------------------------------------------------------------*/ /**
      * Creates a `lodash` object which wraps `value` to enable implicit method
      * chain sequences. Methods that operate on and return arrays, collections,
      * and functions can be chained together. Methods that retrieve a single value
@@ -40960,7 +44154,7 @@ baseFlatten(value,depth-1,predicate,isStrict,result);}else{arrayPush(result,valu
      * @returns {Function} Returns the iteratee.
      */function baseIteratee(value){// Don't store the `typeof` result in a variable to avoid a JIT bug in Safari 9.
 // See https://bugs.webkit.org/show_bug.cgi?id=156034 for more details.
-if(typeof value=='function'){return value;}if(value==null){return identity;}if(typeof value=='object'){return isArray(value)?baseMatchesProperty(value[0],value[1]):baseMatches(value);}return property(value);}/**
+if(typeof value=='function'){return value;}if(value==null){return identity;}if(_typeof(value)=='object'){return isArray(value)?baseMatchesProperty(value[0],value[1]):baseMatches(value);}return property(value);}/**
      * The base implementation of `_.keys` which doesn't treat sparse arrays as dense.
      *
      * @private
@@ -41508,7 +44702,7 @@ return isObject(result)?result:thisBinding;};}/**
      * @private
      * @param {Function} findIndexFunc The function to find the collection index.
      * @returns {Function} Returns the new find function.
-     */function createFind(findIndexFunc){return function(collection,predicate,fromIndex){var iterable=Object(collection);if(!isArrayLike(collection)){var iteratee=getIteratee(predicate,3);collection=keys(collection);predicate=function(key){return iteratee(iterable[key],key,iterable);};}var index=findIndexFunc(collection,predicate,fromIndex);return index>-1?iterable[iteratee?collection[index]:index]:undefined;};}/**
+     */function createFind(findIndexFunc){return function(collection,predicate,fromIndex){var iterable=Object(collection);if(!isArrayLike(collection)){var iteratee=getIteratee(predicate,3);collection=keys(collection);predicate=function predicate(key){return iteratee(iterable[key],key,iterable);};}var index=findIndexFunc(collection,predicate,fromIndex);return index>-1?iterable[iteratee?collection[index]:index]:undefined;};}/**
      * Creates a `_.flow` or `_.flowRight` function.
      *
      * @private
@@ -41822,7 +45016,7 @@ if(objCtor!=othCtor&&'constructor'in object&&'constructor'in other&&!(typeof obj
      * @param {*} value The value to query.
      * @returns {string} Returns the `toStringTag`.
      */var getTag=baseGetTag;// Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.
-if(DataView&&getTag(new DataView(new ArrayBuffer(1)))!=dataViewTag||Map&&getTag(new Map())!=mapTag||Promise&&getTag(Promise.resolve())!=promiseTag||Set&&getTag(new Set())!=setTag||WeakMap&&getTag(new WeakMap())!=weakMapTag){getTag=function(value){var result=baseGetTag(value),Ctor=result==objectTag?value.constructor:undefined,ctorString=Ctor?toSource(Ctor):'';if(ctorString){switch(ctorString){case dataViewCtorString:return dataViewTag;case mapCtorString:return mapTag;case promiseCtorString:return promiseTag;case setCtorString:return setTag;case weakMapCtorString:return weakMapTag;}}return result;};}/**
+if(DataView&&getTag(new DataView(new ArrayBuffer(1)))!=dataViewTag||Map&&getTag(new Map())!=mapTag||Promise&&getTag(Promise.resolve())!=promiseTag||Set&&getTag(new Set())!=setTag||WeakMap&&getTag(new WeakMap())!=weakMapTag){getTag=function getTag(value){var result=baseGetTag(value),Ctor=result==objectTag?value.constructor:undefined,ctorString=Ctor?toSource(Ctor):'';if(ctorString){switch(ctorString){case dataViewCtorString:return dataViewTag;case mapCtorString:return mapTag;case promiseCtorString:return promiseTag;case setCtorString:return setTag;case weakMapCtorString:return weakMapTag;}}return result;};}/**
      * Gets the view, applying any `transforms` to the `start` and `end` positions.
      *
      * @private
@@ -41889,7 +45083,7 @@ if(length&&typeof array[0]=='string'&&hasOwnProperty.call(array,'index')){result
      * @param {*} value The value to check.
      * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
      * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
-     */function isIndex(value,length){var type=typeof value;length=length==null?MAX_SAFE_INTEGER:length;return!!length&&(type=='number'||type!='symbol'&&reIsUint.test(value))&&value>-1&&value%1==0&&value<length;}/**
+     */function isIndex(value,length){var type=_typeof(value);length=length==null?MAX_SAFE_INTEGER:length;return!!length&&(type=='number'||type!='symbol'&&reIsUint.test(value))&&value>-1&&value%1==0&&value<length;}/**
      * Checks if the given arguments are from an iteratee call.
      *
      * @private
@@ -41898,20 +45092,20 @@ if(length&&typeof array[0]=='string'&&hasOwnProperty.call(array,'index')){result
      * @param {*} object The potential iteratee object argument.
      * @returns {boolean} Returns `true` if the arguments are from an iteratee call,
      *  else `false`.
-     */function isIterateeCall(value,index,object){if(!isObject(object)){return false;}var type=typeof index;if(type=='number'?isArrayLike(object)&&isIndex(index,object.length):type=='string'&&index in object){return eq(object[index],value);}return false;}/**
+     */function isIterateeCall(value,index,object){if(!isObject(object)){return false;}var type=_typeof(index);if(type=='number'?isArrayLike(object)&&isIndex(index,object.length):type=='string'&&index in object){return eq(object[index],value);}return false;}/**
      * Checks if `value` is a property name and not a property path.
      *
      * @private
      * @param {*} value The value to check.
      * @param {Object} [object] The object to query keys on.
      * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
-     */function isKey(value,object){if(isArray(value)){return false;}var type=typeof value;if(type=='number'||type=='symbol'||type=='boolean'||value==null||isSymbol(value)){return true;}return reIsPlainProp.test(value)||!reIsDeepProp.test(value)||object!=null&&value in Object(object);}/**
+     */function isKey(value,object){if(isArray(value)){return false;}var type=_typeof(value);if(type=='number'||type=='symbol'||type=='boolean'||value==null||isSymbol(value)){return true;}return reIsPlainProp.test(value)||!reIsDeepProp.test(value)||object!=null&&value in Object(object);}/**
      * Checks if `value` is suitable for use as unique object key.
      *
      * @private
      * @param {*} value The value to check.
      * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
-     */function isKeyable(value){var type=typeof value;return type=='string'||type=='number'||type=='symbol'||type=='boolean'?value!=='__proto__':value===null;}/**
+     */function isKeyable(value){var type=_typeof(value);return type=='string'||type=='number'||type=='symbol'||type=='boolean'?value!=='__proto__':value===null;}/**
      * Checks if `func` has a lazy counterpart.
      *
      * @private
@@ -43501,7 +46695,7 @@ data[0]=source[0];data[1]=newBitmask;return data;}/**
      *
      * _(object).at(['a[0].b.c', 'a[1]']).value();
      * // => [3, 4]
-     */var wrapperAt=flatRest(function(paths){var length=paths.length,start=length?paths[0]:0,value=this.__wrapped__,interceptor=function(object){return baseAt(object,paths);};if(length>1||this.__actions__.length||!(value instanceof LazyWrapper)||!isIndex(start)){return this.thru(interceptor);}value=value.slice(start,+start+(length?1:0));value.__actions__.push({'func':thru,'args':[interceptor],'thisArg':undefined});return new LodashWrapper(value,this.__chain__).thru(function(array){if(length&&!array.length){array.push(undefined);}return array;});});/**
+     */var wrapperAt=flatRest(function(paths){var length=paths.length,start=length?paths[0]:0,value=this.__wrapped__,interceptor=function interceptor(object){return baseAt(object,paths);};if(length>1||this.__actions__.length||!(value instanceof LazyWrapper)||!isIndex(start)){return this.thru(interceptor);}value=value.slice(start,+start+(length?1:0));value.__actions__.push({'func':thru,'args':[interceptor],'thisArg':undefined});return new LodashWrapper(value,this.__chain__).thru(function(array){if(length&&!array.length){array.push(undefined);}return array;});});/**
      * Creates a `lodash` wrapper instance with explicit method chain sequences enabled.
      *
      * @name chain
@@ -44712,7 +47906,7 @@ clearTimeout(timerId);timerId=setTimeout(timerExpired,wait);return invokeFunc(la
      *
      * // Replace `_.memoize.Cache`.
      * _.memoize.Cache = WeakMap;
-     */function memoize(func,resolver){if(typeof func!='function'||resolver!=null&&typeof resolver!='function'){throw new TypeError(FUNC_ERROR_TEXT);}var memoized=function(){var args=arguments,key=resolver?resolver.apply(this,args):args[0],cache=memoized.cache;if(cache.has(key)){return cache.get(key);}var result=func.apply(this,args);memoized.cache=cache.set(key,result)||cache;return result;};memoized.cache=new(memoize.Cache||MapCache)();return memoized;}// Expose `MapCache`.
+     */function memoize(func,resolver){if(typeof func!='function'||resolver!=null&&typeof resolver!='function'){throw new TypeError(FUNC_ERROR_TEXT);}var memoized=function memoized(){var args=arguments,key=resolver?resolver.apply(this,args):args[0],cache=memoized.cache;if(cache.has(key)){return cache.get(key);}var result=func.apply(this,args);memoized.cache=cache.set(key,result)||cache;return result;};memoized.cache=new(memoize.Cache||MapCache)();return memoized;}// Expose `MapCache`.
 memoize.Cache=MapCache;/**
      * Creates a function that negates the result of the predicate `func`. The
      * `func` predicate is invoked with the `this` binding and arguments of the
@@ -45618,7 +48812,7 @@ var tag=baseGetTag(value);return tag==funcTag||tag==genTag||tag==asyncTag||tag==
      *
      * _.isObject(null);
      * // => false
-     */function isObject(value){var type=typeof value;return value!=null&&(type=='object'||type=='function');}/**
+     */function isObject(value){var type=_typeof(value);return value!=null&&(type=='object'||type=='function');}/**
      * Checks if `value` is object-like. A value is object-like if it's not `null`
      * and has a `typeof` result of "object".
      *
@@ -45641,7 +48835,7 @@ var tag=baseGetTag(value);return tag==funcTag||tag==genTag||tag==asyncTag||tag==
      *
      * _.isObjectLike(null);
      * // => false
-     */function isObjectLike(value){return value!=null&&typeof value=='object';}/**
+     */function isObjectLike(value){return value!=null&&_typeof(value)=='object';}/**
      * Checks if `value` is classified as a `Map` object.
      *
      * @static
@@ -45947,7 +49141,7 @@ return isNumber(value)&&value!=+value;}/**
      *
      * _.isSymbol('abc');
      * // => false
-     */function isSymbol(value){return typeof value=='symbol'||isObjectLike(value)&&baseGetTag(value)==symbolTag;}/**
+     */function isSymbol(value){return _typeof(value)=='symbol'||isObjectLike(value)&&baseGetTag(value)==symbolTag;}/**
      * Checks if `value` is classified as a typed array.
      *
      * @static
@@ -49094,7 +52288,7 @@ arrayEach(['drop','take'],function(methodName,index){LazyWrapper.prototype[metho
 arrayEach(['filter','map','takeWhile'],function(methodName,index){var type=index+1,isFilter=type==LAZY_FILTER_FLAG||type==LAZY_WHILE_FLAG;LazyWrapper.prototype[methodName]=function(iteratee){var result=this.clone();result.__iteratees__.push({'iteratee':getIteratee(iteratee,3),'type':type});result.__filtered__=result.__filtered__||isFilter;return result;};});// Add `LazyWrapper` methods for `_.head` and `_.last`.
 arrayEach(['head','last'],function(methodName,index){var takeName='take'+(index?'Right':'');LazyWrapper.prototype[methodName]=function(){return this[takeName](1).value()[0];};});// Add `LazyWrapper` methods for `_.initial` and `_.tail`.
 arrayEach(['initial','tail'],function(methodName,index){var dropName='drop'+(index?'':'Right');LazyWrapper.prototype[methodName]=function(){return this.__filtered__?new LazyWrapper(this):this[dropName](1);};});LazyWrapper.prototype.compact=function(){return this.filter(identity);};LazyWrapper.prototype.find=function(predicate){return this.filter(predicate).head();};LazyWrapper.prototype.findLast=function(predicate){return this.reverse().find(predicate);};LazyWrapper.prototype.invokeMap=baseRest(function(path,args){if(typeof path=='function'){return new LazyWrapper(this);}return this.map(function(value){return baseInvoke(value,path,args);});});LazyWrapper.prototype.reject=function(predicate){return this.filter(negate(getIteratee(predicate)));};LazyWrapper.prototype.slice=function(start,end){start=toInteger(start);var result=this;if(result.__filtered__&&(start>0||end<0)){return new LazyWrapper(result);}if(start<0){result=result.takeRight(-start);}else if(start){result=result.drop(start);}if(end!==undefined){end=toInteger(end);result=end<0?result.dropRight(-end):result.take(end-start);}return result;};LazyWrapper.prototype.takeRightWhile=function(predicate){return this.reverse().takeWhile(predicate).reverse();};LazyWrapper.prototype.toArray=function(){return this.take(MAX_ARRAY_LENGTH);};// Add `LazyWrapper` methods to `lodash.prototype`.
-baseForOwn(LazyWrapper.prototype,function(func,methodName){var checkIteratee=/^(?:filter|find|map|reject)|While$/.test(methodName),isTaker=/^(?:head|last)$/.test(methodName),lodashFunc=lodash[isTaker?'take'+(methodName=='last'?'Right':''):methodName],retUnwrapped=isTaker||/^find/.test(methodName);if(!lodashFunc){return;}lodash.prototype[methodName]=function(){var value=this.__wrapped__,args=isTaker?[1]:arguments,isLazy=value instanceof LazyWrapper,iteratee=args[0],useLazy=isLazy||isArray(value);var interceptor=function(value){var result=lodashFunc.apply(lodash,arrayPush([value],args));return isTaker&&chainAll?result[0]:result;};if(useLazy&&checkIteratee&&typeof iteratee=='function'&&iteratee.length!=1){// Avoid lazy use if the iteratee has a "length" value other than `1`.
+baseForOwn(LazyWrapper.prototype,function(func,methodName){var checkIteratee=/^(?:filter|find|map|reject)|While$/.test(methodName),isTaker=/^(?:head|last)$/.test(methodName),lodashFunc=lodash[isTaker?'take'+(methodName=='last'?'Right':''):methodName],retUnwrapped=isTaker||/^find/.test(methodName);if(!lodashFunc){return;}lodash.prototype[methodName]=function(){var value=this.__wrapped__,args=isTaker?[1]:arguments,isLazy=value instanceof LazyWrapper,iteratee=args[0],useLazy=isLazy||isArray(value);var interceptor=function interceptor(value){var result=lodashFunc.apply(lodash,arrayPush([value],args));return isTaker&&chainAll?result[0]:result;};if(useLazy&&checkIteratee&&typeof iteratee=='function'&&iteratee.length!=1){// Avoid lazy use if the iteratee has a "length" value other than `1`.
 isLazy=useLazy=false;}var chainAll=this.__chain__,isHybrid=!!this.__actions__.length,isUnwrapped=retUnwrapped&&!chainAll,onlyLazy=isLazy&&!isHybrid;if(!retUnwrapped&&useLazy){value=onlyLazy?value:new LazyWrapper(this);var result=func.apply(value,args);result.__actions__.push({'func':thru,'args':[interceptor],'thisArg':undefined});return new LodashWrapper(result,chainAll);}if(isUnwrapped&&onlyLazy){return func.apply(this,args);}result=this.thru(interceptor);return isUnwrapped?isTaker?result.value()[0]:result.value():result;};});// Add `Array` methods to `lodash.prototype`.
 arrayEach(['pop','push','shift','sort','splice','unshift'],function(methodName){var func=arrayProto[methodName],chainName=/^(?:push|sort|unshift)$/.test(methodName)?'tap':'thru',retUnwrapped=/^(?:pop|shift)$/.test(methodName);lodash.prototype[methodName]=function(){var args=arguments;if(retUnwrapped&&!this.__chain__){var value=this.value();return func.apply(isArray(value)?value:[],args);}return this[chainName](function(value){return func.apply(isArray(value)?value:[],args);});};});// Map minified method names to their real names.
 baseForOwn(LazyWrapper.prototype,function(func,methodName){var lodashFunc=lodash[methodName];if(lodashFunc){var key=lodashFunc.name+'';if(!hasOwnProperty.call(realNames,key)){realNames[key]=[];}realNames[key].push({'name':methodName,'func':lodashFunc});}});realNames[createHybrid(undefined,WRAP_BIND_KEY_FLAG).name]=[{'name':'wrapper','func':undefined}];// Add methods to `LazyWrapper`.
@@ -49102,7 +52296,7 @@ LazyWrapper.prototype.clone=lazyClone;LazyWrapper.prototype.reverse=lazyReverse;
 lodash.prototype.at=wrapperAt;lodash.prototype.chain=wrapperChain;lodash.prototype.commit=wrapperCommit;lodash.prototype.next=wrapperNext;lodash.prototype.plant=wrapperPlant;lodash.prototype.reverse=wrapperReverse;lodash.prototype.toJSON=lodash.prototype.valueOf=lodash.prototype.value=wrapperValue;// Add lazy aliases.
 lodash.prototype.first=lodash.prototype.head;if(symIterator){lodash.prototype[symIterator]=wrapperToIterator;}return lodash;};/*--------------------------------------------------------------------------*/ // Export lodash.
 var _=runInContext();// Some AMD build optimizers, like r.js, check for condition patterns like:
-if(true){// Expose Lodash on the global object to prevent errors when Lodash is
+if( true&&_typeof(__webpack_require__.amdO)=='object'&&__webpack_require__.amdO){// Expose Lodash on the global object to prevent errors when Lodash is
 // loaded by a script tag in the presence of an AMD loader.
 // See http://requirejs.org/docs/errors.html#mismatch for more details.
 // Use `_.noConflict` to remove Lodash from the global object.
@@ -49110,7 +52304,10 @@ root._=_;// Define as an anonymous module so, through path mapping, it can be
 // referenced as the "underscore" module.
 !(__WEBPACK_AMD_DEFINE_RESULT__ = (function(){return _;}).call(exports, __webpack_require__, exports, module),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));}// Check for `exports` after `define` in case a build optimizer adds it.
-else {}}).call(this);
+else if(freeModule){// Export for Node.js.
+(freeModule.exports=_)._=_;// Export for CommonJS support.
+freeExports._=_;}else{// Export to the global object.
+root._=_;}}).call(this);
 
 /***/ }),
 
@@ -50577,6 +53774,39 @@ module.exports = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAQAAAAC
 "use strict";
 module.exports = __WEBPACK_EXTERNAL_MODULE__7203__;
 
+/***/ }),
+
+/***/ 7336:
+/***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Z": function() { return /* binding */ _typeof; }
+/* harmony export */ });
+/* harmony import */ var core_js_modules_es_symbol_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2526);
+/* harmony import */ var core_js_modules_es_symbol_description_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1817);
+/* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1539);
+/* harmony import */ var core_js_modules_es_symbol_iterator_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(2165);
+/* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(6992);
+/* harmony import */ var core_js_modules_es_string_iterator_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(8783);
+/* harmony import */ var core_js_modules_web_dom_collections_iterator_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(3948);
+
+
+
+
+
+
+
+function _typeof(obj) {
+  "@babel/helpers - typeof";
+
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
+    return typeof obj;
+  } : function (obj) {
+    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+  }, _typeof(obj);
+}
+
 /***/ })
 
 /******/ 	});
@@ -50609,6 +53839,11 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__7203__;
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/amd options */
+/******/ 	!function() {
+/******/ 		__webpack_require__.amdO = {};
+/******/ 	}();
+/******/ 	
 /******/ 	/* webpack/runtime/compat get default export */
 /******/ 	!function() {
 /******/ 		// getDefaultExport function for compatibility with non-harmony modules
@@ -50717,7 +53952,7 @@ if (typeof window !== 'undefined') {
 // EXTERNAL MODULE: external {"commonjs":"vue","commonjs2":"vue","root":"Vue"}
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__(7203);
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
-;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=e08d6db4&
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=02ab0d7d&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":null,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer}}),_c('div',{staticClass:"zone zone-d"},[_c('div',{staticClass:"zone-body",staticStyle:{"display":"grid"}},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":null,"data":_vm.data,"info":_vm.info,"data_pivots":_vm.data_pivots,"all_info":_vm.all_info}})],1)])],1)}
 var staticRenderFns = []
 
@@ -50785,9 +54020,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=69ffce82&scoped=true&
-var SheetsMapvue_type_template_id_69ffce82_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Filtrar ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_geo_json != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_geo_json}}):_vm._e()],1)],1)])}
-var SheetsMapvue_type_template_id_69ffce82_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=f6ba107e&scoped=true&
+var SheetsMapvue_type_template_id_f6ba107e_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Filtrar ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":"true","format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_f6ba107e_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -50796,6 +54031,8 @@ var es_array_map = __webpack_require__(1249);
 var es_regexp_exec = __webpack_require__(4916);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.replace.js
 var es_string_replace = __webpack_require__(5306);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.search.js
+var es_string_search = __webpack_require__(4765);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.promise.finally.js
 var es_promise_finally = __webpack_require__(7727);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.number.constructor.js
@@ -50805,22 +54042,71 @@ var es_regexp_to_string = __webpack_require__(9714);
 // EXTERNAL MODULE: ./node_modules/lodash/lodash.js
 var lodash = __webpack_require__(7988);
 var lodash_default = /*#__PURE__*/__webpack_require__.n(lodash);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.slice.js
+var es_array_slice = __webpack_require__(7042);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.js
+var es_symbol = __webpack_require__(2526);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.description.js
+var es_symbol_description = __webpack_require__(1817);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.json.stringify.js
+var es_json_stringify = __webpack_require__(8862);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
+var es_function_name = __webpack_require__(8309);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
+var es_object_assign = __webpack_require__(9601);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.test.js
+var es_regexp_test = __webpack_require__(7601);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.set.js
+var es_set = __webpack_require__(189);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/web.btoa.js
+var web_btoa = __webpack_require__(7479);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-exception.constructor.js
+var web_dom_exception_constructor = __webpack_require__(7714);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-exception.stack.js
 var web_dom_exception_stack = __webpack_require__(2801);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-exception.to-string-tag.js
+var web_dom_exception_to_string_tag = __webpack_require__(1174);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.join.js
+var es_array_join = __webpack_require__(9600);
 // EXTERNAL MODULE: ./node_modules/leaflet/dist/leaflet-src.js
 var leaflet_src = __webpack_require__(3814);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMap.js
 
 
 
-var debounce = function (fn, time) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var debounce = function debounce(fn, time) {
   var timeout;
 
-  var debouncedFunction = function () {
+  var debouncedFunction = function debouncedFunction() {
     var args = [],
         len = arguments.length;
 
-    while (len--) args[len] = arguments[len];
+    while (len--) {
+      args[len] = arguments[len];
+    }
 
     var context = this;
 
@@ -50843,7 +54129,7 @@ var debounce = function (fn, time) {
   return debouncedFunction;
 };
 
-var capitalizeFirstLetter = function (string) {
+var capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -50851,8 +54137,8 @@ var capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -50877,10 +54163,12 @@ var propsBinder = function (vueElement, leafletElement, props, options) {
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var collectionCleaner = function (options) {
+var collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -50894,7 +54182,7 @@ var collectionCleaner = function (options) {
   return result;
 };
 
-var optionsMerger = function (props, instance) {
+var optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = collectionCleaner(options);
@@ -50929,7 +54217,7 @@ var Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -50950,7 +54238,7 @@ var script = {
     center: {
       type: [Object, Array],
       custom: true,
-      default: function () {
+      default: function _default() {
         return [0, 0];
       }
     },
@@ -51039,7 +54327,7 @@ var script = {
     crs: {
       type: Object,
       custom: true,
-      default: function () {
+      default: function _default() {
         return leaflet_src.CRS.EPSG3857;
       }
     },
@@ -51366,7 +54654,7 @@ function normalizeComponent(template, style, script, scopeId, isFunctionalTempla
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -51489,7 +54777,7 @@ function addStyle(id, css) {
 var __vue_script__ = script;
 /* template */
 
-var __vue_render__ = function () {
+var __vue_render__ = function __vue_render__() {
   var _vm = this;
 
   var _h = _vm.$createElement;
@@ -51504,7 +54792,7 @@ var __vue_render__ = function () {
 var __vue_staticRenderFns__ = [];
 /* style */
 
-var __vue_inject_styles__ = function (inject) {
+var __vue_inject_styles__ = function __vue_inject_styles__(inject) {
   if (!inject) {
     return;
   }
@@ -51538,7 +54826,15 @@ var __vue_component__ = /*#__PURE__*/normalizeComponent({
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LTileLayer.js
 
 
-var LTileLayer_capitalizeFirstLetter = function (string) {
+
+
+
+
+
+
+
+
+var LTileLayer_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -51546,8 +54842,8 @@ var LTileLayer_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LTileLayer_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LTileLayer_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LTileLayer_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -51572,10 +54868,12 @@ var LTileLayer_propsBinder = function (vueElement, leafletElement, props, option
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LTileLayer_collectionCleaner = function (options) {
+var LTileLayer_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -51589,7 +54887,7 @@ var LTileLayer_collectionCleaner = function (options) {
   return result;
 };
 
-var LTileLayer_optionsMerger = function (props, instance) {
+var LTileLayer_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = LTileLayer_collectionCleaner(options);
@@ -51617,7 +54915,7 @@ var LTileLayer_optionsMerger = function (props, instance) {
   return result;
 };
 
-var findRealParent = function (firstVueParent) {
+var findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -51770,7 +55068,7 @@ var TileLayerMixin = {
     subdomains: {
       type: [String, Array],
       default: 'abc',
-      validator: function (prop) {
+      validator: function validator(prop) {
         if (typeof prop === 'string') {
           return true;
         } // Validates array that array only contains only strings
@@ -51808,7 +55106,7 @@ var LTileLayer_Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -51882,7 +55180,7 @@ function LTileLayer_normalizeComponent(template, style, script, scopeId, isFunct
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -51939,7 +55237,7 @@ function LTileLayer_normalizeComponent(template, style, script, scopeId, isFunct
 var LTileLayer_vue_script_ = LTileLayer_script;
 /* template */
 
-var LTileLayer_vue_render_ = function () {
+var LTileLayer_vue_render_ = function __vue_render__() {
   var _vm = this;
 
   var _h = _vm.$createElement;
@@ -51977,7 +55275,9 @@ var LTileLayer_vue_component_ = /*#__PURE__*/LTileLayer_normalizeComponent({
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LLayerGroup.js
 
 
-var LLayerGroup_capitalizeFirstLetter = function (string) {
+
+
+var LLayerGroup_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -51985,8 +55285,8 @@ var LLayerGroup_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LLayerGroup_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LLayerGroup_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LLayerGroup_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -52011,10 +55311,12 @@ var LLayerGroup_propsBinder = function (vueElement, leafletElement, props, optio
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LLayerGroup_findRealParent = function (firstVueParent) {
+var LLayerGroup_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -52151,7 +55453,7 @@ var LLayerGroup_Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -52220,7 +55522,7 @@ function LLayerGroup_normalizeComponent(template, style, script, scopeId, isFunc
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -52277,7 +55579,7 @@ function LLayerGroup_normalizeComponent(template, style, script, scopeId, isFunc
 var LLayerGroup_vue_script_ = LLayerGroup_script;
 /* template */
 
-var LLayerGroup_vue_render_ = function () {
+var LLayerGroup_vue_render_ = function __vue_render__() {
   var _vm = this;
 
   var _h = _vm.$createElement;
@@ -52316,10 +55618,21 @@ var LLayerGroup_vue_component_ = /*#__PURE__*/LLayerGroup_normalizeComponent({
 }, LLayerGroup_vue_inject_styles_, LLayerGroup_vue_script_, LLayerGroup_vue_scope_id_, LLayerGroup_vue_is_functional_template_, LLayerGroup_vue_module_identifier_, false, undefined, undefined, undefined);
 
 /* harmony default export */ var LLayerGroup = (LLayerGroup_vue_component_);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.fill.js
+var es_array_fill = __webpack_require__(3290);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LCircleMarker.js
 
 
-var LCircleMarker_capitalizeFirstLetter = function (string) {
+
+
+
+
+
+
+
+
+
+var LCircleMarker_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -52327,8 +55640,8 @@ var LCircleMarker_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LCircleMarker_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LCircleMarker_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LCircleMarker_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -52353,10 +55666,12 @@ var LCircleMarker_propsBinder = function (vueElement, leafletElement, props, opt
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LCircleMarker_collectionCleaner = function (options) {
+var LCircleMarker_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -52370,7 +55685,7 @@ var LCircleMarker_collectionCleaner = function (options) {
   return result;
 };
 
-var LCircleMarker_optionsMerger = function (props, instance) {
+var LCircleMarker_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = LCircleMarker_collectionCleaner(options);
@@ -52398,7 +55713,7 @@ var LCircleMarker_optionsMerger = function (props, instance) {
   return result;
 };
 
-var LCircleMarker_findRealParent = function (firstVueParent) {
+var LCircleMarker_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -52727,7 +56042,7 @@ var LCircleMarker_Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -52744,7 +56059,7 @@ var LCircleMarker_script = {
   props: {
     latLng: {
       type: [Object, Array],
-      default: function () {
+      default: function _default() {
         return [0, 0];
       }
     },
@@ -52809,7 +56124,7 @@ function LCircleMarker_normalizeComponent(template, style, script, scopeId, isFu
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -52866,7 +56181,7 @@ function LCircleMarker_normalizeComponent(template, style, script, scopeId, isFu
 var LCircleMarker_vue_script_ = LCircleMarker_script;
 /* template */
 
-var LCircleMarker_vue_render_ = function () {
+var LCircleMarker_vue_render_ = function __vue_render__() {
   var _vm = this;
 
   var _h = _vm.$createElement;
@@ -52908,7 +56223,13 @@ var LCircleMarker_vue_component_ = /*#__PURE__*/LCircleMarker_normalizeComponent
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LPopup.js
 
 
-var LPopup_capitalizeFirstLetter = function (string) {
+
+
+
+
+
+
+var LPopup_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -52916,8 +56237,8 @@ var LPopup_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LPopup_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LPopup_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LPopup_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -52942,10 +56263,12 @@ var LPopup_propsBinder = function (vueElement, leafletElement, props, options) {
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LPopup_collectionCleaner = function (options) {
+var LPopup_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -52959,7 +56282,7 @@ var LPopup_collectionCleaner = function (options) {
   return result;
 };
 
-var LPopup_optionsMerger = function (props, instance) {
+var LPopup_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = LPopup_collectionCleaner(options);
@@ -52987,7 +56310,7 @@ var LPopup_optionsMerger = function (props, instance) {
   return result;
 };
 
-var LPopup_findRealParent = function (firstVueParent) {
+var LPopup_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -53034,7 +56357,7 @@ var LPopup_Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -53050,7 +56373,7 @@ var LPopup_script = {
   props: {
     latLng: {
       type: [Object, Array],
-      default: function () {
+      default: function _default() {
         return [];
       }
     }
@@ -53120,7 +56443,7 @@ function LPopup_normalizeComponent(template, style, script, scopeId, isFunctiona
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -53204,7 +56527,13 @@ var es_error_cause = __webpack_require__(1703);
 
 
 
-var LIcon_capitalizeFirstLetter = function (string) {
+
+
+
+
+
+
+var LIcon_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -53212,8 +56541,8 @@ var LIcon_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LIcon_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LIcon_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LIcon_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -53238,10 +56567,12 @@ var LIcon_propsBinder = function (vueElement, leafletElement, props, options) {
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LIcon_collectionCleaner = function (options) {
+var LIcon_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -53255,7 +56586,7 @@ var LIcon_collectionCleaner = function (options) {
   return result;
 };
 
-var LIcon_optionsMerger = function (props, instance) {
+var LIcon_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = LIcon_collectionCleaner(options);
@@ -53283,7 +56614,7 @@ var LIcon_optionsMerger = function (props, instance) {
   return result;
 };
 
-var LIcon_findRealParent = function (firstVueParent) {
+var LIcon_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -53328,14 +56659,14 @@ var LIcon_script = {
     popupAnchor: {
       type: [Object, Array],
       custom: true,
-      default: function () {
+      default: function _default() {
         return [0, 0];
       }
     },
     tooltipAnchor: {
       type: [Object, Array],
       custom: true,
-      default: function () {
+      default: function _default() {
         return [0, 0];
       }
     },
@@ -53362,7 +56693,7 @@ var LIcon_script = {
     bgPos: {
       type: [Object, Array],
       custom: true,
-      default: function () {
+      default: function _default() {
         return [0, 0];
       }
     },
@@ -53374,7 +56705,7 @@ var LIcon_script = {
     options: {
       type: Object,
       custom: true,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -53539,7 +56870,7 @@ function LIcon_normalizeComponent(template, style, script, scopeId, isFunctional
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -53596,7 +56927,7 @@ function LIcon_normalizeComponent(template, style, script, scopeId, isFunctional
 var LIcon_vue_script_ = LIcon_script;
 /* template */
 
-var LIcon_vue_render_ = function () {
+var LIcon_vue_render_ = function __vue_render__() {
   var _vm = this;
 
   var _h = _vm.$createElement;
@@ -53634,14 +56965,24 @@ var LIcon_vue_component_ = /*#__PURE__*/LIcon_normalizeComponent({
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMarker.js
 
 
-var LMarker_debounce = function (fn, time) {
+
+
+
+
+
+
+
+
+var LMarker_debounce = function debounce(fn, time) {
   var timeout;
 
-  var debouncedFunction = function () {
+  var debouncedFunction = function debouncedFunction() {
     var args = [],
         len = arguments.length;
 
-    while (len--) args[len] = arguments[len];
+    while (len--) {
+      args[len] = arguments[len];
+    }
 
     var context = this;
 
@@ -53664,7 +57005,7 @@ var LMarker_debounce = function (fn, time) {
   return debouncedFunction;
 };
 
-var LMarker_capitalizeFirstLetter = function (string) {
+var LMarker_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -53672,8 +57013,8 @@ var LMarker_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LMarker_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LMarker_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LMarker_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -53698,10 +57039,12 @@ var LMarker_propsBinder = function (vueElement, leafletElement, props, options) 
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LMarker_collectionCleaner = function (options) {
+var LMarker_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -53715,7 +57058,7 @@ var LMarker_collectionCleaner = function (options) {
   return result;
 };
 
-var LMarker_optionsMerger = function (props, instance) {
+var LMarker_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = LMarker_collectionCleaner(options);
@@ -53743,7 +57086,7 @@ var LMarker_optionsMerger = function (props, instance) {
   return result;
 };
 
-var LMarker_findRealParent = function (firstVueParent) {
+var LMarker_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -53858,7 +57201,7 @@ var LMarker_Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -53889,7 +57232,7 @@ var LMarker_script = {
     icon: {
       type: [Object],
       custom: false,
-      default: function () {
+      default: function _default() {
         return new leaflet_src.Icon.Default();
       }
     },
@@ -53964,7 +57307,7 @@ var LMarker_script = {
       this.$emit('update:lat-lng', event.latlng);
     }
   },
-  render: function (h) {
+  render: function render(h) {
     if (this.ready && this.$slots.default) {
       return h('div', {
         style: {
@@ -54008,7 +57351,7 @@ function LMarker_normalizeComponent(template, style, script, scopeId, isFunction
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -54089,7 +57432,14 @@ var LMarker_vue_component_ = /*#__PURE__*/LMarker_normalizeComponent({}, LMarker
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LGeoJson.js
 
 
-var LGeoJson_capitalizeFirstLetter = function (string) {
+
+
+
+
+
+
+
+var LGeoJson_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
   if (!string || typeof string.charAt !== 'function') {
     return string;
   }
@@ -54097,8 +57447,8 @@ var LGeoJson_capitalizeFirstLetter = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-var LGeoJson_propsBinder = function (vueElement, leafletElement, props, options) {
-  var loop = function (key) {
+var LGeoJson_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
     var setMethodName = 'set' + LGeoJson_capitalizeFirstLetter(key);
     var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
 
@@ -54123,10 +57473,12 @@ var LGeoJson_propsBinder = function (vueElement, leafletElement, props, options)
     }
   };
 
-  for (var key in props) loop(key);
+  for (var key in props) {
+    loop(key);
+  }
 };
 
-var LGeoJson_collectionCleaner = function (options) {
+var LGeoJson_collectionCleaner = function collectionCleaner(options) {
   var result = {};
 
   for (var key in options) {
@@ -54140,7 +57492,7 @@ var LGeoJson_collectionCleaner = function (options) {
   return result;
 };
 
-var LGeoJson_optionsMerger = function (props, instance) {
+var LGeoJson_optionsMerger = function optionsMerger(props, instance) {
   var options = instance.options && instance.options.constructor === Object ? instance.options : {};
   props = props && props.constructor === Object ? props : {};
   var result = LGeoJson_collectionCleaner(options);
@@ -54168,7 +57520,7 @@ var LGeoJson_optionsMerger = function (props, instance) {
   return result;
 };
 
-var LGeoJson_findRealParent = function (firstVueParent) {
+var LGeoJson_findRealParent = function findRealParent(firstVueParent) {
   var found = false;
 
   while (firstVueParent && !found) {
@@ -54305,7 +57657,7 @@ var LGeoJson_Options = {
      */
     options: {
       type: Object,
-      default: function () {
+      default: function _default() {
         return {};
       }
     }
@@ -54322,14 +57674,14 @@ var LGeoJson_script = {
     geojson: {
       type: [Object, Array],
       custom: true,
-      default: function () {
+      default: function _default() {
         return {};
       }
     },
     options: {
       type: Object,
       custom: true,
-      default: function () {
+      default: function _default() {
         return {};
       }
     },
@@ -54421,7 +57773,7 @@ function LGeoJson_normalizeComponent(template, style, script, scopeId, isFunctio
 
   if (moduleIdentifier) {
     // server build
-    hook = function (context) {
+    hook = function hook(context) {
       // 2.3 injection
       context = context || // cached call
       this.$vnode && this.$vnode.ssrContext || // stateful
@@ -54499,17 +57851,723 @@ var LGeoJson_vue_is_functional_template_ = undefined;
 var LGeoJson_vue_component_ = /*#__PURE__*/LGeoJson_normalizeComponent({}, LGeoJson_vue_inject_styles_, LGeoJson_vue_script_, LGeoJson_vue_scope_id_, LGeoJson_vue_is_functional_template_, LGeoJson_vue_module_identifier_, false, undefined, undefined, undefined);
 
 /* harmony default export */ var LGeoJson = (LGeoJson_vue_component_);
+;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LWMSTileLayer.js
+
+
+
+
+
+
+
+
+
+
+var LWMSTileLayer_capitalizeFirstLetter = function capitalizeFirstLetter(string) {
+  if (!string || typeof string.charAt !== 'function') {
+    return string;
+  }
+
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+var LWMSTileLayer_propsBinder = function propsBinder(vueElement, leafletElement, props, options) {
+  var loop = function loop(key) {
+    var setMethodName = 'set' + LWMSTileLayer_capitalizeFirstLetter(key);
+    var deepValue = props[key].type === Object || props[key].type === Array || Array.isArray(props[key].type);
+
+    if (props[key].custom && vueElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        vueElement[setMethodName](newVal, oldVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (setMethodName === 'setOptions') {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        (0,leaflet_src.setOptions)(leafletElement, newVal);
+      }, {
+        deep: deepValue
+      });
+    } else if (leafletElement[setMethodName]) {
+      vueElement.$watch(key, function (newVal, oldVal) {
+        leafletElement[setMethodName](newVal);
+      }, {
+        deep: deepValue
+      });
+    }
+  };
+
+  for (var key in props) {
+    loop(key);
+  }
+};
+
+var LWMSTileLayer_collectionCleaner = function collectionCleaner(options) {
+  var result = {};
+
+  for (var key in options) {
+    var value = options[key];
+
+    if (value !== null && value !== undefined) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+};
+
+var LWMSTileLayer_optionsMerger = function optionsMerger(props, instance) {
+  var options = instance.options && instance.options.constructor === Object ? instance.options : {};
+  props = props && props.constructor === Object ? props : {};
+  var result = LWMSTileLayer_collectionCleaner(options);
+  props = LWMSTileLayer_collectionCleaner(props);
+  var defaultProps = instance.$options.props;
+
+  for (var key in props) {
+    var def = defaultProps[key] ? defaultProps[key].default && typeof defaultProps[key].default === 'function' ? defaultProps[key].default.call() : defaultProps[key].default : Symbol('unique');
+    var isEqual = false;
+
+    if (Array.isArray(def)) {
+      isEqual = JSON.stringify(def) === JSON.stringify(props[key]);
+    } else {
+      isEqual = def === props[key];
+    }
+
+    if (result[key] && !isEqual) {
+      console.warn(key + " props is overriding the value passed in the options props");
+      result[key] = props[key];
+    } else if (!result[key]) {
+      result[key] = props[key];
+    }
+  }
+
+  return result;
+};
+
+var LWMSTileLayer_findRealParent = function findRealParent(firstVueParent) {
+  var found = false;
+
+  while (firstVueParent && !found) {
+    if (firstVueParent.mapObject === undefined) {
+      firstVueParent = firstVueParent.$parent;
+    } else {
+      found = true;
+    }
+  }
+
+  return firstVueParent;
+};
+
+var LWMSTileLayer_Layer = {
+  props: {
+    pane: {
+      type: String,
+      default: 'overlayPane'
+    },
+    attribution: {
+      type: String,
+      default: null,
+      custom: true
+    },
+    name: {
+      type: String,
+      custom: true,
+      default: undefined
+    },
+    layerType: {
+      type: String,
+      custom: true,
+      default: undefined
+    },
+    visible: {
+      type: Boolean,
+      custom: true,
+      default: true
+    }
+  },
+  mounted: function mounted() {
+    this.layerOptions = {
+      attribution: this.attribution,
+      pane: this.pane
+    };
+  },
+  beforeDestroy: function beforeDestroy() {
+    this.unbindPopup();
+    this.unbindTooltip();
+    this.parentContainer.removeLayer(this);
+  },
+  methods: {
+    setAttribution: function setAttribution(val, old) {
+      var attributionControl = this.$parent.mapObject.attributionControl;
+      attributionControl.removeAttribution(old).addAttribution(val);
+    },
+    setName: function setName() {
+      this.parentContainer.removeLayer(this);
+
+      if (this.visible) {
+        this.parentContainer.addLayer(this);
+      }
+    },
+    setLayerType: function setLayerType() {
+      this.parentContainer.removeLayer(this);
+
+      if (this.visible) {
+        this.parentContainer.addLayer(this);
+      }
+    },
+    setVisible: function setVisible(isVisible) {
+      if (this.mapObject) {
+        if (isVisible) {
+          this.parentContainer.addLayer(this);
+        } else {
+          if (this.parentContainer.hideLayer) {
+            this.parentContainer.hideLayer(this);
+          } else {
+            this.parentContainer.removeLayer(this);
+          }
+        }
+      }
+    },
+    unbindTooltip: function unbindTooltip() {
+      var tooltip = this.mapObject ? this.mapObject.getTooltip() : null;
+
+      if (tooltip) {
+        tooltip.unbindTooltip();
+      }
+    },
+    unbindPopup: function unbindPopup() {
+      var popup = this.mapObject ? this.mapObject.getPopup() : null;
+
+      if (popup) {
+        popup.unbindPopup();
+      }
+    },
+    updateVisibleProp: function updateVisibleProp(value) {
+      /**
+       * Triggers when the visible prop needs to be updated
+       * @type {boolean}
+       * @property {boolean} value - value of the visible property
+       */
+      this.$emit('update:visible', value);
+    }
+  }
+};
+var LWMSTileLayer_GridLayer = {
+  mixins: [LWMSTileLayer_Layer],
+  props: {
+    pane: {
+      type: String,
+      default: 'tilePane'
+    },
+    opacity: {
+      type: Number,
+      custom: false,
+      default: 1.0
+    },
+    zIndex: {
+      type: Number,
+      default: 1
+    },
+    tileSize: {
+      type: Number,
+      default: 256
+    },
+    noWrap: {
+      type: Boolean,
+      default: false
+    }
+  },
+  mounted: function mounted() {
+    this.gridLayerOptions = Object.assign({}, this.layerOptions, {
+      pane: this.pane,
+      opacity: this.opacity,
+      zIndex: this.zIndex,
+      tileSize: this.tileSize,
+      noWrap: this.noWrap
+    });
+  }
+};
+var TileLayer = {
+  mixins: [LWMSTileLayer_GridLayer],
+  props: {
+    tms: {
+      type: Boolean,
+      default: false
+    },
+    subdomains: {
+      type: [String, Array],
+      default: 'abc',
+      validator: function validator(prop) {
+        if (typeof prop === 'string') {
+          return true;
+        } // Validates array that array only contains only strings
+
+
+        if (Array.isArray(prop)) {
+          return prop.every(function (subdomain) {
+            return typeof subdomain === 'string';
+          });
+        }
+
+        return false;
+      }
+    },
+    detectRetina: {
+      type: Boolean,
+      default: false
+    }
+  },
+  mounted: function mounted() {
+    this.tileLayerOptions = Object.assign({}, this.gridLayerOptions, {
+      tms: this.tms,
+      subdomains: this.subdomains,
+      detectRetina: this.detectRetina
+    });
+  },
+  render: function render() {
+    return null;
+  }
+};
+var TileLayerWMS = {
+  mixins: [TileLayer],
+  props: {
+    layers: {
+      type: String,
+      default: ''
+    },
+    styles: {
+      type: String,
+      default: ''
+    },
+    format: {
+      type: String,
+      default: 'image/jpeg'
+    },
+    transparent: {
+      type: Boolean,
+      custom: false
+    },
+    version: {
+      type: String,
+      default: '1.1.1'
+    },
+    crs: {
+      default: null
+    },
+    upperCase: {
+      type: Boolean,
+      default: false
+    }
+  },
+  mounted: function mounted() {
+    this.tileLayerWMSOptions = Object.assign({}, this.tileLayerOptions, {
+      layers: this.layers,
+      styles: this.styles,
+      format: this.format,
+      transparent: this.transparent,
+      version: this.version,
+      crs: this.crs,
+      upperCase: this.upperCase
+    });
+  }
+};
+var LWMSTileLayer_Options = {
+  props: {
+    /**
+     * Leaflet options to pass to the component constructor
+     */
+    options: {
+      type: Object,
+      default: function _default() {
+        return {};
+      }
+    }
+  }
+};
+/**
+ * Display WMS services as tile layers on the map
+ */
+
+var LWMSTileLayer_script = {
+  name: 'LWMSTileLayer',
+  mixins: [TileLayerWMS, LWMSTileLayer_Options],
+  props: {
+    baseUrl: {
+      type: String,
+      default: null
+    }
+  },
+  mounted: function mounted() {
+    var this$1 = this;
+    var options = LWMSTileLayer_optionsMerger(this.tileLayerWMSOptions, this);
+    this.mapObject = leaflet_src.tileLayer.wms(this.baseUrl, options);
+    leaflet_src.DomEvent.on(this.mapObject, this.$listeners);
+    LWMSTileLayer_propsBinder(this, this.mapObject, this.$options.props);
+    this.parentContainer = LWMSTileLayer_findRealParent(this.$parent);
+    this.parentContainer.addLayer(this, !this.visible);
+    this.$nextTick(function () {
+      /**
+       * Triggers when the component is ready
+       * @type {object}
+       * @property {object} mapObject - reference to leaflet map object
+       */
+      this$1.$emit('ready', this$1.mapObject);
+    });
+  }
+};
+
+function LWMSTileLayer_normalizeComponent(template, style, script, scopeId, isFunctionalTemplate, moduleIdentifier
+/* server only */
+, shadowMode, createInjector, createInjectorSSR, createInjectorShadow) {
+  if (typeof shadowMode !== 'boolean') {
+    createInjectorSSR = createInjector;
+    createInjector = shadowMode;
+    shadowMode = false;
+  } // Vue.extend constructor export interop.
+
+
+  var options = typeof script === 'function' ? script.options : script; // render functions
+
+  if (template && template.render) {
+    options.render = template.render;
+    options.staticRenderFns = template.staticRenderFns;
+    options._compiled = true; // functional template
+
+    if (isFunctionalTemplate) {
+      options.functional = true;
+    }
+  } // scopedId
+
+
+  if (scopeId) {
+    options._scopeId = scopeId;
+  }
+
+  var hook;
+
+  if (moduleIdentifier) {
+    // server build
+    hook = function hook(context) {
+      // 2.3 injection
+      context = context || // cached call
+      this.$vnode && this.$vnode.ssrContext || // stateful
+      this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext; // functional
+      // 2.2 with runInNewContext: true
+
+      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
+        context = __VUE_SSR_CONTEXT__;
+      } // inject component styles
+
+
+      if (style) {
+        style.call(this, createInjectorSSR(context));
+      } // register component module identifier for async chunk inference
+
+
+      if (context && context._registeredComponents) {
+        context._registeredComponents.add(moduleIdentifier);
+      }
+    }; // used by ssr in case component is cached and beforeCreate
+    // never gets called
+
+
+    options._ssrRegister = hook;
+  } else if (style) {
+    hook = shadowMode ? function (context) {
+      style.call(this, createInjectorShadow(context, this.$root.$options.shadowRoot));
+    } : function (context) {
+      style.call(this, createInjector(context));
+    };
+  }
+
+  if (hook) {
+    if (options.functional) {
+      // register for functional component in vue file
+      var originalRender = options.render;
+
+      options.render = function renderWithStyleInjection(h, context) {
+        hook.call(context);
+        return originalRender(h, context);
+      };
+    } else {
+      // inject component registration as beforeCreate hook
+      var existing = options.beforeCreate;
+      options.beforeCreate = existing ? [].concat(existing, hook) : [hook];
+    }
+  }
+
+  return script;
+}
+/* script */
+
+
+var LWMSTileLayer_vue_script_ = LWMSTileLayer_script;
+/* template */
+
+/* style */
+
+var LWMSTileLayer_vue_inject_styles_ = undefined;
+/* scoped */
+
+var LWMSTileLayer_vue_scope_id_ = undefined;
+/* module identifier */
+
+var LWMSTileLayer_vue_module_identifier_ = undefined;
+/* functional template */
+
+var LWMSTileLayer_vue_is_functional_template_ = undefined;
+/* style inject */
+
+/* style inject SSR */
+
+/* style inject shadow dom */
+
+var LWMSTileLayer_vue_component_ = /*#__PURE__*/LWMSTileLayer_normalizeComponent({}, LWMSTileLayer_vue_inject_styles_, LWMSTileLayer_vue_script_, LWMSTileLayer_vue_scope_id_, LWMSTileLayer_vue_is_functional_template_, LWMSTileLayer_vue_module_identifier_, false, undefined, undefined, undefined);
+
+/* harmony default export */ var LWMSTileLayer = (LWMSTileLayer_vue_component_);
 // EXTERNAL MODULE: ./node_modules/axios/index.js
 var axios = __webpack_require__(7011);
 var axios_default = /*#__PURE__*/__webpack_require__.n(axios);
 // EXTERNAL MODULE: ./node_modules/h3-js/dist/browser/h3-js.es.js
 var h3_js_es = __webpack_require__(8356);
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayWithHoles.js
+function _arrayWithHoles(arr) {
+  if (Array.isArray(arr)) return arr;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.iterator.js
+var es_symbol_iterator = __webpack_require__(2165);
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/iterableToArrayLimit.js
+
+
+
+
+
+
+
+function _iterableToArrayLimit(arr, i) {
+  var _i = arr == null ? null : typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"];
+
+  if (_i == null) return;
+  var _arr = [];
+  var _n = true;
+  var _d = false;
+
+  var _s, _e;
+
+  try {
+    for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) {
+      _arr.push(_s.value);
+
+      if (i && _arr.length === i) break;
+    }
+  } catch (err) {
+    _d = true;
+    _e = err;
+  } finally {
+    try {
+      if (!_n && _i["return"] != null) _i["return"]();
+    } finally {
+      if (_d) throw _e;
+    }
+  }
+
+  return _arr;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.from.js
+var es_array_from = __webpack_require__(1038);
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayLikeToArray.js
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+
+  for (var i = 0, arr2 = new Array(len); i < len; i++) {
+    arr2[i] = arr[i];
+  }
+
+  return arr2;
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/unsupportedIterableToArray.js
+
+
+
+
+
+
+
+
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/nonIterableRest.js
+
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/slicedToArray.js
+
+
+
+
+function _slicedToArray(arr, i) {
+  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/createForOfIteratorHelper.js
+
+
+
+
+
+
+
+
+
+function _createForOfIteratorHelper(o, allowArrayLike) {
+  var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+
+  if (!it) {
+    if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+      if (it) o = it;
+      var i = 0;
+
+      var F = function F() {};
+
+      return {
+        s: F,
+        n: function n() {
+          if (i >= o.length) return {
+            done: true
+          };
+          return {
+            done: false,
+            value: o[i++]
+          };
+        },
+        e: function e(_e) {
+          throw _e;
+        },
+        f: F
+      };
+    }
+
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
+  var normalCompletion = true,
+      didErr = false,
+      err;
+  return {
+    s: function s() {
+      it = it.call(o);
+    },
+    n: function n() {
+      var step = it.next();
+      normalCompletion = step.done;
+      return step;
+    },
+    e: function e(_e2) {
+      didErr = true;
+      err = _e2;
+    },
+    f: function f() {
+      try {
+        if (!normalCompletion && it["return"] != null) it["return"]();
+      } finally {
+        if (didErr) throw err;
+      }
+    }
+  };
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/classCallCheck.js
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/createClass.js
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  Object.defineProperty(Constructor, "prototype", {
+    writable: false
+  });
+  return Constructor;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.math.fround.js
+var es_math_fround = __webpack_require__(4755);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.float32-array.js
+var es_typed_array_float32_array = __webpack_require__(4197);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.at.js
 var es_typed_array_at = __webpack_require__(8675);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.copy-within.js
+var es_typed_array_copy_within = __webpack_require__(2990);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.every.js
+var es_typed_array_every = __webpack_require__(8927);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.fill.js
+var es_typed_array_fill = __webpack_require__(3105);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.filter.js
+var es_typed_array_filter = __webpack_require__(5035);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.find.js
+var es_typed_array_find = __webpack_require__(4345);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.find-index.js
+var es_typed_array_find_index = __webpack_require__(7174);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.for-each.js
+var es_typed_array_for_each = __webpack_require__(2846);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.includes.js
+var es_typed_array_includes = __webpack_require__(4731);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.index-of.js
+var es_typed_array_index_of = __webpack_require__(7209);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.iterator.js
+var es_typed_array_iterator = __webpack_require__(6319);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.join.js
+var es_typed_array_join = __webpack_require__(8867);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.last-index-of.js
+var es_typed_array_last_index_of = __webpack_require__(7789);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.map.js
+var es_typed_array_map = __webpack_require__(3739);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.reduce.js
+var es_typed_array_reduce = __webpack_require__(9368);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.reduce-right.js
+var es_typed_array_reduce_right = __webpack_require__(4483);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.reverse.js
+var es_typed_array_reverse = __webpack_require__(2056);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.set.js
+var es_typed_array_set = __webpack_require__(4141);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.slice.js
+var es_typed_array_slice = __webpack_require__(678);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.some.js
+var es_typed_array_some = __webpack_require__(7462);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.sort.js
+var es_typed_array_sort = __webpack_require__(3824);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.subarray.js
+var es_typed_array_subarray = __webpack_require__(5021);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.to-locale-string.js
+var es_typed_array_to_locale_string = __webpack_require__(2974);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.to-string.js
+var es_typed_array_to_string = __webpack_require__(5016);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.float64-array.js
+var es_typed_array_float64_array = __webpack_require__(6495);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.uint16-array.js
+var es_typed_array_uint16_array = __webpack_require__(8255);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.typed-array.uint32-array.js
+var es_typed_array_uint32_array = __webpack_require__(9135);
 ;// CONCATENATED MODULE: ./node_modules/kdbush/src/sort.js
 function sortKD(ids, coords, nodeSize, left, right, depth) {
   if (right - left <= nodeSize) return;
-  const m = left + right >> 1;
+  var m = left + right >> 1;
   sort_select(ids, coords, m, left, right, depth % 2);
   sortKD(ids, coords, nodeSize, left, m - 1, depth + 1);
   sortKD(ids, coords, nodeSize, m + 1, right, depth + 1);
@@ -54518,19 +58576,19 @@ function sortKD(ids, coords, nodeSize, left, right, depth) {
 function sort_select(ids, coords, k, left, right, inc) {
   while (right > left) {
     if (right - left > 600) {
-      const n = right - left + 1;
-      const m = k - left + 1;
-      const z = Math.log(n);
-      const s = 0.5 * Math.exp(2 * z / 3);
-      const sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
-      const newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
-      const newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+      var n = right - left + 1;
+      var m = k - left + 1;
+      var z = Math.log(n);
+      var s = 0.5 * Math.exp(2 * z / 3);
+      var sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+      var newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+      var newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
       sort_select(ids, coords, k, newLeft, newRight, inc);
     }
 
-    const t = coords[2 * k + inc];
-    let i = left;
-    let j = right;
+    var t = coords[2 * k + inc];
+    var i = left;
+    var j = right;
     swapItem(ids, coords, left, k);
     if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
 
@@ -54539,9 +58597,13 @@ function sort_select(ids, coords, k, left, right, inc) {
       i++;
       j--;
 
-      while (coords[2 * i + inc] < t) i++;
+      while (coords[2 * i + inc] < t) {
+        i++;
+      }
 
-      while (coords[2 * j + inc] > t) j--;
+      while (coords[2 * j + inc] > t) {
+        j--;
+      }
     }
 
     if (coords[2 * left + inc] === t) swapItem(ids, coords, left, j);else {
@@ -54560,23 +58622,23 @@ function swapItem(ids, coords, i, j) {
 }
 
 function swap(arr, i, j) {
-  const tmp = arr[i];
+  var tmp = arr[i];
   arr[i] = arr[j];
   arr[j] = tmp;
 }
 ;// CONCATENATED MODULE: ./node_modules/kdbush/src/range.js
-function range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
-  const stack = [0, ids.length - 1, 0];
-  const result = [];
-  let x, y;
+function range_range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
+  var stack = [0, ids.length - 1, 0];
+  var result = [];
+  var x, y;
 
   while (stack.length) {
-    const axis = stack.pop();
-    const right = stack.pop();
-    const left = stack.pop();
+    var axis = stack.pop();
+    var right = stack.pop();
+    var left = stack.pop();
 
     if (right - left <= nodeSize) {
-      for (let i = left; i <= right; i++) {
+      for (var i = left; i <= right; i++) {
         x = coords[2 * i];
         y = coords[2 * i + 1];
         if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
@@ -54585,11 +58647,11 @@ function range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
       continue;
     }
 
-    const m = Math.floor((left + right) / 2);
+    var m = Math.floor((left + right) / 2);
     x = coords[2 * m];
     y = coords[2 * m + 1];
     if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
-    const nextAxis = (axis + 1) % 2;
+    var nextAxis = (axis + 1) % 2;
 
     if (axis === 0 ? minX <= x : minY <= y) {
       stack.push(left);
@@ -54607,29 +58669,29 @@ function range(ids, coords, minX, minY, maxX, maxY, nodeSize) {
   return result;
 }
 ;// CONCATENATED MODULE: ./node_modules/kdbush/src/within.js
-function within(ids, coords, qx, qy, r, nodeSize) {
-  const stack = [0, ids.length - 1, 0];
-  const result = [];
-  const r2 = r * r;
+function within_within(ids, coords, qx, qy, r, nodeSize) {
+  var stack = [0, ids.length - 1, 0];
+  var result = [];
+  var r2 = r * r;
 
   while (stack.length) {
-    const axis = stack.pop();
-    const right = stack.pop();
-    const left = stack.pop();
+    var axis = stack.pop();
+    var right = stack.pop();
+    var left = stack.pop();
 
     if (right - left <= nodeSize) {
-      for (let i = left; i <= right; i++) {
+      for (var i = left; i <= right; i++) {
         if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
       }
 
       continue;
     }
 
-    const m = Math.floor((left + right) / 2);
-    const x = coords[2 * m];
-    const y = coords[2 * m + 1];
+    var m = Math.floor((left + right) / 2);
+    var x = coords[2 * m];
+    var y = coords[2 * m + 1];
     if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
-    const nextAxis = (axis + 1) % 2;
+    var nextAxis = (axis + 1) % 2;
 
     if (axis === 0 ? qx - r <= x : qy - r <= y) {
       stack.push(left);
@@ -54648,8 +58710,8 @@ function within(ids, coords, qx, qy, r, nodeSize) {
 }
 
 function sqDist(ax, ay, bx, by) {
-  const dx = ax - bx;
-  const dy = ay - by;
+  var dx = ax - bx;
+  var dy = ay - by;
   return dx * dx + dy * dy;
 }
 ;// CONCATENATED MODULE: ./node_modules/kdbush/src/index.js
@@ -54658,19 +58720,60 @@ function sqDist(ax, ay, bx, by) {
 
 
 
-const defaultGetX = p => p[0];
 
-const defaultGetY = p => p[1];
 
-class KDBush {
-  constructor(points, getX = defaultGetX, getY = defaultGetY, nodeSize = 64, ArrayType = Float64Array) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var defaultGetX = function defaultGetX(p) {
+  return p[0];
+};
+
+var defaultGetY = function defaultGetY(p) {
+  return p[1];
+};
+
+var KDBush = /*#__PURE__*/function () {
+  function KDBush(points) {
+    var getX = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : defaultGetX;
+    var getY = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : defaultGetY;
+    var nodeSize = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 64;
+    var ArrayType = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : Float64Array;
+
+    _classCallCheck(this, KDBush);
+
     this.nodeSize = nodeSize;
     this.points = points;
-    const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
-    const ids = this.ids = new IndexArrayType(points.length);
-    const coords = this.coords = new ArrayType(points.length * 2);
+    var IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
+    var ids = this.ids = new IndexArrayType(points.length);
+    var coords = this.coords = new ArrayType(points.length * 2);
 
-    for (let i = 0; i < points.length; i++) {
+    for (var i = 0; i < points.length; i++) {
       ids[i] = i;
       coords[2 * i] = getX(points[i]);
       coords[2 * i + 1] = getY(points[i]);
@@ -54679,20 +58782,60 @@ class KDBush {
     sortKD(ids, coords, nodeSize, 0, ids.length - 1, 0);
   }
 
-  range(minX, minY, maxX, maxY) {
-    return range(this.ids, this.coords, minX, minY, maxX, maxY, this.nodeSize);
-  }
+  _createClass(KDBush, [{
+    key: "range",
+    value: function range(minX, minY, maxX, maxY) {
+      return range_range(this.ids, this.coords, minX, minY, maxX, maxY, this.nodeSize);
+    }
+  }, {
+    key: "within",
+    value: function within(x, y, r) {
+      return within_within(this.ids, this.coords, x, y, r, this.nodeSize);
+    }
+  }]);
 
-  within(x, y, r) {
-    return within(this.ids, this.coords, x, y, r, this.nodeSize);
-  }
+  return KDBush;
+}();
 
-}
+
 ;// CONCATENATED MODULE: ./node_modules/supercluster/index.js
 
 
 
-const defaultOptions = {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var defaultOptions = {
   minZoom: 0,
   // min zoom to generate clusters on
   maxZoom: 16,
@@ -54713,326 +58856,419 @@ const defaultOptions = {
   reduce: null,
   // (accumulated, props) => { accumulated.sum += props.sum; }
   // properties to use for individual points when running the reducer
-  map: props => props // props => ({sum: props.my_value})
+  map: function map(props) {
+    return props;
+  } // props => ({sum: props.my_value})
 
 };
 
-const fround = Math.fround || (tmp => x => {
-  tmp[0] = +x;
-  return tmp[0];
-})(new Float32Array(1));
+var fround = Math.fround || function (tmp) {
+  return function (x) {
+    tmp[0] = +x;
+    return tmp[0];
+  };
+}(new Float32Array(1));
 
-class Supercluster {
-  constructor(options) {
+var Supercluster = /*#__PURE__*/function () {
+  function Supercluster(options) {
+    _classCallCheck(this, Supercluster);
+
     this.options = extend(Object.create(defaultOptions), options);
     this.trees = new Array(this.options.maxZoom + 1);
   }
 
-  load(points) {
-    const {
-      log,
-      minZoom,
-      maxZoom,
-      nodeSize
-    } = this.options;
-    if (log) console.time('total time');
-    const timerId = `prepare ${points.length} points`;
-    if (log) console.time(timerId);
-    this.points = points; // generate a cluster object for each point and index input points into a KD-tree
+  _createClass(Supercluster, [{
+    key: "load",
+    value: function load(points) {
+      var _this$options = this.options,
+          log = _this$options.log,
+          minZoom = _this$options.minZoom,
+          maxZoom = _this$options.maxZoom,
+          nodeSize = _this$options.nodeSize;
+      if (log) console.time('total time');
+      var timerId = "prepare ".concat(points.length, " points");
+      if (log) console.time(timerId);
+      this.points = points; // generate a cluster object for each point and index input points into a KD-tree
 
-    let clusters = [];
+      var clusters = [];
 
-    for (let i = 0; i < points.length; i++) {
-      if (!points[i].geometry) continue;
-      clusters.push(createPointCluster(points[i], i));
+      for (var i = 0; i < points.length; i++) {
+        if (!points[i].geometry) continue;
+        clusters.push(createPointCluster(points[i], i));
+      }
+
+      this.trees[maxZoom + 1] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
+      if (log) console.timeEnd(timerId); // cluster points on max zoom, then cluster the results on previous zoom, etc.;
+      // results in a cluster hierarchy across zoom levels
+
+      for (var z = maxZoom; z >= minZoom; z--) {
+        var now = +Date.now(); // create a new set of clusters for the zoom and index them with a KD-tree
+
+        clusters = this._cluster(clusters, z);
+        this.trees[z] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
+        if (log) console.log('z%d: %d clusters in %dms', z, clusters.length, +Date.now() - now);
+      }
+
+      if (log) console.timeEnd('total time');
+      return this;
     }
+  }, {
+    key: "getClusters",
+    value: function getClusters(bbox, zoom) {
+      var minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180;
+      var minLat = Math.max(-90, Math.min(90, bbox[1]));
+      var maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
+      var maxLat = Math.max(-90, Math.min(90, bbox[3]));
 
-    this.trees[maxZoom + 1] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
-    if (log) console.timeEnd(timerId); // cluster points on max zoom, then cluster the results on previous zoom, etc.;
-    // results in a cluster hierarchy across zoom levels
+      if (bbox[2] - bbox[0] >= 360) {
+        minLng = -180;
+        maxLng = 180;
+      } else if (minLng > maxLng) {
+        var easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom);
+        var westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+        return easternHem.concat(westernHem);
+      }
 
-    for (let z = maxZoom; z >= minZoom; z--) {
-      const now = +Date.now(); // create a new set of clusters for the zoom and index them with a KD-tree
+      var tree = this.trees[this._limitZoom(zoom)];
 
-      clusters = this._cluster(clusters, z);
-      this.trees[z] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
-      if (log) console.log('z%d: %d clusters in %dms', z, clusters.length, +Date.now() - now);
+      var ids = tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat));
+      var clusters = [];
+
+      var _iterator = _createForOfIteratorHelper(ids),
+          _step;
+
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var id = _step.value;
+          var c = tree.points[id];
+          clusters.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
+
+      return clusters;
     }
+  }, {
+    key: "getChildren",
+    value: function getChildren(clusterId) {
+      var originId = this._getOriginId(clusterId);
 
-    if (log) console.timeEnd('total time');
-    return this;
-  }
+      var originZoom = this._getOriginZoom(clusterId);
 
-  getClusters(bbox, zoom) {
-    let minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180;
-    const minLat = Math.max(-90, Math.min(90, bbox[1]));
-    let maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
-    const maxLat = Math.max(-90, Math.min(90, bbox[3]));
+      var errorMsg = 'No cluster with the specified id.';
+      var index = this.trees[originZoom];
+      if (!index) throw new Error(errorMsg);
+      var origin = index.points[originId];
+      if (!origin) throw new Error(errorMsg);
+      var r = this.options.radius / (this.options.extent * Math.pow(2, originZoom - 1));
+      var ids = index.within(origin.x, origin.y, r);
+      var children = [];
 
-    if (bbox[2] - bbox[0] >= 360) {
-      minLng = -180;
-      maxLng = 180;
-    } else if (minLng > maxLng) {
-      const easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom);
-      const westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
-      return easternHem.concat(westernHem);
+      var _iterator2 = _createForOfIteratorHelper(ids),
+          _step2;
+
+      try {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+          var id = _step2.value;
+          var c = index.points[id];
+
+          if (c.parentId === clusterId) {
+            children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+          }
+        }
+      } catch (err) {
+        _iterator2.e(err);
+      } finally {
+        _iterator2.f();
+      }
+
+      if (children.length === 0) throw new Error(errorMsg);
+      return children;
     }
+  }, {
+    key: "getLeaves",
+    value: function getLeaves(clusterId, limit, offset) {
+      limit = limit || 10;
+      offset = offset || 0;
+      var leaves = [];
 
-    const tree = this.trees[this._limitZoom(zoom)];
+      this._appendLeaves(leaves, clusterId, limit, offset, 0);
 
-    const ids = tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat));
-    const clusters = [];
-
-    for (const id of ids) {
-      const c = tree.points[id];
-      clusters.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+      return leaves;
     }
+  }, {
+    key: "getTile",
+    value: function getTile(z, x, y) {
+      var tree = this.trees[this._limitZoom(z)];
 
-    return clusters;
-  }
+      var z2 = Math.pow(2, z);
+      var _this$options2 = this.options,
+          extent = _this$options2.extent,
+          radius = _this$options2.radius;
+      var p = radius / extent;
+      var top = (y - p) / z2;
+      var bottom = (y + 1 + p) / z2;
+      var tile = {
+        features: []
+      };
 
-  getChildren(clusterId) {
-    const originId = this._getOriginId(clusterId);
+      this._addTileFeatures(tree.range((x - p) / z2, top, (x + 1 + p) / z2, bottom), tree.points, x, y, z2, tile);
 
-    const originZoom = this._getOriginZoom(clusterId);
+      if (x === 0) {
+        this._addTileFeatures(tree.range(1 - p / z2, top, 1, bottom), tree.points, z2, y, z2, tile);
+      }
 
-    const errorMsg = 'No cluster with the specified id.';
-    const index = this.trees[originZoom];
-    if (!index) throw new Error(errorMsg);
-    const origin = index.points[originId];
-    if (!origin) throw new Error(errorMsg);
-    const r = this.options.radius / (this.options.extent * Math.pow(2, originZoom - 1));
-    const ids = index.within(origin.x, origin.y, r);
-    const children = [];
+      if (x === z2 - 1) {
+        this._addTileFeatures(tree.range(0, top, p / z2, bottom), tree.points, -1, y, z2, tile);
+      }
 
-    for (const id of ids) {
-      const c = index.points[id];
+      return tile.features.length ? tile : null;
+    }
+  }, {
+    key: "getClusterExpansionZoom",
+    value: function getClusterExpansionZoom(clusterId) {
+      var expansionZoom = this._getOriginZoom(clusterId) - 1;
 
-      if (c.parentId === clusterId) {
-        children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+      while (expansionZoom <= this.options.maxZoom) {
+        var children = this.getChildren(clusterId);
+        expansionZoom++;
+        if (children.length !== 1) break;
+        clusterId = children[0].properties.cluster_id;
+      }
+
+      return expansionZoom;
+    }
+  }, {
+    key: "_appendLeaves",
+    value: function _appendLeaves(result, clusterId, limit, offset, skipped) {
+      var children = this.getChildren(clusterId);
+
+      var _iterator3 = _createForOfIteratorHelper(children),
+          _step3;
+
+      try {
+        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+          var child = _step3.value;
+          var props = child.properties;
+
+          if (props && props.cluster) {
+            if (skipped + props.point_count <= offset) {
+              // skip the whole cluster
+              skipped += props.point_count;
+            } else {
+              // enter the cluster
+              skipped = this._appendLeaves(result, props.cluster_id, limit, offset, skipped); // exit the cluster
+            }
+          } else if (skipped < offset) {
+            // skip a single point
+            skipped++;
+          } else {
+            // add a single point
+            result.push(child);
+          }
+
+          if (result.length === limit) break;
+        }
+      } catch (err) {
+        _iterator3.e(err);
+      } finally {
+        _iterator3.f();
+      }
+
+      return skipped;
+    }
+  }, {
+    key: "_addTileFeatures",
+    value: function _addTileFeatures(ids, points, x, y, z2, tile) {
+      var _iterator4 = _createForOfIteratorHelper(ids),
+          _step4;
+
+      try {
+        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+          var i = _step4.value;
+          var c = points[i];
+          var isCluster = c.numPoints;
+          var tags = void 0,
+              px = void 0,
+              py = void 0;
+
+          if (isCluster) {
+            tags = getClusterProperties(c);
+            px = c.x;
+            py = c.y;
+          } else {
+            var p = this.points[c.index];
+            tags = p.properties;
+            px = lngX(p.geometry.coordinates[0]);
+            py = latY(p.geometry.coordinates[1]);
+          }
+
+          var f = {
+            type: 1,
+            geometry: [[Math.round(this.options.extent * (px * z2 - x)), Math.round(this.options.extent * (py * z2 - y))]],
+            tags: tags
+          }; // assign id
+
+          var id = void 0;
+
+          if (isCluster) {
+            id = c.id;
+          } else if (this.options.generateId) {
+            // optionally generate id
+            id = c.index;
+          } else if (this.points[c.index].id) {
+            // keep id if already assigned
+            id = this.points[c.index].id;
+          }
+
+          if (id !== undefined) f.id = id;
+          tile.features.push(f);
+        }
+      } catch (err) {
+        _iterator4.e(err);
+      } finally {
+        _iterator4.f();
       }
     }
-
-    if (children.length === 0) throw new Error(errorMsg);
-    return children;
-  }
-
-  getLeaves(clusterId, limit, offset) {
-    limit = limit || 10;
-    offset = offset || 0;
-    const leaves = [];
-
-    this._appendLeaves(leaves, clusterId, limit, offset, 0);
-
-    return leaves;
-  }
-
-  getTile(z, x, y) {
-    const tree = this.trees[this._limitZoom(z)];
-
-    const z2 = Math.pow(2, z);
-    const {
-      extent,
-      radius
-    } = this.options;
-    const p = radius / extent;
-    const top = (y - p) / z2;
-    const bottom = (y + 1 + p) / z2;
-    const tile = {
-      features: []
-    };
-
-    this._addTileFeatures(tree.range((x - p) / z2, top, (x + 1 + p) / z2, bottom), tree.points, x, y, z2, tile);
-
-    if (x === 0) {
-      this._addTileFeatures(tree.range(1 - p / z2, top, 1, bottom), tree.points, z2, y, z2, tile);
+  }, {
+    key: "_limitZoom",
+    value: function _limitZoom(z) {
+      return Math.max(this.options.minZoom, Math.min(Math.floor(+z), this.options.maxZoom + 1));
     }
+  }, {
+    key: "_cluster",
+    value: function _cluster(points, zoom) {
+      var clusters = [];
+      var _this$options3 = this.options,
+          radius = _this$options3.radius,
+          extent = _this$options3.extent,
+          reduce = _this$options3.reduce,
+          minPoints = _this$options3.minPoints;
+      var r = radius / (extent * Math.pow(2, zoom)); // loop through each point
 
-    if (x === z2 - 1) {
-      this._addTileFeatures(tree.range(0, top, p / z2, bottom), tree.points, -1, y, z2, tile);
-    }
+      for (var i = 0; i < points.length; i++) {
+        var p = points[i]; // if we've already visited the point at this zoom level, skip it
 
-    return tile.features.length ? tile : null;
-  }
+        if (p.zoom <= zoom) continue;
+        p.zoom = zoom; // find all nearby points
 
-  getClusterExpansionZoom(clusterId) {
-    let expansionZoom = this._getOriginZoom(clusterId) - 1;
+        var tree = this.trees[zoom + 1];
+        var neighborIds = tree.within(p.x, p.y, r);
+        var numPointsOrigin = p.numPoints || 1;
+        var numPoints = numPointsOrigin; // count the number of points in a potential cluster
 
-    while (expansionZoom <= this.options.maxZoom) {
-      const children = this.getChildren(clusterId);
-      expansionZoom++;
-      if (children.length !== 1) break;
-      clusterId = children[0].properties.cluster_id;
-    }
+        var _iterator5 = _createForOfIteratorHelper(neighborIds),
+            _step5;
 
-    return expansionZoom;
-  }
+        try {
+          for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+            var _neighborId2 = _step5.value;
+            var _b2 = tree.points[_neighborId2]; // filter out neighbors that are already processed
 
-  _appendLeaves(result, clusterId, limit, offset, skipped) {
-    const children = this.getChildren(clusterId);
+            if (_b2.zoom > zoom) numPoints += _b2.numPoints || 1;
+          } // if there were neighbors to merge, and there are enough points to form a cluster
 
-    for (const child of children) {
-      const props = child.properties;
+        } catch (err) {
+          _iterator5.e(err);
+        } finally {
+          _iterator5.f();
+        }
 
-      if (props && props.cluster) {
-        if (skipped + props.point_count <= offset) {
-          // skip the whole cluster
-          skipped += props.point_count;
+        if (numPoints > numPointsOrigin && numPoints >= minPoints) {
+          var wx = p.x * numPointsOrigin;
+          var wy = p.y * numPointsOrigin;
+          var clusterProperties = reduce && numPointsOrigin > 1 ? this._map(p, true) : null; // encode both zoom and point index on which the cluster originated -- offset by total length of features
+
+          var id = (i << 5) + (zoom + 1) + this.points.length;
+
+          var _iterator6 = _createForOfIteratorHelper(neighborIds),
+              _step6;
+
+          try {
+            for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+              var neighborId = _step6.value;
+              var b = tree.points[neighborId];
+              if (b.zoom <= zoom) continue;
+              b.zoom = zoom; // save the zoom (so it doesn't get processed twice)
+
+              var numPoints2 = b.numPoints || 1;
+              wx += b.x * numPoints2; // accumulate coordinates for calculating weighted center
+
+              wy += b.y * numPoints2;
+              b.parentId = id;
+
+              if (reduce) {
+                if (!clusterProperties) clusterProperties = this._map(p, true);
+                reduce(clusterProperties, this._map(b));
+              }
+            }
+          } catch (err) {
+            _iterator6.e(err);
+          } finally {
+            _iterator6.f();
+          }
+
+          p.parentId = id;
+          clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
         } else {
-          // enter the cluster
-          skipped = this._appendLeaves(result, props.cluster_id, limit, offset, skipped); // exit the cluster
-        }
-      } else if (skipped < offset) {
-        // skip a single point
-        skipped++;
-      } else {
-        // add a single point
-        result.push(child);
-      }
+          // left points as unclustered
+          clusters.push(p);
 
-      if (result.length === limit) break;
-    }
+          if (numPoints > 1) {
+            var _iterator7 = _createForOfIteratorHelper(neighborIds),
+                _step7;
 
-    return skipped;
-  }
-
-  _addTileFeatures(ids, points, x, y, z2, tile) {
-    for (const i of ids) {
-      const c = points[i];
-      const isCluster = c.numPoints;
-      let tags, px, py;
-
-      if (isCluster) {
-        tags = getClusterProperties(c);
-        px = c.x;
-        py = c.y;
-      } else {
-        const p = this.points[c.index];
-        tags = p.properties;
-        px = lngX(p.geometry.coordinates[0]);
-        py = latY(p.geometry.coordinates[1]);
-      }
-
-      const f = {
-        type: 1,
-        geometry: [[Math.round(this.options.extent * (px * z2 - x)), Math.round(this.options.extent * (py * z2 - y))]],
-        tags
-      }; // assign id
-
-      let id;
-
-      if (isCluster) {
-        id = c.id;
-      } else if (this.options.generateId) {
-        // optionally generate id
-        id = c.index;
-      } else if (this.points[c.index].id) {
-        // keep id if already assigned
-        id = this.points[c.index].id;
-      }
-
-      if (id !== undefined) f.id = id;
-      tile.features.push(f);
-    }
-  }
-
-  _limitZoom(z) {
-    return Math.max(this.options.minZoom, Math.min(Math.floor(+z), this.options.maxZoom + 1));
-  }
-
-  _cluster(points, zoom) {
-    const clusters = [];
-    const {
-      radius,
-      extent,
-      reduce,
-      minPoints
-    } = this.options;
-    const r = radius / (extent * Math.pow(2, zoom)); // loop through each point
-
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i]; // if we've already visited the point at this zoom level, skip it
-
-      if (p.zoom <= zoom) continue;
-      p.zoom = zoom; // find all nearby points
-
-      const tree = this.trees[zoom + 1];
-      const neighborIds = tree.within(p.x, p.y, r);
-      const numPointsOrigin = p.numPoints || 1;
-      let numPoints = numPointsOrigin; // count the number of points in a potential cluster
-
-      for (const neighborId of neighborIds) {
-        const b = tree.points[neighborId]; // filter out neighbors that are already processed
-
-        if (b.zoom > zoom) numPoints += b.numPoints || 1;
-      } // if there were neighbors to merge, and there are enough points to form a cluster
-
-
-      if (numPoints > numPointsOrigin && numPoints >= minPoints) {
-        let wx = p.x * numPointsOrigin;
-        let wy = p.y * numPointsOrigin;
-        let clusterProperties = reduce && numPointsOrigin > 1 ? this._map(p, true) : null; // encode both zoom and point index on which the cluster originated -- offset by total length of features
-
-        const id = (i << 5) + (zoom + 1) + this.points.length;
-
-        for (const neighborId of neighborIds) {
-          const b = tree.points[neighborId];
-          if (b.zoom <= zoom) continue;
-          b.zoom = zoom; // save the zoom (so it doesn't get processed twice)
-
-          const numPoints2 = b.numPoints || 1;
-          wx += b.x * numPoints2; // accumulate coordinates for calculating weighted center
-
-          wy += b.y * numPoints2;
-          b.parentId = id;
-
-          if (reduce) {
-            if (!clusterProperties) clusterProperties = this._map(p, true);
-            reduce(clusterProperties, this._map(b));
-          }
-        }
-
-        p.parentId = id;
-        clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
-      } else {
-        // left points as unclustered
-        clusters.push(p);
-
-        if (numPoints > 1) {
-          for (const neighborId of neighborIds) {
-            const b = tree.points[neighborId];
-            if (b.zoom <= zoom) continue;
-            b.zoom = zoom;
-            clusters.push(b);
+            try {
+              for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+                var _neighborId = _step7.value;
+                var _b = tree.points[_neighborId];
+                if (_b.zoom <= zoom) continue;
+                _b.zoom = zoom;
+                clusters.push(_b);
+              }
+            } catch (err) {
+              _iterator7.e(err);
+            } finally {
+              _iterator7.f();
+            }
           }
         }
       }
+
+      return clusters;
+    } // get index of the point from which the cluster originated
+
+  }, {
+    key: "_getOriginId",
+    value: function _getOriginId(clusterId) {
+      return clusterId - this.points.length >> 5;
+    } // get zoom of the point from which the cluster originated
+
+  }, {
+    key: "_getOriginZoom",
+    value: function _getOriginZoom(clusterId) {
+      return (clusterId - this.points.length) % 32;
     }
+  }, {
+    key: "_map",
+    value: function _map(point, clone) {
+      if (point.numPoints) {
+        return clone ? extend({}, point.properties) : point.properties;
+      }
 
-    return clusters;
-  } // get index of the point from which the cluster originated
-
-
-  _getOriginId(clusterId) {
-    return clusterId - this.points.length >> 5;
-  } // get zoom of the point from which the cluster originated
-
-
-  _getOriginZoom(clusterId) {
-    return (clusterId - this.points.length) % 32;
-  }
-
-  _map(point, clone) {
-    if (point.numPoints) {
-      return clone ? extend({}, point.properties) : point.properties;
+      var original = this.points[point.index].properties;
+      var result = this.options.map(original);
+      return clone && result === original ? extend({}, result) : result;
     }
+  }]);
 
-    const original = this.points[point.index].properties;
-    const result = this.options.map(original);
-    return clone && result === original ? extend({}, result) : result;
-  }
+  return Supercluster;
+}();
 
-}
+
 
 function createCluster(x, y, id, numPoints, properties) {
   return {
@@ -55041,17 +59277,20 @@ function createCluster(x, y, id, numPoints, properties) {
     y: fround(y),
     zoom: Infinity,
     // the last zoom the cluster was processed at
-    id,
+    id: id,
     // encodes index of the first child of the cluster and its zoom level
     parentId: -1,
     // parent cluster id
-    numPoints,
-    properties
+    numPoints: numPoints,
+    properties: properties
   };
 }
 
 function createPointCluster(p, id) {
-  const [x, y] = p.geometry.coordinates;
+  var _p$geometry$coordinat = _slicedToArray(p.geometry.coordinates, 2),
+      x = _p$geometry$coordinat[0],
+      y = _p$geometry$coordinat[1];
+
   return {
     x: fround(lngX(x)),
     // projected point coordinates
@@ -55078,8 +59317,8 @@ function getClusterJSON(cluster) {
 }
 
 function getClusterProperties(cluster) {
-  const count = cluster.numPoints;
-  const abbrev = count >= 10000 ? `${Math.round(count / 1000)}k` : count >= 1000 ? `${Math.round(count / 100) / 10}k` : count;
+  var count = cluster.numPoints;
+  var abbrev = count >= 10000 ? "".concat(Math.round(count / 1000), "k") : count >= 1000 ? "".concat(Math.round(count / 100) / 10, "k") : count;
   return extend(extend({}, cluster.properties), {
     cluster: true,
     cluster_id: cluster.id,
@@ -55094,8 +59333,8 @@ function lngX(lng) {
 }
 
 function latY(lat) {
-  const sin = Math.sin(lat * Math.PI / 180);
-  const y = 0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI;
+  var sin = Math.sin(lat * Math.PI / 180);
+  var y = 0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI;
   return y < 0 ? 0 : y > 1 ? 1 : y;
 } // spherical mercator to longitude/latitude
 
@@ -55105,12 +59344,14 @@ function xLng(x) {
 }
 
 function yLat(y) {
-  const y2 = (180 - y * 360) * Math.PI / 180;
+  var y2 = (180 - y * 360) * Math.PI / 180;
   return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
 }
 
 function extend(dest, src) {
-  for (const id in src) dest[id] = src[id];
+  for (var id in src) {
+    dest[id] = src[id];
+  }
 
   return dest;
 }
@@ -55134,6 +59375,21 @@ function getY(p) {
 
 
 
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -55215,7 +59471,8 @@ leaflet_src.Icon.Default.mergeOptions({
     LPopup: LPopup,
     LIcon: LIcon,
     LMarker: LMarker,
-    LGeoJson: LGeoJson
+    LGeoJson: LGeoJson,
+    "l-wms-tile-layer": LWMSTileLayer
   },
   props: {
     // Propiedades de componentes
@@ -55252,7 +59509,16 @@ leaflet_src.Icon.Default.mergeOptions({
       markers_data: {},
       map: undefined,
       circle: undefined,
-      analytic_geo_json: undefined,
+
+      /*Layers*/
+      analytic_cluster: undefined,
+      analytic_countour_map: undefined,
+      base_google_map: undefined,
+      base_map_guide: undefined,
+      base_open_street_map: undefined,
+      operative_geoserver_wms: undefined,
+
+      /*Layers*/
       clusters_markers: [],
       bounds_filters: [],
       bounds: [],
@@ -55366,7 +59632,13 @@ leaflet_src.Icon.Default.mergeOptions({
   watch: {
     analytical_layer: {
       handler: function handler() {
-        this.getAnalyticalClusterGeoJson();
+        this.switchLayers(this.analytical_layer);
+      },
+      deep: true
+    },
+    operational_layer: {
+      handler: function handler() {
+        this.switchLayers(this.operational_layer);
       },
       deep: true
     },
@@ -55403,54 +59675,184 @@ leaflet_src.Icon.Default.mergeOptions({
     ready: function ready() {
       this.setTileLayer();
       this.map = this.$refs.myMap.mapObject;
-      /*
-      let circlemarker = this.$refs.circlemarker;
-      this.circle = this.$refs.circlemarker;
-                let bounds = this.map.getBounds();
-      console.log(bounds);
-      console.log(this.geoJson);
-      console.log(circlemarker);
-      console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
-      this.map.on('update', this.getClusterInfo());
-      this.map.on('update', console.log('w'));
-      this.map.on('moveend', console.log('a'));*/
     },
     filter: function filter() {
       this.findBounds();
-      this.getAnalyticalClusterGeoJson();
+      this.makeLayers();
     },
-    getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson() {
-      // TO DO: 
-      // Cuando exista la columna "code", recorrer capas hasta
-      // encontrar la capa de code analytic_cluster y si existe
-      // detectar si es active
-      var active_analytical = this.analytical_layer.find(function (l) {
+    makeLayers: function makeLayers() {
+      //Una activa a la vez
+      if (this.base_layer != '') {
+        console.log('this.base_layer ' + this.base_layer + ' activo');
+      } //de 0 a n activas
+
+
+      this.switchLayers(this.analytical_layer);
+      this.switchLayers(this.operational_layer);
+    },
+    switchLayers: function switchLayers(layer) {
+      var _this3 = this;
+
+      var active_layers = layer.filter(function (l) {
         return l.active;
       });
+      var disable_layers = layer.filter(function (l) {
+        return !l.active;
+      });
+      this.operative_geoserver_wms = [];
+      active_layers.forEach(function (l) {
+        _this3.activeLayers(l);
+      });
+      disable_layers.forEach(function (l) {
+        _this3.disableLayers(l);
+      });
+    },
+    activeLayers: function activeLayers(layer) {
+      switch (this.layers[layer.key].sh_map_has_layer_code) {
+        case 'analytic_cluster':
+          {
+            this.getAnalyticalClusterGeoJson(this.layers[layer.key]);
+            break;
+          }
 
-      if (!active_analytical) {
-        this.analytic_geo_json = undefined;
-      } else {
-        var bounds = this.map.getBounds();
-        var geojson_bounds = [[bounds._northEast.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._southWest.lat], [bounds._northEast.lng, bounds._southWest.lat]];
-        var square_polygon = {
-          "type": "Polygon",
-          "coordinates": [geojson_bounds]
-        };
-        var h3_zoom = this.calculateH3Zoom();
-        var polygon;
-        var square_feature;
-        var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-        var filters = this.getFilters(h3_indexes);
-        polygon = this.asPolygon(null, this.h3ToFeature(h3_indexes));
-        /*
-        //#agregar el cuadrado
-        square_feature = this.asFeature(null,square_polygon['coordinates'][0])
-        polygon        = this.asPolygon(polygon,[square_feature])
-        */
+        case 'analytic_countour_map':
+          {
+            console.log('Intento de activar ' + this.layers[layer.key].sh_map_has_layer_name + ' sin exito');
+            break;
+          }
 
-        this.analytic_geo_json = polygon;
+        case 'base_google_map':
+          {
+            console.log('Intento de activar ' + this.layers[layer.key].sh_map_has_layer_name + ' sin exito');
+            break;
+          }
+
+        case 'base_map_guide':
+          {
+            console.log('Intento de activar ' + this.layers[layer.key].sh_map_has_layer_name + ' sin exito');
+            break;
+          }
+
+        case 'base_open_street_map':
+          {
+            console.log('Intento de activar ' + this.layers[layer.key].sh_map_has_layer_name + ' sin exito');
+            break;
+          }
+
+        case 'operative_geoserver_wms':
+          {
+            this.operative_geoserver_wms.push(this.layers[layer.key]);
+            break;
+          }
+
+        default:
+          {
+            console.log('Intento de activar ' + this.layers[layer.key].sh_map_has_layer_code + ' sin exito', 'Intento de activar ' + this.layers[layer.key].sh_map_has_layer_name + ' sin exito');
+            break;
+          }
       }
+    },
+    disableLayers: function disableLayers(layer) {
+      switch (this.layers[layer.key].sh_map_has_layer_code) {
+        case 'analytic_cluster':
+          {
+            this.analytic_cluster = undefined;
+            break;
+          }
+
+        case 'analytic_countour_map':
+          {
+            this.analytic_countour_map = undefined;
+            break;
+          }
+
+        case 'base_google_map':
+          {
+            this.base_google_map = undefined;
+            break;
+          }
+
+        case 'base_map_guide':
+          {
+            this.base_map_guide = undefined;
+            break;
+          }
+
+        case 'base_open_street_map':
+          {
+            this.base_open_street_mapbreak = undefined;
+            ;
+          }
+
+        default:
+          {
+            console.log('Intento de desactivar ' + this.layers[layer.key].sh_map_has_layer_code + ' sin exito');
+            console.log('Intento de desactivar ' + this.layers[layer.key].sh_map_has_layer_name + ' sin exito');
+            break;
+          }
+      }
+    },
+    getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson(layer) {
+      var bounds = this.map.getBounds();
+      var geojson_bounds = [[bounds._northEast.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._southWest.lat], [bounds._northEast.lng, bounds._southWest.lat]];
+      var square_polygon = {
+        "type": "Polygon",
+        "coordinates": [geojson_bounds]
+      };
+      var polygon;
+      var square_feature;
+      var h3_zoom = this.calculateH3Zoom();
+      var url = layer.sh_map_has_layer_url;
+      var metric = layer.sh_map_has_layer_metric_id;
+      var calculation = layer.sh_map_has_layer_calculation;
+      var filters = this.formatFilter();
+      var dimension_ids = ["h3r".concat(h3_zoom)];
+      var body = {
+        calculation: calculation,
+        metric_id: metric,
+        // Viene de la configuracion de la capa (mapa tiene capas)
+        filters: filters,
+        // Son los active_filters formateados
+        dimension_ids: dimension_ids
+      };
+      axios_default().post(url, body).then(function (response) {
+        var all_cubes = response.data.content;
+        console.log(all_cubes);
+        /*
+        let data      = _.first(Object.values(all_data.data)) || {};
+        // ... parear h3
+        // h3_indexes = data // pero parseada
+        // ... parear h3
+        var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+        var filters    = this.getFilters(h3_indexes);
+        polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+        this.analytic_cluster = polygon;
+        console.log(layer);*/
+      });
+    },
+    formatFilter: function formatFilter() {
+      if (lodash_default().isEmpty(this.active_filters)) {
+        return {};
+      }
+
+      var filters = this.active_filters.map(function (a_f) {
+        var value;
+
+        if (typeof a_f.type !== 'undefined') {
+          value = a_f.type == 'EQUAL' ? [a_f.search] : a_f.search;
+        } else {
+          a_f.type = 'IN';
+          value = a_f.search;
+        }
+
+        var filter = {
+          column: a_f.col_name,
+          value: value,
+          type: a_f.type
+        };
+        return filter;
+      });
+      return filters;
     },
     calculateH3Zoom: function calculateH3Zoom() {
       var zoom = this.map.getZoom();
@@ -55551,7 +59953,7 @@ leaflet_src.Icon.Default.mergeOptions({
       this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     },
     getMarkerData: function getMarkerData(marker) {
-      var _this3 = this;
+      var _this4 = this;
 
       var url = "".concat(this.base_url, "/entity/data/").concat(this.entity_type_id, "/").concat(marker.id, "?page=1");
       axios_default().get(url).then(function (response) {
@@ -55559,7 +59961,7 @@ leaflet_src.Icon.Default.mergeOptions({
           var all_data = response.data.content;
           var marker_data = lodash_default().first(all_data.data) || {};
 
-          _this3.$set(_this3.markers_data, marker.id, marker_data);
+          _this4.$set(_this4.markers_data, marker.id, marker_data);
         } catch (error) {
           console.error(error);
         }
@@ -55570,7 +59972,7 @@ leaflet_src.Icon.Default.mergeOptions({
       });
     },
     getMapConfiguration: function getMapConfiguration() {
-      var _this4 = this;
+      var _this5 = this;
 
       //data
       var url = "".concat(this.base_url).concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias"); //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
@@ -55589,8 +59991,8 @@ leaflet_src.Icon.Default.mergeOptions({
         try {
           all_data = response.data.content;
           data = lodash_default().first(all_data.data);
-          _this4.col_lng = data.sh_map_column_longitude;
-          _this4.col_lat = data.sh_map_column_latitude;
+          _this5.col_lng = data.sh_map_column_longitude;
+          _this5.col_lat = data.sh_map_column_latitude;
         } catch (error) {
           console.error(error);
         }
@@ -55621,19 +60023,19 @@ leaflet_src.Icon.Default.mergeOptions({
       }*/
     },
     findBounds: function findBounds() {
-      var _this5 = this;
+      var _this6 = this;
 
       var h = this.map.getZoom();
       console.log(h);
       var bounds = this.map.getBounds();
       var all_col = this.info.columns;
       var bounds_filters = all_col.filter(function (columns) {
-        if (columns.id == _this5.col_lat || columns.id == _this5.col_lng) {
+        if (columns.id == _this6.col_lat || columns.id == _this6.col_lng) {
           return columns;
         }
       }).map(function (columns, key) {
-        var start = columns.id == _this5.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
-        var end = columns.id == _this5.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
+        var start = columns.id == _this6.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
+        var end = columns.id == _this6.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
         var bounds_filter = {
           "column": columns,
           "id": "external-filter-" + columns.id,
@@ -55806,10 +60208,10 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=69ffce82&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=f6ba107e&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=69ffce82&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=f6ba107e&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -55922,11 +60324,11 @@ function componentNormalizer_normalizeComponent (
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_69ffce82_scoped_true_render,
-  SheetsMapvue_type_template_id_69ffce82_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_f6ba107e_scoped_true_render,
+  SheetsMapvue_type_template_id_f6ba107e_scoped_true_staticRenderFns,
   false,
   null,
-  "69ffce82",
+  "f6ba107e",
   null
   
 )
@@ -55943,31 +60345,8 @@ var SheetsMapToolsvue_type_template_id_d5675302_scoped_true_render = function ()
 var SheetsMapToolsvue_type_template_id_d5675302_scoped_true_staticRenderFns = []
 
 
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
-var es_function_name = __webpack_require__(8309);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.js
-var es_symbol = __webpack_require__(2526);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.description.js
-var es_symbol_description = __webpack_require__(1817);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.iterator.js
-var es_symbol_iterator = __webpack_require__(2165);
-;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/typeof.js
-
-
-
-
-
-
-
-function _typeof(obj) {
-  "@babel/helpers - typeof";
-
-  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
-    return typeof obj;
-  } : function (obj) {
-    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-  }, _typeof(obj);
-}
+// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/typeof.js
+var esm_typeof = __webpack_require__(7336);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptor.js
 var es_object_get_own_property_descriptor = __webpack_require__(5003);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptors.js
@@ -55982,20 +60361,10 @@ var es_reflect_construct = __webpack_require__(2419);
 var es_map = __webpack_require__(1532);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.reflect.get.js
 var es_reflect_get = __webpack_require__(4819);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.from.js
-var es_array_from = __webpack_require__(1038);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.slice.js
-var es_array_slice = __webpack_require__(7042);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.test.js
-var es_regexp_test = __webpack_require__(7601);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
-var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-names.js
 var es_object_get_own_property_names = __webpack_require__(6210);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.sort.js
 var es_array_sort = __webpack_require__(2707);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.join.js
-var es_array_join = __webpack_require__(9600);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.split.js
 var es_string_split = __webpack_require__(3123);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.constructor.js
@@ -56008,22 +60377,16 @@ var es_regexp_sticky = __webpack_require__(8386);
 var es_number_to_fixed = __webpack_require__(6977);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.trim.js
 var es_string_trim = __webpack_require__(3210);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.json.stringify.js
-var es_json_stringify = __webpack_require__(8862);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.includes.js
 var es_array_includes = __webpack_require__(6699);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.splice.js
 var es_array_splice = __webpack_require__(561);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.fill.js
-var es_array_fill = __webpack_require__(3290);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.small.js
 var es_string_small = __webpack_require__(7268);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.fixed.js
 var es_string_fixed = __webpack_require__(9253);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.link.js
 var es_string_link = __webpack_require__(9254);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.search.js
-var es_string_search = __webpack_require__(4765);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.match.js
 var es_string_match = __webpack_require__(4723);
 ;// CONCATENATED MODULE: ./node_modules/vue-functional-data-merge/dist/lib.esm.js
@@ -58781,7 +63144,7 @@ var portal_vue_common = __webpack_require__(8699);
  * @copyright (c) 2016-2022 BootstrapVue
  * @license MIT
  * https://github.com/bootstrap-vue/bootstrap-vue/blob/master/LICENSE
- */function ownKeys(object,enumerableOnly){var keys=Object.keys(object);if(Object.getOwnPropertySymbols){var symbols=Object.getOwnPropertySymbols(object);enumerableOnly&&(symbols=symbols.filter(function(sym){return Object.getOwnPropertyDescriptor(object,sym).enumerable;})),keys.push.apply(keys,symbols);}return keys;}function _objectSpread2$3(target){for(var i=1;i<arguments.length;i++){var source=null!=arguments[i]?arguments[i]:{};i%2?ownKeys(Object(source),!0).forEach(function(key){_defineProperty(target,key,source[key]);}):Object.getOwnPropertyDescriptors?Object.defineProperties(target,Object.getOwnPropertyDescriptors(source)):ownKeys(Object(source)).forEach(function(key){Object.defineProperty(target,key,Object.getOwnPropertyDescriptor(source,key));});}return target;}function bootstrap_vue_esm_typeof(obj){"@babel/helpers - typeof";return bootstrap_vue_esm_typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(obj){return typeof obj;}:function(obj){return obj&&"function"==typeof Symbol&&obj.constructor===Symbol&&obj!==Symbol.prototype?"symbol":typeof obj;},bootstrap_vue_esm_typeof(obj);}function _classCallCheck(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function _defineProperties(target,props){for(var i=0;i<props.length;i++){var descriptor=props[i];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}function _createClass(Constructor,protoProps,staticProps){if(protoProps)_defineProperties(Constructor.prototype,protoProps);if(staticProps)_defineProperties(Constructor,staticProps);Object.defineProperty(Constructor,"prototype",{writable:false});return Constructor;}function _defineProperty(obj,key,value){if(key in obj){Object.defineProperty(obj,key,{value:value,enumerable:true,configurable:true,writable:true});}else{obj[key]=value;}return obj;}function _inherits(subClass,superClass){if(typeof superClass!=="function"&&superClass!==null){throw new TypeError("Super expression must either be null or a function");}Object.defineProperty(subClass,"prototype",{value:Object.create(superClass&&superClass.prototype,{constructor:{value:subClass,writable:true,configurable:true}}),writable:false});if(superClass)_setPrototypeOf(subClass,superClass);}function _getPrototypeOf(o){_getPrototypeOf=Object.setPrototypeOf?Object.getPrototypeOf:function _getPrototypeOf(o){return o.__proto__||Object.getPrototypeOf(o);};return _getPrototypeOf(o);}function _setPrototypeOf(o,p){_setPrototypeOf=Object.setPrototypeOf||function _setPrototypeOf(o,p){o.__proto__=p;return o;};return _setPrototypeOf(o,p);}function _isNativeReflectConstruct(){if(typeof Reflect==="undefined"||!Reflect.construct)return false;if(Reflect.construct.sham)return false;if(typeof Proxy==="function")return true;try{Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],function(){}));return true;}catch(e){return false;}}function _construct(Parent,args,Class){if(_isNativeReflectConstruct()){_construct=Reflect.construct;}else{_construct=function _construct(Parent,args,Class){var a=[null];a.push.apply(a,args);var Constructor=Function.bind.apply(Parent,a);var instance=new Constructor();if(Class)_setPrototypeOf(instance,Class.prototype);return instance;};}return _construct.apply(null,arguments);}function _isNativeFunction(fn){return Function.toString.call(fn).indexOf("[native code]")!==-1;}function _wrapNativeSuper(Class){var _cache=typeof Map==="function"?new Map():undefined;_wrapNativeSuper=function _wrapNativeSuper(Class){if(Class===null||!_isNativeFunction(Class))return Class;if(typeof Class!=="function"){throw new TypeError("Super expression must either be null or a function");}if(typeof _cache!=="undefined"){if(_cache.has(Class))return _cache.get(Class);_cache.set(Class,Wrapper);}function Wrapper(){return _construct(Class,arguments,_getPrototypeOf(this).constructor);}Wrapper.prototype=Object.create(Class.prototype,{constructor:{value:Wrapper,enumerable:false,writable:true,configurable:true}});return _setPrototypeOf(Wrapper,Class);};return _wrapNativeSuper(Class);}function _assertThisInitialized(self){if(self===void 0){throw new ReferenceError("this hasn't been initialised - super() hasn't been called");}return self;}function _possibleConstructorReturn(self,call){if(call&&(_typeof(call)==="object"||typeof call==="function")){return call;}else if(call!==void 0){throw new TypeError("Derived constructors may only return object or undefined");}return _assertThisInitialized(self);}function _createSuper(Derived){var hasNativeReflectConstruct=_isNativeReflectConstruct();return function _createSuperInternal(){var Super=_getPrototypeOf(Derived),result;if(hasNativeReflectConstruct){var NewTarget=_getPrototypeOf(this).constructor;result=Reflect.construct(Super,arguments,NewTarget);}else{result=Super.apply(this,arguments);}return _possibleConstructorReturn(this,result);};}function _superPropBase(object,property){while(!Object.prototype.hasOwnProperty.call(object,property)){object=_getPrototypeOf(object);if(object===null)break;}return object;}function _get(){if(typeof Reflect!=="undefined"&&Reflect.get){_get=Reflect.get;}else{_get=function _get(target,property,receiver){var base=_superPropBase(target,property);if(!base)return;var desc=Object.getOwnPropertyDescriptor(base,property);if(desc.get){return desc.get.call(arguments.length<3?target:receiver);}return desc.value;};}return _get.apply(this,arguments);}function _slicedToArray(arr,i){return _arrayWithHoles(arr)||_iterableToArrayLimit(arr,i)||_unsupportedIterableToArray(arr,i)||_nonIterableRest();}function _toConsumableArray(arr){return _arrayWithoutHoles(arr)||_iterableToArray(arr)||_unsupportedIterableToArray(arr)||_nonIterableSpread();}function _arrayWithoutHoles(arr){if(Array.isArray(arr))return _arrayLikeToArray(arr);}function _arrayWithHoles(arr){if(Array.isArray(arr))return arr;}function _iterableToArray(iter){if(typeof Symbol!=="undefined"&&iter[Symbol.iterator]!=null||iter["@@iterator"]!=null)return Array.from(iter);}function _iterableToArrayLimit(arr,i){var _i=arr==null?null:typeof Symbol!=="undefined"&&arr[Symbol.iterator]||arr["@@iterator"];if(_i==null)return;var _arr=[];var _n=true;var _d=false;var _s,_e;try{for(_i=_i.call(arr);!(_n=(_s=_i.next()).done);_n=true){_arr.push(_s.value);if(i&&_arr.length===i)break;}}catch(err){_d=true;_e=err;}finally{try{if(!_n&&_i["return"]!=null)_i["return"]();}finally{if(_d)throw _e;}}return _arr;}function _unsupportedIterableToArray(o,minLen){if(!o)return;if(typeof o==="string")return _arrayLikeToArray(o,minLen);var n=Object.prototype.toString.call(o).slice(8,-1);if(n==="Object"&&o.constructor)n=o.constructor.name;if(n==="Map"||n==="Set")return Array.from(o);if(n==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n))return _arrayLikeToArray(o,minLen);}function _arrayLikeToArray(arr,len){if(len==null||len>arr.length)len=arr.length;for(var i=0,arr2=new Array(len);i<len;i++){arr2[i]=arr[i];}return arr2;}function _nonIterableSpread(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");}function _nonIterableRest(){throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");}var COMPONENT_UID_KEY='_uid';var HAS_WINDOW_SUPPORT=typeof window!=='undefined';var HAS_DOCUMENT_SUPPORT=typeof document!=='undefined';var HAS_NAVIGATOR_SUPPORT=typeof navigator!=='undefined';var HAS_PROMISE_SUPPORT=typeof Promise!=='undefined';/* istanbul ignore next: JSDOM always returns false */var HAS_MUTATION_OBSERVER_SUPPORT=typeof MutationObserver!=='undefined'||typeof WebKitMutationObserver!=='undefined'||typeof MozMutationObserver!=='undefined';var IS_BROWSER=HAS_WINDOW_SUPPORT&&HAS_DOCUMENT_SUPPORT&&HAS_NAVIGATOR_SUPPORT;var WINDOW=HAS_WINDOW_SUPPORT?window:{};var DOCUMENT=HAS_DOCUMENT_SUPPORT?document:{};var NAVIGATOR=HAS_NAVIGATOR_SUPPORT?navigator:{};var USER_AGENT=(NAVIGATOR.userAgent||'').toLowerCase();var IS_JSDOM=USER_AGENT.indexOf('jsdom')>0;/msie|trident/.test(USER_AGENT);// Determine if the browser supports the option passive for events
+ */function ownKeys(object,enumerableOnly){var keys=Object.keys(object);if(Object.getOwnPropertySymbols){var symbols=Object.getOwnPropertySymbols(object);enumerableOnly&&(symbols=symbols.filter(function(sym){return Object.getOwnPropertyDescriptor(object,sym).enumerable;})),keys.push.apply(keys,symbols);}return keys;}function _objectSpread2$3(target){for(var i=1;i<arguments.length;i++){var source=null!=arguments[i]?arguments[i]:{};i%2?ownKeys(Object(source),!0).forEach(function(key){_defineProperty(target,key,source[key]);}):Object.getOwnPropertyDescriptors?Object.defineProperties(target,Object.getOwnPropertyDescriptors(source)):ownKeys(Object(source)).forEach(function(key){Object.defineProperty(target,key,Object.getOwnPropertyDescriptor(source,key));});}return target;}function _typeof(obj){"@babel/helpers - typeof";return _typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(obj){return typeof obj;}:function(obj){return obj&&"function"==typeof Symbol&&obj.constructor===Symbol&&obj!==Symbol.prototype?"symbol":typeof obj;},_typeof(obj);}function bootstrap_vue_esm_classCallCheck(instance,Constructor){if(!(instance instanceof Constructor)){throw new TypeError("Cannot call a class as a function");}}function bootstrap_vue_esm_defineProperties(target,props){for(var i=0;i<props.length;i++){var descriptor=props[i];descriptor.enumerable=descriptor.enumerable||false;descriptor.configurable=true;if("value"in descriptor)descriptor.writable=true;Object.defineProperty(target,descriptor.key,descriptor);}}function bootstrap_vue_esm_createClass(Constructor,protoProps,staticProps){if(protoProps)bootstrap_vue_esm_defineProperties(Constructor.prototype,protoProps);if(staticProps)bootstrap_vue_esm_defineProperties(Constructor,staticProps);Object.defineProperty(Constructor,"prototype",{writable:false});return Constructor;}function _defineProperty(obj,key,value){if(key in obj){Object.defineProperty(obj,key,{value:value,enumerable:true,configurable:true,writable:true});}else{obj[key]=value;}return obj;}function _inherits(subClass,superClass){if(typeof superClass!=="function"&&superClass!==null){throw new TypeError("Super expression must either be null or a function");}Object.defineProperty(subClass,"prototype",{value:Object.create(superClass&&superClass.prototype,{constructor:{value:subClass,writable:true,configurable:true}}),writable:false});if(superClass)_setPrototypeOf(subClass,superClass);}function _getPrototypeOf(o){_getPrototypeOf=Object.setPrototypeOf?Object.getPrototypeOf:function _getPrototypeOf(o){return o.__proto__||Object.getPrototypeOf(o);};return _getPrototypeOf(o);}function _setPrototypeOf(o,p){_setPrototypeOf=Object.setPrototypeOf||function _setPrototypeOf(o,p){o.__proto__=p;return o;};return _setPrototypeOf(o,p);}function _isNativeReflectConstruct(){if(typeof Reflect==="undefined"||!Reflect.construct)return false;if(Reflect.construct.sham)return false;if(typeof Proxy==="function")return true;try{Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],function(){}));return true;}catch(e){return false;}}function _construct(Parent,args,Class){if(_isNativeReflectConstruct()){_construct=Reflect.construct;}else{_construct=function _construct(Parent,args,Class){var a=[null];a.push.apply(a,args);var Constructor=Function.bind.apply(Parent,a);var instance=new Constructor();if(Class)_setPrototypeOf(instance,Class.prototype);return instance;};}return _construct.apply(null,arguments);}function _isNativeFunction(fn){return Function.toString.call(fn).indexOf("[native code]")!==-1;}function _wrapNativeSuper(Class){var _cache=typeof Map==="function"?new Map():undefined;_wrapNativeSuper=function _wrapNativeSuper(Class){if(Class===null||!_isNativeFunction(Class))return Class;if(typeof Class!=="function"){throw new TypeError("Super expression must either be null or a function");}if(typeof _cache!=="undefined"){if(_cache.has(Class))return _cache.get(Class);_cache.set(Class,Wrapper);}function Wrapper(){return _construct(Class,arguments,_getPrototypeOf(this).constructor);}Wrapper.prototype=Object.create(Class.prototype,{constructor:{value:Wrapper,enumerable:false,writable:true,configurable:true}});return _setPrototypeOf(Wrapper,Class);};return _wrapNativeSuper(Class);}function _assertThisInitialized(self){if(self===void 0){throw new ReferenceError("this hasn't been initialised - super() hasn't been called");}return self;}function _possibleConstructorReturn(self,call){if(call&&((0,esm_typeof/* default */.Z)(call)==="object"||typeof call==="function")){return call;}else if(call!==void 0){throw new TypeError("Derived constructors may only return object or undefined");}return _assertThisInitialized(self);}function _createSuper(Derived){var hasNativeReflectConstruct=_isNativeReflectConstruct();return function _createSuperInternal(){var Super=_getPrototypeOf(Derived),result;if(hasNativeReflectConstruct){var NewTarget=_getPrototypeOf(this).constructor;result=Reflect.construct(Super,arguments,NewTarget);}else{result=Super.apply(this,arguments);}return _possibleConstructorReturn(this,result);};}function _superPropBase(object,property){while(!Object.prototype.hasOwnProperty.call(object,property)){object=_getPrototypeOf(object);if(object===null)break;}return object;}function _get(){if(typeof Reflect!=="undefined"&&Reflect.get){_get=Reflect.get;}else{_get=function _get(target,property,receiver){var base=_superPropBase(target,property);if(!base)return;var desc=Object.getOwnPropertyDescriptor(base,property);if(desc.get){return desc.get.call(arguments.length<3?target:receiver);}return desc.value;};}return _get.apply(this,arguments);}function bootstrap_vue_esm_slicedToArray(arr,i){return bootstrap_vue_esm_arrayWithHoles(arr)||bootstrap_vue_esm_iterableToArrayLimit(arr,i)||bootstrap_vue_esm_unsupportedIterableToArray(arr,i)||bootstrap_vue_esm_nonIterableRest();}function _toConsumableArray(arr){return _arrayWithoutHoles(arr)||_iterableToArray(arr)||bootstrap_vue_esm_unsupportedIterableToArray(arr)||_nonIterableSpread();}function _arrayWithoutHoles(arr){if(Array.isArray(arr))return bootstrap_vue_esm_arrayLikeToArray(arr);}function bootstrap_vue_esm_arrayWithHoles(arr){if(Array.isArray(arr))return arr;}function _iterableToArray(iter){if(typeof Symbol!=="undefined"&&iter[Symbol.iterator]!=null||iter["@@iterator"]!=null)return Array.from(iter);}function bootstrap_vue_esm_iterableToArrayLimit(arr,i){var _i=arr==null?null:typeof Symbol!=="undefined"&&arr[Symbol.iterator]||arr["@@iterator"];if(_i==null)return;var _arr=[];var _n=true;var _d=false;var _s,_e;try{for(_i=_i.call(arr);!(_n=(_s=_i.next()).done);_n=true){_arr.push(_s.value);if(i&&_arr.length===i)break;}}catch(err){_d=true;_e=err;}finally{try{if(!_n&&_i["return"]!=null)_i["return"]();}finally{if(_d)throw _e;}}return _arr;}function bootstrap_vue_esm_unsupportedIterableToArray(o,minLen){if(!o)return;if(typeof o==="string")return bootstrap_vue_esm_arrayLikeToArray(o,minLen);var n=Object.prototype.toString.call(o).slice(8,-1);if(n==="Object"&&o.constructor)n=o.constructor.name;if(n==="Map"||n==="Set")return Array.from(o);if(n==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n))return bootstrap_vue_esm_arrayLikeToArray(o,minLen);}function bootstrap_vue_esm_arrayLikeToArray(arr,len){if(len==null||len>arr.length)len=arr.length;for(var i=0,arr2=new Array(len);i<len;i++){arr2[i]=arr[i];}return arr2;}function _nonIterableSpread(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");}function bootstrap_vue_esm_nonIterableRest(){throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");}var COMPONENT_UID_KEY='_uid';var HAS_WINDOW_SUPPORT=typeof window!=='undefined';var HAS_DOCUMENT_SUPPORT=typeof document!=='undefined';var HAS_NAVIGATOR_SUPPORT=typeof navigator!=='undefined';var HAS_PROMISE_SUPPORT=typeof Promise!=='undefined';/* istanbul ignore next: JSDOM always returns false */var HAS_MUTATION_OBSERVER_SUPPORT=typeof MutationObserver!=='undefined'||typeof WebKitMutationObserver!=='undefined'||typeof MozMutationObserver!=='undefined';var IS_BROWSER=HAS_WINDOW_SUPPORT&&HAS_DOCUMENT_SUPPORT&&HAS_NAVIGATOR_SUPPORT;var WINDOW=HAS_WINDOW_SUPPORT?window:{};var DOCUMENT=HAS_DOCUMENT_SUPPORT?document:{};var NAVIGATOR=HAS_NAVIGATOR_SUPPORT?navigator:{};var USER_AGENT=(NAVIGATOR.userAgent||'').toLowerCase();var IS_JSDOM=USER_AGENT.indexOf('jsdom')>0;/msie|trident/.test(USER_AGENT);// Determine if the browser supports the option passive for events
 var HAS_PASSIVE_EVENT_SUPPORT=function(){var passiveEventSupported=false;if(IS_BROWSER){try{var options={// This function will be called when the browser
 // attempts to access the passive property
 get passive(){/* istanbul ignore next: will never be called in JSDOM */passiveEventSupported=true;}};WINDOW.addEventListener('test',options,options);WINDOW.removeEventListener('test',options,options);}catch(_unused){/* istanbul ignore next: will never be called in JSDOM */passiveEventSupported=false;}}return passiveEventSupported;}();var HAS_TOUCH_SUPPORT=IS_BROWSER&&('ontouchstart'in DOCUMENT.documentElement||NAVIGATOR.maxTouchPoints>0);var HAS_POINTER_EVENT_SUPPORT=IS_BROWSER&&Boolean(WINDOW.PointerEvent||WINDOW.MSPointerEvent);/* istanbul ignore next: JSDOM only checks for 'IntersectionObserver' */var HAS_INTERACTION_OBSERVER_SUPPORT=IS_BROWSER&&'IntersectionObserver'in WINDOW&&'IntersectionObserverEntry'in WINDOW&&// Edge 15 and UC Browser lack support for `isIntersecting`
@@ -58799,11 +63162,11 @@ var RX_HREF=/^.*(#[^#]+)$/;var RX_ENCODED_COMMA=/%2C/g;var RX_ENCODE_REVERSE=/[!
 var RX_ASPECT=/^\d+(\.\d*)?[/:]\d+(\.\d*)?$/;var RX_ASPECT_SEPARATOR=/[/:]/;// --- Grid ---
 var RX_COL_CLASS=/^col-/;// --- Icon ---
 var RX_ICON_PREFIX=/^BIcon/;// --- Locale ---
-var RX_STRIP_LOCALE_MODS=/-u-.+/;/* istanbul ignore next */var Element=HAS_WINDOW_SUPPORT?WINDOW.Element:/*#__PURE__*/function(_Object){_inherits(Element,_Object);var _super=_createSuper(Element);function Element(){_classCallCheck(this,Element);return _super.apply(this,arguments);}return Element;}(/*#__PURE__*/_wrapNativeSuper(Object));/* istanbul ignore next */var HTMLElement=HAS_WINDOW_SUPPORT?WINDOW.HTMLElement:/*#__PURE__*/function(_Element){_inherits(HTMLElement,_Element);var _super2=_createSuper(HTMLElement);function HTMLElement(){_classCallCheck(this,HTMLElement);return _super2.apply(this,arguments);}return HTMLElement;}(Element);/* istanbul ignore next */var SVGElement=HAS_WINDOW_SUPPORT?WINDOW.SVGElement:/*#__PURE__*/function(_Element2){_inherits(SVGElement,_Element2);var _super3=_createSuper(SVGElement);function SVGElement(){_classCallCheck(this,SVGElement);return _super3.apply(this,arguments);}return SVGElement;}(Element);/* istanbul ignore next */var File=HAS_WINDOW_SUPPORT?WINDOW.File:/*#__PURE__*/function(_Object2){_inherits(File,_Object2);var _super4=_createSuper(File);function File(){_classCallCheck(this,File);return _super4.apply(this,arguments);}return File;}(/*#__PURE__*/_wrapNativeSuper(Object));var toType$1=function toType(value){return bootstrap_vue_esm_typeof(value);};var toRawType=function toRawType(value){return Object.prototype.toString.call(value).slice(8,-1);};var isUndefined=function isUndefined(value){return value===undefined;};var isNull=function isNull(value){return value===null;};var isUndefinedOrNull=function isUndefinedOrNull(value){return isUndefined(value)||isNull(value);};var bootstrap_vue_esm_isFunction=function isFunction(value){return toType$1(value)==='function';};var isBoolean=function isBoolean(value){return toType$1(value)==='boolean';};var isString=function isString(value){return toType$1(value)==='string';};var isNumber=function isNumber(value){return toType$1(value)==='number';};var bootstrap_vue_esm_isNumeric=function isNumeric(value){return RX_NUMBER.test(String(value));};var isArray=function isArray(value){return Array.isArray(value);};// Quick object check
+var RX_STRIP_LOCALE_MODS=/-u-.+/;/* istanbul ignore next */var Element=HAS_WINDOW_SUPPORT?WINDOW.Element:/*#__PURE__*/function(_Object){_inherits(Element,_Object);var _super=_createSuper(Element);function Element(){bootstrap_vue_esm_classCallCheck(this,Element);return _super.apply(this,arguments);}return Element;}(/*#__PURE__*/_wrapNativeSuper(Object));/* istanbul ignore next */var HTMLElement=HAS_WINDOW_SUPPORT?WINDOW.HTMLElement:/*#__PURE__*/function(_Element){_inherits(HTMLElement,_Element);var _super2=_createSuper(HTMLElement);function HTMLElement(){bootstrap_vue_esm_classCallCheck(this,HTMLElement);return _super2.apply(this,arguments);}return HTMLElement;}(Element);/* istanbul ignore next */var SVGElement=HAS_WINDOW_SUPPORT?WINDOW.SVGElement:/*#__PURE__*/function(_Element2){_inherits(SVGElement,_Element2);var _super3=_createSuper(SVGElement);function SVGElement(){bootstrap_vue_esm_classCallCheck(this,SVGElement);return _super3.apply(this,arguments);}return SVGElement;}(Element);/* istanbul ignore next */var File=HAS_WINDOW_SUPPORT?WINDOW.File:/*#__PURE__*/function(_Object2){_inherits(File,_Object2);var _super4=_createSuper(File);function File(){bootstrap_vue_esm_classCallCheck(this,File);return _super4.apply(this,arguments);}return File;}(/*#__PURE__*/_wrapNativeSuper(Object));var toType$1=function toType(value){return _typeof(value);};var toRawType=function toRawType(value){return Object.prototype.toString.call(value).slice(8,-1);};var isUndefined=function isUndefined(value){return value===undefined;};var isNull=function isNull(value){return value===null;};var isUndefinedOrNull=function isUndefinedOrNull(value){return isUndefined(value)||isNull(value);};var bootstrap_vue_esm_isFunction=function isFunction(value){return toType$1(value)==='function';};var isBoolean=function isBoolean(value){return toType$1(value)==='boolean';};var isString=function isString(value){return toType$1(value)==='string';};var isNumber=function isNumber(value){return toType$1(value)==='number';};var bootstrap_vue_esm_isNumeric=function isNumeric(value){return RX_NUMBER.test(String(value));};var isArray=function isArray(value){return Array.isArray(value);};// Quick object check
 // This is primarily used to tell Objects from primitive values
 // when we know the value is a JSON-compliant type
 // Note object could be a complex type like array, Date, etc.
-var isObject=function isObject(obj){return obj!==null&&bootstrap_vue_esm_typeof(obj)==='object';};// Strict object type check
+var isObject=function isObject(obj){return obj!==null&&_typeof(obj)==='object';};// Strict object type check
 // Only returns true for plain JavaScript objects
 var isPlainObject=function isPlainObject(obj){return Object.prototype.toString.call(obj)==='[object Object]';};var isDate=function isDate(value){return value instanceof Date;};var isEvent=function isEvent(value){return value instanceof Event;};var isFile=function isFile(value){return value instanceof File;};var isRegExp=function isRegExp(value){return toRawType(value)==='RegExp';};var isPromise=function isPromise(value){return!isUndefinedOrNull(value)&&bootstrap_vue_esm_isFunction(value.then)&&bootstrap_vue_esm_isFunction(value.catch);};var bootstrap_vue_esm_assign=function assign(){return Object.assign.apply(Object,arguments);};var create=function create(proto,optionalProps){return Object.create(proto,optionalProps);};var defineProperties=function defineProperties(obj,props){return Object.defineProperties(obj,props);};var bootstrap_vue_esm_defineProperty=function defineProperty(obj,prop,descriptor){return Object.defineProperty(obj,prop,descriptor);};var getOwnPropertyNames=function getOwnPropertyNames(obj){return Object.getOwnPropertyNames(obj);};var keys=function keys(obj){return Object.keys(obj);};// --- "Instance" ---
 var bootstrap_vue_esm_hasOwnProperty=function hasOwnProperty(obj,prop){return Object.prototype.hasOwnProperty.call(obj,prop);};var toString$1=function toString(obj){return Object.prototype.toString.call(obj);};// --- Utilities ---
@@ -58861,8 +63224,8 @@ return steps.every(function(step){return isObject(obj)&&step in obj&&!isUndefine
  * Warn when no MutationObserver support is given
  * @param {string} source
  * @returns {boolean} warned
- */var warnNoMutationObserverSupport=function warnNoMutationObserverSupport(source){/* istanbul ignore else */if(HAS_MUTATION_OBSERVER_SUPPORT){return false;}else{warn("".concat(source,": Requires MutationObserver support."));return true;}};var BvConfig=/*#__PURE__*/function(){function BvConfig(){_classCallCheck(this,BvConfig);this.$_config={};}// Method to merge in user config parameters
-_createClass(BvConfig,[{key:"setConfig",value:function setConfig(){var _this=this;var config=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};/* istanbul ignore next */if(!isPlainObject(config)){return;}var configKeys=getOwnPropertyNames(config);configKeys.forEach(function(key){/* istanbul ignore next */var subConfig=config[key];if(key==='breakpoints'){/* istanbul ignore if */if(!isArray(subConfig)||subConfig.length<2||subConfig.some(function(b){return!isString(b)||b.length===0;})){warn('"breakpoints" must be an array of at least 2 breakpoint names',NAME$2);}else{_this.$_config[key]=cloneDeep(subConfig);}}else if(isPlainObject(subConfig)){// Component prop defaults
+ */var warnNoMutationObserverSupport=function warnNoMutationObserverSupport(source){/* istanbul ignore else */if(HAS_MUTATION_OBSERVER_SUPPORT){return false;}else{warn("".concat(source,": Requires MutationObserver support."));return true;}};var BvConfig=/*#__PURE__*/function(){function BvConfig(){bootstrap_vue_esm_classCallCheck(this,BvConfig);this.$_config={};}// Method to merge in user config parameters
+bootstrap_vue_esm_createClass(BvConfig,[{key:"setConfig",value:function setConfig(){var _this=this;var config=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};/* istanbul ignore next */if(!isPlainObject(config)){return;}var configKeys=getOwnPropertyNames(config);configKeys.forEach(function(key){/* istanbul ignore next */var subConfig=config[key];if(key==='breakpoints'){/* istanbul ignore if */if(!isArray(subConfig)||subConfig.length<2||subConfig.some(function(b){return!isString(b)||b.length===0;})){warn('"breakpoints" must be an array of at least 2 breakpoint names',NAME$2);}else{_this.$_config[key]=cloneDeep(subConfig);}}else if(isPlainObject(subConfig)){// Component prop defaults
 _this.$_config[key]=getOwnPropertyNames(subConfig).reduce(function(config,prop){if(!isUndefined(subConfig[prop])){config[prop]=cloneDeep(subConfig[prop]);}return config;},_this.$_config[key]||{});}});}// Clear the config
 },{key:"resetConfig",value:function resetConfig(){this.$_config={};}// Returns a deep copy of the user config
 },{key:"getConfig",value:function getConfig(){return cloneDeep(this.$_config);}// Returns a deep copy of the config value
@@ -59125,7 +63488,7 @@ aspect:makeProp(PROP_TYPE_NUMBER_STRING,'1:1'),tag:makeProp(PROP_TYPE_STRING,'di
 // @vue/component
 var BAspect=/*#__PURE__*/external_commonjs_vue_commonjs2_vue_root_Vue_default().extend({name:NAME_ASPECT,mixins:[normalizeSlotMixin],props:props$2j,computed:{padding:function padding(){var aspect=this.aspect;var ratio=1;if(RX_ASPECT.test(aspect)){// Width and/or Height can be a decimal value below `1`, so
 // we only fallback to `1` if the value is `0` or `NaN`
-var _aspect$split$map=aspect.split(RX_ASPECT_SEPARATOR).map(function(v){return toFloat(v)||1;}),_aspect$split$map2=_slicedToArray(_aspect$split$map,2),width=_aspect$split$map2[0],height=_aspect$split$map2[1];ratio=width/height;}else{ratio=toFloat(aspect)||1;}return"".concat(100/mathAbs(ratio),"%");}},render:function render(h){var $sizer=h('div',{staticClass:"".concat(CLASS_NAME$3,"-sizer flex-grow-1"),style:{paddingBottom:this.padding,height:0}});var $content=h('div',{staticClass:"".concat(CLASS_NAME$3,"-content flex-grow-1 w-100 mw-100"),style:{marginLeft:'-100%'}},this.normalizeSlot());return h(this.tag,{staticClass:"".concat(CLASS_NAME$3," d-flex")},[$sizer,$content]);}});var AspectPlugin=/*#__PURE__*/pluginFactory({components:{BAspect:BAspect}});var ANCHOR_TAG='a';// Method to replace reserved chars
+var _aspect$split$map=aspect.split(RX_ASPECT_SEPARATOR).map(function(v){return toFloat(v)||1;}),_aspect$split$map2=bootstrap_vue_esm_slicedToArray(_aspect$split$map,2),width=_aspect$split$map2[0],height=_aspect$split$map2[1];ratio=width/height;}else{ratio=toFloat(aspect)||1;}return"".concat(100/mathAbs(ratio),"%");}},render:function render(h){var $sizer=h('div',{staticClass:"".concat(CLASS_NAME$3,"-sizer flex-grow-1"),style:{paddingBottom:this.padding,height:0}});var $content=h('div',{staticClass:"".concat(CLASS_NAME$3,"-content flex-grow-1 w-100 mw-100"),style:{marginLeft:'-100%'}},this.normalizeSlot());return h(this.tag,{staticClass:"".concat(CLASS_NAME$3," d-flex")},[$sizer,$content]);}});var AspectPlugin=/*#__PURE__*/pluginFactory({components:{BAspect:BAspect}});var ANCHOR_TAG='a';// Method to replace reserved chars
 var encodeReserveReplacer=function encodeReserveReplacer(c){return'%'+c.charCodeAt(0).toString(16);};// Fixed encodeURIComponent which is more conformant to RFC3986:
 // - escapes [!'()*]
 // - preserve commas
@@ -60707,7 +65070,7 @@ var BButtonToolbar=/*#__PURE__*/external_commonjs_vue_commonjs2_vue_root_Vue_def
 if(this.keyNav){this.getItems();}},methods:{getItems:function getItems(){var items=selectAll(ITEM_SELECTOR,this.$el);// Ensure `tabindex="-1"` is set on every item
 items.forEach(function(item){item.tabIndex=-1;});return items.filter(function(el){return isVisible(el);});},focusFirst:function focusFirst(){var items=this.getItems();attemptFocus(items[0]);},focusPrev:function focusPrev(event){var items=this.getItems();var index=items.indexOf(event.target);if(index>-1){items=items.slice(0,index).reverse();attemptFocus(items[0]);}},focusNext:function focusNext(event){var items=this.getItems();var index=items.indexOf(event.target);if(index>-1){items=items.slice(index+1);attemptFocus(items[0]);}},focusLast:function focusLast(){var items=this.getItems().reverse();attemptFocus(items[0]);},onFocusin:function onFocusin(event){var $el=this.$el;if(event.target===$el&&!contains($el,event.relatedTarget)){stopEvent(event);this.focusFirst(event);}},onKeydown:function onKeydown(event){var keyCode=event.keyCode,shiftKey=event.shiftKey;if(keyCode===CODE_UP||keyCode===CODE_LEFT){stopEvent(event);shiftKey?this.focusFirst(event):this.focusPrev(event);}else if(keyCode===CODE_DOWN||keyCode===CODE_RIGHT){stopEvent(event);shiftKey?this.focusLast(event):this.focusNext(event);}}},render:function render(h){var keyNav=this.keyNav;return h('div',{staticClass:'btn-toolbar',class:{'justify-content-between':this.justify},attrs:{role:'toolbar',tabindex:keyNav?'0':null},on:keyNav?{focusin:this.onFocusin,keydown:this.onKeydown}:{}},[this.normalizeSlot()]);}});var ButtonToolbarPlugin=/*#__PURE__*/pluginFactory({components:{BButtonToolbar:BButtonToolbar,BBtnToolbar:BButtonToolbar}});var CALENDAR_GREGORY='gregory';var CALENDAR_LONG='long';var CALENDAR_NARROW='narrow';var CALENDAR_SHORT='short';var DATE_FORMAT_2_DIGIT='2-digit';var DATE_FORMAT_NUMERIC='numeric';// Create or clone a date (`new Date(...)` shortcut)
 var createDate=function createDate(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}return _construct(Date,args);};// Parse a date sting, or Date object, into a Date object (with no time information)
-var parseYMD=function parseYMD(date){if(isString(date)&&RX_DATE.test(date.trim())){var _date$split$map=date.split(RX_DATE_SPLIT).map(function(v){return toInteger(v,1);}),_date$split$map2=_slicedToArray(_date$split$map,3),year=_date$split$map2[0],month=_date$split$map2[1],day=_date$split$map2[2];return createDate(year,month-1,day);}else if(isDate(date)){return createDate(date.getFullYear(),date.getMonth(),date.getDate());}return null;};// Format a date object as `YYYY-MM-DD` format
+var parseYMD=function parseYMD(date){if(isString(date)&&RX_DATE.test(date.trim())){var _date$split$map=date.split(RX_DATE_SPLIT).map(function(v){return toInteger(v,1);}),_date$split$map2=bootstrap_vue_esm_slicedToArray(_date$split$map,3),year=_date$split$map2[0],month=_date$split$map2[1],day=_date$split$map2[2];return createDate(year,month-1,day);}else if(isDate(date)){return createDate(date.getFullYear(),date.getMonth(),date.getDate());}return null;};// Format a date object as `YYYY-MM-DD` format
 var formatYMD=function formatYMD(date){date=parseYMD(date);if(!date){return null;}var year=date.getFullYear();var month="0".concat(date.getMonth()+1).slice(-2);var day="0".concat(date.getDate()).slice(-2);return"".concat(year,"-").concat(month,"-").concat(day);};// Given a locale (or locales), resolve the browser available locale
 var resolveLocale=function resolveLocale(locales)/* istanbul ignore next */{var calendar=arguments.length>1&&arguments[1]!==undefined?arguments[1]:CALENDAR_GREGORY;locales=concat(locales).filter(identity);var fmt=new Intl.DateTimeFormat(locales,{calendar:calendar});return fmt.resolvedOptions().locale;};// Create a `Intl.DateTimeFormat` formatter function
 var createDateFormatter=function createDateFormatter(locale,options)/* istanbul ignore next */{var dtf=new Intl.DateTimeFormat(locale,options);return dtf.format;};// Determine if two dates are the same date (ignoring time portion)
@@ -60955,8 +65318,8 @@ var BCard=/*#__PURE__*/external_commonjs_vue_commonjs2_vue_root_Vue_default().ex
 if(!props.noBody){$content=h(BCardBody,{props:pluckProps(props$21,props)},$content);// When the `overlap` prop is set we need to wrap the `<b-card-img>` and `<b-card-body>`
 // into a relative positioned wrapper to don't distract a potential header or footer
 if(props.overlay&&imgSrc){$content=h('div',{staticClass:'position-relative'},[$imgFirst,$content,$imgLast]);// Reset image variables since they are already in the wrapper
-$imgFirst=h();$imgLast=h();}}var $footer=h();var hasFooterSlot=hasNormalizedSlot(SLOT_NAME_FOOTER,$scopedSlots,$slots);if(hasFooterSlot||footer||footerHtml){$footer=h(BCardFooter,{props:pluckProps(props$1$,props),domProps:hasHeaderSlot?{}:htmlOrText(footerHtml,footer)},normalizeSlot(SLOT_NAME_FOOTER,slotScope,$scopedSlots,$slots));}return h(props.tag,a(data,{staticClass:'card',class:(_class={'flex-row':imgLeft||imgStart,'flex-row-reverse':(imgRight||imgEnd)&&!(imgLeft||imgStart)},_defineProperty(_class,"text-".concat(align),align),_defineProperty(_class,"bg-".concat(bgVariant),bgVariant),_defineProperty(_class,"border-".concat(borderVariant),borderVariant),_defineProperty(_class,"text-".concat(textVariant),textVariant),_class)}),[$imgFirst,$header,$content,$footer,$imgLast]);}});var OBSERVER_PROP_NAME='__bv__visibility_observer';var VisibilityObserver=/*#__PURE__*/function(){function VisibilityObserver(el,options,vnode){_classCallCheck(this,VisibilityObserver);this.el=el;this.callback=options.callback;this.margin=options.margin||0;this.once=options.once||false;this.observer=null;this.visible=undefined;this.doneOnce=false;// Create the observer instance (if possible)
-this.createObserver(vnode);}_createClass(VisibilityObserver,[{key:"createObserver",value:function createObserver(vnode){var _this=this;// Remove any previous observer
+$imgFirst=h();$imgLast=h();}}var $footer=h();var hasFooterSlot=hasNormalizedSlot(SLOT_NAME_FOOTER,$scopedSlots,$slots);if(hasFooterSlot||footer||footerHtml){$footer=h(BCardFooter,{props:pluckProps(props$1$,props),domProps:hasHeaderSlot?{}:htmlOrText(footerHtml,footer)},normalizeSlot(SLOT_NAME_FOOTER,slotScope,$scopedSlots,$slots));}return h(props.tag,a(data,{staticClass:'card',class:(_class={'flex-row':imgLeft||imgStart,'flex-row-reverse':(imgRight||imgEnd)&&!(imgLeft||imgStart)},_defineProperty(_class,"text-".concat(align),align),_defineProperty(_class,"bg-".concat(bgVariant),bgVariant),_defineProperty(_class,"border-".concat(borderVariant),borderVariant),_defineProperty(_class,"text-".concat(textVariant),textVariant),_class)}),[$imgFirst,$header,$content,$footer,$imgLast]);}});var OBSERVER_PROP_NAME='__bv__visibility_observer';var VisibilityObserver=/*#__PURE__*/function(){function VisibilityObserver(el,options,vnode){bootstrap_vue_esm_classCallCheck(this,VisibilityObserver);this.el=el;this.callback=options.callback;this.margin=options.margin||0;this.once=options.once||false;this.observer=null;this.visible=undefined;this.doneOnce=false;// Create the observer instance (if possible)
+this.createObserver(vnode);}bootstrap_vue_esm_createClass(VisibilityObserver,[{key:"createObserver",value:function createObserver(vnode){var _this=this;// Remove any previous observer
 if(this.observer){/* istanbul ignore next */this.stop();}// Should only be called once and `callback` prop should be a function
 if(this.doneOnce||!bootstrap_vue_esm_isFunction(this.callback)){/* istanbul ignore next */return;}// Create the observer instance
 try{// Future: Possibly add in other modifiers for left/right/top/bottom
@@ -61218,7 +65581,7 @@ addRootListeners(el,vnode);// Initial update of trigger
 handleUpdate(el,binding,vnode);},componentUpdated:handleUpdate,updated:handleUpdate,unbind:function unbind(el,binding,vnode){removeClickListener(el);// Remove our $root listener
 removeRootListeners(el,vnode);// Reset custom props
 resetProp(el,BV_TOGGLE_ROOT_HANDLER);resetProp(el,BV_TOGGLE_CLICK_HANDLER);resetProp(el,BV_TOGGLE_STATE);resetProp(el,BV_TOGGLE_TARGETS);// Reset classes/attrs/styles
-removeClass(el,CLASS_BV_TOGGLE_COLLAPSED);removeClass(el,CLASS_BV_TOGGLE_NOT_COLLAPSED);removeAttr(el,ATTR_ARIA_EXPANDED);removeAttr(el,ATTR_ARIA_CONTROLS);removeAttr(el,ATTR_ROLE);removeStyle(el,STYLE_OVERFLOW_ANCHOR);}};var VBTogglePlugin=/*#__PURE__*/pluginFactory({directives:{VBToggle:VBToggle}});var CollapsePlugin=/*#__PURE__*/pluginFactory({components:{BCollapse:BCollapse},plugins:{VBTogglePlugin:VBTogglePlugin}});var PLACEMENT_TOP_START='top-start';var PLACEMENT_TOP_END='top-end';var PLACEMENT_BOTTOM_START='bottom-start';var PLACEMENT_BOTTOM_END='bottom-end';var PLACEMENT_RIGHT_START='right-start';var PLACEMENT_LEFT_START='left-start';var BvEvent=/*#__PURE__*/function(){function BvEvent(type){var eventInit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};_classCallCheck(this,BvEvent);// Start by emulating native Event constructor
+removeClass(el,CLASS_BV_TOGGLE_COLLAPSED);removeClass(el,CLASS_BV_TOGGLE_NOT_COLLAPSED);removeAttr(el,ATTR_ARIA_EXPANDED);removeAttr(el,ATTR_ARIA_CONTROLS);removeAttr(el,ATTR_ROLE);removeStyle(el,STYLE_OVERFLOW_ANCHOR);}};var VBTogglePlugin=/*#__PURE__*/pluginFactory({directives:{VBToggle:VBToggle}});var CollapsePlugin=/*#__PURE__*/pluginFactory({components:{BCollapse:BCollapse},plugins:{VBTogglePlugin:VBTogglePlugin}});var PLACEMENT_TOP_START='top-start';var PLACEMENT_TOP_END='top-end';var PLACEMENT_BOTTOM_START='bottom-start';var PLACEMENT_BOTTOM_END='bottom-end';var PLACEMENT_RIGHT_START='right-start';var PLACEMENT_LEFT_START='left-start';var BvEvent=/*#__PURE__*/function(){function BvEvent(type){var eventInit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};bootstrap_vue_esm_classCallCheck(this,BvEvent);// Start by emulating native Event constructor
 if(!type){/* istanbul ignore next */throw new TypeError("Failed to construct '".concat(this.constructor.name,"'. 1 argument required, ").concat(arguments.length," given."));}// Merge defaults first, the eventInit, and the type last
 // so it can't be overwritten
 bootstrap_vue_esm_assign(this,BvEvent.Defaults,this.constructor.Defaults,eventInit,{type:type});// Freeze some props as readonly, but leave them enumerable
@@ -61226,7 +65589,7 @@ defineProperties(this,{type:readonlyDescriptor(),cancelable:readonlyDescriptor()
 var defaultPrevented=false;// Recreate preventDefault method. One way setter
 this.preventDefault=function preventDefault(){if(this.cancelable){defaultPrevented=true;}};// Create `defaultPrevented` publicly accessible prop that
 // can only be altered by the preventDefault method
-bootstrap_vue_esm_defineProperty(this,'defaultPrevented',{enumerable:true,get:function get(){return defaultPrevented;}});}_createClass(BvEvent,null,[{key:"Defaults",get:function get(){return{type:'',cancelable:true,nativeEvent:null,target:null,relatedTarget:null,vueTarget:null,componentId:null};}}]);return BvEvent;}();var clickOutMixin=external_commonjs_vue_commonjs2_vue_root_Vue_default().extend({data:function data(){return{listenForClickOut:false};},watch:{listenForClickOut:function listenForClickOut(newValue,oldValue){if(newValue!==oldValue){eventOff(this.clickOutElement,this.clickOutEventName,this._clickOutHandler,EVENT_OPTIONS_NO_CAPTURE);if(newValue){eventOn(this.clickOutElement,this.clickOutEventName,this._clickOutHandler,EVENT_OPTIONS_NO_CAPTURE);}}}},beforeCreate:function beforeCreate(){// Declare non-reactive properties
+bootstrap_vue_esm_defineProperty(this,'defaultPrevented',{enumerable:true,get:function get(){return defaultPrevented;}});}bootstrap_vue_esm_createClass(BvEvent,null,[{key:"Defaults",get:function get(){return{type:'',cancelable:true,nativeEvent:null,target:null,relatedTarget:null,vueTarget:null,componentId:null};}}]);return BvEvent;}();var clickOutMixin=external_commonjs_vue_commonjs2_vue_root_Vue_default().extend({data:function data(){return{listenForClickOut:false};},watch:{listenForClickOut:function listenForClickOut(newValue,oldValue){if(newValue!==oldValue){eventOff(this.clickOutElement,this.clickOutEventName,this._clickOutHandler,EVENT_OPTIONS_NO_CAPTURE);if(newValue){eventOn(this.clickOutElement,this.clickOutEventName,this._clickOutHandler,EVENT_OPTIONS_NO_CAPTURE);}}}},beforeCreate:function beforeCreate(){// Declare non-reactive properties
 this.clickOutElement=null;this.clickOutEventName=null;},mounted:function mounted(){if(!this.clickOutElement){this.clickOutElement=document;}if(!this.clickOutEventName){this.clickOutEventName='click';}if(this.listenForClickOut){eventOn(this.clickOutElement,this.clickOutEventName,this._clickOutHandler,EVENT_OPTIONS_NO_CAPTURE);}},beforeDestroy:function beforeDestroy(){eventOff(this.clickOutElement,this.clickOutEventName,this._clickOutHandler,EVENT_OPTIONS_NO_CAPTURE);},methods:{isClickOut:function isClickOut(event){return!contains(this.$el,event.target);},_clickOutHandler:function _clickOutHandler(event){if(this.clickOutHandler&&this.isClickOut(event)){this.clickOutHandler(event);}}}});var focusInMixin=external_commonjs_vue_commonjs2_vue_root_Vue_default().extend({data:function data(){return{listenForFocusIn:false};},watch:{listenForFocusIn:function listenForFocusIn(newValue,oldValue){if(newValue!==oldValue){eventOff(this.focusInElement,'focusin',this._focusInHandler,EVENT_OPTIONS_NO_CAPTURE);if(newValue){eventOn(this.focusInElement,'focusin',this._focusInHandler,EVENT_OPTIONS_NO_CAPTURE);}}}},beforeCreate:function beforeCreate(){// Declare non-reactive properties
 this.focusInElement=null;},mounted:function mounted(){if(!this.focusInElement){this.focusInElement=document;}if(this.listenForFocusIn){eventOn(this.focusInElement,'focusin',this._focusInHandler,EVENT_OPTIONS_NO_CAPTURE);}},beforeDestroy:function beforeDestroy(){eventOff(this.focusInElement,'focusin',this._focusInHandler,EVENT_OPTIONS_NO_CAPTURE);},methods:{_focusInHandler:function _focusInHandler(event){if(this.focusInHandler){this.focusInHandler(event);}}}});var ROOT_EVENT_NAME_SHOWN=getRootEventName(NAME_DROPDOWN,EVENT_NAME_SHOWN);var ROOT_EVENT_NAME_HIDDEN=getRootEventName(NAME_DROPDOWN,EVENT_NAME_HIDDEN);// CSS selectors
 var SELECTOR_FORM_CHILD='.dropdown form';var SELECTOR_ITEM=['.dropdown-item','.b-dropdown-form'].map(function(selector){return"".concat(selector,":not(.disabled):not([disabled])");}).join(', ');// --- Helper methods ---
@@ -61995,7 +66358,7 @@ var height=mathMax(mathCeil(rows*lineHeight+offset),minHeight);// Computed heigh
 if(this.noAutoShrink&&toFloat(oldHeight,0)>height){return oldHeight;}// Return the new computed CSS height in px units
 return"".concat(height,"px");}},render:function render(h){return h('textarea',{class:this.computedClass,style:this.computedStyle,directives:[{name:'b-visible',value:this.visibleCallback,// If textarea is within 640px of viewport, consider it visible
 modifiers:{'640':true}}],attrs:this.computedAttrs,domProps:{value:this.localValue},on:this.computedListeners,ref:'input'});}});var FormTextareaPlugin=/*#__PURE__*/pluginFactory({components:{BFormTextarea:BFormTextarea,BTextarea:BFormTextarea}});var _watch$8;var _makeModelMixin$7=makeModelMixin('value',{type:PROP_TYPE_STRING,defaultValue:''}),modelMixin$7=_makeModelMixin$7.mixin,modelProps$7=_makeModelMixin$7.props,MODEL_PROP_NAME$7=_makeModelMixin$7.prop,MODEL_EVENT_NAME$7=_makeModelMixin$7.event;var NUMERIC='numeric';// --- Helper methods ---
-var padLeftZeros=function padLeftZeros(value){return"00".concat(value||'').slice(-2);};var parseHMS=function parseHMS(value){value=bootstrap_vue_esm_toString(value);var hh=null,mm=null,ss=null;if(RX_TIME.test(value)){var _value$split$map=value.split(':').map(function(v){return toInteger(v,null);});var _value$split$map2=_slicedToArray(_value$split$map,3);hh=_value$split$map2[0];mm=_value$split$map2[1];ss=_value$split$map2[2];}return{hours:isUndefinedOrNull(hh)?null:hh,minutes:isUndefinedOrNull(mm)?null:mm,seconds:isUndefinedOrNull(ss)?null:ss,ampm:isUndefinedOrNull(hh)||hh<12?0:1};};var formatHMS=function formatHMS(_ref){var hours=_ref.hours,minutes=_ref.minutes,seconds=_ref.seconds;var requireSeconds=arguments.length>1&&arguments[1]!==undefined?arguments[1]:false;if(isNull(hours)||isNull(minutes)||requireSeconds&&isNull(seconds)){return'';}var hms=[hours,minutes,requireSeconds?seconds:0];return hms.map(padLeftZeros).join(':');};// --- Props ---
+var padLeftZeros=function padLeftZeros(value){return"00".concat(value||'').slice(-2);};var parseHMS=function parseHMS(value){value=bootstrap_vue_esm_toString(value);var hh=null,mm=null,ss=null;if(RX_TIME.test(value)){var _value$split$map=value.split(':').map(function(v){return toInteger(v,null);});var _value$split$map2=bootstrap_vue_esm_slicedToArray(_value$split$map,3);hh=_value$split$map2[0];mm=_value$split$map2[1];ss=_value$split$map2[2];}return{hours:isUndefinedOrNull(hh)?null:hh,minutes:isUndefinedOrNull(mm)?null:mm,seconds:isUndefinedOrNull(ss)?null:ss,ampm:isUndefinedOrNull(hh)||hh<12?0:1};};var formatHMS=function formatHMS(_ref){var hours=_ref.hours,minutes=_ref.minutes,seconds=_ref.seconds;var requireSeconds=arguments.length>1&&arguments[1]!==undefined?arguments[1]:false;if(isNull(hours)||isNull(minutes)||requireSeconds&&isNull(seconds)){return'';}var hms=[hours,minutes,requireSeconds?seconds:0];return hms.map(padLeftZeros).join(':');};// --- Props ---
 var props$19=makePropsConfigurable(sortKeys(_objectSpread2$3(_objectSpread2$3(_objectSpread2$3(_objectSpread2$3({},props$26),modelProps$7),pick(props$1d,['labelIncrement','labelDecrement'])),{},{// ID of label element
 ariaLabelledby:makeProp(PROP_TYPE_STRING),disabled:makeProp(PROP_TYPE_BOOLEAN,false),footerTag:makeProp(PROP_TYPE_STRING,'footer'),headerTag:makeProp(PROP_TYPE_STRING,'header'),hidden:makeProp(PROP_TYPE_BOOLEAN,false),hideHeader:makeProp(PROP_TYPE_BOOLEAN,false),// Explicitly force 12 or 24 hour time
 // Default is to use resolved locale for 12/24 hour display
@@ -62178,8 +66541,8 @@ this.$_target.updatedNodes=defaultFn;}else if(!defaultFn){// We also need to be 
 this.$_target.updatedNodes=this.$slots.default;}}// Update the scoped slot function cache
 this.$_defaultFn=defaultFn;}},// Unmount the target
 unmountTarget:function unmountTarget(){this.$_target&&this.$_target.$destroy();this.$_target=null;}},render:function render(h){// This component has no root element, so only a single VNode is allowed
-if(this.disabled){var $nodes=concat(this.normalizeSlot()).filter(identity);if($nodes.length>0&&!$nodes[0].text){return $nodes[0];}}return h();}});var BvModalEvent=/*#__PURE__*/function(_BvEvent){_inherits(BvModalEvent,_BvEvent);var _super=_createSuper(BvModalEvent);function BvModalEvent(type){var _this;var eventInit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};_classCallCheck(this,BvModalEvent);_this=_super.call(this,type,eventInit);// Freeze our new props as readonly, but leave them enumerable
-defineProperties(_assertThisInitialized(_this),{trigger:readonlyDescriptor()});return _this;}_createClass(BvModalEvent,null,[{key:"Defaults",get:function get(){return _objectSpread2$3(_objectSpread2$3({},_get(_getPrototypeOf(BvModalEvent),"Defaults",this)),{},{trigger:null});}}]);return BvModalEvent;}(BvEvent);// Named exports
+if(this.disabled){var $nodes=concat(this.normalizeSlot()).filter(identity);if($nodes.length>0&&!$nodes[0].text){return $nodes[0];}}return h();}});var BvModalEvent=/*#__PURE__*/function(_BvEvent){_inherits(BvModalEvent,_BvEvent);var _super=_createSuper(BvModalEvent);function BvModalEvent(type){var _this;var eventInit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};bootstrap_vue_esm_classCallCheck(this,BvModalEvent);_this=_super.call(this,type,eventInit);// Freeze our new props as readonly, but leave them enumerable
+defineProperties(_assertThisInitialized(_this),{trigger:readonlyDescriptor()});return _this;}bootstrap_vue_esm_createClass(BvModalEvent,null,[{key:"Defaults",get:function get(){return _objectSpread2$3(_objectSpread2$3({},_get(_getPrototypeOf(BvModalEvent),"Defaults",this)),{},{trigger:null});}}]);return BvModalEvent;}(BvEvent);// Named exports
 /**
  * Private ModalManager helper
  * Handles controlling modal stacking zIndexes and body adjustments/classes
@@ -62408,11 +66771,11 @@ if(!bvModalEvent.defaultPrevented){resolved=true;resolve(result);}}});// Create 
 var div=document.createElement('div');document.body.appendChild(div);msgBox.$mount(div);});};// Private utility method to open a user defined message box and returns a promise.
 // Not to be used directly by consumers, as this method may change calling syntax
 var makeMsgBox=function makeMsgBox($parent,content){var options=arguments.length>2&&arguments[2]!==undefined?arguments[2]:{};var resolver=arguments.length>3&&arguments[3]!==undefined?arguments[3]:null;if(!content||warnNoPromiseSupport(PROP_NAME$1)||warnNotClient(PROP_NAME$1)||!bootstrap_vue_esm_isFunction(resolver)){/* istanbul ignore next */return;}return asyncMsgBox($parent,_objectSpread2$3(_objectSpread2$3({},filterOptions$1(options)),{},{msgBoxContent:content}),resolver);};// BvModal instance class
-var BvModal=/*#__PURE__*/function(){function BvModal(vm){_classCallCheck(this,BvModal);// Assign the new properties to this instance
+var BvModal=/*#__PURE__*/function(){function BvModal(vm){bootstrap_vue_esm_classCallCheck(this,BvModal);// Assign the new properties to this instance
 bootstrap_vue_esm_assign(this,{_vm:vm,_root:vm.$root});// Set these properties as read-only and non-enumerable
 defineProperties(this,{_vm:readonlyDescriptor(),_root:readonlyDescriptor()});}// --- Instance methods ---
 // Show modal with the specified ID args are for future use
-_createClass(BvModal,[{key:"show",value:function show(id){if(id&&this._root){var _this$_root;for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}(_this$_root=this._root).$emit.apply(_this$_root,[getRootActionEventName(NAME_MODAL,'show'),id].concat(args));}}// Hide modal with the specified ID args are for future use
+bootstrap_vue_esm_createClass(BvModal,[{key:"show",value:function show(id){if(id&&this._root){var _this$_root;for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}(_this$_root=this._root).$emit.apply(_this$_root,[getRootActionEventName(NAME_MODAL,'show'),id].concat(args));}}// Hide modal with the specified ID args are for future use
 },{key:"hide",value:function hide(id){if(id&&this._root){var _this$_root2;for(var _len2=arguments.length,args=new Array(_len2>1?_len2-1:0),_key2=1;_key2<_len2;_key2++){args[_key2-1]=arguments[_key2];}(_this$_root2=this._root).$emit.apply(_this$_root2,[getRootActionEventName(NAME_MODAL,'hide'),id].concat(args));}}// The following methods require Promise support!
 // IE 11 and others do not support Promise natively, so users
 // should have a Polyfill loaded (which they need anyways for IE 11 support)
@@ -63891,11 +68254,11 @@ keys(propsToSlots).forEach(function(prop){var value=props[prop];if(!isUndefined(
 if(prop==='title'&&isString(value)){// Special case for title if it is a string, we wrap in a <strong>
 value=[$parent.$createElement('strong',{class:'mr-2'},value)];}toast.$slots[propsToSlots[prop]]=concat(value);}});// Create a mount point (a DIV) and mount it (which triggers the show)
 var div=document.createElement('div');document.body.appendChild(div);toast.$mount(div);};// Declare BvToast instance property class
-var BvToast=/*#__PURE__*/function(){function BvToast(vm){_classCallCheck(this,BvToast);// Assign the new properties to this instance
+var BvToast=/*#__PURE__*/function(){function BvToast(vm){bootstrap_vue_esm_classCallCheck(this,BvToast);// Assign the new properties to this instance
 bootstrap_vue_esm_assign(this,{_vm:vm,_root:vm.$root});// Set these properties as read-only and non-enumerable
 defineProperties(this,{_vm:readonlyDescriptor(),_root:readonlyDescriptor()});}// --- Public Instance methods ---
 // Opens a user defined toast and returns immediately
-_createClass(BvToast,[{key:"toast",value:function toast(content){var options=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};if(!content||warnNotClient(PROP_NAME)){/* istanbul ignore next */return;}makeToast(_objectSpread2$3(_objectSpread2$3({},filterOptions(options)),{},{toastContent:content}),this._vm);}// shows a `<b-toast>` component with the specified ID
+bootstrap_vue_esm_createClass(BvToast,[{key:"toast",value:function toast(content){var options=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};if(!content||warnNotClient(PROP_NAME)){/* istanbul ignore next */return;}makeToast(_objectSpread2$3(_objectSpread2$3({},filterOptions(options)),{},{toastContent:content}),this._vm);}// shows a `<b-toast>` component with the specified ID
 },{key:"show",value:function show(id){if(id){this._root.$emit(getRootActionEventName(NAME_TOAST,EVENT_NAME_SHOW),id);}}// Hide a toast with specified ID, or if not ID all toasts
 },{key:"hide",value:function hide(){var id=arguments.length>0&&arguments[0]!==undefined?arguments[0]:null;this._root.$emit(getRootActionEventName(NAME_TOAST,EVENT_NAME_HIDE),id);}}]);return BvToast;}();// Add our instance mixin
 Vue.mixin({beforeCreate:function beforeCreate(){// Because we need access to `$root` for `$emits`, and VM for parenting,
@@ -63964,8 +68327,8 @@ valueType=value&&value._isVue?'component':valueType;if(!new RegExp(expectedTypes
  * ------------------------------------------------------------------------
  * Class Definition
  * ------------------------------------------------------------------------
- */ /* istanbul ignore next: not easy to test */var BVScrollspy/* istanbul ignore next: not easy to test */=/*#__PURE__*/function(){function BVScrollspy(element,config,$root){_classCallCheck(this,BVScrollspy);// The element we activate links in
-this.$el=element;this.$scroller=null;this.$selector=[SELECTOR_NAV_LINKS,SELECTOR_LIST_ITEMS,SELECTOR_DROPDOWN_ITEMS].join(',');this.$offsets=[];this.$targets=[];this.$activeTarget=null;this.$scrollHeight=0;this.$resizeTimeout=null;this.$scrollerObserver=null;this.$targetsObserver=null;this.$root=$root||null;this.$config=null;this.updateConfig(config);}_createClass(BVScrollspy,[{key:"updateConfig",value:function updateConfig(config,$root){if(this.$scroller){// Just in case out scroll element has changed
+ */ /* istanbul ignore next: not easy to test */var BVScrollspy/* istanbul ignore next: not easy to test */=/*#__PURE__*/function(){function BVScrollspy(element,config,$root){bootstrap_vue_esm_classCallCheck(this,BVScrollspy);// The element we activate links in
+this.$el=element;this.$scroller=null;this.$selector=[SELECTOR_NAV_LINKS,SELECTOR_LIST_ITEMS,SELECTOR_DROPDOWN_ITEMS].join(',');this.$offsets=[];this.$targets=[];this.$activeTarget=null;this.$scrollHeight=0;this.$resizeTimeout=null;this.$scrollerObserver=null;this.$targetsObserver=null;this.$root=$root||null;this.$config=null;this.updateConfig(config);}bootstrap_vue_esm_createClass(BVScrollspy,[{key:"updateConfig",value:function updateConfig(config,$root){if(this.$scroller){// Just in case out scroll element has changed
 this.unlisten();this.$scroller=null;}var cfg=_objectSpread2$3(_objectSpread2$3({},this.constructor.Default),config);if($root){this.$root=$root;}typeCheckConfig(this.constructor.Name,cfg,this.constructor.DefaultType);this.$config=cfg;if(this.$root){var self=this;this.$root.$nextTick(function(){self.listen();});}else{this.listen();}}},{key:"dispose",value:function dispose(){this.unlisten();clearTimeout(this.$resizeTimeout);this.$resizeTimeout=null;this.$el=null;this.$config=null;this.$scroller=null;this.$selector=null;this.$offsets=null;this.$targets=null;this.$activeTarget=null;this.$scrollHeight=null;}},{key:"listen",value:function listen(){var _this=this;var scroller=this.getScroller();if(scroller&&scroller.tagName!=='BODY'){eventOn(scroller,'scroll',this,EVENT_OPTIONS_NO_CAPTURE);}eventOn(window,'scroll',this,EVENT_OPTIONS_NO_CAPTURE);eventOn(window,'resize',this,EVENT_OPTIONS_NO_CAPTURE);eventOn(window,'orientationchange',this,EVENT_OPTIONS_NO_CAPTURE);TransitionEndEvents.forEach(function(eventName){eventOn(window,eventName,_this,EVENT_OPTIONS_NO_CAPTURE);});this.setObservers(true);// Schedule a refresh
 this.handleEvent('refresh');}},{key:"unlisten",value:function unlisten(){var _this2=this;var scroller=this.getScroller();this.setObservers(false);if(scroller&&scroller.tagName!=='BODY'){eventOff(scroller,'scroll',this,EVENT_OPTIONS_NO_CAPTURE);}eventOff(window,'scroll',this,EVENT_OPTIONS_NO_CAPTURE);eventOff(window,'resize',this,EVENT_OPTIONS_NO_CAPTURE);eventOff(window,'orientationchange',this,EVENT_OPTIONS_NO_CAPTURE);TransitionEndEvents.forEach(function(eventName){eventOff(window,eventName,_this2,EVENT_OPTIONS_NO_CAPTURE);});}},{key:"setObservers",value:function setObservers(on){var _this3=this;// We observe both the scroller for content changes, and the target links
 this.$scrollerObserver&&this.$scrollerObserver.disconnect();this.$targetsObserver&&this.$targetsObserver.disconnect();this.$scrollerObserver=null;this.$targetsObserver=null;if(on){this.$targetsObserver=observeDom(this.$el,function(){_this3.handleEvent('mutation');},{subtree:true,childList:true,attributes:true,attributeFilter:['href']});this.$scrollerObserver=observeDom(this.getScroller(),function(){_this3.handleEvent('mutation');},{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['id','style','class']});}}// General event handler
@@ -64473,7 +68836,9 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
                       return d.id == value;
                     });
 
-                    value = entity_fk[col.col_name_fk || 'name'];
+                    if (entity_fk) {
+                      value = entity_fk[col.col_name_fk || 'name'];
+                    }
                   }
                 }
               } catch (error) {

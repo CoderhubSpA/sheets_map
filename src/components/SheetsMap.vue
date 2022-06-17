@@ -58,7 +58,7 @@
                     :base-url="layer.sh_map_has_layer_url"
                     :layers="layer.sh_map_has_layer_geoserver_layer"
                     :name="layer.sh_map_has_layer_geoserver_layer"
-                    transparent="true"
+                    :transparent="true"
                     format="image/png"
                     layer-type="base"
                     service="WMS"
