@@ -438,7 +438,7 @@ export default {
             let polygon;
             let square_feature;
             let h3_zoom       = this.calculateH3Zoom();
-            let url           = layer.sh_map_has_layer_url;
+            let url           = this.base_url+layer.sh_map_has_layer_url;
             let metric        = layer.sh_map_has_layer_metric_id;
             let calculation   = layer.sh_map_has_layer_calculation;
             let filters       = this.formatFilter();
