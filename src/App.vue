@@ -103,8 +103,8 @@ export default {
                             let key = col_id;
                             let value = pivot[col_id];
 
-                                const col = this.layers_info.columns.find( c => c.id == col_id);
                             try {
+                                const col = this.layers_info.columns.find( c => c.id == col_id);
 
                                 if(col){
                                     key = col.alias;
