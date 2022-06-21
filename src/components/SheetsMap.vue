@@ -266,7 +266,11 @@ export default {
         },
         options() {
           return {
-            onEachFeature: this.onEachFeatureFunction
+            onEachFeature: function(feature, layer) {
+                layer.bindTooltip(function (layer) {
+                    return `${layer.feature.properties.total}`; 
+                }, {permanent: true, direction: "center", className: "my-labels"});
+            }
           };
         },
         styleFunction() {
@@ -476,8 +480,6 @@ export default {
                 filters       : filters, // Son los active_filters formateados
                 dimension_ids : dimension_ids,
             };
-
-            console.log(body);
             
             axios.post(url, body).then(response => {
                 let all_cubes = response.data.content;
@@ -499,9 +501,6 @@ export default {
                     }
                     return 'total';
                 });
-                console.log(data);
-                console.log(h3_indexes);
-                console.log(h3_indexes_data);
 
 
                 //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
@@ -509,8 +508,6 @@ export default {
                 var filters    = this.getFilters(h3_indexes);
                 polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
                 this.analytic_cluster = polygon;
-                console.log(filters);
-                console.log(layer);
             });
 
         },
@@ -609,22 +606,23 @@ export default {
             }
             return h;
         },
-    onEachFeatureFunction() {
-      if (!this.enableTooltip) {
-        return () => {};
-      }
-      return (feature, layer) => {
-        layer.bindTooltip(
-          "<div>code:" +
-            feature.properties.code +
-            "</div><div>nom: " +
-            feature.properties.nom +
-            "</div>",
-          { permanent: false, sticky: true }
-        );
-      };
-    },
-        getPopupData(marker,col){
+        onEachFeatureFunction() {/*
+            if (!this.enableTooltip) {
+                return () => {};
+            }
+            return (feature, layer) => {
+                layer.bindTooltip(
+                  "<div>code:" +
+                    feature.properties.code +
+                    "</div><div>nom: " +
+                    feature.properties.nom +
+                    "</div>",
+                  { permanent: false, sticky: true }
+                );
+            };*/
+
+        },
+            getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
         },
         setTileLayer(){
@@ -710,8 +708,7 @@ export default {
             
         },
         findBounds(){
-            var h = this.map.getZoom();
-            console.log(h);
+            let h        = this.map.getZoom();
             let bounds   = this.map.getBounds();
             let all_col  = this.info.columns;
 
@@ -812,7 +809,6 @@ export default {
         //#Convierte un arreglo de coordenadas en un objeto de tipo Feature
         asFeature(obj, coordinates, properties = {}){
             if(obj == null){
-
                 obj = {
                     "type": "Feature",
                     "properties": properties,
@@ -822,10 +818,7 @@ export default {
                     }
                 };
             }
-
             obj['geometry']['coordinates'].push(coordinates);
-            console.log('eeeeeeeeeeeeeeeeeeeeee');
-            console.log(obj);
             return obj;
         },
 
@@ -874,16 +867,10 @@ export default {
                 return {'property_name' : property_name,'property_value' : property_value};
 
             });
-            console.log('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW');
-            console.log(h3_index_properties);
 
             h3_index_properties.forEach(function(data){
                 h3_properties[data.property_name] = data.property_value;
             });
-
-                h3_properties["tooltip"] = "Custom feature tooltip";
-            console.log(h3_properties);
-            console.log(JSON.parse(JSON.stringify(Object.assign({}, h3_properties))));
 
             return JSON.parse(JSON.stringify(Object.assign({}, h3_properties)));
         },
@@ -907,6 +894,12 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+
+    .my-labels{
+        background-color: transparent !important;
+        border: transparent !important;
+        box-shadow: none !important;
+    }
     .myMap {
         min-height: 60vh;
     }
