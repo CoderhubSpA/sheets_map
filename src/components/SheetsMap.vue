@@ -275,14 +275,52 @@ export default {
         },
         styleFunction() {
             return (feature) => {
-                let color;
-                if (feature.properties.total < 50) {
+                let color;/*
+                //Rojo fuerte
+                if (feature.properties.total > 2000) {
+                    color = "#DA2323";
+                }
+                //Rojo 
+                if (feature.properties.total <= 2000) {
                     color = "#E74C3C";
                 }
-                if (feature.properties.total > 50) {
-                    color = "#e4ce7f";
+                //Naranja
+                if (feature.properties.total < 1000) {
+                    color = "#E76B3C"; //"#EB984E";
                 }
+                //Naranja claro
+                if (feature.properties.total < 500) {
+                    color = "#E7973C"; //"#F5B041";
+                }
+                //naranja crema
+                if (feature.properties.total < 250) {
+                    color = "#E4CE7F";
+                }
+                //Amarillo
+                if (feature.properties.total < 50) {
+                    color = "#F9E79F";//"#F7DC6F";
+                }*/
 
+                //Rojo fuerte
+                if (feature.properties.total > 2000) {
+                    color = "#E74C3C";
+                }
+                //Rojo 
+                if (feature.properties.total <= 2000) {
+                    color = "#FA7548";
+                }
+                //Naranja
+                if (feature.properties.total < 1000) {
+                    color = "#FCAC49"; //"#EB984E";
+                }
+                //Naranja claro
+                if (feature.properties.total < 500) {
+                    color = "#F2DB88"; //"#F5B041";
+                }
+                //naranja crema
+                if (feature.properties.total < 250) {
+                    color = "#F9E79F";
+                }
                 return {
                     weight: 2,
                     color: "#ECEFF1",
