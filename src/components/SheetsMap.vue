@@ -49,7 +49,7 @@
                     </l-circle-marker>
                 </l-layer-group> 
                 <!-- Analytic layers -->
-                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster"></l-geo-json>
+                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster" :options-style="styleFunction" :options="options"></l-geo-json>
                 <!-- Operative layers -->
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -145,7 +145,8 @@ export default {
             bounds_filters        : [],
             bounds                : [],
             index                 : [],
-            h3                    : require("h3-js")
+            h3                    : require("h3-js"),
+            enableTooltip     : true
         };
     },
     computed:{
@@ -262,6 +263,31 @@ export default {
             })
             .filter(d => d);      
             return markers;
+        },
+        options() {
+          return {
+            onEachFeature: this.onEachFeatureFunction
+          };
+        },
+        styleFunction() {
+            return (feature) => {
+                let color;
+                if (feature.properties.total < 50) {
+                    color = "#E74C3C";
+                }
+                if (feature.properties.total > 50) {
+                    color = "#e4ce7f";
+                }
+
+                return {
+                    weight: 2,
+                    color: "#ECEFF1",
+                    opacity: 0.5,
+                    fillOpacity: 1,
+                    fillColor: color,
+                };
+            };
+
         },
     },
     watch:{
@@ -443,35 +469,59 @@ export default {
             let calculation   = layer.sh_map_has_layer_calculation;
             let filters       = this.formatFilter();
             let dimension_ids = ["h3r".concat(h3_zoom)];
+
             let body          = {
                 calculation   : calculation,
                 metric_id     : metric, // Viene de la configuracion de la capa (mapa tiene capas)
                 filters       : filters, // Son los active_filters formateados
                 dimension_ids : dimension_ids,
             };
+
+            console.log(body);
             
             axios.post(url, body).then(response => {
                 let all_cubes = response.data.content;
-            console.log(all_cubes);
-                /*
-                let data      = _.first(Object.values(all_data.data)) || {};
-                // ... parear h3
-                // h3_indexes = data // pero parseada
-                // ... parear h3
-                var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+                let data      = _.first(Object.values(all_cubes.data)) || {};
+                let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+
+                let key_dimension    = data_map.indexOf("h3r".concat(h3_zoom));
+                let h3_indexes_data  = data.map(d => {
+                    d[key_dimension] =  d[key_dimension].toString(16).toUpperCase();
+                    return d;
+                });
+                let h3_indexes = data.map(d => {
+                    return d[key_dimension].toString(16).toUpperCase();
+                });
+
+                let data_map_hex = data_map.map(d => {
+                    if (d == "h3r".concat(h3_zoom)) {
+                        return 'h3';
+                    }
+                    return 'total';
+                });
+                console.log(data);
+                console.log(h3_indexes);
+                console.log(h3_indexes_data);
+
+
+                //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+                //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_data_indexes);
                 var filters    = this.getFilters(h3_indexes);
-                polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
+                polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
                 this.analytic_cluster = polygon;
-                console.log(layer);*/
+                console.log(filters);
+                console.log(layer);
             });
 
         },
         formatFilter(){
-            if (_.isEmpty(this.active_filters)) {
-                return {};
+            if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
+                this.findBounds();
             }
 
-            let filters = this.active_filters.map(a_f => {
+            let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : this.active_filters;
+
+            let filters = active_filters.map(a_f => {
                 let value;
 
                 if (typeof a_f.type !== 'undefined') {
@@ -482,12 +532,13 @@ export default {
                 }
 
                 let filter = {
-                    column : a_f.col_name,
+                    column : a_f.column.col_name,
                     value  : value,
                     type   : a_f.type,
                 };
                 return filter;
             });
+
             return filters;
         },
         calculateH3Zoom(){
@@ -558,6 +609,21 @@ export default {
             }
             return h;
         },
+    onEachFeatureFunction() {
+      if (!this.enableTooltip) {
+        return () => {};
+      }
+      return (feature, layer) => {
+        layer.bindTooltip(
+          "<div>code:" +
+            feature.properties.code +
+            "</div><div>nom: " +
+            feature.properties.nom +
+            "</div>",
+          { permanent: false, sticky: true }
+        );
+      };
+    },
         getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
         },
@@ -747,17 +813,19 @@ export default {
         asFeature(obj, coordinates, properties = {}){
             if(obj == null){
 
-                obj ={
-                      "type": "Feature",
-                      "properties": properties,
-                      "geometry": {
+                obj = {
+                    "type": "Feature",
+                    "properties": properties,
+                    "geometry": {
                         "type": "Polygon",
                         "coordinates": []
-                      }
-                    };
+                    }
+                };
             }
 
             obj['geometry']['coordinates'].push(coordinates);
+            console.log('eeeeeeeeeeeeeeeeeeeeee');
+            console.log(obj);
             return obj;
         },
 
@@ -781,7 +849,7 @@ export default {
             res.push(res[0]);
             return this.asFeature(null,res, properties);
         },
-
+        /*
         //#obtiene todos los pentágonos hijos (contenidos) de un indice en h3
         getChild(h3_index){
             if(isinstance(h3_index, int)){
@@ -794,14 +862,40 @@ export default {
                 res.push(this.getBoundary(child));
             }
             return res;
+        },*/
+        getProperties(index, h3_indexes_data, data_map_hex){
+            let h3_index_data = h3_indexes_data[index];
+            let h3_properties = [];
+
+            let h3_index_properties = h3_index_data.map(function(data,key){
+                let property_name             = data_map_hex[key];
+                let property_value            = data;
+
+                return {'property_name' : property_name,'property_value' : property_value};
+
+            });
+            console.log('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW');
+            console.log(h3_index_properties);
+
+            h3_index_properties.forEach(function(data){
+                h3_properties[data.property_name] = data.property_value;
+            });
+
+                h3_properties["tooltip"] = "Custom feature tooltip";
+            console.log(h3_properties);
+            console.log(JSON.parse(JSON.stringify(Object.assign({}, h3_properties))));
+
+            return JSON.parse(JSON.stringify(Object.assign({}, h3_properties)));
         },
         //#Convierte un indice h3 en un objeto de tipo Feature
-        h3ToFeature(h3_indexes){
+        h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex){
             let features = [];
             let index;
+            let properties;
             for(let i in h3_indexes){
                 index = h3_indexes[i];
-                features.push(this.getBoundary(index));
+                properties = this.getProperties(i, h3_indexes_data, data_map_hex);
+                features.push(this.getBoundary(index,properties));
             }
             return features;
         }
