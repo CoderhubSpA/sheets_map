@@ -13970,7 +13970,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "splitLongToh3Index": function() { return /* binding */ splitLongToh3Index; },
 /* harmony export */   "uncompact": function() { return /* binding */ uncompact; }
 /* harmony export */ });
-/* harmony import */ var C_Apache24_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7336);
+/* harmony import */ var C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7336);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1539);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6992);
@@ -27641,7 +27641,7 @@ var libh3 = function (libh3) {
 
   run();
   return libh3;
-}((0,C_Apache24_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
+}((0,C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
 /*
  * Copyright 2018-2019 Uber Technologies, Inc.
  *
@@ -54048,9 +54048,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=c068bc32&scoped=true&
-var SheetsMapvue_type_template_id_c068bc32_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Filtrar ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
-var SheetsMapvue_type_template_id_c068bc32_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=3e24f979&scoped=true&
+var SheetsMapvue_type_template_id_3e24f979_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Filtrar ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[_c('l-tile-layer',{attrs:{"url":_vm.url,"attribution":_vm.attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster,"options-style":_vm.styleFunction,"options":_vm.options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_3e24f979_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -54059,14 +54059,18 @@ var es_array_map = __webpack_require__(1249);
 var es_regexp_exec = __webpack_require__(4916);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.replace.js
 var es_string_replace = __webpack_require__(5306);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
+var es_regexp_to_string = __webpack_require__(9714);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.search.js
 var es_string_search = __webpack_require__(4765);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.promise.finally.js
 var es_promise_finally = __webpack_require__(7727);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.number.constructor.js
 var es_number_constructor = __webpack_require__(9653);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
-var es_regexp_to_string = __webpack_require__(9714);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.json.stringify.js
+var es_json_stringify = __webpack_require__(8862);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
+var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/lodash/lodash.js
 var lodash = __webpack_require__(7988);
 var lodash_default = /*#__PURE__*/__webpack_require__.n(lodash);
@@ -54076,12 +54080,8 @@ var es_array_slice = __webpack_require__(7042);
 var es_symbol = __webpack_require__(2526);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.description.js
 var es_symbol_description = __webpack_require__(1817);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.json.stringify.js
-var es_json_stringify = __webpack_require__(8862);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
 var es_function_name = __webpack_require__(8309);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
-var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.test.js
 var es_regexp_test = __webpack_require__(7601);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.set.js
@@ -59404,6 +59404,9 @@ function getY(p) {
 
 
 
+
+
+
 //
 //
 //
@@ -59551,7 +59554,8 @@ leaflet_src.Icon.Default.mergeOptions({
       bounds_filters: [],
       bounds: [],
       index: [],
-      h3: __webpack_require__(8356)
+      h3: __webpack_require__(8356),
+      enableTooltip: true
     };
   },
   computed: {
@@ -59655,6 +59659,82 @@ leaflet_src.Icon.Default.mergeOptions({
         return d;
       });
       return markers;
+    },
+    options: function options() {
+      return {
+        onEachFeature: function onEachFeature(feature, layer) {
+          layer.bindTooltip(function (layer) {
+            return "".concat(layer.feature.properties.total);
+          }, {
+            permanent: true,
+            direction: "center",
+            className: "my-labels"
+          });
+        }
+      };
+    },
+    styleFunction: function styleFunction() {
+      return function (feature) {
+        var color;
+        /*
+        //Rojo fuerte
+        if (feature.properties.total > 2000) {
+        color = "#DA2323";
+        }
+        //Rojo 
+        if (feature.properties.total <= 2000) {
+        color = "#E74C3C";
+        }
+        //Naranja
+        if (feature.properties.total < 1000) {
+        color = "#E76B3C"; //"#EB984E";
+        }
+        //Naranja claro
+        if (feature.properties.total < 500) {
+        color = "#E7973C"; //"#F5B041";
+        }
+        //naranja crema
+        if (feature.properties.total < 250) {
+        color = "#E4CE7F";
+        }
+        //Amarillo
+        if (feature.properties.total < 50) {
+        color = "#F9E79F";//"#F7DC6F";
+        }*/
+        //Rojo fuerte
+
+        if (feature.properties.total > 2000) {
+          color = "#E74C3C";
+        } //Rojo 
+
+
+        if (feature.properties.total <= 2000) {
+          color = "#FA7548";
+        } //Naranja
+
+
+        if (feature.properties.total < 1000) {
+          color = "#FCAC49"; //"#EB984E";
+        } //Naranja claro
+
+
+        if (feature.properties.total < 500) {
+          color = "#F2DB88"; //"#F5B041";
+        } //naranja crema
+
+
+        if (feature.properties.total < 250) {
+          color = "#F9E79F";
+        }
+
+        return {
+          weight: 2,
+          color: "#ECEFF1",
+          opacity: 0.5,
+          fillOpacity: 1,
+          fillColor: color
+        };
+      };
     }
   },
   watch: {
@@ -59821,6 +59901,8 @@ leaflet_src.Icon.Default.mergeOptions({
       }
     },
     getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson(layer) {
+      var _this4 = this;
+
       var bounds = this.map.getBounds();
       var geojson_bounds = [[bounds._northEast.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._southWest.lat], [bounds._northEast.lng, bounds._southWest.lat]];
       var square_polygon = {
@@ -59845,25 +59927,38 @@ leaflet_src.Icon.Default.mergeOptions({
       };
       axios_default().post(url, body).then(function (response) {
         var all_cubes = response.data.content;
-        console.log(all_cubes);
-        /*
-        let data      = _.first(Object.values(all_data.data)) || {};
-        // ... parear h3
-        // h3_indexes = data // pero parseada
-        // ... parear h3
-        var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-        var filters    = this.getFilters(h3_indexes);
-        polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes));
-        this.analytic_cluster = polygon;
-        console.log(layer);*/
+        var data = lodash_default().first(Object.values(all_cubes.data)) || {};
+        var data_map = lodash_default().first(Object.values(all_cubes.data_map)) || {};
+        var key_dimension = data_map.indexOf("h3r".concat(h3_zoom));
+        var h3_indexes_data = data.map(function (d) {
+          d[key_dimension] = d[key_dimension].toString(16).toUpperCase();
+          return d;
+        });
+        var h3_indexes = data.map(function (d) {
+          return d[key_dimension].toString(16).toUpperCase();
+        });
+        var data_map_hex = data_map.map(function (d) {
+          if (d == "h3r".concat(h3_zoom)) {
+            return 'h3';
+          }
+
+          return 'total';
+        }); //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+        //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_data_indexes);
+
+        var filters = _this4.getFilters(h3_indexes);
+
+        polygon = _this4.asPolygon(null, _this4.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex));
+        _this4.analytic_cluster = polygon;
       });
     },
     formatFilter: function formatFilter() {
-      if (lodash_default().isEmpty(this.active_filters)) {
-        return {};
+      if (lodash_default().isEmpty(this.active_filters) && lodash_default().isEmpty(this.bounds_filters)) {
+        this.findBounds();
       }
 
-      var filters = this.active_filters.map(function (a_f) {
+      var active_filters = lodash_default().isEmpty(this.active_filters) ? this.bounds_filters : this.active_filters;
+      var filters = active_filters.map(function (a_f) {
         var value;
 
         if (typeof a_f.type !== 'undefined') {
@@ -59874,7 +59969,7 @@ leaflet_src.Icon.Default.mergeOptions({
         }
 
         var filter = {
-          column: a_f.col_name,
+          column: a_f.column.col_name,
           value: value,
           type: a_f.type
         };
@@ -59974,6 +60069,22 @@ leaflet_src.Icon.Default.mergeOptions({
 
       return h;
     },
+    onEachFeatureFunction: function onEachFeatureFunction() {
+      /*
+      if (!this.enableTooltip) {
+      return () => {};
+      }
+      return (feature, layer) => {
+      layer.bindTooltip(
+      "<div>code:" +
+      feature.properties.code +
+      "</div><div>nom: " +
+      feature.properties.nom +
+      "</div>",
+      { permanent: false, sticky: true }
+      );
+      };*/
+    },
     getPopupData: function getPopupData(marker, col) {
       return marker.data[col.id] === 'NULL' ? '-' : marker.data[col.id];
     },
@@ -59981,7 +60092,7 @@ leaflet_src.Icon.Default.mergeOptions({
       this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     },
     getMarkerData: function getMarkerData(marker) {
-      var _this4 = this;
+      var _this5 = this;
 
       var url = "".concat(this.base_url, "/entity/data/").concat(this.entity_type_id, "/").concat(marker.id, "?page=1");
       axios_default().get(url).then(function (response) {
@@ -59989,7 +60100,7 @@ leaflet_src.Icon.Default.mergeOptions({
           var all_data = response.data.content;
           var marker_data = lodash_default().first(all_data.data) || {};
 
-          _this4.$set(_this4.markers_data, marker.id, marker_data);
+          _this5.$set(_this5.markers_data, marker.id, marker_data);
         } catch (error) {
           console.error(error);
         }
@@ -60000,7 +60111,7 @@ leaflet_src.Icon.Default.mergeOptions({
       });
     },
     getMapConfiguration: function getMapConfiguration() {
-      var _this5 = this;
+      var _this6 = this;
 
       //data
       var url = "".concat(this.base_url).concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias"); //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
@@ -60019,8 +60130,8 @@ leaflet_src.Icon.Default.mergeOptions({
         try {
           all_data = response.data.content;
           data = lodash_default().first(all_data.data);
-          _this5.col_lng = data.sh_map_column_longitude;
-          _this5.col_lat = data.sh_map_column_latitude;
+          _this6.col_lng = data.sh_map_column_longitude;
+          _this6.col_lat = data.sh_map_column_latitude;
         } catch (error) {
           console.error(error);
         }
@@ -60051,19 +60162,18 @@ leaflet_src.Icon.Default.mergeOptions({
       }*/
     },
     findBounds: function findBounds() {
-      var _this6 = this;
+      var _this7 = this;
 
       var h = this.map.getZoom();
-      console.log(h);
       var bounds = this.map.getBounds();
       var all_col = this.info.columns;
       var bounds_filters = all_col.filter(function (columns) {
-        if (columns.id == _this6.col_lat || columns.id == _this6.col_lng) {
+        if (columns.id == _this7.col_lat || columns.id == _this7.col_lng) {
           return columns;
         }
       }).map(function (columns, key) {
-        var start = columns.id == _this6.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
-        var end = columns.id == _this6.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
+        var start = columns.id == _this7.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
+        var end = columns.id == _this7.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
         var bounds_filter = {
           "column": columns,
           "id": "external-filter-" + columns.id,
@@ -60201,30 +60311,47 @@ leaflet_src.Icon.Default.mergeOptions({
       res.push(res[0]);
       return this.asFeature(null, res, properties);
     },
+
+    /*
     //#obtiene todos los pentágonos hijos (contenidos) de un indice en h3
-    getChild: function getChild(h3_index) {
-      if (isinstance(h3_index, int)) {
-        h3_index = h3_index.toString(16);
-      }
-
-      childs = this.h3.h3ToChildren(h3_index);
-      res = [];
-
-      for (var i in childs) {
-        child = childs[i];
-        res.push(this.getBoundary(child));
-      }
-
-      return res;
+    getChild(h3_index){
+        if(isinstance(h3_index, int)){
+            h3_index = h3_index.toString(16);
+        }
+        childs = this.h3.h3ToChildren(h3_index);
+        res = [];
+        for(let i in childs){
+            child = childs[i];
+            res.push(this.getBoundary(child));
+        }
+        return res;
+    },*/
+    getProperties: function getProperties(index, h3_indexes_data, data_map_hex) {
+      var h3_index_data = h3_indexes_data[index];
+      var h3_properties = [];
+      var h3_index_properties = h3_index_data.map(function (data, key) {
+        var property_name = data_map_hex[key];
+        var property_value = data;
+        return {
+          'property_name': property_name,
+          'property_value': property_value
+        };
+      });
+      h3_index_properties.forEach(function (data) {
+        h3_properties[data.property_name] = data.property_value;
+      });
+      return JSON.parse(JSON.stringify(Object.assign({}, h3_properties)));
     },
     //#Convierte un indice h3 en un objeto de tipo Feature
-    h3ToFeature: function h3ToFeature(h3_indexes) {
+    h3ToFeature: function h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex) {
       var features = [];
       var index;
+      var properties;
 
       for (var i in h3_indexes) {
         index = h3_indexes[i];
-        features.push(this.getBoundary(index));
+        properties = this.getProperties(i, h3_indexes_data, data_map_hex);
+        features.push(this.getBoundary(index, properties));
       }
 
       return features;
@@ -60236,10 +60363,10 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=c068bc32&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=3e24f979&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=c068bc32&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=3e24f979&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -60352,11 +60479,11 @@ function componentNormalizer_normalizeComponent (
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_c068bc32_scoped_true_render,
-  SheetsMapvue_type_template_id_c068bc32_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_3e24f979_scoped_true_render,
+  SheetsMapvue_type_template_id_3e24f979_scoped_true_staticRenderFns,
   false,
   null,
-  "c068bc32",
+  "3e24f979",
   null
   
 )
