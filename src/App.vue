@@ -68,7 +68,7 @@ export default {
             layers_info       : {},
             analytical_layer  : [],
             operational_layer : [],
-            base_layer        : '',
+            base_layer        : {},
         };
     },
     components: {

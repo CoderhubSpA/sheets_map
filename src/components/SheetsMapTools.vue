@@ -156,7 +156,7 @@ export default {
     return {
       data_tools: [],
       data_tools_id: "",
-      base_layer : '',
+      base_layer : {},
       base_layers: [],
       operational_layer: [],
       analytical_layer: [],
@@ -197,21 +197,21 @@ export default {
       switch (option.type) {
         case 'base' :
          // La capa base solo debe tener una activa
-          if (this.base_layer ==  option.key  ){
+          if (this.base_layer.key ==  option.key  ){
               option.active = !option_active_val;
-              this.base_layer = '';
+              this.base_layer = {};
           } else {
-             if (this.base_layer == ''){
+             if (_.isEmpty(this.base_layer)){
               option.active = !option_active_val
-              this.base_layer = option.key;
+              this.base_layer = option;
             } else 
-              if (this.base_layer !==  option.key){
+              if (this.base_layer.key !==  option.key){
               let cb  = this.base_layers.find(
-                (elem) => elem.key == this.base_layer
+                (elem) => elem.key == this.base_layer.key
               );
                cb.active = option_active_val;
                option.active = !option_active_val;
-               this.base_layer = option.key
+               this.base_layer = option
             } 
           }
         break;  

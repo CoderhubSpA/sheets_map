@@ -10,7 +10,10 @@
                 @ready="ready()" @moveend="getClusterInfo();" :zoom="zoom" :center="center" ref="myMap" class="myMap">
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
-                <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
+                <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
+                <l-tile-layer v-if="base_open_street_map" :url="base_open_street_map.sh_map_has_layer_url" attribution='&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors'></l-tile-layer>
+                <l-tile-layer v-else :url="default_base_layer" :attribution="default_attribution"></l-tile-layer>
+                
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <l-layer-group  ref="lgroup">
                     <l-marker
@@ -116,15 +119,15 @@ export default {
         layers               : Object, // Todas las capas
         analytical_layer     : Array,
         operational_layer    : Array,
-        base_layer           : String
+        base_layer           : Object
         
     },
     data () {
         return {
             // map: undefined,
-            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            attribution:
-                '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+            url: '',
+            default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom                  : 7,
             center_default        : [-33.472 , -70.769],
             center                : undefined,
@@ -139,7 +142,7 @@ export default {
             base_google_map         : undefined,
             base_map_guide          : undefined,
             base_open_street_map    : undefined,
-            operative_geoserver_wms : undefined,
+            operative_geoserver_wms : [],
             /*Layers*/
             clusters_markers      : [],
             bounds_filters        : [],
@@ -331,17 +334,31 @@ export default {
             };
 
         },
+        // Se genera una lista general de todas las capas activas
+        active_layers(){
+            if(_.isEmpty(this.layers)){ return []}
+            let active_layers_raw = []
+            active_layers_raw = active_layers_raw.concat(this.analytical_layer.filter( l => l.active));
+            active_layers_raw = active_layers_raw.concat(this.operational_layer.filter( l => l.active));
+            active_layers_raw = active_layers_raw.concat([this.base_layer].filter( l => l.active));
+
+            let active_layers_keys = active_layers_raw.map( lr => lr.key );
+
+            let active_layers = Object.values(this.layers).filter( l => active_layers_keys.includes(l.id));
+
+            return active_layers;
+        },
+        disabled_layers(){
+            if(_.isEmpty(this.layers)){ return []}
+            let active_layers_ids = this.active_layers.map(l=> l.id);
+            let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
+            return disabled_layers;
+        }
     },
     watch:{
-        analytical_layer: {
+        active_layers: {
           handler() {
-            this.switchLayers(this.analytical_layer);
-          },
-          deep: true
-        },
-        operational_layer: {
-          handler() {
-            this.switchLayers(this.operational_layer);
+            this.switchLayers();
           },
           deep: true
         },
@@ -364,6 +381,10 @@ export default {
         }
     },
     created(){
+        
+        // TO DO:
+        // Colocar primera capa base encontrada
+
         this.center = this.center_default;
         this.getMapConfiguration();
         // Cuando geo_json es construido, se instancia Supercluster
@@ -382,69 +403,58 @@ export default {
         }, 
         filter(){
             this.findBounds();
-            this.makeLayers();
+            this.switchLayers();
         },  
-        makeLayers(){
-
-            //Una activa a la vez
-            if (this.base_layer != '') {
-                console.log('this.base_layer '+this.base_layer+' activo');
-            }
-            //de 0 a n activas
-            this.switchLayers(this.analytical_layer);
-            this.switchLayers(this.operational_layer);
-
-        },  
-        switchLayers(layer){
-
-            let active_layers  = layer.filter( l => l.active);
-            let disable_layers = layer.filter( l => !l.active);
+        switchLayers(){
             
+            // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
 
-            active_layers.forEach(l => {
+            this.active_layers.forEach(l => {
                 this.activeLayers(l);
             });
-
-            disable_layers.forEach(l => {
+            
+            this.disabled_layers.forEach(l => {
                 this.disableLayers(l);
             });
+            
         }, 
         activeLayers(layer){
-            switch(this.layers[layer.key].sh_map_has_layer_code){
+            switch(layer.sh_map_has_layer_code){
                 case 'analytic_cluster' : {
-                    this.getAnalyticalClusterGeoJson(this.layers[layer.key]);
+                    if(_.isEmpty(this.analytic_cluster)){
+                        this.getAnalyticalClusterGeoJson(layer);
+                    }
                     break;
 
                 }
                 case 'analytic_countour_map' : {
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    console.log('Intento de activar '+layer.sh_map_has_layer_name+' sin exito');
                     break;
 
                 }
                 case 'base_google_map' : {
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    console.log('Intento de activar '+layer.sh_map_has_layer_name+' sin exito');
                     break;
 
                 }
                 case 'base_map_guide' : {
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    console.log('Intento de activar '+layer.sh_map_has_layer_name+' sin exito');
                     break;
 
                 }
                 case 'base_open_street_map' : {
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    this.base_open_street_map = layer;
                     break;
 
                 }
                 case 'operative_geoserver_wms' : {
-                    this.operative_geoserver_wms.push(this.layers[layer.key])
+                    this.operative_geoserver_wms.push(layer)
                     break;
 
                 }
                 default:{
-                    console.log('Intento de activar '+this.layers[layer.key].sh_map_has_layer_code+' sin exito',
-                        'Intento de activar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
+                    console.log('Intento de activar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
                 }
 
@@ -452,7 +462,8 @@ export default {
 
         }, 
         disableLayers(layer){
-            switch(this.layers[layer.key].sh_map_has_layer_code){
+            
+            switch(layer.sh_map_has_layer_code){
                 case 'analytic_cluster' : {
                     this.analytic_cluster = undefined;
                     break;
@@ -474,15 +485,12 @@ export default {
 
                 }
                 case 'base_open_street_map' : {
-
-                    this.base_open_street_mapbreak = undefined;;
+                    this.base_open_street_map = undefined;
+                    break;
 
                 }
-
                 default:{
-                    console.log('Intento de desactivar '+this.layers[layer.key].sh_map_has_layer_code+' sin exito');
-                    console.log('Intento de desactivar '+this.layers[layer.key].sh_map_has_layer_name+' sin exito');
-
+                    console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
                 }
 
