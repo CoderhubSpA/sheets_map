@@ -11,8 +11,18 @@
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
-                <l-tile-layer v-if="base_open_street_map" :url="base_open_street_map.sh_map_has_layer_url" attribution='&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors'></l-tile-layer>
-                <l-tile-layer v-else :url="default_base_layer" :attribution="default_attribution"></l-tile-layer>
+                <l-tile-layer v-if="base_open_street_map"
+                    :url="base_open_street_map.sh_map_has_layer_url"
+                    ></l-tile-layer>
+                <l-tile-layer v-else-if="base_google_map"
+                    :url="base_google_map.sh_map_has_layer_url"
+                    ></l-tile-layer>
+                <l-tile-layer v-else-if="base_map_guide"
+                    :url="base_map_guide.sh_map_has_layer_url"
+                    ></l-tile-layer>
+                <l-tile-layer v-else :url="default_base_layer"
+                    :attribution="default_attribution"
+                    ></l-tile-layer>
                 
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <l-layer-group  ref="lgroup">
@@ -434,12 +444,12 @@ export default {
 
                 }
                 case 'base_google_map' : {
-                    console.log('Intento de activar '+layer.sh_map_has_layer_name+' sin exito');
+                    this.base_google_map = layer;
                     break;
 
                 }
                 case 'base_map_guide' : {
-                    console.log('Intento de activar '+layer.sh_map_has_layer_name+' sin exito');
+                    this.base_map_guide = layer;
                     break;
 
                 }

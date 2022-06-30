@@ -178,6 +178,11 @@ export default {
           this.base_layers       = this.api_info.filter((item) => item.type == "base");
           this.operational_layer = this.api_info.filter((item) => item.type == "operative");
           this.analytical_layer  = this.api_info.filter((item) => item.type == "analytic");
+          // Elegimos la primera si existe y si no se ha seleccionado alguna capa
+          if(_.isEmpty(this.base_layer) && _.first(this.base_layers)){
+            this.base_layer        = _.first(this.base_layers) || {};
+            this.base_layer.active = true;
+          }
         }
       },
       deep:true
@@ -196,6 +201,8 @@ export default {
       let  option_active_val = option.active;
       switch (option.type) {
         case 'base' :
+          console.log(option);
+          
          // La capa base solo debe tener una activa
           if (this.base_layer.key ==  option.key  ){
               option.active = !option_active_val;
