@@ -201,8 +201,6 @@ export default {
       let  option_active_val = option.active;
       switch (option.type) {
         case 'base' :
-          console.log(option);
-          
          // La capa base solo debe tener una activa
           if (this.base_layer.key ==  option.key  ){
               option.active = !option_active_val;

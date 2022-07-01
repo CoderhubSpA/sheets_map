@@ -1,7 +1,7 @@
 <template>
     <div>
         <button type="button" class="btn btn-filter" v-on:click="filter()">
-            Filtrar
+            Ver esta zona
         </button>
         <div>
             <!-- https://vue2-leaflet.netlify.app/ -->
