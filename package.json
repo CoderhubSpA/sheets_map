@@ -1,6 +1,6 @@
 {
   "name": "@paupololi/sheets_map",
-  "version": "0.2.03",
+  "version": "0.2.04",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
