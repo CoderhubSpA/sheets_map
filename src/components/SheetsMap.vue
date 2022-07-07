@@ -218,8 +218,8 @@ export default {
                     let lat = d[this.col_lat];
                     let lng = d[this.col_lng];
 
-                    lat = (typeof lat == 'string') ? parseFloat(d[this.col_lat].replace(/,/, '.')):lat;
-                    lng = (typeof lng == 'string') ? parseFloat(d[this.col_lng].replace(/,/, '.')):lng;
+                    lat = (typeof lat == 'string') ? parseFloat(lat.replace(/,/, '.')):lat;
+                    lng = (typeof lng == 'string') ? parseFloat(lng.replace(/,/, '.')):lng;
                     
                     if(!lat || !lng) return;
     
