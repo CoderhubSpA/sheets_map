@@ -2282,7 +2282,7 @@ module.exports = !fails(function () {
 
 /***/ }),
 
-/***/ 7762:
+/***/ 692:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -11031,7 +11031,7 @@ var defineBuiltInAccessor = __webpack_require__(7045);
 var hasOwn = __webpack_require__(2597);
 var anInstance = __webpack_require__(5787);
 var anObject = __webpack_require__(9670);
-var errorToString = __webpack_require__(7762);
+var errorToString = __webpack_require__(692);
 var normalizeStringArgument = __webpack_require__(6277);
 var DOMExceptionConstants = __webpack_require__(3678);
 var clearErrorStack = __webpack_require__(7741);
@@ -11261,7 +11261,7 @@ $({ target: 'URL', proto: true, enumerable: true }, {
 
 /***/ }),
 
-/***/ 5602:
+/***/ 6541:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 __webpack_require__(2526);
@@ -11292,10 +11292,10 @@ module.exports = _typeof, module.exports.__esModule = true, module.exports["defa
 
 /***/ }),
 
-/***/ 7672:
+/***/ 4782:
 /***/ (function(module, exports, __webpack_require__) {
 
-var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;var _typeof = (__webpack_require__(5602)["default"]);
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;var _typeof = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(5003);
 
@@ -11390,14 +11390,14 @@ __webpack_require__(3210);
 
 /***/ }),
 
-/***/ 7011:
+/***/ 3182:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __webpack_require__(9367);
+module.exports = __webpack_require__(7762);
 
 /***/ }),
 
-/***/ 1595:
+/***/ 6256:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -11417,27 +11417,27 @@ __webpack_require__(1174);
 
 __webpack_require__(4747);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
-var settle = __webpack_require__(4248);
+var settle = __webpack_require__(4515);
 
-var cookies = __webpack_require__(391);
+var cookies = __webpack_require__(297);
 
-var buildURL = __webpack_require__(5781);
+var buildURL = __webpack_require__(9255);
 
-var buildFullPath = __webpack_require__(7877);
+var buildFullPath = __webpack_require__(3991);
 
-var parseHeaders = __webpack_require__(5054);
+var parseHeaders = __webpack_require__(9331);
 
-var isURLSameOrigin = __webpack_require__(9951);
+var isURLSameOrigin = __webpack_require__(5671);
 
-var transitionalDefaults = __webpack_require__(7258);
+var transitionalDefaults = __webpack_require__(4633);
 
-var AxiosError = __webpack_require__(8274);
+var AxiosError = __webpack_require__(2532);
 
-var CanceledError = __webpack_require__(4457);
+var CanceledError = __webpack_require__(1387);
 
-var parseProtocol = __webpack_require__(8499);
+var parseProtocol = __webpack_require__(9964);
 
 module.exports = function xhrAdapter(config) {
   return new Promise(function dispatchXhrRequest(resolve, reject) {
@@ -11641,7 +11641,7 @@ module.exports = function xhrAdapter(config) {
 
 /***/ }),
 
-/***/ 9367:
+/***/ 7762:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -11657,15 +11657,15 @@ __webpack_require__(8783);
 
 __webpack_require__(3948);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
-var bind = __webpack_require__(7414);
+var bind = __webpack_require__(7004);
 
-var Axios = __webpack_require__(7026);
+var Axios = __webpack_require__(5752);
 
-var mergeConfig = __webpack_require__(655);
+var mergeConfig = __webpack_require__(7384);
 
-var defaults = __webpack_require__(3811);
+var defaults = __webpack_require__(7131);
 /**
  * Create an instance of Axios
  *
@@ -11694,13 +11694,13 @@ var axios = createInstance(defaults); // Expose Axios class to allow class inher
 
 axios.Axios = Axios; // Expose Cancel & CancelToken
 
-axios.CanceledError = __webpack_require__(4457);
-axios.CancelToken = __webpack_require__(962);
-axios.isCancel = __webpack_require__(7357);
-axios.VERSION = (__webpack_require__(6869).version);
-axios.toFormData = __webpack_require__(7200); // Expose AxiosError class
+axios.CanceledError = __webpack_require__(1387);
+axios.CancelToken = __webpack_require__(9420);
+axios.isCancel = __webpack_require__(2216);
+axios.VERSION = (__webpack_require__(9987).version);
+axios.toFormData = __webpack_require__(1284); // Expose AxiosError class
 
-axios.AxiosError = __webpack_require__(8274); // alias for CanceledError for backward compatibility
+axios.AxiosError = __webpack_require__(2532); // alias for CanceledError for backward compatibility
 
 axios.Cancel = axios.CanceledError; // Expose all/spread
 
@@ -11708,16 +11708,16 @@ axios.all = function all(promises) {
   return Promise.all(promises);
 };
 
-axios.spread = __webpack_require__(4198); // Expose isAxiosError
+axios.spread = __webpack_require__(6664); // Expose isAxiosError
 
-axios.isAxiosError = __webpack_require__(3229);
+axios.isAxiosError = __webpack_require__(8824);
 module.exports = axios; // Allow use of default import syntax in TypeScript
 
 module.exports["default"] = axios;
 
 /***/ }),
 
-/***/ 962:
+/***/ 9420:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -11731,7 +11731,7 @@ __webpack_require__(8674);
 
 __webpack_require__(561);
 
-var CanceledError = __webpack_require__(4457);
+var CanceledError = __webpack_require__(1387);
 /**
  * A `CancelToken` is an object that can be used to request cancellation of an operation.
  *
@@ -11853,7 +11853,7 @@ module.exports = CancelToken;
 
 /***/ }),
 
-/***/ 4457:
+/***/ 1387:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -11861,9 +11861,9 @@ module.exports = CancelToken;
 
 __webpack_require__(8309);
 
-var AxiosError = __webpack_require__(8274);
+var AxiosError = __webpack_require__(2532);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 /**
  * A `CanceledError` is an object that is thrown when an operation is canceled.
  *
@@ -11885,7 +11885,7 @@ module.exports = CanceledError;
 
 /***/ }),
 
-/***/ 7357:
+/***/ 2216:
 /***/ (function(module) {
 
 "use strict";
@@ -11897,7 +11897,7 @@ module.exports = function isCancel(value) {
 
 /***/ }),
 
-/***/ 7026:
+/***/ 5752:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -11911,19 +11911,19 @@ __webpack_require__(2222);
 
 __webpack_require__(8674);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
-var buildURL = __webpack_require__(5781);
+var buildURL = __webpack_require__(9255);
 
-var InterceptorManager = __webpack_require__(4700);
+var InterceptorManager = __webpack_require__(5345);
 
-var dispatchRequest = __webpack_require__(8027);
+var dispatchRequest = __webpack_require__(7702);
 
-var mergeConfig = __webpack_require__(655);
+var mergeConfig = __webpack_require__(7384);
 
-var buildFullPath = __webpack_require__(7877);
+var buildFullPath = __webpack_require__(3991);
 
-var validator = __webpack_require__(2346);
+var validator = __webpack_require__(4573);
 
 var validators = validator.validators;
 /**
@@ -12072,7 +12072,7 @@ module.exports = Axios;
 
 /***/ }),
 
-/***/ 8274:
+/***/ 2532:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12090,7 +12090,7 @@ __webpack_require__(1539);
 
 __webpack_require__(9601);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 /**
  * Create an Error with the specified message, config, error code, request and response.
  *
@@ -12162,7 +12162,7 @@ module.exports = AxiosError;
 
 /***/ }),
 
-/***/ 4700:
+/***/ 5345:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12172,7 +12172,7 @@ __webpack_require__(1539);
 
 __webpack_require__(4747);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
 function InterceptorManager() {
   this.handlers = [];
@@ -12230,15 +12230,15 @@ module.exports = InterceptorManager;
 
 /***/ }),
 
-/***/ 7877:
+/***/ 3991:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
 
-var isAbsoluteURL = __webpack_require__(8843);
+var isAbsoluteURL = __webpack_require__(638);
 
-var combineURLs = __webpack_require__(4856);
+var combineURLs = __webpack_require__(3632);
 /**
  * Creates a new URL by combining the baseURL with the requestedURL,
  * only when the requestedURL is not already an absolute URL.
@@ -12260,7 +12260,7 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
 
 /***/ }),
 
-/***/ 8027:
+/***/ 7702:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12272,15 +12272,15 @@ __webpack_require__(4747);
 
 __webpack_require__(8674);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
-var transformData = __webpack_require__(1580);
+var transformData = __webpack_require__(486);
 
-var isCancel = __webpack_require__(7357);
+var isCancel = __webpack_require__(2216);
 
-var defaults = __webpack_require__(3811);
+var defaults = __webpack_require__(7131);
 
-var CanceledError = __webpack_require__(4457);
+var CanceledError = __webpack_require__(1387);
 /**
  * Throws a `CanceledError` if cancellation has been requested.
  */
@@ -12335,7 +12335,7 @@ module.exports = function dispatchRequest(config) {
 
 /***/ }),
 
-/***/ 655:
+/***/ 7384:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12351,7 +12351,7 @@ __webpack_require__(2222);
 
 __webpack_require__(7941);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 /**
  * Config-specific merge-function which creates a new config-object
  * by merging two configuration objects together.
@@ -12452,13 +12452,13 @@ module.exports = function mergeConfig(config1, config2) {
 
 /***/ }),
 
-/***/ 4248:
+/***/ 4515:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
 
-var AxiosError = __webpack_require__(8274);
+var AxiosError = __webpack_require__(2532);
 /**
  * Resolve or reject a Promise based on response status.
  *
@@ -12480,7 +12480,7 @@ module.exports = function settle(resolve, reject, response) {
 
 /***/ }),
 
-/***/ 1580:
+/***/ 486:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12490,9 +12490,9 @@ __webpack_require__(1539);
 
 __webpack_require__(4747);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
-var defaults = __webpack_require__(3811);
+var defaults = __webpack_require__(7131);
 /**
  * Transform the data for a request or a response
  *
@@ -12515,7 +12515,7 @@ module.exports = function transformData(data, headers, fns) {
 
 /***/ }),
 
-/***/ 3811:
+/***/ 7131:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12533,15 +12533,15 @@ __webpack_require__(9714);
 
 __webpack_require__(4747);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
-var normalizeHeaderName = __webpack_require__(5250);
+var normalizeHeaderName = __webpack_require__(8570);
 
-var AxiosError = __webpack_require__(8274);
+var AxiosError = __webpack_require__(2532);
 
-var transitionalDefaults = __webpack_require__(7258);
+var transitionalDefaults = __webpack_require__(4633);
 
-var toFormData = __webpack_require__(7200);
+var toFormData = __webpack_require__(1284);
 
 var DEFAULT_CONTENT_TYPE = {
   'Content-Type': 'application/x-www-form-urlencoded'
@@ -12558,10 +12558,10 @@ function getDefaultAdapter() {
 
   if (typeof XMLHttpRequest !== 'undefined') {
     // For browsers use XHR adapter
-    adapter = __webpack_require__(1595);
+    adapter = __webpack_require__(6256);
   } else if (typeof process !== 'undefined' && Object.prototype.toString.call(process) === '[object process]') {
     // For node use HTTP adapter
-    adapter = __webpack_require__(1595);
+    adapter = __webpack_require__(6256);
   }
 
   return adapter;
@@ -12652,7 +12652,7 @@ var defaults = {
   maxContentLength: -1,
   maxBodyLength: -1,
   env: {
-    FormData: __webpack_require__(5490)
+    FormData: __webpack_require__(307)
   },
   validateStatus: function validateStatus(status) {
     return status >= 200 && status < 300;
@@ -12673,7 +12673,7 @@ module.exports = defaults;
 
 /***/ }),
 
-/***/ 7258:
+/***/ 4633:
 /***/ (function(module) {
 
 "use strict";
@@ -12687,7 +12687,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6869:
+/***/ 9987:
 /***/ (function(module) {
 
 module.exports = {
@@ -12696,7 +12696,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7414:
+/***/ 7004:
 /***/ (function(module) {
 
 "use strict";
@@ -12716,7 +12716,7 @@ module.exports = function bind(fn, thisArg) {
 
 /***/ }),
 
-/***/ 5781:
+/***/ 9255:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12738,7 +12738,7 @@ __webpack_require__(9600);
 
 __webpack_require__(7042);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
 function encode(val) {
   return encodeURIComponent(val).replace(/%3A/gi, ':').replace(/%24/g, '$').replace(/%2C/gi, ',').replace(/%20/g, '+').replace(/%5B/gi, '[').replace(/%5D/gi, ']');
@@ -12805,7 +12805,7 @@ module.exports = function buildURL(url, params, paramsSerializer) {
 
 /***/ }),
 
-/***/ 4856:
+/***/ 3632:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12828,7 +12828,7 @@ module.exports = function combineURLs(baseURL, relativeURL) {
 
 /***/ }),
 
-/***/ 391:
+/***/ 297:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12848,7 +12848,7 @@ __webpack_require__(8386);
 
 __webpack_require__(9714);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
 module.exports = utils.isStandardBrowserEnv() ? // Standard browser envs support document.cookie
 function standardBrowserEnv() {
@@ -12896,7 +12896,7 @@ function nonStandardBrowserEnv() {
 
 /***/ }),
 
-/***/ 8843:
+/***/ 638:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12921,13 +12921,13 @@ module.exports = function isAbsoluteURL(url) {
 
 /***/ }),
 
-/***/ 3229:
+/***/ 8824:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 /**
  * Determines whether the payload is an error thrown by Axios
  *
@@ -12942,7 +12942,7 @@ module.exports = function isAxiosError(payload) {
 
 /***/ }),
 
-/***/ 9951:
+/***/ 5671:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -12956,7 +12956,7 @@ __webpack_require__(5306);
 
 __webpack_require__(4765);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
 module.exports = utils.isStandardBrowserEnv() ? // Standard browser envs have full support of the APIs needed to test
 // whether the request URL is of the same origin as current location.
@@ -13015,7 +13015,7 @@ function nonStandardBrowserEnv() {
 
 /***/ }),
 
-/***/ 5250:
+/***/ 8570:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -13025,7 +13025,7 @@ __webpack_require__(1539);
 
 __webpack_require__(4747);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 
 module.exports = function normalizeHeaderName(headers, normalizedName) {
   utils.forEach(headers, function processHeader(value, name) {
@@ -13038,7 +13038,7 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
 
 /***/ }),
 
-/***/ 5490:
+/***/ 307:
 /***/ (function(module) {
 
 // eslint-disable-next-line strict
@@ -13046,7 +13046,7 @@ module.exports = null;
 
 /***/ }),
 
-/***/ 5054:
+/***/ 9331:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -13064,7 +13064,7 @@ __webpack_require__(3210);
 
 __webpack_require__(2222);
 
-var utils = __webpack_require__(7725); // Headers whose duplicates are ignored by node
+var utils = __webpack_require__(1726); // Headers whose duplicates are ignored by node
 // c.f. https://nodejs.org/api/http.html#http_message_headers
 
 
@@ -13115,7 +13115,7 @@ module.exports = function parseHeaders(headers) {
 
 /***/ }),
 
-/***/ 8499:
+/***/ 9964:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -13130,7 +13130,7 @@ module.exports = function parseProtocol(url) {
 
 /***/ }),
 
-/***/ 4198:
+/***/ 6664:
 /***/ (function(module) {
 
 "use strict";
@@ -13164,13 +13164,13 @@ module.exports = function spread(callback) {
 
 /***/ }),
 
-/***/ 7200:
+/***/ 1284:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
 
-var _typeof = (__webpack_require__(5602)["default"]);
+var _typeof = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(1703);
 
@@ -13184,7 +13184,7 @@ __webpack_require__(8862);
 
 __webpack_require__(8674);
 
-var utils = __webpack_require__(7725);
+var utils = __webpack_require__(1726);
 /**
  * Convert a data object to FormData
  * @param {Object} obj
@@ -13253,21 +13253,21 @@ module.exports = toFormData;
 
 /***/ }),
 
-/***/ 2346:
+/***/ 4573:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
 
-var _typeof = (__webpack_require__(5602)["default"]);
+var _typeof = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(1539);
 
 __webpack_require__(7941);
 
-var VERSION = (__webpack_require__(6869).version);
+var VERSION = (__webpack_require__(9987).version);
 
-var AxiosError = __webpack_require__(8274);
+var AxiosError = __webpack_require__(2532);
 
 var validators = {}; // eslint-disable-next-line func-names
 
@@ -13349,13 +13349,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7725:
+/***/ 1726:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
 
 
-var _typeof = (__webpack_require__(5602)["default"]);
+var _typeof = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(1539);
 
@@ -13429,7 +13429,7 @@ __webpack_require__(2974);
 
 __webpack_require__(5016);
 
-var bind = __webpack_require__(7414); // utils is a library of generic helper functions non-specific to axios
+var bind = __webpack_require__(7004); // utils is a library of generic helper functions non-specific to axios
 
 
 var toString = Object.prototype.toString; // eslint-disable-next-line func-names
@@ -13919,7 +13919,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8356:
+/***/ 7568:
 /***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -13970,7 +13970,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "splitLongToh3Index": function() { return /* binding */ splitLongToh3Index; },
 /* harmony export */   "uncompact": function() { return /* binding */ uncompact; }
 /* harmony export */ });
-/* harmony import */ var C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7336);
+/* harmony import */ var C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8532);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1539);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6992);
@@ -27641,7 +27641,7 @@ var libh3 = function (libh3) {
 
   run();
   return libh3;
-}((0,C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
+}((0,C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
 /*
  * Copyright 2018-2019 Uber Technologies, Inc.
  *
@@ -29285,10 +29285,993 @@ function radsToDegs(rad) {
 
 /***/ }),
 
-/***/ 3814:
+/***/ 1175:
 /***/ (function(module, exports, __webpack_require__) {
 
-var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;var _typeof = (__webpack_require__(5602)["default"]);
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;__webpack_require__(3290);
+
+__webpack_require__(7941);
+
+__webpack_require__(4916);
+
+__webpack_require__(5306);
+
+__webpack_require__(1703);
+
+/*
+ * heatmap.js v2.0.5 | JavaScript Heatmap Library
+ *
+ * Copyright 2008-2016 Patrick Wied <heatmapjs@patrick-wied.at> - All rights reserved.
+ * Dual licensed under MIT and Beerware license 
+ *
+ * :: 2016-09-05 01:16
+ */
+;
+
+(function (name, context, factory) {
+  // Supports UMD. AMD, CommonJS/Node.js and browser context
+  if ( true && module.exports) {
+    module.exports = factory();
+  } else if (true) {
+    !(__WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+		(__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) :
+		__WEBPACK_AMD_DEFINE_FACTORY__),
+		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+  } else {}
+})("h337", this, function () {
+  // Heatmap Config stores default values and will be merged with instance config
+  var HeatmapConfig = {
+    defaultRadius: 40,
+    defaultRenderer: 'canvas2d',
+    defaultGradient: {
+      0.25: "rgb(0,0,255)",
+      0.55: "rgb(0,255,0)",
+      0.85: "yellow",
+      1.0: "rgb(255,0,0)"
+    },
+    defaultMaxOpacity: 1,
+    defaultMinOpacity: 0,
+    defaultBlur: .85,
+    defaultXField: 'x',
+    defaultYField: 'y',
+    defaultValueField: 'value',
+    plugins: {}
+  };
+
+  var Store = function StoreClosure() {
+    var Store = function Store(config) {
+      this._coordinator = {};
+      this._data = [];
+      this._radi = [];
+      this._min = 10;
+      this._max = 1;
+      this._xField = config['xField'] || config.defaultXField;
+      this._yField = config['yField'] || config.defaultYField;
+      this._valueField = config['valueField'] || config.defaultValueField;
+
+      if (config["radius"]) {
+        this._cfgRadius = config["radius"];
+      }
+    };
+
+    var defaultRadius = HeatmapConfig.defaultRadius;
+    Store.prototype = {
+      // when forceRender = false -> called from setData, omits renderall event
+      _organiseData: function _organiseData(dataPoint, forceRender) {
+        var x = dataPoint[this._xField];
+        var y = dataPoint[this._yField];
+        var radi = this._radi;
+        var store = this._data;
+        var max = this._max;
+        var min = this._min;
+        var value = dataPoint[this._valueField] || 1;
+        var radius = dataPoint.radius || this._cfgRadius || defaultRadius;
+
+        if (!store[x]) {
+          store[x] = [];
+          radi[x] = [];
+        }
+
+        if (!store[x][y]) {
+          store[x][y] = value;
+          radi[x][y] = radius;
+        } else {
+          store[x][y] += value;
+        }
+
+        var storedVal = store[x][y];
+
+        if (storedVal > max) {
+          if (!forceRender) {
+            this._max = storedVal;
+          } else {
+            this.setDataMax(storedVal);
+          }
+
+          return false;
+        } else if (storedVal < min) {
+          if (!forceRender) {
+            this._min = storedVal;
+          } else {
+            this.setDataMin(storedVal);
+          }
+
+          return false;
+        } else {
+          return {
+            x: x,
+            y: y,
+            value: value,
+            radius: radius,
+            min: min,
+            max: max
+          };
+        }
+      },
+      _unOrganizeData: function _unOrganizeData() {
+        var unorganizedData = [];
+        var data = this._data;
+        var radi = this._radi;
+
+        for (var x in data) {
+          for (var y in data[x]) {
+            unorganizedData.push({
+              x: x,
+              y: y,
+              radius: radi[x][y],
+              value: data[x][y]
+            });
+          }
+        }
+
+        return {
+          min: this._min,
+          max: this._max,
+          data: unorganizedData
+        };
+      },
+      _onExtremaChange: function _onExtremaChange() {
+        this._coordinator.emit('extremachange', {
+          min: this._min,
+          max: this._max
+        });
+      },
+      addData: function addData() {
+        if (arguments[0].length > 0) {
+          var dataArr = arguments[0];
+          var dataLen = dataArr.length;
+
+          while (dataLen--) {
+            this.addData.call(this, dataArr[dataLen]);
+          }
+        } else {
+          // add to store  
+          var organisedEntry = this._organiseData(arguments[0], true);
+
+          if (organisedEntry) {
+            // if it's the first datapoint initialize the extremas with it
+            if (this._data.length === 0) {
+              this._min = this._max = organisedEntry.value;
+            }
+
+            this._coordinator.emit('renderpartial', {
+              min: this._min,
+              max: this._max,
+              data: [organisedEntry]
+            });
+          }
+        }
+
+        return this;
+      },
+      setData: function setData(data) {
+        var dataPoints = data.data;
+        var pointsLen = dataPoints.length; // reset data arrays
+
+        this._data = [];
+        this._radi = [];
+
+        for (var i = 0; i < pointsLen; i++) {
+          this._organiseData(dataPoints[i], false);
+        }
+
+        this._max = data.max;
+        this._min = data.min || 0;
+
+        this._onExtremaChange();
+
+        this._coordinator.emit('renderall', this._getInternalData());
+
+        return this;
+      },
+      removeData: function removeData() {// TODO: implement
+      },
+      setDataMax: function setDataMax(max) {
+        this._max = max;
+
+        this._onExtremaChange();
+
+        this._coordinator.emit('renderall', this._getInternalData());
+
+        return this;
+      },
+      setDataMin: function setDataMin(min) {
+        this._min = min;
+
+        this._onExtremaChange();
+
+        this._coordinator.emit('renderall', this._getInternalData());
+
+        return this;
+      },
+      setCoordinator: function setCoordinator(coordinator) {
+        this._coordinator = coordinator;
+      },
+      _getInternalData: function _getInternalData() {
+        return {
+          max: this._max,
+          min: this._min,
+          data: this._data,
+          radi: this._radi
+        };
+      },
+      getData: function getData() {
+        return this._unOrganizeData();
+      }
+      /*,
+        TODO: rethink.
+      getValueAt: function(point) {
+       var value;
+       var radius = 100;
+       var x = point.x;
+       var y = point.y;
+       var data = this._data;
+        if (data[x] && data[x][y]) {
+         return data[x][y];
+       } else {
+         var values = [];
+         // radial search for datapoints based on default radius
+         for(var distance = 1; distance < radius; distance++) {
+           var neighbors = distance * 2 +1;
+           var startX = x - distance;
+           var startY = y - distance;
+            for(var i = 0; i < neighbors; i++) {
+             for (var o = 0; o < neighbors; o++) {
+               if ((i == 0 || i == neighbors-1) || (o == 0 || o == neighbors-1)) {
+                 if (data[startY+i] && data[startY+i][startX+o]) {
+                   values.push(data[startY+i][startX+o]);
+                 }
+               } else {
+                 continue;
+               } 
+             }
+           }
+         }
+         if (values.length > 0) {
+           return Math.max.apply(Math, values);
+         }
+       }
+       return false;
+      }*/
+
+    };
+    return Store;
+  }();
+
+  var Canvas2dRenderer = function Canvas2dRendererClosure() {
+    var _getColorPalette = function _getColorPalette(config) {
+      var gradientConfig = config.gradient || config.defaultGradient;
+      var paletteCanvas = document.createElement('canvas');
+      var paletteCtx = paletteCanvas.getContext('2d');
+      paletteCanvas.width = 256;
+      paletteCanvas.height = 1;
+      var gradient = paletteCtx.createLinearGradient(0, 0, 256, 1);
+
+      for (var key in gradientConfig) {
+        gradient.addColorStop(key, gradientConfig[key]);
+      }
+
+      paletteCtx.fillStyle = gradient;
+      paletteCtx.fillRect(0, 0, 256, 1);
+      return paletteCtx.getImageData(0, 0, 256, 1).data;
+    };
+
+    var _getPointTemplate = function _getPointTemplate(radius, blurFactor) {
+      var tplCanvas = document.createElement('canvas');
+      var tplCtx = tplCanvas.getContext('2d');
+      var x = radius;
+      var y = radius;
+      tplCanvas.width = tplCanvas.height = radius * 2;
+
+      if (blurFactor == 1) {
+        tplCtx.beginPath();
+        tplCtx.arc(x, y, radius, 0, 2 * Math.PI, false);
+        tplCtx.fillStyle = 'rgba(0,0,0,1)';
+        tplCtx.fill();
+      } else {
+        var gradient = tplCtx.createRadialGradient(x, y, radius * blurFactor, x, y, radius);
+        gradient.addColorStop(0, 'rgba(0,0,0,1)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        tplCtx.fillStyle = gradient;
+        tplCtx.fillRect(0, 0, 2 * radius, 2 * radius);
+      }
+
+      return tplCanvas;
+    };
+
+    var _prepareData = function _prepareData(data) {
+      var renderData = [];
+      var min = data.min;
+      var max = data.max;
+      var radi = data.radi;
+      var data = data.data;
+      var xValues = Object.keys(data);
+      var xValuesLen = xValues.length;
+
+      while (xValuesLen--) {
+        var xValue = xValues[xValuesLen];
+        var yValues = Object.keys(data[xValue]);
+        var yValuesLen = yValues.length;
+
+        while (yValuesLen--) {
+          var yValue = yValues[yValuesLen];
+          var value = data[xValue][yValue];
+          var radius = radi[xValue][yValue];
+          renderData.push({
+            x: xValue,
+            y: yValue,
+            value: value,
+            radius: radius
+          });
+        }
+      }
+
+      return {
+        min: min,
+        max: max,
+        data: renderData
+      };
+    };
+
+    function Canvas2dRenderer(config) {
+      var container = config.container;
+      var shadowCanvas = this.shadowCanvas = document.createElement('canvas');
+      var canvas = this.canvas = config.canvas || document.createElement('canvas');
+      var renderBoundaries = this._renderBoundaries = [10000, 10000, 0, 0];
+      var computed = getComputedStyle(config.container) || {};
+      canvas.className = 'heatmap-canvas';
+      this._width = canvas.width = shadowCanvas.width = config.width || +computed.width.replace(/px/, '');
+      this._height = canvas.height = shadowCanvas.height = config.height || +computed.height.replace(/px/, '');
+      this.shadowCtx = shadowCanvas.getContext('2d');
+      this.ctx = canvas.getContext('2d'); // @TODO:
+      // conditional wrapper
+
+      canvas.style.cssText = shadowCanvas.style.cssText = 'position:absolute;left:0;top:0;';
+      container.style.position = 'relative';
+      container.appendChild(canvas);
+      this._palette = _getColorPalette(config);
+      this._templates = {};
+
+      this._setStyles(config);
+    }
+
+    ;
+    Canvas2dRenderer.prototype = {
+      renderPartial: function renderPartial(data) {
+        if (data.data.length > 0) {
+          this._drawAlpha(data);
+
+          this._colorize();
+        }
+      },
+      renderAll: function renderAll(data) {
+        // reset render boundaries
+        this._clear();
+
+        if (data.data.length > 0) {
+          this._drawAlpha(_prepareData(data));
+
+          this._colorize();
+        }
+      },
+      _updateGradient: function _updateGradient(config) {
+        this._palette = _getColorPalette(config);
+      },
+      updateConfig: function updateConfig(config) {
+        if (config['gradient']) {
+          this._updateGradient(config);
+        }
+
+        this._setStyles(config);
+      },
+      setDimensions: function setDimensions(width, height) {
+        this._width = width;
+        this._height = height;
+        this.canvas.width = this.shadowCanvas.width = width;
+        this.canvas.height = this.shadowCanvas.height = height;
+      },
+      _clear: function _clear() {
+        this.shadowCtx.clearRect(0, 0, this._width, this._height);
+        this.ctx.clearRect(0, 0, this._width, this._height);
+      },
+      _setStyles: function _setStyles(config) {
+        this._blur = config.blur == 0 ? 0 : config.blur || config.defaultBlur;
+
+        if (config.backgroundColor) {
+          this.canvas.style.backgroundColor = config.backgroundColor;
+        }
+
+        this._width = this.canvas.width = this.shadowCanvas.width = config.width || this._width;
+        this._height = this.canvas.height = this.shadowCanvas.height = config.height || this._height;
+        this._opacity = (config.opacity || 0) * 255;
+        this._maxOpacity = (config.maxOpacity || config.defaultMaxOpacity) * 255;
+        this._minOpacity = (config.minOpacity || config.defaultMinOpacity) * 255;
+        this._useGradientOpacity = !!config.useGradientOpacity;
+      },
+      _drawAlpha: function _drawAlpha(data) {
+        var min = this._min = data.min;
+        var max = this._max = data.max;
+        var data = data.data || [];
+        var dataLen = data.length; // on a point basis?
+
+        var blur = 1 - this._blur;
+
+        while (dataLen--) {
+          var point = data[dataLen];
+          var x = point.x;
+          var y = point.y;
+          var radius = point.radius; // if value is bigger than max
+          // use max as value
+
+          var value = Math.min(point.value, max);
+          var rectX = x - radius;
+          var rectY = y - radius;
+          var shadowCtx = this.shadowCtx;
+          var tpl;
+
+          if (!this._templates[radius]) {
+            this._templates[radius] = tpl = _getPointTemplate(radius, blur);
+          } else {
+            tpl = this._templates[radius];
+          } // value from minimum / value range
+          // => [0, 1]
+
+
+          var templateAlpha = (value - min) / (max - min); // this fixes #176: small values are not visible because globalAlpha < .01 cannot be read from imageData
+
+          shadowCtx.globalAlpha = templateAlpha < .01 ? .01 : templateAlpha;
+          shadowCtx.drawImage(tpl, rectX, rectY); // update renderBoundaries
+
+          if (rectX < this._renderBoundaries[0]) {
+            this._renderBoundaries[0] = rectX;
+          }
+
+          if (rectY < this._renderBoundaries[1]) {
+            this._renderBoundaries[1] = rectY;
+          }
+
+          if (rectX + 2 * radius > this._renderBoundaries[2]) {
+            this._renderBoundaries[2] = rectX + 2 * radius;
+          }
+
+          if (rectY + 2 * radius > this._renderBoundaries[3]) {
+            this._renderBoundaries[3] = rectY + 2 * radius;
+          }
+        }
+      },
+      _colorize: function _colorize() {
+        var x = this._renderBoundaries[0];
+        var y = this._renderBoundaries[1];
+        var width = this._renderBoundaries[2] - x;
+        var height = this._renderBoundaries[3] - y;
+        var maxWidth = this._width;
+        var maxHeight = this._height;
+        var opacity = this._opacity;
+        var maxOpacity = this._maxOpacity;
+        var minOpacity = this._minOpacity;
+        var useGradientOpacity = this._useGradientOpacity;
+
+        if (x < 0) {
+          x = 0;
+        }
+
+        if (y < 0) {
+          y = 0;
+        }
+
+        if (x + width > maxWidth) {
+          width = maxWidth - x;
+        }
+
+        if (y + height > maxHeight) {
+          height = maxHeight - y;
+        }
+
+        var img = this.shadowCtx.getImageData(x, y, width, height);
+        var imgData = img.data;
+        var len = imgData.length;
+        var palette = this._palette;
+
+        for (var i = 3; i < len; i += 4) {
+          var alpha = imgData[i];
+          var offset = alpha * 4;
+
+          if (!offset) {
+            continue;
+          }
+
+          var finalAlpha;
+
+          if (opacity > 0) {
+            finalAlpha = opacity;
+          } else {
+            if (alpha < maxOpacity) {
+              if (alpha < minOpacity) {
+                finalAlpha = minOpacity;
+              } else {
+                finalAlpha = alpha;
+              }
+            } else {
+              finalAlpha = maxOpacity;
+            }
+          }
+
+          imgData[i - 3] = palette[offset];
+          imgData[i - 2] = palette[offset + 1];
+          imgData[i - 1] = palette[offset + 2];
+          imgData[i] = useGradientOpacity ? palette[offset + 3] : finalAlpha;
+        }
+
+        img.data = imgData;
+        this.ctx.putImageData(img, x, y);
+        this._renderBoundaries = [1000, 1000, 0, 0];
+      },
+      getValueAt: function getValueAt(point) {
+        var value;
+        var shadowCtx = this.shadowCtx;
+        var img = shadowCtx.getImageData(point.x, point.y, 1, 1);
+        var data = img.data[3];
+        var max = this._max;
+        var min = this._min;
+        value = Math.abs(max - min) * (data / 255) >> 0;
+        return value;
+      },
+      getDataURL: function getDataURL() {
+        return this.canvas.toDataURL();
+      }
+    };
+    return Canvas2dRenderer;
+  }();
+
+  var Renderer = function RendererClosure() {
+    var rendererFn = false;
+
+    if (HeatmapConfig['defaultRenderer'] === 'canvas2d') {
+      rendererFn = Canvas2dRenderer;
+    }
+
+    return rendererFn;
+  }();
+
+  var Util = {
+    merge: function merge() {
+      var merged = {};
+      var argsLen = arguments.length;
+
+      for (var i = 0; i < argsLen; i++) {
+        var obj = arguments[i];
+
+        for (var key in obj) {
+          merged[key] = obj[key];
+        }
+      }
+
+      return merged;
+    }
+  }; // Heatmap Constructor
+
+  var Heatmap = function HeatmapClosure() {
+    var Coordinator = function CoordinatorClosure() {
+      function Coordinator() {
+        this.cStore = {};
+      }
+
+      ;
+      Coordinator.prototype = {
+        on: function on(evtName, callback, scope) {
+          var cStore = this.cStore;
+
+          if (!cStore[evtName]) {
+            cStore[evtName] = [];
+          }
+
+          cStore[evtName].push(function (data) {
+            return callback.call(scope, data);
+          });
+        },
+        emit: function emit(evtName, data) {
+          var cStore = this.cStore;
+
+          if (cStore[evtName]) {
+            var len = cStore[evtName].length;
+
+            for (var i = 0; i < len; i++) {
+              var callback = cStore[evtName][i];
+              callback(data);
+            }
+          }
+        }
+      };
+      return Coordinator;
+    }();
+
+    var _connect = function _connect(scope) {
+      var renderer = scope._renderer;
+      var coordinator = scope._coordinator;
+      var store = scope._store;
+      coordinator.on('renderpartial', renderer.renderPartial, renderer);
+      coordinator.on('renderall', renderer.renderAll, renderer);
+      coordinator.on('extremachange', function (data) {
+        scope._config.onExtremaChange && scope._config.onExtremaChange({
+          min: data.min,
+          max: data.max,
+          gradient: scope._config['gradient'] || scope._config['defaultGradient']
+        });
+      });
+      store.setCoordinator(coordinator);
+    };
+
+    function Heatmap() {
+      var config = this._config = Util.merge(HeatmapConfig, arguments[0] || {});
+      this._coordinator = new Coordinator();
+
+      if (config['plugin']) {
+        var pluginToLoad = config['plugin'];
+
+        if (!HeatmapConfig.plugins[pluginToLoad]) {
+          throw new Error('Plugin \'' + pluginToLoad + '\' not found. Maybe it was not registered.');
+        } else {
+          var plugin = HeatmapConfig.plugins[pluginToLoad]; // set plugin renderer and store
+
+          this._renderer = new plugin.renderer(config);
+          this._store = new plugin.store(config);
+        }
+      } else {
+        this._renderer = new Renderer(config);
+        this._store = new Store(config);
+      }
+
+      _connect(this);
+    }
+
+    ; // @TODO:
+    // add API documentation
+
+    Heatmap.prototype = {
+      addData: function addData() {
+        this._store.addData.apply(this._store, arguments);
+
+        return this;
+      },
+      removeData: function removeData() {
+        this._store.removeData && this._store.removeData.apply(this._store, arguments);
+        return this;
+      },
+      setData: function setData() {
+        this._store.setData.apply(this._store, arguments);
+
+        return this;
+      },
+      setDataMax: function setDataMax() {
+        this._store.setDataMax.apply(this._store, arguments);
+
+        return this;
+      },
+      setDataMin: function setDataMin() {
+        this._store.setDataMin.apply(this._store, arguments);
+
+        return this;
+      },
+      configure: function configure(config) {
+        this._config = Util.merge(this._config, config);
+
+        this._renderer.updateConfig(this._config);
+
+        this._coordinator.emit('renderall', this._store._getInternalData());
+
+        return this;
+      },
+      repaint: function repaint() {
+        this._coordinator.emit('renderall', this._store._getInternalData());
+
+        return this;
+      },
+      getData: function getData() {
+        return this._store.getData();
+      },
+      getDataURL: function getDataURL() {
+        return this._renderer.getDataURL();
+      },
+      getValueAt: function getValueAt(point) {
+        if (this._store.getValueAt) {
+          return this._store.getValueAt(point);
+        } else if (this._renderer.getValueAt) {
+          return this._renderer.getValueAt(point);
+        } else {
+          return null;
+        }
+      }
+    };
+    return Heatmap;
+  }(); // core
+
+
+  var heatmapFactory = {
+    create: function create(config) {
+      return new Heatmap(config);
+    },
+    register: function register(pluginKey, plugin) {
+      HeatmapConfig.plugins[pluginKey] = plugin;
+    }
+  };
+  return heatmapFactory;
+});
+
+/***/ }),
+
+/***/ 2260:
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;__webpack_require__(1703);
+
+/*
+* Leaflet Heatmap Overlay
+*
+* Copyright (c) 2008-2016, Patrick Wied (https://www.patrick-wied.at)
+* Dual-licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
+* and the Beerware (http://en.wikipedia.org/wiki/Beerware) license.
+*/
+;
+
+(function (name, context, factory) {
+  // Supports UMD. AMD, CommonJS/Node.js and browser context
+  if ( true && module.exports) {
+    module.exports = factory(__webpack_require__(1175), __webpack_require__(525));
+  } else if (true) {
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(1175), __webpack_require__(525)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+		(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
+		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+  } else {}
+})("HeatmapOverlay", this, function (h337, L) {
+  'use strict'; // Leaflet < 0.8 compatibility
+
+  if (typeof L.Layer === 'undefined') {
+    L.Layer = L.Class;
+  }
+
+  var HeatmapOverlay = L.Layer.extend({
+    initialize: function initialize(config) {
+      this.cfg = config;
+      this._el = L.DomUtil.create('div', 'leaflet-zoom-hide');
+      this._data = [];
+      this._max = 1;
+      this._min = 0;
+      this.cfg.container = this._el;
+    },
+    onAdd: function onAdd(map) {
+      var size = map.getSize();
+      this._map = map;
+      this._width = size.x;
+      this._height = size.y;
+      this._el.style.width = size.x + 'px';
+      this._el.style.height = size.y + 'px';
+      this._el.style.position = 'absolute';
+      this._origin = this._map.layerPointToLatLng(new L.Point(0, 0));
+      map.getPanes().overlayPane.appendChild(this._el);
+
+      if (!this._heatmap) {
+        this._heatmap = h337.create(this.cfg);
+      } // this resets the origin and redraws whenever
+      // the zoom changed or the map has been moved
+
+
+      map.on('moveend', this._reset, this);
+
+      this._draw();
+    },
+    addTo: function addTo(map) {
+      map.addLayer(this);
+      return this;
+    },
+    onRemove: function onRemove(map) {
+      // remove layer's DOM elements and listeners
+      map.getPanes().overlayPane.removeChild(this._el);
+      map.off('moveend', this._reset, this);
+    },
+    _draw: function _draw() {
+      if (!this._map) {
+        return;
+      }
+
+      var mapPane = this._map.getPanes().mapPane;
+
+      var point = mapPane._leaflet_pos; // reposition the layer
+
+      this._el.style[HeatmapOverlay.CSS_TRANSFORM] = 'translate(' + -Math.round(point.x) + 'px,' + -Math.round(point.y) + 'px)';
+
+      this._update();
+    },
+    _update: function _update() {
+      var bounds, zoom, scale;
+      var generatedData = {
+        max: this._max,
+        min: this._min,
+        data: []
+      };
+      bounds = this._map.getBounds();
+      zoom = this._map.getZoom();
+      scale = Math.pow(2, zoom);
+
+      if (this._data.length == 0) {
+        if (this._heatmap) {
+          this._heatmap.setData(generatedData);
+        }
+
+        return;
+      }
+
+      var latLngPoints = [];
+      var radiusMultiplier = this.cfg.scaleRadius ? scale : 1;
+      var localMax = 0;
+      var localMin = 0;
+      var valueField = this.cfg.valueField;
+      var len = this._data.length;
+
+      while (len--) {
+        var entry = this._data[len];
+        var value = entry[valueField];
+        var latlng = entry.latlng; // we don't wanna render points that are not even on the map ;-)
+
+        if (!bounds.contains(latlng)) {
+          continue;
+        } // local max is the maximum within current bounds
+
+
+        localMax = Math.max(value, localMax);
+        localMin = Math.min(value, localMin);
+
+        var point = this._map.latLngToContainerPoint(latlng);
+
+        var latlngPoint = {
+          x: Math.round(point.x),
+          y: Math.round(point.y)
+        };
+        latlngPoint[valueField] = value;
+        var radius;
+
+        if (entry.radius) {
+          radius = entry.radius * radiusMultiplier;
+        } else {
+          radius = (this.cfg.radius || 2) * radiusMultiplier;
+        }
+
+        latlngPoint.radius = radius;
+        latLngPoints.push(latlngPoint);
+      }
+
+      if (this.cfg.useLocalExtrema) {
+        generatedData.max = localMax;
+        generatedData.min = localMin;
+      }
+
+      generatedData.data = latLngPoints;
+
+      this._heatmap.setData(generatedData);
+    },
+    setData: function setData(data) {
+      this._max = data.max || this._max;
+      this._min = data.min || this._min;
+      var latField = this.cfg.latField || 'lat';
+      var lngField = this.cfg.lngField || 'lng';
+      var valueField = this.cfg.valueField || 'value'; // transform data to latlngs
+
+      var data = data.data;
+      var len = data.length;
+      var d = [];
+
+      while (len--) {
+        var entry = data[len];
+        var latlng = new L.LatLng(entry[latField], entry[lngField]);
+        var dataObj = {
+          latlng: latlng
+        };
+        dataObj[valueField] = entry[valueField];
+
+        if (entry.radius) {
+          dataObj.radius = entry.radius;
+        }
+
+        d.push(dataObj);
+      }
+
+      this._data = d;
+
+      this._draw();
+    },
+    // experimential... not ready.
+    addData: function addData(pointOrArray) {
+      if (pointOrArray.length > 0) {
+        var len = pointOrArray.length;
+
+        while (len--) {
+          this.addData(pointOrArray[len]);
+        }
+      } else {
+        var latField = this.cfg.latField || 'lat';
+        var lngField = this.cfg.lngField || 'lng';
+        var valueField = this.cfg.valueField || 'value';
+        var entry = pointOrArray;
+        var latlng = new L.LatLng(entry[latField], entry[lngField]);
+        var dataObj = {
+          latlng: latlng
+        };
+        dataObj[valueField] = entry[valueField];
+        this._max = Math.max(this._max, dataObj[valueField]);
+        this._min = Math.min(this._min, dataObj[valueField]);
+
+        if (entry.radius) {
+          dataObj.radius = entry.radius;
+        }
+
+        this._data.push(dataObj);
+
+        this._draw();
+      }
+    },
+    _reset: function _reset() {
+      this._origin = this._map.layerPointToLatLng(new L.Point(0, 0));
+
+      var size = this._map.getSize();
+
+      if (this._width !== size.x || this._height !== size.y) {
+        this._width = size.x;
+        this._height = size.y;
+        this._el.style.width = this._width + 'px';
+        this._el.style.height = this._height + 'px';
+
+        this._heatmap._renderer.setDimensions(this._width, this._height);
+      }
+
+      this._draw();
+    }
+  });
+
+  HeatmapOverlay.CSS_TRANSFORM = function () {
+    var div = document.createElement('div');
+    var props = ['transform', 'WebkitTransform', 'MozTransform', 'OTransform', 'msTransform'];
+
+    for (var i = 0; i < props.length; i++) {
+      var prop = props[i];
+
+      if (div.style[prop] !== undefined) {
+        return prop;
+      }
+    }
+
+    return props[0];
+  }();
+
+  return HeatmapOverlay;
+});
+
+/***/ }),
+
+/***/ 525:
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;var _typeof = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(5837);
 
@@ -42854,11 +43837,11 @@ __webpack_require__(1249);
 
 /***/ }),
 
-/***/ 7988:
+/***/ 9916:
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
-var __WEBPACK_AMD_DEFINE_RESULT__;var _typeof=(__webpack_require__(5602)["default"]);__webpack_require__(4603);__webpack_require__(8450);__webpack_require__(4916);__webpack_require__(8386);__webpack_require__(9714);__webpack_require__(9600);__webpack_require__(3123);__webpack_require__(4723);__webpack_require__(2707);__webpack_require__(5306);__webpack_require__(7042);__webpack_require__(7601);__webpack_require__(1539);__webpack_require__(4747);__webpack_require__(6992);__webpack_require__(3948);__webpack_require__(561);__webpack_require__(8309);__webpack_require__(1249);__webpack_require__(8264);__webpack_require__(4765);__webpack_require__(2262);__webpack_require__(4506);__webpack_require__(2222);__webpack_require__(8674);__webpack_require__(3290);__webpack_require__(7327);__webpack_require__(6535);__webpack_require__(9244);__webpack_require__(7852);__webpack_require__(9826);__webpack_require__(4553);__webpack_require__(6699);__webpack_require__(2023);__webpack_require__(6528);__webpack_require__(3112);__webpack_require__(2481);__webpack_require__(6755);__webpack_require__(3210);__webpack_require__(8702);__webpack_require__(5674);__webpack_require__(3753);/**
+var __WEBPACK_AMD_DEFINE_RESULT__;var _typeof=(__webpack_require__(6541)["default"]);__webpack_require__(4603);__webpack_require__(8450);__webpack_require__(4916);__webpack_require__(8386);__webpack_require__(9714);__webpack_require__(9600);__webpack_require__(3123);__webpack_require__(4723);__webpack_require__(2707);__webpack_require__(5306);__webpack_require__(7042);__webpack_require__(7601);__webpack_require__(1539);__webpack_require__(4747);__webpack_require__(6992);__webpack_require__(3948);__webpack_require__(561);__webpack_require__(8309);__webpack_require__(1249);__webpack_require__(8264);__webpack_require__(4765);__webpack_require__(2262);__webpack_require__(4506);__webpack_require__(2222);__webpack_require__(8674);__webpack_require__(3290);__webpack_require__(7327);__webpack_require__(6535);__webpack_require__(9244);__webpack_require__(7852);__webpack_require__(9826);__webpack_require__(4553);__webpack_require__(6699);__webpack_require__(2023);__webpack_require__(6528);__webpack_require__(3112);__webpack_require__(2481);__webpack_require__(6755);__webpack_require__(3210);__webpack_require__(8702);__webpack_require__(5674);__webpack_require__(3753);/**
  * @license
  * Lodash <https://lodash.com/>
  * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
@@ -52339,7 +53322,7 @@ root._=_;}}).call(this);
 
 /***/ }),
 
-/***/ 8699:
+/***/ 1240:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -52356,7 +53339,7 @@ var __webpack_unused_export__;
 */
 
 
-var _typeof2 = (__webpack_require__(5602)["default"]);
+var _typeof2 = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(2526);
 
@@ -53004,11 +53987,11 @@ exports.Df = wormhole;
 
 /***/ }),
 
-/***/ 278:
+/***/ 6642:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
-var _typeof = (__webpack_require__(5602)["default"]);
+var _typeof = (__webpack_require__(6541)["default"]);
 
 __webpack_require__(2526);
 
@@ -53804,7 +54787,7 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__7203__;
 
 /***/ }),
 
-/***/ 7336:
+/***/ 8532:
 /***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -53959,7 +54942,7 @@ __webpack_require__.d(__webpack_exports__, {
 if (typeof window !== 'undefined') {
   var currentScript = window.document.currentScript
   if (true) {
-    var getCurrentScript = __webpack_require__(7672)
+    var getCurrentScript = __webpack_require__(4782)
     currentScript = getCurrentScript()
 
     // for backward compatibility, because previously we directly included the polyfill
@@ -53980,7 +54963,7 @@ if (typeof window !== 'undefined') {
 // EXTERNAL MODULE: external {"commonjs":"vue","commonjs2":"vue","root":"Vue"}
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__(7203);
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=04e7838a&
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=04e7838a&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":null,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer}}),_c('div',{staticClass:"zone zone-d"},[_c('div',{staticClass:"zone-body",staticStyle:{"display":"grid"}},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":null,"data":_vm.data,"info":_vm.info,"data_pivots":_vm.data_pivots,"all_info":_vm.all_info}})],1)])],1)}
 var staticRenderFns = []
 
@@ -54029,7 +55012,7 @@ function _asyncToGenerator(fn) {
   };
 }
 // EXTERNAL MODULE: ./node_modules/regenerator-runtime/runtime.js
-var runtime = __webpack_require__(278);
+var runtime = __webpack_require__(6642);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.concat.js
 var es_array_concat = __webpack_require__(2222);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.find.js
@@ -54048,9 +55031,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=128ec740&scoped=true&
-var SheetsMapvue_type_template_id_128ec740_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster,"options-style":_vm.styleFunction,"options":_vm.options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
-var SheetsMapvue_type_template_id_128ec740_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=3d4f255d&scoped=true&
+var SheetsMapvue_type_template_id_3d4f255d_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster,"options-style":_vm.styleFunction,"options":_vm.options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_3d4f255d_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -54063,10 +55046,10 @@ var es_string_replace = __webpack_require__(5306);
 var es_array_includes = __webpack_require__(6699);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.includes.js
 var es_string_includes = __webpack_require__(2023);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
-var es_regexp_to_string = __webpack_require__(9714);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.search.js
 var es_string_search = __webpack_require__(4765);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
+var es_regexp_to_string = __webpack_require__(9714);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.promise.finally.js
 var es_promise_finally = __webpack_require__(7727);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.number.constructor.js
@@ -54076,7 +55059,7 @@ var es_json_stringify = __webpack_require__(8862);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
 var es_object_assign = __webpack_require__(9601);
 // EXTERNAL MODULE: ./node_modules/lodash/lodash.js
-var lodash = __webpack_require__(7988);
+var lodash = __webpack_require__(9916);
 var lodash_default = /*#__PURE__*/__webpack_require__.n(lodash);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.slice.js
 var es_array_slice = __webpack_require__(7042);
@@ -54101,7 +55084,7 @@ var web_dom_exception_to_string_tag = __webpack_require__(1174);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.join.js
 var es_array_join = __webpack_require__(9600);
 // EXTERNAL MODULE: ./node_modules/leaflet/dist/leaflet-src.js
-var leaflet_src = __webpack_require__(3814);
+var leaflet_src = __webpack_require__(525);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMap.js
 
 
@@ -58357,10 +59340,10 @@ var LWMSTileLayer_vue_component_ = /*#__PURE__*/LWMSTileLayer_normalizeComponent
 
 /* harmony default export */ var LWMSTileLayer = (LWMSTileLayer_vue_component_);
 // EXTERNAL MODULE: ./node_modules/axios/index.js
-var axios = __webpack_require__(7011);
+var axios = __webpack_require__(3182);
 var axios_default = /*#__PURE__*/__webpack_require__.n(axios);
 // EXTERNAL MODULE: ./node_modules/h3-js/dist/browser/h3-js.es.js
-var h3_js_es = __webpack_require__(8356);
+var h3_js_es = __webpack_require__(7568);
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayWithHoles.js
 function _arrayWithHoles(arr) {
   if (Array.isArray(arr)) return arr;
@@ -59395,7 +60378,10 @@ function getX(p) {
 function getY(p) {
   return p.y;
 }
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=script&lang=js&
+// EXTERNAL MODULE: ./node_modules/heatmap.js/plugins/leaflet-heatmap/leaflet-heatmap.js
+var leaflet_heatmap = __webpack_require__(2260);
+var leaflet_heatmap_default = /*#__PURE__*/__webpack_require__.n(leaflet_heatmap);
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=script&lang=js&
 
 
 
@@ -59505,6 +60491,8 @@ function getY(p) {
 
 
 
+
+
 delete leaflet_src.Icon.Default.prototype._getIconUrl;
 leaflet_src.Icon.Default.mergeOptions({
   iconRetinaUrl: __webpack_require__(6431),
@@ -59574,28 +60562,14 @@ leaflet_src.Icon.Default.mergeOptions({
       bounds_filters: [],
       bounds: [],
       index: [],
-      h3: __webpack_require__(8356),
+      h3: __webpack_require__(7568),
       enableTooltip: true
     };
   },
   computed: {
     markers_latlgn: function markers_latlgn() {
       if (!this.data.data || !this.col_lat || !this.col_lng) return [];
-      return []; // let markers = this.data.data.map( d =>{
-      //     let lat;
-      //     let lon;
-      //     try {
-      //         lat = parseFloat(d[this.col_lat].replace(/,/, '.'));
-      //         lon = parseFloat(d[this.col_lng].replace(/,/, '.'));
-      //     } catch (error) {
-      //         console.log();
-      //         console.error(error);
-      //     }
-      //     if(!lat || !lon) return;
-      //     return [lat, lon];
-      // })
-      // .filter(d => d);      
-      // return markers;
+      return [];
     },
     visible_columns: function visible_columns() {
       if (!this.info.columns) return [];
@@ -59623,8 +60597,8 @@ leaflet_src.Icon.Default.mergeOptions({
         try {
           var lat = d[_this.col_lat];
           var lng = d[_this.col_lng];
-          lat = typeof lat == 'string' ? parseFloat(d[_this.col_lat].replace(/,/, '.')) : lat;
-          lng = typeof lng == 'string' ? parseFloat(d[_this.col_lng].replace(/,/, '.')) : lng;
+          lat = typeof lat == 'string' ? parseFloat(lat.replace(/,/, '.')) : lat;
+          lng = typeof lng == 'string' ? parseFloat(lng.replace(/,/, '.')) : lng;
           if (!lat || !lng) return;
           var coordinates = [lng, lat]; // let coordinates = [marker.lat_lng[1],marker.lat_lng[0]];
 
@@ -59692,6 +60666,19 @@ leaflet_src.Icon.Default.mergeOptions({
           });
         }
       };
+    },
+    heatmapLayer: function heatmapLayer() {
+      var config = {
+        'radius': 100,
+        'maxOpacity': 0.8,
+        'scaleRadius': false,
+        'useLocalExtrema': true,
+        latField: 'lat',
+        lngField: 'lng',
+        valueField: 'count'
+      };
+      var heatmapLayer = new (leaflet_heatmap_default())(config);
+      return heatmapLayer;
     },
     styleFunction: function styleFunction() {
       return function (feature) {
@@ -59866,7 +60853,7 @@ leaflet_src.Icon.Default.mergeOptions({
 
         case 'analytic_countour_map':
           {
-            console.log('Intento de activar ' + layer.sh_map_has_layer_name + ' sin exito');
+            this.getAnalyticalCountourMap(this.layers[layer.key]);
             break;
           }
 
@@ -59911,7 +60898,18 @@ leaflet_src.Icon.Default.mergeOptions({
 
         case 'analytic_countour_map':
           {
-            this.analytic_countour_map = undefined;
+            if (this.analytic_countour_map == undefined) {
+              console.log('Intento de desactivar ' + this.layers[layer.key].sh_map_has_layer_code + ' que ya estaba desactivada');
+            } else {
+              this.analytic_countour_map = undefined;
+              this.heatmapLayer.addTo(this.map);
+              var contour_data = {
+                max: 4000,
+                data: []
+              };
+              this.heatmapLayer.setData(contour_data);
+            }
+
             break;
           }
 
@@ -59940,18 +60938,99 @@ leaflet_src.Icon.Default.mergeOptions({
           }
       }
     },
-    getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson(layer) {
+    getAnalyticalCountourMap: function getAnalyticalCountourMap(layer) {
       var _this4 = this;
 
+      var data;
+      var h3_zoom = this.calculateH3Zoom();
+      var query_params = this.makeCubeQueryParameters(layer, h3_zoom);
+      var url = query_params.url;
+      var body = query_params.body;
+      axios_default().post(url, body).then(function (response) {
+        var all_cubes = response.data.content;
+        var data = lodash_default().first(Object.values(all_cubes.data)) || [];
+        var data_map = lodash_default().first(Object.values(all_cubes.data_map)) || [];
+
+        if (Array.isArray(data) && data.length > 0) {
+          var data_map_hex = data_map.map(function (d) {
+            if (d == "h3r".concat(h3_zoom)) {
+              return 'h3';
+            }
+
+            return 'total';
+          });
+          var key_count = data_map_hex.indexOf("total");
+          var key_dimension = data_map_hex.indexOf("h3");
+          var h3_indexes_data = data.map(function (d) {
+            d[key_dimension] = _this4.decimalToHexadecimal(d[key_dimension]);
+            return d;
+          });
+
+          var data_lat_lng = _this4.h3ToLngLat(h3_indexes_data, key_dimension, key_count);
+
+          var contour_data = {
+            max: 4000,
+            data: data_lat_lng
+          };
+
+          _this4.heatmapLayer.addTo(_this4.map);
+
+          _this4.heatmapLayer.setData(contour_data);
+
+          _this4.analytic_countour_map = true;
+        } else {
+          console.log('Sin datos disponibles');
+        }
+      });
+    },
+    getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson(layer) {
+      var _this5 = this;
+
+      /*
+      let geojson_bounds = this.getMapGeoJsonBounds();
+      let square_polygon = {
+              "type": "Polygon",
+              "coordinates": [geojson_bounds]
+            };
+      */
+      var polygon;
+      var h3_zoom = this.calculateH3Zoom();
+      var query_params = this.makeCubeQueryParameters(layer, h3_zoom);
+      var url = query_params.url;
+      var body = query_params.body;
+      axios_default().post(url, body).then(function (response) {
+        var all_cubes = response.data.content;
+        var data = lodash_default().first(Object.values(all_cubes.data)) || {};
+        var data_map = lodash_default().first(Object.values(all_cubes.data_map)) || {};
+        var key_dimension = data_map.indexOf("h3r".concat(h3_zoom));
+        var h3_indexes_data = data.map(function (d) {
+          d[key_dimension] = _this5.decimalToHexadecimal(d[key_dimension]);
+          return d;
+        });
+        var h3_indexes = data.map(function (d) {
+          return _this5.decimalToHexadecimal(d[key_dimension]);
+        });
+        var data_map_hex = data_map.map(function (d) {
+          if (d == "h3r".concat(h3_zoom)) {
+            return 'h3';
+          }
+
+          return 'total';
+        }); //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
+        //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_data_indexes);
+
+        var filters = _this5.getFilters(h3_indexes);
+
+        polygon = _this5.asPolygon(null, _this5.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex));
+        _this5.analytic_cluster = polygon;
+      });
+    },
+    getMapGeoJsonBounds: function getMapGeoJsonBounds() {
       var bounds = this.map.getBounds();
       var geojson_bounds = [[bounds._northEast.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._northEast.lat], [bounds._southWest.lng, bounds._southWest.lat], [bounds._northEast.lng, bounds._southWest.lat]];
-      var square_polygon = {
-        "type": "Polygon",
-        "coordinates": [geojson_bounds]
-      };
-      var polygon;
-      var square_feature;
-      var h3_zoom = this.calculateH3Zoom();
+      return geojson_bounds;
+    },
+    makeCubeQueryParameters: function makeCubeQueryParameters(layer, h3_zoom) {
       var url = this.base_url + layer.sh_map_has_layer_url;
       var metric = layer.sh_map_has_layer_metric_id;
       var calculation = layer.sh_map_has_layer_calculation;
@@ -59965,32 +61044,11 @@ leaflet_src.Icon.Default.mergeOptions({
         // Son los active_filters formateados
         dimension_ids: dimension_ids
       };
-      axios_default().post(url, body).then(function (response) {
-        var all_cubes = response.data.content;
-        var data = lodash_default().first(Object.values(all_cubes.data)) || {};
-        var data_map = lodash_default().first(Object.values(all_cubes.data_map)) || {};
-        var key_dimension = data_map.indexOf("h3r".concat(h3_zoom));
-        var h3_indexes_data = data.map(function (d) {
-          d[key_dimension] = d[key_dimension].toString(16).toUpperCase();
-          return d;
-        });
-        var h3_indexes = data.map(function (d) {
-          return d[key_dimension].toString(16).toUpperCase();
-        });
-        var data_map_hex = data_map.map(function (d) {
-          if (d == "h3r".concat(h3_zoom)) {
-            return 'h3';
-          }
-
-          return 'total';
-        }); //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-        //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_data_indexes);
-
-        var filters = _this4.getFilters(h3_indexes);
-
-        polygon = _this4.asPolygon(null, _this4.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex));
-        _this4.analytic_cluster = polygon;
-      });
+      var query_parameters = {
+        url: url,
+        body: body
+      };
+      return query_parameters;
     },
     formatFilter: function formatFilter() {
       if (lodash_default().isEmpty(this.active_filters) && lodash_default().isEmpty(this.bounds_filters)) {
@@ -60109,30 +61167,17 @@ leaflet_src.Icon.Default.mergeOptions({
 
       return h;
     },
-    onEachFeatureFunction: function onEachFeatureFunction() {
-      /*
-      if (!this.enableTooltip) {
-      return () => {};
-      }
-      return (feature, layer) => {
-      layer.bindTooltip(
-      "<div>code:" +
-      feature.properties.code +
-      "</div><div>nom: " +
-      feature.properties.nom +
-      "</div>",
-      { permanent: false, sticky: true }
-      );
-      };*/
-    },
     getPopupData: function getPopupData(marker, col) {
       return marker.data[col.id] === 'NULL' ? '-' : marker.data[col.id];
+    },
+    decimalToHexadecimal: function decimalToHexadecimal(decimal) {
+      return decimal.toString(16).toUpperCase();
     },
     setTileLayer: function setTileLayer() {
       this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     },
     getMarkerData: function getMarkerData(marker) {
-      var _this5 = this;
+      var _this6 = this;
 
       var url = "".concat(this.base_url, "/entity/data/").concat(this.entity_type_id, "/").concat(marker.id, "?page=1");
       axios_default().get(url).then(function (response) {
@@ -60140,7 +61185,7 @@ leaflet_src.Icon.Default.mergeOptions({
           var all_data = response.data.content;
           var marker_data = lodash_default().first(all_data.data) || {};
 
-          _this5.$set(_this5.markers_data, marker.id, marker_data);
+          _this6.$set(_this6.markers_data, marker.id, marker_data);
         } catch (error) {
           console.error(error);
         }
@@ -60151,27 +61196,18 @@ leaflet_src.Icon.Default.mergeOptions({
       });
     },
     getMapConfiguration: function getMapConfiguration() {
-      var _this6 = this;
+      var _this7 = this;
 
       //data
-      var url = "".concat(this.base_url).concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias"); //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
-
-      /*
-      let data = this.getDataFrom(url);
-              console.log('confMap-------------------------');
-              console.log(data);
-      return data;
-      },
-      async getDataFrom(url){*/
-
+      var url = "".concat(this.base_url).concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias");
       var all_data;
       var data;
       axios_default().get(url).then(function (response) {
         try {
           all_data = response.data.content;
           data = lodash_default().first(all_data.data);
-          _this6.col_lng = data.sh_map_column_longitude;
-          _this6.col_lat = data.sh_map_column_latitude;
+          _this7.col_lng = data.sh_map_column_longitude;
+          _this7.col_lat = data.sh_map_column_latitude;
         } catch (error) {
           console.error(error);
         }
@@ -60179,8 +61215,7 @@ leaflet_src.Icon.Default.mergeOptions({
         console.error(error);
       }).finally(function () {
         console.log('done data');
-      }); //        console.log(data);
-      // return data || undefined;
+      });
     },
     getClusterInfo: function getClusterInfo() {
       console.log('getClusterInfo');
@@ -60188,32 +61223,21 @@ leaflet_src.Icon.Default.mergeOptions({
       var bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
       var zoom = this.map.getZoom();
       var clusters_markers = this.index.getClusters(bbox, zoom);
-      this.clusters_markers = clusters_markers; //markers.clearLayers();
-      //markers.addData(clusters);
-
-      /*let circle = this.$refs.circlemarker;
-      if (this.$refs.circlemarker != undefined) {
-          console.log('circle--------');
-          console.log(circle[0].circleOptions);
-          console.log(circle[0].mapObject);
-          console.log(circle);
-          //this.markers.clearLayers();
-          console.log('circle');
-      }*/
+      this.clusters_markers = clusters_markers;
     },
     findBounds: function findBounds() {
-      var _this7 = this;
+      var _this8 = this;
 
       var h = this.map.getZoom();
       var bounds = this.map.getBounds();
       var all_col = this.info.columns;
       var bounds_filters = all_col.filter(function (columns) {
-        if (columns.id == _this7.col_lat || columns.id == _this7.col_lng) {
+        if (columns.id == _this8.col_lat || columns.id == _this8.col_lng) {
           return columns;
         }
       }).map(function (columns, key) {
-        var start = columns.id == _this7.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
-        var end = columns.id == _this7.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
+        var start = columns.id == _this8.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
+        var end = columns.id == _this8.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
         var bounds_filter = {
           "column": columns,
           "id": "external-filter-" + columns.id,
@@ -60227,6 +61251,34 @@ leaflet_src.Icon.Default.mergeOptions({
         return bounds_filter;
       });
       this.bounds_filters = bounds_filters;
+    },
+    //Heatmapjs
+    //
+    getRandomInt: function getRandomInt(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min) + min);
+    },
+    //#Convierte un indice h3 en lng lat
+    h3ToLngLat: function h3ToLngLat(h3_indexes, key_dimension, key_count) {
+      var data = [];
+      var point;
+      var index;
+      var h3_index;
+      var properties;
+
+      for (var i in h3_indexes) {
+        index = h3_indexes[i][key_dimension];
+        h3_index = this.h3.h3ToGeo(index);
+        point = {
+          lat: h3_index[0],
+          lng: h3_index[1],
+          count: h3_indexes[i][key_count]
+        };
+        data.push(point);
+      }
+
+      return data;
     },
     //----------------------------------------------------------------------------------------------
     // SCRIPT DE MAURICIO
@@ -60403,32 +61455,31 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=128ec740&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=3d4f255d&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=128ec740&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=3d4f255d&prod&scoped=true&lang=css&
 
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
 
 // IMPORTANT: Do NOT use ES2015 features in this file (except for modules).
 // This module is a runtime utility for cleaner component module output and will
 // be included in the final webpack user bundle.
 
-function componentNormalizer_normalizeComponent (
+function componentNormalizer_normalizeComponent(
   scriptExports,
   render,
   staticRenderFns,
   functionalTemplate,
   injectStyles,
   scopeId,
-  moduleIdentifier, /* server only */
+  moduleIdentifier /* server only */,
   shadowMode /* vue-cli only */
 ) {
   // Vue.extend constructor export interop
-  var options = typeof scriptExports === 'function'
-    ? scriptExports.options
-    : scriptExports
+  var options =
+    typeof scriptExports === 'function' ? scriptExports.options : scriptExports
 
   // render functions
   if (render) {
@@ -60448,7 +61499,8 @@ function componentNormalizer_normalizeComponent (
   }
 
   var hook
-  if (moduleIdentifier) { // server build
+  if (moduleIdentifier) {
+    // server build
     hook = function (context) {
       // 2.3 injection
       context =
@@ -60474,11 +61526,11 @@ function componentNormalizer_normalizeComponent (
   } else if (injectStyles) {
     hook = shadowMode
       ? function () {
-        injectStyles.call(
-          this,
-          (options.functional ? this.parent : this).$root.$options.shadowRoot
-        )
-      }
+          injectStyles.call(
+            this,
+            (options.functional ? this.parent : this).$root.$options.shadowRoot
+          )
+        }
       : injectStyles
   }
 
@@ -60489,16 +61541,14 @@ function componentNormalizer_normalizeComponent (
       options._injectStyles = hook
       // register for functional component in vue file
       var originalRender = options.render
-      options.render = function renderWithStyleInjection (h, context) {
+      options.render = function renderWithStyleInjection(h, context) {
         hook.call(context)
         return originalRender(h, context)
       }
     } else {
       // inject component registration as beforeCreate hook
       var existing = options.beforeCreate
-      options.beforeCreate = existing
-        ? [].concat(existing, hook)
-        : [hook]
+      options.beforeCreate = existing ? [].concat(existing, hook) : [hook]
     }
   }
 
@@ -60519,17 +61569,17 @@ function componentNormalizer_normalizeComponent (
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_128ec740_scoped_true_render,
-  SheetsMapvue_type_template_id_128ec740_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_3d4f255d_scoped_true_render,
+  SheetsMapvue_type_template_id_3d4f255d_scoped_true_staticRenderFns,
   false,
   null,
-  "128ec740",
+  "3d4f255d",
   null
   
 )
 
 /* harmony default export */ var SheetsMap = (component.exports);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=1a5dda5c&scoped=true&
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=1a5dda5c&scoped=true&
 var SheetsMapToolsvue_type_template_id_1a5dda5c_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',[_c('div',[_c('b-dropdown',{directives:[{name:"b-tooltip",rawName:"v-b-tooltip.hover.bottom",modifiers:{"hover":true,"bottom":true}}],attrs:{"id":"dropdown_base_layers","variant":"btn-outline-second","dropleft":"","title":"Capa Base"},scopedSlots:_vm._u([{key:"button-content",fn:function(){return [_c('svg',{staticClass:"bi bi-layers-half",attrs:{"xmlns":"http://www.w3.org/2000/svg","width":"16","height":"16","fill":"currentColor","viewBox":"0 0 16 16"}},[_c('path',{attrs:{"d":"M8.235 1.559a.5.5 0 0 0-.47 0l-7.5 4a.5.5 0 0 0 0 .882L3.188 8 .264 9.559a.5.5 0 0 0 0 .882l7.5 4a.5.5 0 0 0 .47 0l7.5-4a.5.5 0 0 0 0-.882L12.813 8l2.922-1.559a.5.5 0 0 0 0-.882l-7.5-4zM8 9.433 1.562 6 8 2.567 14.438 6 8 9.433z"}})])]},proxy:true}])},_vm._l((_vm.base_layers),function(option){return _c('b-dropdown-item',{key:option.key,class:{ 
             'layer-active': option.active
           },attrs:{"value":option.value},on:{"click":function($event){return _vm.getOption(option)}}},[_vm._v(" "+_vm._s(option.value)+" ")])}),1)],1)]),_c('div',[_c('div',[_c('b-dropdown',{directives:[{name:"b-tooltip",rawName:"v-b-tooltip.hover.bottom",modifiers:{"hover":true,"bottom":true}}],attrs:{"id":"dropdown_analytical_layer","dropleft":"","variant":"btn-outline-second","title":"Capa Analítica"},scopedSlots:_vm._u([{key:"button-content",fn:function(){return [_c('svg',{staticClass:"bi bi-bezier",attrs:{"xmlns":"http://www.w3.org/2000/svg","width":"16","height":"16","fill":"currentColor","viewBox":"0 0 16 16"}},[_c('path',{attrs:{"fill-rule":"evenodd","d":"M0 10.5A1.5 1.5 0 0 1 1.5 9h1A1.5 1.5 0 0 1 4 10.5v1A1.5 1.5 0 0 1 2.5 13h-1A1.5 1.5 0 0 1 0 11.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10.5.5A1.5 1.5 0 0 1 13.5 9h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zM6 4.5A1.5 1.5 0 0 1 7.5 3h1A1.5 1.5 0 0 1 10 4.5v1A1.5 1.5 0 0 1 8.5 7h-1A1.5 1.5 0 0 1 6 5.5v-1zM7.5 4a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"}}),_c('path',{attrs:{"d":"M6 4.5H1.866a1 1 0 1 0 0 1h2.668A6.517 6.517 0 0 0 1.814 9H2.5c.123 0 .244.015.358.043a5.517 5.517 0 0 1 3.185-3.185A1.503 1.503 0 0 1 6 5.5v-1zm3.957 1.358A1.5 1.5 0 0 0 10 5.5v-1h4.134a1 1 0 1 1 0 1h-2.668a6.517 6.517 0 0 1 2.72 3.5H13.5c-.123 0-.243.015-.358.043a5.517 5.517 0 0 0-3.185-3.185z"}})])]},proxy:true}])},_vm._l((_vm.analytical_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{ 
@@ -60541,7 +61591,7 @@ var SheetsMapToolsvue_type_template_id_1a5dda5c_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/typeof.js
-var esm_typeof = __webpack_require__(7336);
+var esm_typeof = __webpack_require__(8532);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptor.js
 var es_object_get_own_property_descriptor = __webpack_require__(5003);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptors.js
@@ -63327,7 +64377,7 @@ popper_Popper.placements = placements;
 popper_Popper.Defaults = Defaults;
 /* harmony default export */ var popper = (popper_Popper);
 // EXTERNAL MODULE: ./node_modules/portal-vue/dist/portal-vue.common.js
-var portal_vue_common = __webpack_require__(8699);
+var portal_vue_common = __webpack_require__(1240);
 ;// CONCATENATED MODULE: ./node_modules/bootstrap-vue/dist/bootstrap-vue.esm.js
 /*!
  * BootstrapVue 2.22.0
@@ -68578,7 +69628,7 @@ var BootstrapVue=/*#__PURE__*/{install:install,NAME:NAME};// --- Named exports f
 ;// CONCATENATED MODULE: ./node_modules/bootstrap-vue/dist/bootstrap-vue.css
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
 
 
 
@@ -68883,10 +69933,10 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(bootstrap_vue_esm);
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=1a5dda5c&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=1a5dda5c&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=1a5dda5c&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=1a5dda5c&prod&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue
 
@@ -68909,7 +69959,7 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
 )
 
 /* harmony default export */ var SheetsMapTools = (SheetsMapTools_component.exports);
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
 
 
 
@@ -69259,10 +70309,10 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
 });
 ;// CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
  /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=04e7838a&prod&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&lang=css&
+;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=04e7838a&prod&lang=css&
 
 ;// CONCATENATED MODULE: ./src/App.vue
 

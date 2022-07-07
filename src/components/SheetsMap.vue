@@ -91,6 +91,9 @@ import { Icon } from 'leaflet';
 import axios from 'axios';
 import {h3ToGeo} from "h3-js";
 import Supercluster from 'supercluster';
+import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
+import h337 from'heatmap.js/plugins/leaflet-heatmap'
+
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -171,24 +174,6 @@ export default {
                 || !this.col_lng
             ) return [];
              return [];
-            // let markers = this.data.data.map( d =>{
-                
-            //     let lat;
-            //     let lon;
-
-            //     try {
-            //         lat = parseFloat(d[this.col_lat].replace(/,/, '.'));
-            //         lon = parseFloat(d[this.col_lng].replace(/,/, '.'));
-            //     } catch (error) {
-            //         console.log();
-            //         console.error(error);
-            //     }
-
-            //     if(!lat || !lon) return;
-            //     return [lat, lon];
-            // })
-            // .filter(d => d);      
-            // return markers;
         },
         visible_columns(){
             if(!this.info.columns) return [];
@@ -285,6 +270,22 @@ export default {
                 }, {permanent: true, direction: "center", className: "my-labels"});
             }
           };
+        },
+        heatmapLayer() {
+
+            let config = {
+              'radius': 100,
+              'maxOpacity': 0.8,
+              'scaleRadius': false,
+              'useLocalExtrema': true,
+              latField:'lat',
+              lngField:'lng',
+              valueField:'count',
+            };
+
+            let heatmapLayer = new HeatmapOverlay(config);
+
+            return heatmapLayer;
         },
         styleFunction() {
             return (feature) => {
@@ -439,7 +440,7 @@ export default {
 
                 }
                 case 'analytic_countour_map' : {
-                    console.log('Intento de activar '+layer.sh_map_has_layer_name+' sin exito');
+                    this.getAnalyticalCountourMap(this.layers[layer.key]);
                     break;
 
                 }
@@ -480,7 +481,21 @@ export default {
 
                 }
                 case 'analytic_countour_map' : {
-                    this.analytic_countour_map = undefined;
+                    if (this.analytic_countour_map == undefined) {
+                        console.log('Intento de desactivar '+this.layers[layer.key].sh_map_has_layer_code+' que ya estaba desactivada');
+                    }else{
+
+                        this.analytic_countour_map = undefined;
+                        this.heatmapLayer.addTo(this.map);
+                        let contour_data = {
+                          max: 4000,
+                          data: []
+                        };
+
+                        this.heatmapLayer.setData(contour_data);
+                    }
+
+
                     break;
 
                 }
@@ -507,35 +522,63 @@ export default {
             }
 
         },      
-        getAnalyticalClusterGeoJson(layer){
-            let bounds         = this.map.getBounds();
-            let geojson_bounds = [
-                [bounds._northEast.lng, bounds._northEast.lat],
-                [bounds._southWest.lng, bounds._northEast.lat],
-                [bounds._southWest.lng, bounds._southWest.lat],
-                [bounds._northEast.lng, bounds._southWest.lat]
-            ];
+        getAnalyticalCountourMap(layer){
+            let data;
+            let h3_zoom      = this.calculateH3Zoom();
+            let query_params = this.makeCubeQueryParameters(layer,h3_zoom);
+            let url          = query_params.url;
+            let body         = query_params.body;
 
+            axios.post(url, body).then(response => {
+                let all_cubes = response.data.content;
+                let data      = _.first(Object.values(all_cubes.data))     || [];
+                let data_map  = _.first(Object.values(all_cubes.data_map)) || [];
+
+                if (Array.isArray(data) && data.length>0) {
+
+                    let data_map_hex = data_map.map(d => {
+                        if (d == "h3r".concat(h3_zoom)) {
+                            return 'h3';
+                        }
+                        return 'total';
+                    });
+
+                    let key_count        = data_map_hex.indexOf("total");
+                    let key_dimension    = data_map_hex.indexOf("h3");
+                    let h3_indexes_data  = data.map(d => {
+                        d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
+                        return d;
+                    });
+                    
+                    let data_lat_lng = this.h3ToLngLat(h3_indexes_data,key_dimension,key_count);
+                    let contour_data = {
+                      max: 4000,
+                      data: data_lat_lng
+                    };
+
+                    this.heatmapLayer.addTo(this.map);
+                    this.heatmapLayer.setData(contour_data);
+                    this.analytic_countour_map = true;
+
+                }else{
+                    console.log('Sin datos disponibles');
+                }
+            });
+
+        },      
+        getAnalyticalClusterGeoJson(layer){
+            /*
+            let geojson_bounds = this.getMapGeoJsonBounds();
             let square_polygon = {
                     "type": "Polygon",
                     "coordinates": [geojson_bounds]
                   };
-
+            */
             let polygon;
-            let square_feature;
             let h3_zoom       = this.calculateH3Zoom();
-            let url           = this.base_url+layer.sh_map_has_layer_url;
-            let metric        = layer.sh_map_has_layer_metric_id;
-            let calculation   = layer.sh_map_has_layer_calculation;
-            let filters       = this.formatFilter();
-            let dimension_ids = ["h3r".concat(h3_zoom)];
-
-            let body          = {
-                calculation   : calculation,
-                metric_id     : metric, // Viene de la configuracion de la capa (mapa tiene capas)
-                filters       : filters, // Son los active_filters formateados
-                dimension_ids : dimension_ids,
-            };
+            let query_params  = this.makeCubeQueryParameters(layer,h3_zoom);
+            let url           = query_params.url;
+            let body          = query_params.body;
             
             axios.post(url, body).then(response => {
                 let all_cubes = response.data.content;
@@ -544,11 +587,11 @@ export default {
 
                 let key_dimension    = data_map.indexOf("h3r".concat(h3_zoom));
                 let h3_indexes_data  = data.map(d => {
-                    d[key_dimension] =  d[key_dimension].toString(16).toUpperCase();
+                    d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
                     return d;
                 });
                 let h3_indexes = data.map(d => {
-                    return d[key_dimension].toString(16).toUpperCase();
+                    return this.decimalToHexadecimal(d[key_dimension]);
                 });
 
                 let data_map_hex = data_map.map(d => {
@@ -566,6 +609,38 @@ export default {
                 this.analytic_cluster = polygon;
             });
 
+        },
+        getMapGeoJsonBounds(){
+            let bounds         = this.map.getBounds();
+            let geojson_bounds = [
+                [bounds._northEast.lng, bounds._northEast.lat],
+                [bounds._southWest.lng, bounds._northEast.lat],
+                [bounds._southWest.lng, bounds._southWest.lat],
+                [bounds._northEast.lng, bounds._southWest.lat]
+            ];
+
+            return geojson_bounds;
+        },
+        makeCubeQueryParameters(layer,h3_zoom){
+            let url           = this.base_url+layer.sh_map_has_layer_url;
+            let metric        = layer.sh_map_has_layer_metric_id;
+            let calculation   = layer.sh_map_has_layer_calculation;
+            let filters       = this.formatFilter();
+            let dimension_ids = ["h3r".concat(h3_zoom)];
+
+            let body          = {
+                calculation   : calculation,
+                metric_id     : metric, // Viene de la configuracion de la capa (mapa tiene capas)
+                filters       : filters, // Son los active_filters formateados
+                dimension_ids : dimension_ids,
+            };
+
+            let query_parameters = {
+                url  : url, 
+                body : body
+            };
+
+            return query_parameters;
         },
         formatFilter(){
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
@@ -662,24 +737,11 @@ export default {
             }
             return h;
         },
-        onEachFeatureFunction() {/*
-            if (!this.enableTooltip) {
-                return () => {};
-            }
-            return (feature, layer) => {
-                layer.bindTooltip(
-                  "<div>code:" +
-                    feature.properties.code +
-                    "</div><div>nom: " +
-                    feature.properties.nom +
-                    "</div>",
-                  { permanent: false, sticky: true }
-                );
-            };*/
-
-        },
-            getPopupData(marker,col){
+        getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
+        },
+        decimalToHexadecimal(decimal){
+            return decimal.toString(16).toUpperCase();
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -708,14 +770,7 @@ export default {
         getMapConfiguration(){
             //data
             const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
-            //let url_info = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1`;
-            /*
-            let data = this.getDataFrom(url);
-                    console.log('confMap-------------------------');
-                    console.log(data);
-            return data;
-            },
-            async getDataFrom(url){*/
+
             let all_data;
             let data;
             axios.get(url)
@@ -735,8 +790,7 @@ export default {
             .finally(() => {
                 console.log('done data');
             });
-            //        console.log(data);
-           // return data || undefined;
+
         },
         getClusterInfo(){
             
@@ -749,18 +803,6 @@ export default {
             let clusters_markers = this.index.getClusters(bbox, zoom);
             
             this.clusters_markers = clusters_markers;
-
-            //markers.clearLayers();
-            //markers.addData(clusters);
-            /*let circle = this.$refs.circlemarker;
-            if (this.$refs.circlemarker != undefined) {
-                console.log('circle--------');
-                console.log(circle[0].circleOptions);
-                console.log(circle[0].mapObject);
-                console.log(circle);
-                //this.markers.clearLayers();
-                console.log('circle');
-            }*/
             
         },
         findBounds(){
@@ -789,6 +831,34 @@ export default {
             });
             this.bounds_filters = bounds_filters;
         },       
+        //Heatmapjs
+        //
+        getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min) + min);
+        },
+
+        //#Convierte un indice h3 en lng lat
+        h3ToLngLat(h3_indexes,key_dimension,key_count){
+            let data = [];
+            let point;
+            let index;
+            let h3_index;
+            let properties;
+            for(let i in h3_indexes){
+                index = h3_indexes[i][key_dimension];
+                h3_index = this.h3.h3ToGeo(index);
+                point    = {
+                    lat   : h3_index[0],
+                    lng   : h3_index[1],
+                    count : h3_indexes[i][key_count]
+                }
+                data.push(point);
+            }
+
+            return data;
+        },
         //----------------------------------------------------------------------------------------------
         // SCRIPT DE MAURICIO
         //----------------------------------------------------------------------------------------------
