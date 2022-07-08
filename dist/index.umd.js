@@ -3443,7 +3443,7 @@ module.exports = false;
 
 /***/ }),
 
-/***/ 7850:
+/***/ 6772:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 var isObject = __webpack_require__(111);
@@ -3963,7 +3963,7 @@ module.exports = function (argument, $default) {
 /***/ 3929:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
-var isRegExp = __webpack_require__(7850);
+var isRegExp = __webpack_require__(6772);
 
 var $TypeError = TypeError;
 
@@ -8390,7 +8390,7 @@ var inheritIfRequired = __webpack_require__(9587);
 var createNonEnumerableProperty = __webpack_require__(8880);
 var getOwnPropertyNames = (__webpack_require__(8006).f);
 var isPrototypeOf = __webpack_require__(7976);
-var isRegExp = __webpack_require__(7850);
+var isRegExp = __webpack_require__(6772);
 var toString = __webpack_require__(1340);
 var getRegExpFlags = __webpack_require__(4706);
 var stickyHelpers = __webpack_require__(2999);
@@ -9275,7 +9275,7 @@ var apply = __webpack_require__(2104);
 var call = __webpack_require__(6916);
 var uncurryThis = __webpack_require__(1702);
 var fixRegExpWellKnownSymbolLogic = __webpack_require__(7007);
-var isRegExp = __webpack_require__(7850);
+var isRegExp = __webpack_require__(6772);
 var anObject = __webpack_require__(9670);
 var requireObjectCoercible = __webpack_require__(4488);
 var speciesConstructor = __webpack_require__(6707);
@@ -55031,9 +55031,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=3d4f255d&scoped=true&
-var SheetsMapvue_type_template_id_3d4f255d_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster,"options-style":_vm.styleFunction,"options":_vm.options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
-var SheetsMapvue_type_template_id_3d4f255d_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=1a5d6a1a&scoped=true&
+var SheetsMapvue_type_template_id_1a5d6a1a_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{attrs:{"options":{minWidth: 300}}},[(marker.has_data)?_c('div',_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key},[_c('span',[_c('b',[_vm._v(_vm._s(col.name))]),_vm._v(" : "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.styleFunction,"options":_vm.options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_1a5d6a1a_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -55046,6 +55046,10 @@ var es_string_replace = __webpack_require__(5306);
 var es_array_includes = __webpack_require__(6699);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.includes.js
 var es_string_includes = __webpack_require__(2023);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.join.js
+var es_array_join = __webpack_require__(9600);
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.freeze.js
+var es_object_freeze = __webpack_require__(3371);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.search.js
 var es_string_search = __webpack_require__(4765);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
@@ -55081,8 +55085,6 @@ var web_dom_exception_constructor = __webpack_require__(7714);
 var web_dom_exception_stack = __webpack_require__(2801);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-exception.to-string-tag.js
 var web_dom_exception_to_string_tag = __webpack_require__(1174);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.join.js
-var es_array_join = __webpack_require__(9600);
 // EXTERNAL MODULE: ./node_modules/leaflet/dist/leaflet-src.js
 var leaflet_src = __webpack_require__(3814);
 ;// CONCATENATED MODULE: ./node_modules/vue2-leaflet/dist/components/LMap.js
@@ -60399,6 +60401,8 @@ var leaflet_heatmap_default = /*#__PURE__*/__webpack_require__.n(leaflet_heatmap
 
 
 
+
+
 //
 //
 //
@@ -60658,7 +60662,7 @@ leaflet_src.Icon.Default.mergeOptions({
       return {
         onEachFeature: function onEachFeature(feature, layer) {
           layer.bindTooltip(function (layer) {
-            return "".concat(layer.feature.properties.total);
+            return "".concat(layer.feature.properties.total.toLocaleString('es-ES'));
           }, {
             permanent: true,
             direction: "center",
@@ -60841,10 +60845,15 @@ leaflet_src.Icon.Default.mergeOptions({
       });
     },
     activeLayers: function activeLayers(layer) {
+      var geojson_bounds = this.getMapGeoJsonBounds();
+
       switch (layer.sh_map_has_layer_code) {
         case 'analytic_cluster':
           {
-            if (lodash_default().isEmpty(this.analytic_cluster)) {
+            var if_empty = lodash_default().isEmpty(this.analytic_cluster) ? true : false;
+            var if_diferent_bounds = !lodash_default().isEmpty(this.analytic_cluster) && this.analytic_cluster.bounds.join() != geojson_bounds.join() ? true : false;
+
+            if (if_empty || if_diferent_bounds) {
               this.getAnalyticalClusterGeoJson(layer);
             }
 
@@ -60853,7 +60862,14 @@ leaflet_src.Icon.Default.mergeOptions({
 
         case 'analytic_countour_map':
           {
-            this.getAnalyticalCountourMap(this.layers[layer.key]);
+            var _if_empty = lodash_default().isEmpty(this.analytic_countour_map) ? true : false;
+
+            var _if_diferent_bounds = !lodash_default().isEmpty(this.analytic_countour_map) && this.analytic_countour_map.bounds.join() != geojson_bounds.join() ? true : false;
+
+            if (_if_empty || _if_diferent_bounds) {
+              this.getAnalyticalCountourMap(layer);
+            }
+
             break;
           }
 
@@ -60898,9 +60914,7 @@ leaflet_src.Icon.Default.mergeOptions({
 
         case 'analytic_countour_map':
           {
-            if (this.analytic_countour_map == undefined) {
-              console.log('Intento de desactivar ' + this.layers[layer.key].sh_map_has_layer_code + ' que ya estaba desactivada');
-            } else {
+            if (!lodash_default().isEmpty(this.analytic_countour_map)) {
               this.analytic_countour_map = undefined;
               this.heatmapLayer.addTo(this.map);
               var contour_data = {
@@ -60933,7 +60947,7 @@ leaflet_src.Icon.Default.mergeOptions({
 
         default:
           {
-            console.log('Intento de desactivar ' + layer.sh_map_has_layer_code + ' sin exito. ' + '(' + layer.sh_map_has_layer_name + ')');
+            //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
             break;
           }
       }
@@ -60946,6 +60960,7 @@ leaflet_src.Icon.Default.mergeOptions({
       var query_params = this.makeCubeQueryParameters(layer, h3_zoom);
       var url = query_params.url;
       var body = query_params.body;
+      var geojson_bounds = this.getMapGeoJsonBounds();
       axios_default().post(url, body).then(function (response) {
         var all_cubes = response.data.content;
         var data = lodash_default().first(Object.values(all_cubes.data)) || [];
@@ -60977,7 +60992,9 @@ leaflet_src.Icon.Default.mergeOptions({
 
           _this4.heatmapLayer.setData(contour_data);
 
-          _this4.analytic_countour_map = true;
+          _this4.analytic_countour_map = {
+            bounds: Object.freeze(geojson_bounds)
+          };
         } else {
           console.log('Sin datos disponibles');
         }
@@ -60986,14 +61003,8 @@ leaflet_src.Icon.Default.mergeOptions({
     getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson(layer) {
       var _this5 = this;
 
-      /*
-      let geojson_bounds = this.getMapGeoJsonBounds();
-      let square_polygon = {
-              "type": "Polygon",
-              "coordinates": [geojson_bounds]
-            };
-      */
       var polygon;
+      var geojson_bounds = this.getMapGeoJsonBounds();
       var h3_zoom = this.calculateH3Zoom();
       var query_params = this.makeCubeQueryParameters(layer, h3_zoom);
       var url = query_params.url;
@@ -61016,13 +61027,15 @@ leaflet_src.Icon.Default.mergeOptions({
           }
 
           return 'total';
-        }); //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-        //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_data_indexes);
+        });
 
         var filters = _this5.getFilters(h3_indexes);
 
         polygon = _this5.asPolygon(null, _this5.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex));
-        _this5.analytic_cluster = polygon;
+        _this5.analytic_cluster = {
+          geo_json: polygon,
+          bounds: Object.freeze(geojson_bounds)
+        };
       });
     },
     getMapGeoJsonBounds: function getMapGeoJsonBounds() {
@@ -61455,10 +61468,10 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=3d4f255d&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52[0].rules[0].use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52[0].rules[0].use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=1a5d6a1a&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=3d4f255d&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=1a5d6a1a&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -61571,11 +61584,11 @@ function componentNormalizer_normalizeComponent (
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_3d4f255d_scoped_true_render,
-  SheetsMapvue_type_template_id_3d4f255d_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_1a5d6a1a_scoped_true_render,
+  SheetsMapvue_type_template_id_1a5d6a1a_scoped_true_staticRenderFns,
   false,
   null,
-  "3d4f255d",
+  "1a5d6a1a",
   null
   
 )
