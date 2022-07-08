@@ -62,7 +62,7 @@
                     </l-circle-marker>
                 </l-layer-group> 
                 <!-- Analytic layers -->
-                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster" :options-style="styleFunction" :options="options"></l-geo-json>
+                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="styleFunction" :options="options"></l-geo-json>
                 <!-- Operative layers -->
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -266,7 +266,7 @@ export default {
           return {
             onEachFeature: function(feature, layer) {
                 layer.bindTooltip(function (layer) {
-                    return `${layer.feature.properties.total}`; 
+                    return `${layer.feature.properties.total.toLocaleString('es-ES')}`; 
                 }, {permanent: true, direction: "center", className: "my-labels"});
             }
           };
@@ -431,16 +431,27 @@ export default {
             
         }, 
         activeLayers(layer){
+
+            let geojson_bounds = this.getMapGeoJsonBounds();
+
             switch(layer.sh_map_has_layer_code){
                 case 'analytic_cluster' : {
-                    if(_.isEmpty(this.analytic_cluster)){
+                    let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
+                    let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
+
+                    if(if_empty || if_diferent_bounds){
                         this.getAnalyticalClusterGeoJson(layer);
                     }
                     break;
 
                 }
                 case 'analytic_countour_map' : {
-                    this.getAnalyticalCountourMap(this.layers[layer.key]);
+                    let if_empty           = (_.isEmpty(this.analytic_countour_map)) ? true : false;
+                    let if_diferent_bounds = (!_.isEmpty(this.analytic_countour_map) && (this.analytic_countour_map.bounds).join() != (geojson_bounds).join()) ? true : false;
+
+                    if(if_empty || if_diferent_bounds){
+                        this.getAnalyticalCountourMap(layer);
+                    }
                     break;
 
                 }
@@ -481,9 +492,8 @@ export default {
 
                 }
                 case 'analytic_countour_map' : {
-                    if (this.analytic_countour_map == undefined) {
-                        console.log('Intento de desactivar '+this.layers[layer.key].sh_map_has_layer_code+' que ya estaba desactivada');
-                    }else{
+
+                    if (!_.isEmpty(this.analytic_countour_map)) {
 
                         this.analytic_countour_map = undefined;
                         this.heatmapLayer.addTo(this.map);
@@ -515,7 +525,7 @@ export default {
 
                 }
                 default:{
-                    console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
+                    //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
                 }
 
@@ -524,10 +534,11 @@ export default {
         },      
         getAnalyticalCountourMap(layer){
             let data;
-            let h3_zoom      = this.calculateH3Zoom();
-            let query_params = this.makeCubeQueryParameters(layer,h3_zoom);
-            let url          = query_params.url;
-            let body         = query_params.body;
+            let h3_zoom        = this.calculateH3Zoom();
+            let query_params   = this.makeCubeQueryParameters(layer,h3_zoom);
+            let url            = query_params.url;
+            let body           = query_params.body;
+            let geojson_bounds = this.getMapGeoJsonBounds();
 
             axios.post(url, body).then(response => {
                 let all_cubes = response.data.content;
@@ -558,7 +569,7 @@ export default {
 
                     this.heatmapLayer.addTo(this.map);
                     this.heatmapLayer.setData(contour_data);
-                    this.analytic_countour_map = true;
+                    this.analytic_countour_map = {bounds : Object.freeze(geojson_bounds)};
 
                 }else{
                     console.log('Sin datos disponibles');
@@ -567,14 +578,8 @@ export default {
 
         },      
         getAnalyticalClusterGeoJson(layer){
-            /*
+            let polygon; 
             let geojson_bounds = this.getMapGeoJsonBounds();
-            let square_polygon = {
-                    "type": "Polygon",
-                    "coordinates": [geojson_bounds]
-                  };
-            */
-            let polygon;
             let h3_zoom       = this.calculateH3Zoom();
             let query_params  = this.makeCubeQueryParameters(layer,h3_zoom);
             let url           = query_params.url;
@@ -602,11 +607,9 @@ export default {
                 });
 
 
-                //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_zoom);
-                //var h3_indexes = this.polyfillNeighbors(square_polygon['coordinates'], h3_data_indexes);
                 var filters    = this.getFilters(h3_indexes);
                 polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
-                this.analytic_cluster = polygon;
+                this.analytic_cluster = {geo_json : polygon, bounds : Object.freeze(geojson_bounds)};
             });
 
         },
