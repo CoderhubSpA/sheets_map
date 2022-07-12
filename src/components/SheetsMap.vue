@@ -159,7 +159,7 @@ export default {
             /*Layers*/
             clusters_markers      : [],
             bounds_filters        : [],
-            num_zoom              : 5,
+            num_zoom              : false,
             bounds                : [],
             index                 : [],
             h3                    : require("h3-js"),
@@ -340,7 +340,7 @@ export default {
                     weight: 2,
                     color: "#ECEFF1",
                     opacity: 0.5,
-                    fillOpacity: 1,
+                    fillOpacity: 0.5,
                     fillColor: color,
                 };
             };
@@ -530,7 +530,7 @@ export default {
         },      
         getAnalyticalCountourMap(layer){
             let data;
-            let h3_zoom        = this.map.getZoom();
+            let h3_zoom        = this.calculateH3ZoomContour();
             let query_params   = this.makeCubeQueryParameters(layer,h3_zoom);
             let url            = query_params.url;
             let body           = query_params.body;
@@ -552,10 +552,11 @@ export default {
 
                     let key_count        = data_map_hex.indexOf("total");
                     let key_dimension    = data_map_hex.indexOf("h3");
+                    let h3_indexes_data  = data;/*
                     let h3_indexes_data  = data.map(d => {
                         d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
                         return d;
-                    });
+                    });*/
                     
                     let data_lat_lng = this.h3ToLngLat(h3_indexes_data,key_dimension,key_count);
                     let contour_data = {
@@ -570,6 +571,7 @@ export default {
                 }else{
                     this.makeEmptyHeatmap();
                 }
+                console.log('Mapa de calor completado');
             });
 
         },      
@@ -587,12 +589,19 @@ export default {
                 let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
 
                 let key_dimension    = data_map.indexOf("h3r".concat(h3_zoom));
+                let h3_indexes_data  = data; 
+                /*
+                console.log('a');
                 let h3_indexes_data  = data.map(d => {
                     d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
                     return d;
                 });
+                console.log('b');
                 let h3_indexes = data.map(d => {
                     return this.decimalToHexadecimal(d[key_dimension]);
+                });*/
+                let h3_indexes = data.map(d => {
+                    return d[key_dimension];
                 });
 
                 let data_map_hex = data_map.map(d => {
@@ -606,6 +615,7 @@ export default {
                 var filters    = this.getFilters(h3_indexes);
                 polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
                 this.analytic_cluster = {geo_json : polygon, bounds : Object.freeze(geojson_bounds)};
+                console.log('Cluster Hexagonal completado');
             });
 
         },
@@ -690,7 +700,7 @@ export default {
                 case 3:{
                     h = 1;
                     break;
-                }/*
+                }
                 case 4:{
                     h = 2;
                     break;
@@ -739,7 +749,11 @@ export default {
                 case 18:{
                     h = 12;
                     break;
-                }*/
+                }
+                default:{
+                    h = 1;
+                    break;
+                }/*
                 case 15:
                 case 16:
                 case 17:
@@ -750,16 +764,49 @@ export default {
                 default:{
                     h = zoom - 3;
                     break;
+                }*/
+                if (this.num_zoom) {
+                    if (zoom>15) {
+                        zoom =15;
+                    }
+                    h = zoom;
+                }
+            }
+            return h;
+        },
+        calculateH3ZoomContour(){
+
+            var zoom = this.map.getZoom();
+            var h;
+            switch (zoom) {
+                case 1:
+                case 2:
+                case 3:{
+                    h = 1;
+                    break;
+                }
+                case 16:
+                case 17:
+                case 18:{
+                    h = 15;
+                    break;
+                }
+                default:{
+                    h = zoom;
+                    break;
                 }
             }
             return h;
         },
         getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
-        },
+        },/*
         decimalToHexadecimal(decimal){
+            return decimal;
+            console.log(typeof decimal);
+            console.log(decimal);
             return decimal.toString(16).toUpperCase();
-        },
+        },*/
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
