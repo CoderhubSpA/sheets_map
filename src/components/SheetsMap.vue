@@ -159,6 +159,7 @@ export default {
             /*Layers*/
             clusters_markers      : [],
             bounds_filters        : [],
+            num_zoom              : 5,
             bounds                : [],
             index                 : [],
             h3                    : require("h3-js"),
@@ -496,13 +497,8 @@ export default {
                     if (!_.isEmpty(this.analytic_countour_map)) {
 
                         this.analytic_countour_map = undefined;
-                        this.heatmapLayer.addTo(this.map);
-                        let contour_data = {
-                          max: 4000,
-                          data: []
-                        };
-
-                        this.heatmapLayer.setData(contour_data);
+                        
+                        this.makeEmptyHeatmap();
                     }
 
 
@@ -534,7 +530,7 @@ export default {
         },      
         getAnalyticalCountourMap(layer){
             let data;
-            let h3_zoom        = this.calculateH3Zoom();
+            let h3_zoom        = this.map.getZoom();
             let query_params   = this.makeCubeQueryParameters(layer,h3_zoom);
             let url            = query_params.url;
             let body           = query_params.body;
@@ -572,7 +568,7 @@ export default {
                     this.analytic_countour_map = {bounds : Object.freeze(geojson_bounds)};
 
                 }else{
-                    console.log('Sin datos disponibles');
+                    this.makeEmptyHeatmap();
                 }
             });
 
@@ -645,6 +641,18 @@ export default {
 
             return query_parameters;
         },
+        makeEmptyHeatmap(){
+
+            this.heatmapLayer.addTo(this.map);
+            let contour_data = {
+              max: 4000,
+              data: []
+            };
+
+            this.heatmapLayer.setData(contour_data);
+            console.log(this.heatmapLayer);
+
+        },
         formatFilter(){
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
@@ -682,7 +690,7 @@ export default {
                 case 3:{
                     h = 1;
                     break;
-                }
+                }/*
                 case 4:{
                     h = 2;
                     break;
@@ -731,10 +739,16 @@ export default {
                 case 18:{
                     h = 12;
                     break;
+                }*/
+                case 15:
+                case 16:
+                case 17:
+                case 18:{
+                    h = zoom - this.num_zoom;
+                    break;
                 }
-
                 default:{
-                    h = 1;
+                    h = zoom - 3;
                     break;
                 }
             }
