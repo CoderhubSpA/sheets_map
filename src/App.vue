@@ -32,8 +32,8 @@
           :active_filters="null"
           :data="data"
           :info="info"
-          :data_pivots="data_pivots"
-          :all_info="all_info"
+          :layers="layers"
+          :custom_styles="custom_styles"
         />
       </div>
     </div>
@@ -61,6 +61,11 @@ export default {
             endpoint_config: "/entity/data/",
             // configuracion component sheets map tools 
             default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
+            custom_styles:`
+                {
+                    "radius-multiplier": "8px"
+                }
+            `,
             data              : {},
             info              : {},
             config_data       : {},
@@ -295,13 +300,18 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-  box-shadow: 2px 2px 20px #2c3e50aa;
-}
+    #app {
+        font-family: Avenir, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+        color: #2c3e50;
+        margin-top: 60px;
+        box-shadow: 2px 2px 20px #2c3e50aa;
+        flex-direction: row;
+        display: flex;
+    }
+    #app div:first-child{
+        flex-grow: 1;
+    }
 </style>
