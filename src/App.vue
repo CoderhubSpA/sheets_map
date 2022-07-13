@@ -9,7 +9,7 @@
       :config_entity_id="config_entity_id"
       :endpoint_config="endpoint_config"
       code="map"
-      :active_filters="null"
+      :active_filters="active_filters"
       :data="data"
       :info="info"
       :config="config"
@@ -29,7 +29,7 @@
           :config_entity_id="config_entity_id"
           :endpoint_config="endpoint_config"
           code="map_tools"
-          :active_filters="null"
+          :active_filters="active_filters"
           :data="data"
           :info="info"
           :layers="layers"
@@ -74,6 +74,7 @@ export default {
             analytical_layer  : [],
             operational_layer : [],
             base_layer        : {},
+            active_filters    : []
         };
     },
     components: {
@@ -184,17 +185,14 @@ export default {
             // Una vez se conoce cuáles son las columnas de latitud y longitud
             // Solicitar la data del mapa
             if(this.lat_lng.length == 2) {
-                //data
-                const url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=["${this.col_lng}","${this.col_lat}"]&page=1`;
-                axios
-                .get(url)
-                .then((response) => {
-                    this.data = response.data.content;
-                })
-                .catch((error) => {
-                    console.error(error);
-                })
+              this.requestData();
             }
+        },
+        active_filters: {
+          handler() {
+            this.switchLayers();
+          },
+          deep: true
         },
     },
     created() {
@@ -219,7 +217,11 @@ export default {
             (new_value) => {
                 this.base_layer = new_value;
             }
-        );       
+        );
+        this.$watch("$refs.sheetsMap.bounds_filters", (active_filters) => {
+            this.active_filters = active_filters;
+            this.requestData();
+        });
     },
     methods: {
         init() {
@@ -235,6 +237,23 @@ export default {
                 console.error(error);
             });
 
+        },
+        async requestData(){
+            //data
+            let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=["${this.col_lng}","${this.col_lat}"]&page=1`;
+
+            if(!_.isEmpty(this.active_filters)){
+                url += "&active_filters="+JSON.stringify(this.active_filters);
+            }
+
+            axios
+            .get(url)
+            .then((response) => {
+                this.data = response.data.content;
+            })
+            .catch((error) => {
+                console.error(error);
+            })
         },
         async requestConfig(){
 

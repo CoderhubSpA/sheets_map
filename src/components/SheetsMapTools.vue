@@ -142,7 +142,7 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
-                "--radius-multiplier": custom_styles["radius-multiplier"] || "2px",
+                "--radius-multiplier": custom_styles["radius-multiplier"] || "8px",
                 "--option-color": custom_styles["option-color"] || "#001D09",
                 "--border-color": custom_styles["border-color"] || "#7EF0A6",
                 "--menu-bg-color": custom_styles["menu-bg-color"] || "#343B30AA",
