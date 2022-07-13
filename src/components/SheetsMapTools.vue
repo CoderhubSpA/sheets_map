@@ -267,7 +267,7 @@ export default {
     height: 100%;
     display: flex;
     justify-content: center;
-    align-items: end;
+    align-items: flex-end;
     padding: 0.3rem;
     color: white;
     font-size: 0.75rem;

@@ -61660,8 +61660,8 @@ var component = componentNormalizer_normalizeComponent(
 )
 
 /* harmony default export */ var SheetsMap = (component.exports);
-;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=775d4f80&
-var SheetsMapToolsvue_type_template_id_775d4f80_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('b-dropdown',{attrs:{"id":"dropdown_base_layers","menu-class":"layers-dropdown-menu","dropleft":""},scopedSlots:_vm._u([{key:"button-content",fn:function(){return [_c('b-icon',{attrs:{"icon":"layers-half","aria-hidden":"false"}})]},proxy:true}])},[_c('h5',[_vm._v("Capas Analíticas")]),_vm._l((_vm.analytical_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=367f403e&
+var SheetsMapToolsvue_type_template_id_367f403e_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('b-dropdown',{attrs:{"id":"dropdown_base_layers","menu-class":"layers-dropdown-menu","dropleft":""},scopedSlots:_vm._u([{key:"button-content",fn:function(){return [_c('b-icon',{attrs:{"icon":"layers-half","aria-hidden":"false"}})]},proxy:true}])},[_c('h5',[_vm._v("Capas Analíticas")]),_vm._l((_vm.analytical_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{
                 'layer-option-active': option.active,
             },attrs:{"value":option.value,"href":"#"},nativeOn:{"!click":function($event){$event.stopPropagation();return _vm.getOption(option)}}},[_c('div',{staticClass:"layer-option",style:({
                     backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
@@ -61672,7 +61672,7 @@ var SheetsMapToolsvue_type_template_id_775d4f80_render = function () {var _vm=th
                 })},[_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Operativas")]),_c('div',{staticClass:"layer-group"},_vm._l((_vm.operational_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{
                     'layer-option-active': option.active,
                 },attrs:{"value":option.value,"href":"#"},nativeOn:{"!click":function($event){$event.stopPropagation();return _vm.getOption(option)}}},[_c('div',{staticClass:"layer-option layer-option-grouped"},[_c('div',{staticClass:"layer-option-body"},[_c('div',{staticClass:"layer-image-container"},[(option.image)?_c('img',{attrs:{"src":("" + _vm.base_url + (option.image)),"alt":""}}):_vm._e()]),_c('span',[_vm._v(_vm._s(option.value))])])])])}),1)],2)],1)}
-var SheetsMapToolsvue_type_template_id_775d4f80_staticRenderFns = []
+var SheetsMapToolsvue_type_template_id_367f403e_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/typeof.js
@@ -69946,10 +69946,10 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=775d4f80&prod&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=367f403e&prod&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=775d4f80&prod&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=367f403e&prod&lang=css&
 
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue
 
@@ -69962,8 +69962,8 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
 
 var SheetsMapTools_component = componentNormalizer_normalizeComponent(
   components_SheetsMapToolsvue_type_script_lang_js_,
-  SheetsMapToolsvue_type_template_id_775d4f80_render,
-  SheetsMapToolsvue_type_template_id_775d4f80_staticRenderFns,
+  SheetsMapToolsvue_type_template_id_367f403e_render,
+  SheetsMapToolsvue_type_template_id_367f403e_staticRenderFns,
   false,
   null,
   null,
