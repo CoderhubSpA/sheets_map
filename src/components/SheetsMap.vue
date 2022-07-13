@@ -49,13 +49,14 @@
                             v-on:click="getMarkerData(marker)" 
                             >
                         <!-- https://leafletjs.com/reference.html#popup-->
-                        <l-popup :options="{minWidth: 300}">
-                            <div v-if="marker.has_data">
-                                <div v-for="(col,key) in visible_columns"  :key="'col-' + key">
-                                    <span> <b>{{col.name}}</b> : {{getPopupData(marker,col)}} </span>
+                        <l-popup :options="{minWidth: 300}" class="marker-pop-up">
+                            <div v-if="marker.has_data" class="marker-pop-up-content">
+                                <div v-for="(col,key) in visible_columns"  :key="'col-' + key" class="marker-pop-up-single-info">
+                                    <span class="marker-pop-up-info-title"> <b>{{col.name}}</b> </span> <br>
+                                    <span class="marker-pop-up-info-content"> {{getPopupData(marker,col)}} </span>
                                 </div>
                             </div>
-                            <div v-else>
+                            <div v-else class="marker-pop-up-load-content">
                                 Cargando...
                             </div>
                         </l-popup>
@@ -1135,4 +1136,13 @@ export default {
     .marker-cluster span {
         line-height: 30px;
     }
+
+    .marker-pop-up-content{
+        max-height:350px;
+        overflow-y: scroll;
+    }
+    .marker-pop-up-single-info{
+        padding-bottom: 5px;
+    }
+
 </style>
