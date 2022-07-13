@@ -4,8 +4,6 @@
             id="dropdown_base_layers"
             menu-class="layers-dropdown-menu"
             dropleft
-            v-b-tooltip.hover.bottom
-            title="Capa Base"
         >
             <template #button-content>
                 <b-icon icon="layers-half" aria-hidden="false"></b-icon>
@@ -68,13 +66,11 @@
                         'layer-option-active': option.active,
                     }"
                 >
-                    <div
-                        class="layer-option layer-option-grouped"
-                        :style="{
-                            backgroundImage: `url(${base_url}${option.image})`,
-                        }"
-                    >
+                    <div class="layer-option layer-option-grouped">
                         <div class="layer-option-body">
+                            <div class="layer-image-container">
+                                <img v-if="option.image" :src="`${base_url}${option.image}`" alt="">
+                            </div>
                             <span>{{ option.value }}</span>
                         </div>
                     </div>
@@ -172,31 +168,9 @@ export default {
             deep: true,
         },
     },
-
-
     mounted(){
-        if (Array.isArray(this.parsed_layers)) {
-            this.base_layers = this.parsed_layers.filter(
-                (item) => item.type == "base"
-            );
-            this.operational_layer = this.parsed_layers.filter(
-                (item) => item.type == "operative"
-            );
-            this.analytical_layer = this.parsed_layers.filter(
-                (item) => item.type == "analytic"
-            );
-            // Elegimos la primera si existe y si no se ha seleccionado alguna capa
-            if (
-                _.isEmpty(this.base_layer) &&
-                _.first(this.base_layers)
-            ) {
-                this.base_layer = _.first(this.base_layers) || {};
-                this.base_layer.active = true;
-            }
-        }
+        // ...
     },
-
-
     methods: {
         getOption(option) {
             
@@ -286,17 +260,22 @@ export default {
         overflow: hidden;
         height: 72px;
     }
-    .layers-dropdown .layer-option-body {
+    .layers-dropdown .layer-option .layer-option-body {
         background: linear-gradient(transparent 20%, #001D09 92%);
         width:100%;
         height:100%;
         display: flex;
         justify-content: center;
         align-items: end;
-        padding-bottom: 0.3rem;
+        padding: 0.3rem;
         color: white;
         font-size: .75rem;
         transition: all .4s ease;
+    }
+    .layers-dropdown .layer-option .layer-option-body span{
+        max-width: 100%;
+        white-space: pre-wrap;
+        text-align: center;
     }
     .layers-dropdown .layer-option:hover .layer-option-body{
         background: linear-gradient(transparent 20%, #044617 92%);
@@ -316,5 +295,26 @@ export default {
         max-width: 31%;
         width: 31%;
     }
-
+    .layers-dropdown .layer-option-grouped {
+        background-color: #001d09;
+    }
+    .layers-dropdown .layer-option-grouped .layer-option-body{
+        justify-content: space-around;
+        flex-flow: column;
+        align-items: center;
+        font-size: .6rem;
+    }
+    .layers-dropdown .layer-option-grouped .layer-image-container{
+        display: flex;
+        justify-content: center;
+    }
+    .layers-dropdown .layer-option-grouped .layer-image-container img{
+        height: 90%;
+        width: auto;
+        max-width: 100%;
+    }
+    .layers-dropdown .layer-option-active .layer-option-grouped{
+        background-color: #001d09;
+        
+    }
 </style>
