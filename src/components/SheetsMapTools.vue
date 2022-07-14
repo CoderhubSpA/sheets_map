@@ -146,6 +146,8 @@ export default {
                 "--option-color": custom_styles["option-color"] || "#001D09",
                 "--border-color": custom_styles["border-color"] || "#7EF0A6",
                 "--menu-bg-color": custom_styles["menu-bg-color"] || "#343B30AA",
+                "--button-bg-color": custom_styles["button-bg-color"] || "#6a6a6a22",
+                "--button-text-color": custom_styles["button-text-color"] || "#D3D3D3",
             };
         },
     },
@@ -231,8 +233,8 @@ export default {
 <style>
 .layers-dropdown .dropdown-toggle {
     border: none;
-    background-color: white;
-    color: #000000 !important;
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
 }
 .layers-dropdown h5 {
     font-size: 0.75rem;
@@ -282,7 +284,6 @@ export default {
     background: linear-gradient(transparent 20%, #044617 92%);
 }
 .layers-dropdown .layer-option-active .layer-option {
-    border: 3px #000000;
     border: 2px solid var(--border-color);
 }
 .layer-group {

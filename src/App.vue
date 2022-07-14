@@ -1,25 +1,27 @@
 <template>
   <div id="app">
-    <SheetsMap
-      ref="sheetsMap"
-      :base_url="base_url"
-      :id="id"
-      :entity_type_id="entity_type_id"
-      :config_entity_type_id="config_entity_type_id"
-      :config_entity_id="config_entity_id"
-      :endpoint_config="endpoint_config"
-      code="map"
-      :active_filters="active_filters"
-      :data="data"
-      :info="info"
-      :config="config"
-      :layers="layers"
-      :analytical_layer="analytical_layer"
-      :operational_layer="operational_layer"
-      :base_layer="base_layer"
-    />
+    <div class="zone zone-c">
+        <SheetsMap
+        ref="sheetsMap"
+        :base_url="base_url"
+        :id="id"
+        :entity_type_id="entity_type_id"
+        :config_entity_type_id="config_entity_type_id"
+        :config_entity_id="config_entity_id"
+        :endpoint_config="endpoint_config"
+        code="map"
+        :active_filters="active_filters"
+        :data="data"
+        :info="info"
+        :config="config"
+        :layers="layers"
+        :analytical_layer="analytical_layer"
+        :operational_layer="operational_layer"
+        :base_layer="base_layer"
+        />
+    </div>
     <div class="zone zone-d">
-      <div class="zone-body" style="display: grid">
+      <div class="zone-body">
         <SheetsMapTools
           ref="sheetsMapTools"
           :base_url="base_url"
@@ -325,12 +327,34 @@ export default {
         -moz-osx-font-smoothing: grayscale;
         text-align: center;
         color: #2c3e50;
-        margin-top: 60px;
         box-shadow: 2px 2px 20px #2c3e50aa;
         flex-direction: row;
         display: flex;
+        height: 100vh
     }
-    #app div:first-child{
+    #app .zone-c{
         flex-grow: 1;
+    }
+    .zone-d {
+        padding-top: 1rem;
+        width: 48px;
+        background-color: #001D09;
+        display: flex;
+        justify-content: center;
+    }
+    .zone-d > .zone-body{
+        width: 40px;
+    }
+    .zone-d > .zone-body > .layers-dropdown .b-dropdown{
+        width: 100%;
+    }
+    .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle{
+        
+        max-width: 40px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle::after{
+        display: none;
     }
 </style>
