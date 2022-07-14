@@ -232,6 +232,18 @@ export default {
         },
         //Supercluster
         clusters(){
+            /*
+            let count_clusters = this.clusters_markers.map( d =>{
+                if(d.properties.cluster){
+                    return d.properties.point_count;
+                }
+            })
+
+            let max_clusters          = (count_clusters.length > 0) ? count_clusters.reduce(function(a, b) { return Math.max(a, b);}) : 0;
+            let proportional_clusters = (max_clusters > 0) ? Math.round(max_clusters/3): 0;
+            console.log(proportional_clusters);
+            console.log(proportional_clusters*2);
+            console.log(max_clusters);*/
             let clusters = this.clusters_markers.map( d =>{
                 if(d.properties.cluster){
                 
@@ -239,6 +251,9 @@ export default {
                     let size =
                         count < 100 ? 'small' :
                         count < 1000 ? 'medium' : 'large';
+                        /*
+                        count < proportional_clusters   ? 'small' :
+                        count < proportional_clusters*2 ? 'medium' : 'large';*/
 
                     return {
                         lat_lng    : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
@@ -247,7 +262,7 @@ export default {
                     };
                 }
             })
-            .filter(d => d);      
+            .filter(d => d);    
             return clusters;
         },
         markers(){
@@ -801,13 +816,7 @@ export default {
         },
         getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
-        },/*
-        decimalToHexadecimal(decimal){
-            return decimal;
-            console.log(typeof decimal);
-            console.log(decimal);
-            return decimal.toString(16).toUpperCase();
-        },*/
+        },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
@@ -870,6 +879,7 @@ export default {
             this.clusters_markers = clusters_markers;
             
         },
+        
         findBounds(){
             let h        = this.map.getZoom();
             let bounds   = this.map.getBounds();
@@ -895,13 +905,6 @@ export default {
                 return bounds_filter;
             });
             this.bounds_filters = bounds_filters;
-        },       
-        //Heatmapjs
-        //
-        getRandomInt(min, max) {
-            min = Math.ceil(min);
-            max = Math.floor(max);
-            return Math.floor(Math.random() * (max - min) + min);
         },
 
         //#Convierte un indice h3 en lng lat
