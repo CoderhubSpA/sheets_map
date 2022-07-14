@@ -390,6 +390,12 @@ export default {
           },
           deep: true
         },
+        active_filters: {
+          handler() {
+            this.switchLayers();
+          },
+          deep: true
+        },
         geo_json(){
             this.index.load(this.geo_json.features);
             this.getClusterInfo();
@@ -422,8 +428,6 @@ export default {
         });
         this.index.load([]);
     },
-    mounted(){
-    },
     methods:{
         ready(){
             this.setTileLayer();
@@ -431,7 +435,6 @@ export default {
         }, 
         filter(){
             this.findBounds();
-            this.switchLayers();
         },  
         switchLayers(){
             
