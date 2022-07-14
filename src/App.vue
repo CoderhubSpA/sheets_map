@@ -192,7 +192,7 @@ export default {
         },
         active_filters: {
           handler() {
-            this.switchLayers();
+            // ....
           },
           deep: true
         },
