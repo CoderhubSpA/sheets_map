@@ -33,7 +33,7 @@
           :data="data"
           :info="info"
           :layers="layers"
-          :custom_styles="custom_styles"
+          :custom_styles="map_tools_custom_styles"
         />
       </div>
     </div>
@@ -61,7 +61,7 @@ export default {
             endpoint_config: "/entity/data/",
             // configuracion component sheets map tools 
             default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
-            custom_styles:`
+            map_tools_custom_styles:`
                 {
                     "radius-multiplier": "8px"
                 }

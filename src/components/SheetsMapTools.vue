@@ -307,6 +307,7 @@ export default {
 .layers-dropdown .layer-option-grouped .layer-image-container {
     display: flex;
     justify-content: center;
+    height: 100%;
 }
 .layers-dropdown .layer-option-grouped .layer-image-container img {
     height: 90%;
