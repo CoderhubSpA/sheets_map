@@ -140,12 +140,16 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
-                "--radius-multiplier": custom_styles["radius-multiplier"] || "8px",
+                "--radius-multiplier":
+                    custom_styles["radius-multiplier"] || "8px",
                 "--option-color": custom_styles["option-color"] || "#001D09",
                 "--border-color": custom_styles["border-color"] || "#7EF0A6",
-                "--menu-bg-color": custom_styles["menu-bg-color"] || "#343B30AA",
-                "--button-bg-color": custom_styles["button-bg-color"] || "#6a6a6a22",
-                "--button-text-color": custom_styles["button-text-color"] || "#D3D3D3",
+                "--menu-bg-color":
+                    custom_styles["menu-bg-color"] || "#343B30AA",
+                "--button-bg-color":
+                    custom_styles["button-bg-color"] || "#6a6a6a22",
+                "--button-text-color":
+                    custom_styles["button-text-color"] || "#D3D3D3",
             };
         },
     },
@@ -174,28 +178,6 @@ export default {
             },
             deep: true,
         },
-    },
-    mounted() {
-                if (Array.isArray(this.parsed_layers)) {
-                    this.base_layers = this.parsed_layers.filter(
-                        (item) => item.type == "base"
-                    );
-                    this.operational_layer = this.parsed_layers.filter(
-                        (item) => item.type == "operative"
-                    );
-                    this.analytical_layer = this.parsed_layers.filter(
-                        (item) => item.type == "analytic"
-                    );
-                    // Elegimos la primera si existe y si no se ha seleccionado alguna capa
-                    if (
-                        _.isEmpty(this.base_layer) &&
-                        _.first(this.base_layers)
-                    ) {
-                        this.base_layer = _.first(this.base_layers) || {};
-                        this.base_layer.active = true;
-                    }
-                }
-        // ...
     },
     methods: {
         getOption(option) {
@@ -248,105 +230,106 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.layers-dropdown /deep/ {
+    @import "~bootstrap-vue/dist/bootstrap-vue.css";
+    @import "~bootstrap/dist/css/bootstrap.min";
 
-    .layers-dropdown /deep/ {
-        @import "~bootstrap-vue/dist/bootstrap-vue.css";
-        @import "~bootstrap/dist/css/bootstrap.min";
-
-        h5 {
-            font-size: 0.75rem;
-            color: var(--border-color);
-            margin-top: 15px;
+    h5 {
+        font-size: 0.75rem;
+        color: var(--border-color);
+        margin-top: 15px;
+    }
+    .dropdown-toggle {
+        border: none;
+        background-color: var(--button-bg-color);
+        color: var(--button-text-color);
+        &::after {
+            display: none;
         }
-        .dropdown-toggle{
-            border: none;
-            background-color: var(--button-bg-color);
-            color: var(--button-text-color);
-            &::after{
-                display: none;
-            }
+    }
+    .dropdown-item {
+        padding: 0;
+        margin-top: 0.5rem;
+        &:hover,
+        &:focus {
+            background-color: transparent;
         }
-        .dropdown-item {
-            padding: 0;
-            margin-top: 0.5rem;
-            &:hover,
-            &:focus {
-                background-color: transparent;
-            }
-        }
-        .layers-dropdown-menu{
-            background-color: var(--menu-bg-color);
-            overflow: auto;
-            border-radius: var(--radius-multiplier);
-            padding: 1.25rem;
-            max-height: 80vh;
-            min-width: 272px;
-        }
-        .layer-option {
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            border-radius: var(--radius-multiplier);
-            overflow: hidden;
-            height: 72px;
-            .layer-option-body {
-                background: linear-gradient(transparent 20%, var(--option-color) 92%);
-                width: 100%;
-                height: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: flex-end;
-                padding: 0.3rem;
-                color: white;
-                font-size: 0.75rem;
-                transition: all 0.4s ease;
-            }
-            .layer-option-body span {
-                max-width: 100%;
-                white-space: pre-wrap;
-                text-align: center;
-            }
-            &:hover .layer-option-body {
-                background: linear-gradient(transparent 20%, #044617 92%);
-            }
-        }
-        .layer-option-active{
-            .layer-option {
-                border: 2px solid var(--border-color);
-            }
-            .layer-option-grouped {
-                background-color: var(--option-color);
-            }
-        }
-        .layer-group {
+    }
+    .layers-dropdown-menu {
+        background-color: var(--menu-bg-color);
+        overflow: auto;
+        border-radius: var(--radius-multiplier);
+        padding: 1.25rem;
+        max-height: 80vh;
+        min-width: 272px;
+    }
+    .layer-option {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: var(--radius-multiplier);
+        overflow: hidden;
+        height: 72px;
+        .layer-option-body {
+            background: linear-gradient(
+                transparent 20%,
+                var(--option-color) 92%
+            );
+            width: 100%;
+            height: 100%;
             display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 0.3rem;
+            color: white;
+            font-size: 0.75rem;
+            transition: all 0.4s ease;
+        }
+        .layer-option-body span {
             max-width: 100%;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            li {
-                max-width: 31%;
-                width: 31%;
-            }
+            white-space: pre-wrap;
+            text-align: center;
+        }
+        &:hover .layer-option-body {
+            background: linear-gradient(transparent 20%, #044617 92%);
+        }
+    }
+    .layer-option-active {
+        .layer-option {
+            border: 2px solid var(--border-color);
         }
         .layer-option-grouped {
             background-color: var(--option-color);
-            .layer-option-body {
-                justify-content: space-around;
-                flex-flow: column;
-                align-items: center;
-                font-size: 0.6rem;
-            }
-            .layer-image-container {
-                display: flex;
-                justify-content: center;
-                height: 100%;
-            }
-            .layer-image-container img {
-                height: 90%;
-                width: auto;
-                max-width: 100%;
-            }
         }
     }
-
+    .layer-group {
+        display: flex;
+        max-width: 100%;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        li {
+            max-width: 31%;
+            width: 31%;
+        }
+    }
+    .layer-option-grouped {
+        background-color: var(--option-color);
+        .layer-option-body {
+            justify-content: space-around;
+            flex-flow: column;
+            align-items: center;
+            font-size: 0.6rem;
+        }
+        .layer-image-container {
+            display: flex;
+            justify-content: center;
+            height: 100%;
+        }
+        .layer-image-container img {
+            height: 90%;
+            width: auto;
+            max-width: 100%;
+        }
+    }
+}
 </style>
