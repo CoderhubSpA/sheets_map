@@ -17,6 +17,7 @@
       :analytical_layer="analytical_layer"
       :operational_layer="operational_layer"
       :base_layer="base_layer"
+      :custom_styles="map_tools_custom_styles"
     />
     <div class="zone zone-d">
       <div class="zone-body" style="display: grid">
@@ -61,9 +62,47 @@ export default {
             endpoint_config: "/entity/data/",
             // configuracion component sheets map tools 
             default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
+            /*
+                    "point-cluster-small-size"  Solo acepta VALORES NUMÉRICOS, 
+                    "point-cluster-medium-size" Solo acepta VALORES NUMÉRICOS, 
+                    "point-cluster-large-size"  Solo acepta VALORES NUMÉRICOS, 
+        
+             */
             map_tools_custom_styles:`
                 {
-                    "radius-multiplier": "8px"
+                    "radius-multiplier"                 : "8px",
+                    "marker-pop-up-title-font"          : "10px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "marker-pop-up-title-color"         : "#28b7ab",
+                    "marker-pop-up-content-font"        : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "marker-pop-up-content-color"       : "#202124",
+                    "marker-pop-up-background"          : "yellow",
+                    "marker-pop-up-scroll-color"        : "#23d7cd",
+                    "marker-pop-up-scroll-color-hover"  : "#0ee5d9",
+                    "marker-pop-up-scroll-color-active" : "#06938b",
+
+                    "point-cluster-small-size"          : 35, 
+                    "point-cluster-small-color"         : "rgb(106, 136, 115, 0.8)", 
+                    "point-cluster-small-color-div"     : "rgb(106, 136, 115, 0.8)", 
+                    "point-cluster-small-border-color"  : "#70d195", 
+                    "point-cluster-small-border-style"  : "solid", 
+                    "point-cluster-small-border-width"  : "3px", 
+                    "point-cluster-small-font-color"    : "white",
+
+                    "point-cluster-medium-size"         : 35, 
+                    "point-cluster-medium-color"        : "rgb(124, 108, 52, 0.8)", 
+                    "point-cluster-medium-color-div"    : "rgb(124, 108, 52, 0.8)", 
+                    "point-cluster-medium-border-color" : "#dee07c", 
+                    "point-cluster-medium-border-style" : "solid", 
+                    "point-cluster-medium-border-width" : "3px", 
+                    "point-cluster-medium-font-color"   : "white",
+
+                    "point-cluster-large-size"          : 35, 
+                    "point-cluster-large-color"         : "rgb(116, 36, 38, 0.8)", 
+                    "point-cluster-large-color-div"     : "rgb(116, 36, 38, 0.8)", 
+                    "point-cluster-large-border-color"  : "#d14d4a",
+                    "point-cluster-large-border-style"  : "solid",
+                    "point-cluster-large-border-width"  : "3px",
+                    "point-cluster-large-font-color"    : "white"
                 }
             `,
             data              : {},

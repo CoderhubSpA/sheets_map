@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div :style="css_vars">
         <button type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
@@ -49,7 +49,7 @@
                             v-on:click="getMarkerData(marker)" 
                             >
                         <!-- https://leafletjs.com/reference.html#popup-->
-                        <l-popup :options="{minWidth: 300}" class="marker-pop-up">
+                        <l-popup :options="popupOptions" class="marker-pop-up">
                             <div v-if="marker.has_data" class="marker-pop-up-content">
                                 <div v-for="(col,key) in visible_columns"  :key="'col-' + key" class="marker-pop-up-single-info">
                                     <span class="marker-pop-up-info-title"> <b>{{col.name}}</b> </span> <br>
@@ -117,23 +117,24 @@ export default {
     },
     props: {
         // Propiedades de componentes
-        id                   : String,
-        entity_type_id       : String,
-        config_entity_id     : String,
-        config_entity_type_id: String,
-        endpoint_config      : String,
-        code                 : String,
-        base_url             : String,
+        id                    : String,
+        entity_type_id        : String,
+        config_entity_id      : String,
+        config_entity_type_id : String,
+        endpoint_config       : String,
+        code                  : String,
+        base_url              : String,
+        custom_styles         : String,
         // Propiedades que provienen del store
-        active_filters       : Array,
-        info                 : Object,
-        data                 : Object,
+        active_filters        : Array,
+        info                  : Object,
+        data                  : Object,
         // SheetsMapTools
-        config               : Object, // Todas las capas
-        layers               : Object, // Todas las capas
-        analytical_layer     : Array,
-        operational_layer    : Array,
-        base_layer           : Object
+        config                : Object, // Todas las capas
+        layers                : Object, // Todas las capas
+        analytical_layer      : Array,
+        operational_layer     : Array,
+        base_layer            : Object
         
     },
     data () {
@@ -164,10 +165,60 @@ export default {
             bounds                : [],
             index                 : [],
             h3                    : require("h3-js"),
-            enableTooltip     : true
+            enableTooltip         : true
         };
     },
     computed:{
+        css_vars() {
+            let custom_styles = JSON.parse(this.custom_styles) || {};
+
+            return {
+                "--sh-map-radius-multiplier"                 : custom_styles["radius-multiplier"]                  || "8px",
+                //Pop-up
+                "--sh-map-marker-pop-up-background"          : custom_styles["marker-pop-up-background"]           || "white",
+
+                "--sh-map-marker-pop-up-title-font"          : custom_styles["marker-pop-up-title-font"]           || '"Helvetica Neue", Arial, Helvetica, sans-serif',
+                "--sh-map-marker-pop-up-title-color"         : custom_styles["marker-pop-up-title-color"]          || "black",
+                "--sh-map-marker-pop-up-content-font"        : custom_styles["marker-pop-up-content-font"]         || '"Helvetica Neue", Arial, Helvetica, sans-serif',
+                "--sh-map-marker-pop-up-content-color"       : custom_styles["marker-pop-up-content-color"]        || "black",
+
+                "--sh-map-marker-pop-up-srcoll-color"        : custom_styles["marker-pop-up-scroll-color"]         || "#999393",
+                "--sh-map-marker-pop-up-srcoll-color-hover"  : custom_styles["marker-pop-up-scroll-color-hover"]   || "#b3b3b3",
+                "--sh-map-marker-pop-up-srcoll-color-active" : custom_styles["marker-pop-up-scroll-color-active"]  || "#999999",
+                //Point Clusters
+                //Small
+                "--sh-map-point-cluster-small-size"          : custom_styles["point-cluster-small-size"]+"px"      || "30px", 
+                "--sh-map-point-cluster-small-border"        : custom_styles["point-cluster-small-size"]/2+"px"    || "15px", 
+                "--sh-map-point-cluster-small-font"          : custom_styles["point-cluster-small-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
+                "--sh-map-point-cluster-small-font-color"    : custom_styles["point-cluster-small-font-color"]     || 'black', 
+                "--sh-map-point-cluster-small-color"         : custom_styles["point-cluster-small-color"]          || "rgba(181, 226, 140, 0.6)", 
+                "--sh-map-point-cluster-small-color-div"     : custom_styles["point-cluster-small-color-div"]      || "rgba(110, 204, 57, 0.6)", 
+                "--sh-map-point-cluster-small-border-color"  : custom_styles["point-cluster-small-border-color"]   || "rgba(181, 226, 140, 0.6)", 
+                "--sh-map-point-cluster-small-border-style"  : custom_styles["point-cluster-small-border-style"]   || "hidden", 
+                "--sh-map-point-cluster-small-border-width"  : custom_styles["point-cluster-small-border-width"]   || "1px", 
+                //Medium
+                "--sh-map-point-cluster-medium-size"         : custom_styles["point-cluster-medium-size"]+"px"     || "30px", 
+                "--sh-map-point-cluster-medium-border"       : custom_styles["point-cluster-medium-size"]/2+"px"   || "15px", 
+                "--sh-map-point-cluster-medium-font"         : custom_styles["point-cluster-medium-font"]          || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
+                "--sh-map-point-cluster-medium-font-color"   : custom_styles["point-cluster-medium-font-color"]    || 'black', 
+                "--sh-map-point-cluster-medium-color"        : custom_styles["point-cluster-medium-color"]         || "rgba(241, 211, 87, 0.6)", 
+                "--sh-map-point-cluster-medium-color-div"    : custom_styles["point-cluster-medium-color-div"]     || "rgba(240, 194, 12, 0.6)", 
+                "--sh-map-point-cluster-medium-border-color" : custom_styles["point-cluster-medium-border-color"]  || "rgba(241, 211, 87, 0.6)", 
+                "--sh-map-point-cluster-medium-border-style" : custom_styles["point-cluster-medium-border-style"]  || "hidden", 
+                "--sh-map-point-cluster-medium-border-width" : custom_styles["point-cluster-medium-border-width"]  || "1px", 
+                //Large
+                "--sh-map-point-cluster-large-size"          : custom_styles["point-cluster-large-size"]+"px"      || "30px", 
+                "--sh-map-point-cluster-large-border"        : custom_styles["point-cluster-large-size"]/2+"px"    || "15px", 
+                "--sh-map-point-cluster-large-font"          : custom_styles["point-cluster-large-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
+                "--sh-map-point-cluster-large-font-color"    : custom_styles["point-cluster-large-font-color"]     || 'black', 
+                "--sh-map-point-cluster-large-color"         : custom_styles["point-cluster-large-color"]          || "rgba(253, 156, 115, 0.6)", 
+                "--sh-map-point-cluster-large-color-div"     : custom_styles["point-cluster-large-color-div"]      || "rgba(241, 128, 23, 0.6)", 
+                "--sh-map-point-cluster-large-border-color"  : custom_styles["point-cluster-large-border-color"]   || "rgba(253, 156, 115, 0.6)", 
+                "--sh-map-point-cluster-large-border-style"  : custom_styles["point-cluster-large-border-style"]   || "hidden", 
+                "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px", 
+            };
+
+        },
         markers_latlgn(){
             
             if(
@@ -232,29 +283,16 @@ export default {
         },
         //Supercluster
         clusters(){
-            /*
-            let count_clusters = this.clusters_markers.map( d =>{
-                if(d.properties.cluster){
-                    return d.properties.point_count;
-                }
-            })
 
-            let max_clusters          = (count_clusters.length > 0) ? count_clusters.reduce(function(a, b) { return Math.max(a, b);}) : 0;
-            let proportional_clusters = (max_clusters > 0) ? Math.round(max_clusters/3): 0;
-            console.log(proportional_clusters);
-            console.log(proportional_clusters*2);
-            console.log(max_clusters);*/
             let clusters = this.clusters_markers.map( d =>{
                 if(d.properties.cluster){
                 
                     let count = d.properties.point_count;
                     let size =
-                        count < 100 ? 'small' :
-                        count < 1000 ? 'medium' : 'large';
-                        /*
-                        count < proportional_clusters   ? 'small' :
-                        count < proportional_clusters*2 ? 'medium' : 'large';*/
+                        count < this.config.sh_map_medium_cluster_size_starts_at ? 'small' :
+                        count < this.config.sh_map_large_cluster_size_starts_at  ? 'medium' : 'large';
 
+                    d.properties.point_count_abbreviated = (d.properties.point_count_abbreviated > 900) ? '900+' : d.properties.point_count_abbreviated;
                     return {
                         lat_lng    : [d.geometry.coordinates[1], d.geometry.coordinates[0]],
                         properties : d.properties,
@@ -287,6 +325,12 @@ export default {
                 }, {permanent: true, direction: "center", className: "my-labels"});
             }
           };
+        },
+        popupOptions(){
+            return {
+                minWidth : 300,
+                className: 'popupCustom'
+            };
         },
         heatmapLayer() {
 
@@ -1104,40 +1148,61 @@ export default {
         text-align: left;
         margin: 0 10px;
     }
+
     .marker-cluster-small {
-        background-color: rgba(181, 226, 140, 0.6);
+        background-color: var(--sh-map-point-cluster-small-color);
     }
     .marker-cluster-small div {
-        background-color: rgba(110, 204, 57, 0.6);
+        background-color: var(--sh-map-point-cluster-small-color-div);
+        width:            var(--sh-map-point-cluster-small-size);
+        height:           var(--sh-map-point-cluster-small-size);
+        border-radius:    var(--sh-map-point-cluster-small-border);
+        font:             var(--sh-map-point-cluster-small-font);
+        color:            var(--sh-map-point-cluster-small-font-color);
+        border-style:     var(--sh-map-point-cluster-small-border-style);
+        border-width:     var(--sh-map-point-cluster-small-border-width);
+        border-color:     var(--sh-map-point-cluster-small-border-color);
     }
 
     .marker-cluster-medium {
-        background-color: rgba(241, 211, 87, 0.6);
+        background-color: var(--sh-map-point-cluster-medium-color);
     }
     .marker-cluster-medium div {
-        background-color: rgba(240, 194, 12, 0.6);
+        background-color: var(--sh-map-point-cluster-medium-color-div);
+        width:            var(--sh-map-point-cluster-medium-size);
+        height:           var(--sh-map-point-cluster-medium-size);
+        border-radius:    var(--sh-map-point-cluster-medium-border);
+        font:             var(--sh-map-point-cluster-medium-font);
+        color:            var(--sh-map-point-cluster-medium-font-color);
+        border-style:     var(--sh-map-point-cluster-medium-border-style);
+        border-width:     var(--sh-map-point-cluster-medium-border-width);
+        border-color:     var(--sh-map-point-cluster-medium-border-color);
     }
 
     .marker-cluster-large {
-        background-color: rgba(253, 156, 115, 0.6);
+        background-color: var(--sh-map-point-cluster-large-color);
     }
     .marker-cluster-large div {
-        background-color: rgba(241, 128, 23, 0.6);
+        background-color: var(--sh-map-point-cluster-large-color-div);
+        width:            var(--sh-map-point-cluster-large-size);
+        height:           var(--sh-map-point-cluster-large-size);
+        border-radius:    var(--sh-map-point-cluster-large-border);
+        font:             var(--sh-map-point-cluster-large-font);
+        color:            var(--sh-map-point-cluster-large-font-color);
+        border-style:     var(--sh-map-point-cluster-large-border-style);
+        border-width:     var(--sh-map-point-cluster-large-border-width);
+        border-color:     var(--sh-map-point-cluster-large-border-color);
     }
+
 
     .marker-cluster {
         background-clip: padding-box;
         border-radius: 20px;
     }
     .marker-cluster div {
-        width: 30px;
-        height: 30px;
         margin-left: 5px;
         margin-top: 5px;
-
         text-align: center;
-        border-radius: 15px;
-        font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
     }
     .marker-cluster span {
         line-height: 30px;
@@ -1147,8 +1212,31 @@ export default {
         max-height:350px;
         overflow-y: scroll;
     }
-    .marker-pop-up-single-info{
-        padding-bottom: 5px;
+    .marker-pop-up-content::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .marker-pop-up-content::-webkit-scrollbar-thumb {
+        background: var(--sh-map-marker-pop-up-srcoll-color);
+        border-radius: 4px;
     }
 
+    .marker-pop-up-content::-webkit-scrollbar-thumb:hover {
+        background: var(--sh-map-marker-pop-up-srcoll-color-hover);
+    }
+
+    .marker-pop-up-content::-webkit-scrollbar-thumb:active {
+        background-color: var(--sh-map-marker-pop-up-srcoll-color-active);
+    }
+
+
+    .marker-pop-up-single-info{
+        font:  var(--sh-map-marker-pop-up-content-font);
+        color: var(--sh-map-marker-pop-up-content-color);
+    }
+    .marker-pop-up-info-title{
+        font:  var(--sh-map-marker-pop-up-title-font);
+        color: var(--sh-map-marker-pop-up-title-color);
+
+    }
 </style>
