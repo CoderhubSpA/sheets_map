@@ -7,7 +7,7 @@
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
-                @ready="ready()" @moveend="getClusterInfo();" :zoom="zoom" :center="center" ref="myMap" class="myMap">
+                @ready="ready()" @moveend="getClusterInfo();" :zoom="zoom" :center="center" ref="my_map" class="my-map">
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
@@ -45,7 +45,7 @@
                         v-for="(marker, index) in markers"
                             :key="'marker-' + index"
                             :lat-lng="marker.lat_lng"
-                            :radius="2"
+                            :radius="3"
                             v-on:click="getMarkerData(marker)" 
                             >
                         <!-- https://leafletjs.com/reference.html#popup-->
@@ -472,7 +472,7 @@ export default {
     methods:{
         ready(){
             this.setTileLayer();
-            this.map = this.$refs.myMap.mapObject;
+            this.map = this.$refs.my_map.mapObject;
         }, 
         filter(){
             this.findBounds();
@@ -1132,14 +1132,15 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
-    .my-labels{
+    .my-map {
+        min-height: 60vh;
+    }
+    .my-map >>> .my-labels{
         background-color: transparent !important;
         border: transparent !important;
         box-shadow: none !important;
-    }
-    .myMap {
-        min-height: 60vh;
+        color: white;
+        font-weight: bold;
     }
     li {
         text-align: left;
@@ -1202,6 +1203,12 @@ export default {
     .marker-cluster span {
         line-height: 30px;
     }
+    .marker-cluster-medium span {
+        line-height: var(--sh-map-point-cluster-medium-size);
+    }
+    .marker-cluster-large span {
+        line-height: var(--sh-map-point-cluster-large-size);
+    }
 
     .marker-pop-up-content{
         max-height:350px;
@@ -1233,5 +1240,10 @@ export default {
         font:  var(--sh-map-marker-pop-up-title-font);
         color: var(--sh-map-marker-pop-up-title-color);
 
+    }
+
+    .my-map >>> .leaflet-popup-content-wrapper,
+    .my-map >>> .leaflet-popup-tip{
+        background-color: darkslategrey;
     }
 </style>
