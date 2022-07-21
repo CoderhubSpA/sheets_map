@@ -187,7 +187,7 @@ export default {
                 "--sh-map-marker-pop-up-srcoll-color-active" : custom_styles["marker-pop-up-scroll-color-active"]  || "#999999",
                 //Point Clusters
                 //Small
-                "--sh-map-point-cluster-small-size"          : custom_styles["point-cluster-small-size"]            || "30px", 
+                "--sh-map-point-cluster-small-size"          : custom_styles["point-cluster-small-size"]           || "30px", 
                 "--sh-map-point-cluster-small-font"          : custom_styles["point-cluster-small-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
                 "--sh-map-point-cluster-small-font-color"    : custom_styles["point-cluster-small-font-color"]     || 'black', 
                 "--sh-map-point-cluster-small-color"         : custom_styles["point-cluster-small-color"]          || "rgba(181, 226, 140, 0.6)", 
@@ -205,7 +205,7 @@ export default {
                 "--sh-map-point-cluster-medium-border-style" : custom_styles["point-cluster-medium-border-style"]  || "hidden", 
                 "--sh-map-point-cluster-medium-border-width" : custom_styles["point-cluster-medium-border-width"]  || "1px", 
                 //Large
-                "--sh-map-point-cluster-large-size"          : custom_styles["point-cluster-large-size"]            || "30px", 
+                "--sh-map-point-cluster-large-size"          : custom_styles["point-cluster-large-size"]           || "30px", 
                 "--sh-map-point-cluster-large-font"          : custom_styles["point-cluster-large-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
                 "--sh-map-point-cluster-large-font-color"    : custom_styles["point-cluster-large-font-color"]     || 'black', 
                 "--sh-map-point-cluster-large-color"         : custom_styles["point-cluster-large-color"]          || "rgba(253, 156, 115, 0.6)", 
@@ -213,6 +213,28 @@ export default {
                 "--sh-map-point-cluster-large-border-color"  : custom_styles["point-cluster-large-border-color"]   || "rgba(253, 156, 115, 0.6)", 
                 "--sh-map-point-cluster-large-border-style"  : custom_styles["point-cluster-large-border-style"]   || "hidden", 
                 "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px", 
+            };
+
+        },
+        hexagonal_clusters_style() {
+            let custom_styles = JSON.parse(this.custom_styles) || {};
+
+            return {
+                "hexagonal-cluster-small-color"          : custom_styles["hexagonal-cluster-small-color"]         || "",
+                "hexagonal-cluster-small-opacity"        : custom_styles["hexagonal-cluster-small-opacity"]       || "",
+                "hexagonal-cluster-small-border-color"   : custom_styles["hexagonal-cluster-small-border-color"]  || "",
+                "hexagonal-cluster-small-font"           : custom_styles["hexagonal-cluster-small-font"]          || "",
+                "hexagonal-cluster-small-font-color"     : custom_styles["hexagonal-cluster-small-font-color"]    || "",
+                "hexagonal-cluster-medium-color"         : custom_styles["hexagonal-cluster-medium-color"]        || "",
+                "hexagonal-cluster-medium-opacity"       : custom_styles["hexagonal-cluster-medium-opacity"]      || "",
+                "hexagonal-cluster-medium-border-color"  : custom_styles["hexagonal-cluster-medium-border-color"] || "",
+                "hexagonal-cluster-medium-font"          : custom_styles["hexagonal-cluster-medium-font"]         || "",
+                "hexagonal-cluster-medium-font-color"    : custom_styles["hexagonal-cluster-medium-font-color"]   || "",
+                "hexagonal-cluster-large-color"          : custom_styles["hexagonal-cluster-large-color"]         || "",
+                "hexagonal-cluster-large-opacity"        : custom_styles["hexagonal-cluster-large-opacity"]       || "",
+                "hexagonal-cluster-large-border-color"   : custom_styles["hexagonal-cluster-large-border-color"]  || "",
+                "hexagonal-cluster-large-font"           : custom_styles["hexagonal-cluster-large-font"]          || "",
+                "hexagonal-cluster-large-font-color"     : custom_styles["hexagonal-cluster-large-font-color"]    || ""
             };
 
         },
@@ -348,6 +370,7 @@ export default {
         styleFunction() {
             return (feature) => {
                 let color;/*
+                    custom_styles["hexagonal-cluster-small-color"]
                 //Rojo fuerte
                 if (feature.properties.total > 2000) {
                     color = "#DA2323";
