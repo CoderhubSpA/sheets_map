@@ -187,8 +187,7 @@ export default {
                 "--sh-map-marker-pop-up-srcoll-color-active" : custom_styles["marker-pop-up-scroll-color-active"]  || "#999999",
                 //Point Clusters
                 //Small
-                "--sh-map-point-cluster-small-size"          : custom_styles["point-cluster-small-size"]+"px"      || "30px", 
-                "--sh-map-point-cluster-small-border"        : custom_styles["point-cluster-small-size"]/2+"px"    || "15px", 
+                "--sh-map-point-cluster-small-size"          : custom_styles["point-cluster-small-size"]            || "30px", 
                 "--sh-map-point-cluster-small-font"          : custom_styles["point-cluster-small-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
                 "--sh-map-point-cluster-small-font-color"    : custom_styles["point-cluster-small-font-color"]     || 'black', 
                 "--sh-map-point-cluster-small-color"         : custom_styles["point-cluster-small-color"]          || "rgba(181, 226, 140, 0.6)", 
@@ -197,8 +196,7 @@ export default {
                 "--sh-map-point-cluster-small-border-style"  : custom_styles["point-cluster-small-border-style"]   || "hidden", 
                 "--sh-map-point-cluster-small-border-width"  : custom_styles["point-cluster-small-border-width"]   || "1px", 
                 //Medium
-                "--sh-map-point-cluster-medium-size"         : custom_styles["point-cluster-medium-size"]+"px"     || "30px", 
-                "--sh-map-point-cluster-medium-border"       : custom_styles["point-cluster-medium-size"]/2+"px"   || "15px", 
+                "--sh-map-point-cluster-medium-size"         : custom_styles["point-cluster-medium-size"]          || "30px", 
                 "--sh-map-point-cluster-medium-font"         : custom_styles["point-cluster-medium-font"]          || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
                 "--sh-map-point-cluster-medium-font-color"   : custom_styles["point-cluster-medium-font-color"]    || 'black', 
                 "--sh-map-point-cluster-medium-color"        : custom_styles["point-cluster-medium-color"]         || "rgba(241, 211, 87, 0.6)", 
@@ -207,8 +205,7 @@ export default {
                 "--sh-map-point-cluster-medium-border-style" : custom_styles["point-cluster-medium-border-style"]  || "hidden", 
                 "--sh-map-point-cluster-medium-border-width" : custom_styles["point-cluster-medium-border-width"]  || "1px", 
                 //Large
-                "--sh-map-point-cluster-large-size"          : custom_styles["point-cluster-large-size"]+"px"      || "30px", 
-                "--sh-map-point-cluster-large-border"        : custom_styles["point-cluster-large-size"]/2+"px"    || "15px", 
+                "--sh-map-point-cluster-large-size"          : custom_styles["point-cluster-large-size"]            || "30px", 
                 "--sh-map-point-cluster-large-font"          : custom_styles["point-cluster-large-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
                 "--sh-map-point-cluster-large-font-color"    : custom_styles["point-cluster-large-font-color"]     || 'black', 
                 "--sh-map-point-cluster-large-color"         : custom_styles["point-cluster-large-color"]          || "rgba(253, 156, 115, 0.6)", 
@@ -1156,7 +1153,6 @@ export default {
         background-color: var(--sh-map-point-cluster-small-color-div);
         width:            var(--sh-map-point-cluster-small-size);
         height:           var(--sh-map-point-cluster-small-size);
-        border-radius:    var(--sh-map-point-cluster-small-border);
         font:             var(--sh-map-point-cluster-small-font);
         color:            var(--sh-map-point-cluster-small-font-color);
         border-style:     var(--sh-map-point-cluster-small-border-style);
@@ -1171,7 +1167,6 @@ export default {
         background-color: var(--sh-map-point-cluster-medium-color-div);
         width:            var(--sh-map-point-cluster-medium-size);
         height:           var(--sh-map-point-cluster-medium-size);
-        border-radius:    var(--sh-map-point-cluster-medium-border);
         font:             var(--sh-map-point-cluster-medium-font);
         color:            var(--sh-map-point-cluster-medium-font-color);
         border-style:     var(--sh-map-point-cluster-medium-border-style);
@@ -1186,7 +1181,6 @@ export default {
         background-color: var(--sh-map-point-cluster-large-color-div);
         width:            var(--sh-map-point-cluster-large-size);
         height:           var(--sh-map-point-cluster-large-size);
-        border-radius:    var(--sh-map-point-cluster-large-border);
         font:             var(--sh-map-point-cluster-large-font);
         color:            var(--sh-map-point-cluster-large-font-color);
         border-style:     var(--sh-map-point-cluster-large-border-style);
@@ -1203,6 +1197,7 @@ export default {
         margin-left: 5px;
         margin-top: 5px;
         text-align: center;
+        border-radius: 100%;
     }
     .marker-cluster span {
         line-height: 30px;
