@@ -18,7 +18,7 @@
         :analytical_layer="analytical_layer"
         :operational_layer="operational_layer"
         :base_layer="base_layer"
-        :custom_styles="map_tools_custom_styles"
+        :custom_styles="map_custom_styles"
         />
     </div>
     <div class="zone zone-d">
@@ -72,7 +72,11 @@ export default {
              */
             map_tools_custom_styles:`
                 {
-                    "radius-multiplier"                 : "8px",
+                    "radius-multiplier"                 : "8px"
+                }
+            `,
+            map_custom_styles:`
+                {
                     "marker-pop-up-title-font"          : "10px 'Helvetica Neue', Arial, Helvetica, sans-serif",
                     "marker-pop-up-title-color"         : "#28b7ab",
                     "marker-pop-up-content-font"        : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
@@ -90,7 +94,7 @@ export default {
                     "point-cluster-small-border-width"  : "3px", 
                     "point-cluster-small-font-color"    : "white",
 
-                    "point-cluster-medium-size"         : "30px", 
+                    "point-cluster-medium-size"         : "40px", 
                     "point-cluster-medium-color"        : "rgb(124, 108, 52, 0.8)", 
                     "point-cluster-medium-color-div"    : "rgb(124, 108, 52, 0.8)", 
                     "point-cluster-medium-border-color" : "#dee07c", 
@@ -98,7 +102,7 @@ export default {
                     "point-cluster-medium-border-width" : "3px", 
                     "point-cluster-medium-font-color"   : "white",
 
-                    "point-cluster-large-size"          : "30px", 
+                    "point-cluster-large-size"          : "60px", 
                     "point-cluster-large-color"         : "rgb(116, 36, 38, 0.8)", 
                     "point-cluster-large-color-div"     : "rgb(116, 36, 38, 0.8)", 
                     "point-cluster-large-border-color"  : "#d14d4a",
@@ -373,6 +377,11 @@ export default {
     }
     #app .zone-c{
         flex-grow: 1;
+    }
+    #app >>> .zone-c > div,
+    #app >>> .zone-c > div > div,
+    #app >>> .zone-c > div > div > div{
+        height: 100%;
     }
     .zone-d {
         padding-top: 1rem;
