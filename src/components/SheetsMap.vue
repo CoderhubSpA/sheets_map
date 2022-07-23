@@ -49,21 +49,21 @@
                             v-on:click="getMarkerData(marker)" 
                             >
                         <!-- https://leafletjs.com/reference.html#popup-->
-                        <l-popup :options="popupOptions" class="marker-pop-up">
+                        <l-popup :options="popup_point_options" class="marker-pop-up">
                             <div v-if="marker.has_data" class="marker-pop-up-content">
                                 <div v-for="(col,key) in visible_columns"  :key="'col-' + key" class="marker-pop-up-single-info">
                                     <span class="marker-pop-up-info-title"> <b>{{col.name}}</b> </span> <br>
                                     <span class="marker-pop-up-info-content"> {{getPopupData(marker,col)}} </span>
                                 </div>
                             </div>
-                            <div v-else class="marker-pop-up-load-content">
+                            <div v-else class="marker-pop-up-single-info">
                                 Cargando...
                             </div>
                         </l-popup>
                     </l-circle-marker>
                 </l-layer-group> 
                 <!-- Analytic layers -->
-                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="styleFunction" :options="options"></l-geo-json>
+                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
                 <!-- Operative layers -->
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -176,6 +176,9 @@ export default {
                 "--sh-map-radius-multiplier"                 : custom_styles["radius-multiplier"]                  || "8px",
                 //Pop-up
                 "--sh-map-marker-pop-up-background"          : custom_styles["marker-pop-up-background"]           || "white",
+                "--sh-map-marker-pop-up-border-color"        : custom_styles["marker-pop-up-border-color"]         || "white",
+                "--sh-map-marker-pop-up-border-width"        : custom_styles["marker-pop-up-border-width"]         || "0px",
+                "--sh-map-marker-pop-up-border-style"        : custom_styles["marker-pop-up-border-style"]         || "solid",
 
                 "--sh-map-marker-pop-up-title-font"          : custom_styles["marker-pop-up-title-font"]           || '"Helvetica Neue", Arial, Helvetica, sans-serif',
                 "--sh-map-marker-pop-up-title-color"         : custom_styles["marker-pop-up-title-color"]          || "black",
@@ -220,23 +223,26 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
-                "hexagonal-cluster-small-color"          : custom_styles["hexagonal-cluster-small-color"]         || "",
-                "hexagonal-cluster-small-opacity"        : custom_styles["hexagonal-cluster-small-opacity"]       || "",
-                "hexagonal-cluster-small-border-color"   : custom_styles["hexagonal-cluster-small-border-color"]  || "",
-                "hexagonal-cluster-small-font"           : custom_styles["hexagonal-cluster-small-font"]          || "",
-                "hexagonal-cluster-small-font-color"     : custom_styles["hexagonal-cluster-small-font-color"]    || "",
-                "hexagonal-cluster-medium-color"         : custom_styles["hexagonal-cluster-medium-color"]        || "",
-                "hexagonal-cluster-medium-opacity"       : custom_styles["hexagonal-cluster-medium-opacity"]      || "",
-                "hexagonal-cluster-medium-border-color"  : custom_styles["hexagonal-cluster-medium-border-color"] || "",
-                "hexagonal-cluster-medium-font"          : custom_styles["hexagonal-cluster-medium-font"]         || "",
-                "hexagonal-cluster-medium-font-color"    : custom_styles["hexagonal-cluster-medium-font-color"]   || "",
-                "hexagonal-cluster-large-color"          : custom_styles["hexagonal-cluster-large-color"]         || "",
-                "hexagonal-cluster-large-opacity"        : custom_styles["hexagonal-cluster-large-opacity"]       || "",
-                "hexagonal-cluster-large-border-color"   : custom_styles["hexagonal-cluster-large-border-color"]  || "",
-                "hexagonal-cluster-large-font"           : custom_styles["hexagonal-cluster-large-font"]          || "",
-                "hexagonal-cluster-large-font-color"     : custom_styles["hexagonal-cluster-large-font-color"]    || ""
+                "hexagonal-cluster-small-color"           : custom_styles["hexagonal-cluster-small-color"]           || "#F9E79F",
+                "hexagonal-cluster-small-opacity"         : custom_styles["hexagonal-cluster-small-opacity"]         || 0.6,
+                "hexagonal-cluster-small-border-color"    : custom_styles["hexagonal-cluster-small-border-color"]    || "#ECEFF1",
+                "hexagonal-cluster-small-border-opacity"  : custom_styles["hexagonal-cluster-small-border-opacity"]  || 0.6,
+                "hexagonal-cluster-small-font"            : custom_styles["hexagonal-cluster-small-font"]            || "",
+                "hexagonal-cluster-small-font-color"      : custom_styles["hexagonal-cluster-small-font-color"]      || "",
+                "hexagonal-cluster-medium-color"          : custom_styles["hexagonal-cluster-medium-color"]          || "#FCAC49",
+                "hexagonal-cluster-medium-opacity"        : custom_styles["hexagonal-cluster-medium-opacity"]        || 0.6,
+                "hexagonal-cluster-medium-border-color"   : custom_styles["hexagonal-cluster-medium-border-color"]   || "#ECEFF1",
+                "hexagonal-cluster-medium-border-opacity" : custom_styles["hexagonal-cluster-medium-border-opacity"] || 0.6,
+                "hexagonal-cluster-medium-font"           : custom_styles["hexagonal-cluster-medium-font"]           || "",
+                "hexagonal-cluster-medium-font-color"     : custom_styles["hexagonal-cluster-medium-font-color"]     || "#E74C3C",
+                "hexagonal-cluster-large-color"           : custom_styles["hexagonal-cluster-large-color"]           || "",
+                "hexagonal-cluster-large-opacity"         : custom_styles["hexagonal-cluster-large-opacity"]         || 0.6,
+                "hexagonal-cluster-large-border-color"    : custom_styles["hexagonal-cluster-large-border-color"]    || "#ECEFF1",
+                "hexagonal-cluster-large-border-opacity"  : custom_styles["hexagonal-cluster-large-border-opacity"]  || 0.6,
+                "hexagonal-cluster-large-font"            : custom_styles["hexagonal-cluster-large-font"]            || "",
+                "hexagonal-cluster-large-font-color"      : custom_styles["hexagonal-cluster-large-font-color"]      || ""
             };
-
+            
         },
         markers_latlgn(){
             
@@ -336,7 +342,7 @@ export default {
             .filter(d => d);      
             return markers;
         },
-        options() {
+        analytic_cluster_options() {
           return {
             onEachFeature: function(feature, layer) {
                 layer.bindTooltip(function (layer) {
@@ -345,7 +351,7 @@ export default {
             }
           };
         },
-        popupOptions(){
+        popup_point_options(){
             return {
                 minWidth : 300,
                 className: 'popupCustom'
@@ -367,55 +373,57 @@ export default {
 
             return heatmapLayer;
         },
-        styleFunction() {
+        analytic_cluster_style() {
             return (feature) => {
-                let color;/*
-                    custom_styles["hexagonal-cluster-small-color"]
-                //Rojo fuerte
-                if (feature.properties.total > 2000) {
-                    color = "#DA2323";
-                }
-                //Rojo 
-                if (feature.properties.total <= 2000) {
-                    color = "#E74C3C";
-                }
-                //Naranja
-                if (feature.properties.total < 1000) {
-                    color = "#E76B3C"; //"#EB984E";
-                }
-                //Naranja claro
-                if (feature.properties.total < 500) {
-                    color = "#E7973C"; //"#F5B041";
-                }
-                //naranja crema
-                if (feature.properties.total < 250) {
-                    color = "#E4CE7F";
-                }
-                //Amarillo
-                if (feature.properties.total < 50) {
-                    color = "#F9E79F";//"#F7DC6F";
-                }*/
+                let color;
+                let opacity;
+                let border_color;
+                let border_opacity;
+                let font;
+                let font_color;
 
-                //Rojo fuerte
-                if (feature.properties.total > 2000) {
-                    color = "#E74C3C";
-                }
-                //Rojo 
-                if (feature.properties.total <= 2000) {
-                    color = "#FA7548";
-                }
-                //Naranja
-                if (feature.properties.total < 1000) {
-                    color = "#FCAC49"; //"#EB984E";
-                }
-                //Naranja claro
-                if (feature.properties.total < 500) {
-                    color = "#F2DB88"; //"#F5B041";
-                }
-                //naranja crema
-                if (feature.properties.total < 250) {
-                    color = "#F9E79F";
-                }
+                /*
+                    custom_styles["hexagonal-cluster-small-color"]
+
+                    hexagonal-cluster-small-color
+                    hexagonal-cluster-small-opacity
+                    hexagonal-cluster-small-border-color
+                    hexagonal-cluster-small-font
+                    hexagonal-cluster-small-font-color
+
+                    hexagonal-cluster-medium-color
+                    hexagonal-cluster-medium-opacity
+                    hexagonal-cluster-medium-border-color
+                    hexagonal-cluster-medium-font
+                    hexagonal-cluster-medium-font-color
+
+                    hexagonal-cluster-large-color
+                    hexagonal-cluster-large-opacity
+                    hexagonal-cluster-large-border-color
+                    hexagonal-cluster-large-font
+                    hexagonal-cluster-large-font-color
+
+                    //Rojo fuerte
+                    if (feature.properties.total > 2000) {
+                        color = "#E74C3C";
+                    }
+                    //Rojo 
+                    if (feature.properties.total <= 2000) {
+                        color = "#FA7548";
+                    }
+                    //Naranja
+                    if (feature.properties.total < 1000) {
+                        color = "#FCAC49"; //"#EB984E";
+                    }
+                    //Naranja claro
+                    if (feature.properties.total < 500) {
+                        color = "#F2DB88"; //"#F5B041";
+                    }
+                    //naranja crema
+                    if (feature.properties.total < 250) {
+                        color = "#F9E79F";
+                    }
+
                 return {
                     weight: 2,
                     color: "#ECEFF1",
@@ -423,6 +431,54 @@ export default {
                     fillOpacity: 0.5,
                     fillColor: color,
                 };
+                */
+
+                //Concentración Alta
+                if (feature.properties.total >= 20) {
+                    color          = this.hexagonal_clusters_style["hexagonal-cluster-large-color"];
+                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
+                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
+                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-large-border-opacity"];
+                    font           = this.hexagonal_clusters_style["hexagonal-cluster-large-font"];
+                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-large-font-color"];
+                }
+
+                //Concentración Media 
+                if (feature.properties.total < 20) {
+                    color          = this.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
+                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
+                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
+                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-opacity"];
+                    font           = this.hexagonal_clusters_style["hexagonal-cluster-medium-font"];
+                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-medium-font-color"];
+                }
+                //Baja
+                if (feature.properties.total < 10) {
+                    color          = this.hexagonal_clusters_style["hexagonal-cluster-small-color"];
+                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
+                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
+                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-small-border-opacity"];
+                    font           = this.hexagonal_clusters_style["hexagonal-cluster-small-font"];
+                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-small-font-color"];
+                }
+                let retur = {
+                    weight: 5,
+                    color: border_color,
+                    opacity: opacity,
+                    fillOpacity: opacity,
+                    fillColor: color,
+                };
+
+                console.log('//--------------------------');
+                console.log(color);
+                console.log(opacity);
+                console.log(border_color);
+                console.log(border_opacity);
+                console.log(font);
+                console.log(font_color);
+                console.log(retur);
+
+                return retur;
             };
 
         },
@@ -1267,6 +1323,9 @@ export default {
 
     .my-map >>> .leaflet-popup-content-wrapper,
     .my-map >>> .leaflet-popup-tip{
-        background-color: darkslategrey;
+        background-color: var(--sh-map-marker-pop-up-background);
+        border-color : var(--sh-map-marker-pop-up-border-color);
+        border-width : var(--sh-map-marker-pop-up-border-width);
+        border-style : var(--sh-map-marker-pop-up-border-style);
     }
 </style>

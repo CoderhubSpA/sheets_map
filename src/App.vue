@@ -64,51 +64,66 @@ export default {
             endpoint_config: "/entity/data/",
             // configuracion component sheets map tools 
             default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
-            /*
-                    "point-cluster-small-size"  Solo acepta VALORES NUMÉRICOS, 
-                    "point-cluster-medium-size" Solo acepta VALORES NUMÉRICOS, 
-                    "point-cluster-large-size"  Solo acepta VALORES NUMÉRICOS, 
-        
-             */
             map_tools_custom_styles:`
                 {
                     "radius-multiplier"                 : "8px"
                 }
             `,
+            //Los valores de color de hexagonal-cluster deben ser en formato HEX
             map_custom_styles:`
                 {
-                    "marker-pop-up-title-font"          : "10px 'Helvetica Neue', Arial, Helvetica, sans-serif",
-                    "marker-pop-up-title-color"         : "#28b7ab",
-                    "marker-pop-up-content-font"        : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
-                    "marker-pop-up-content-color"       : "#202124",
-                    "marker-pop-up-background"          : "yellow",
-                    "marker-pop-up-scroll-color"        : "#23d7cd",
-                    "marker-pop-up-scroll-color-hover"  : "#0ee5d9",
-                    "marker-pop-up-scroll-color-active" : "#06938b",
+                    "marker-pop-up-title-font"              : "8px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "marker-pop-up-title-color"             : "#7EF0A6",
+                    "marker-pop-up-content-font"            : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "marker-pop-up-content-color"           : "#FFFFFF",
+                    "marker-pop-up-background"              : "#02220B",
+                    "marker-pop-up-border-color"            : "#7EF0A6",
+                    "marker-pop-up-border-width"            : "3px", 
+                    "marker-pop-up-border-style"            : "solid",
+                    "marker-pop-up-scroll-color"            : "#7EF0A6",
+                    "marker-pop-up-scroll-color-hover"      : "#17935BA7",
+                    "marker-pop-up-scroll-color-active"     : "#7EF0A6",
 
-                    "point-cluster-small-size"          : "30px", 
-                    "point-cluster-small-color"         : "rgb(106, 136, 115, 0.8)", 
-                    "point-cluster-small-color-div"     : "rgb(106, 136, 115, 0.8)", 
-                    "point-cluster-small-border-color"  : "#70d195", 
-                    "point-cluster-small-border-style"  : "solid", 
-                    "point-cluster-small-border-width"  : "3px", 
-                    "point-cluster-small-font-color"    : "white",
+                    "point-cluster-small-size"              : "30px", 
+                    "point-cluster-small-color"             : "rgb(106, 136, 115, 0.8)", 
+                    "point-cluster-small-color-div"         : "rgb(106, 136, 115, 0.8)", 
+                    "point-cluster-small-border-color"      : "#70d195", 
+                    "point-cluster-small-border-style"      : "solid", 
+                    "point-cluster-small-border-width"      : "3px", 
+                    "point-cluster-small-font-color"        : "white",
 
-                    "point-cluster-medium-size"         : "40px", 
-                    "point-cluster-medium-color"        : "rgb(124, 108, 52, 0.8)", 
-                    "point-cluster-medium-color-div"    : "rgb(124, 108, 52, 0.8)", 
-                    "point-cluster-medium-border-color" : "#dee07c", 
-                    "point-cluster-medium-border-style" : "solid", 
-                    "point-cluster-medium-border-width" : "3px", 
-                    "point-cluster-medium-font-color"   : "white",
+                    "point-cluster-medium-size"             : "40px", 
+                    "point-cluster-medium-color"            : "rgb(124, 108, 52, 0.8)", 
+                    "point-cluster-medium-color-div"        : "rgb(124, 108, 52, 0.8)", 
+                    "point-cluster-medium-border-color"     : "#dee07c", 
+                    "point-cluster-medium-border-style"     : "solid", 
+                    "point-cluster-medium-border-width"     : "3px", 
+                    "point-cluster-medium-font-color"       : "white",
 
-                    "point-cluster-large-size"          : "60px", 
-                    "point-cluster-large-color"         : "rgb(116, 36, 38, 0.8)", 
-                    "point-cluster-large-color-div"     : "rgb(116, 36, 38, 0.8)", 
-                    "point-cluster-large-border-color"  : "#d14d4a",
-                    "point-cluster-large-border-style"  : "solid",
-                    "point-cluster-large-border-width"  : "3px",
-                    "point-cluster-large-font-color"    : "white"
+                    "point-cluster-large-size"              : "60px", 
+                    "point-cluster-large-color"             : "rgb(116, 36, 38, 0.8)", 
+                    "point-cluster-large-color-div"         : "rgb(116, 36, 38, 0.8)", 
+                    "point-cluster-large-border-color"      : "#d14d4a",
+                    "point-cluster-large-border-style"      : "solid",
+                    "point-cluster-large-border-width"      : "3px",
+                    "point-cluster-large-font-color"        : "white",
+                                                            
+                    "hexagonal-cluster-small-color"         : "#6a8873",
+                    "hexagonal-cluster-small-opacity"       : 0.6,
+                    "hexagonal-cluster-small-border-color"  : "#70d195",
+                    "hexagonal-cluster-small-font"          : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "hexagonal-cluster-small-font-color"    : "white",
+                    "hexagonal-cluster-medium-color"        : "#7c6c34",
+                    "hexagonal-cluster-medium-opacity"      : 0.6,
+                    "hexagonal-cluster-medium-border-color" : "#dee07c",
+                    "hexagonal-cluster-medium-font"         : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "hexagonal-cluster-medium-font-color"   : "white",
+                    "hexagonal-cluster-large-color"         : "#742426",
+                    "hexagonal-cluster-large-opacity"       : 0.6,
+                    "hexagonal-cluster-large-border-color"  : "#d14d4a",
+                    "hexagonal-cluster-large-font"          : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
+                    "hexagonal-cluster-large-font-color"    : "white"
+
                 }
             `,
             data              : {},
