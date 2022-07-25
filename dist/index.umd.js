@@ -13970,7 +13970,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "splitLongToh3Index": function() { return /* binding */ splitLongToh3Index; },
 /* harmony export */   "uncompact": function() { return /* binding */ uncompact; }
 /* harmony export */ });
-/* harmony import */ var C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8532);
+/* harmony import */ var C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8532);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1539);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6992);
@@ -27641,7 +27641,7 @@ var libh3 = function (libh3) {
 
   run();
   return libh3;
-}((0,C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
+}((0,C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
 /*
  * Copyright 2018-2019 Uber Technologies, Inc.
  *
@@ -54963,8 +54963,8 @@ if (typeof window !== 'undefined') {
 // EXTERNAL MODULE: external {"commonjs":"vue","commonjs2":"vue","root":"Vue"}
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__(7203);
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=171dae02&scoped=true&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('div',{staticClass:"zone zone-c"},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer,"custom_styles":_vm.map_tools_custom_styles}})],1),_c('div',{staticClass:"zone zone-d"},[_c('div',{staticClass:"zone-body"},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"layers":_vm.layers,"custom_styles":_vm.map_tools_custom_styles}})],1)])])}
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=c74faeb6&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('div',{staticClass:"zone zone-c"},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer,"custom_styles":_vm.map_custom_styles}})],1),_c('div',{staticClass:"zone zone-d"},[_c('div',{staticClass:"zone-body"},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"layers":_vm.layers,"custom_styles":_vm.map_tools_custom_styles}})],1)])])}
 var staticRenderFns = []
 
 
@@ -55033,9 +55033,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=1052106f&scoped=true&
-var SheetsMapvue_type_template_id_1052106f_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{style:(_vm.css_vars)},[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"myMap",staticClass:"myMap",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":2},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{staticClass:"marker-pop-up",attrs:{"options":_vm.popupOptions}},[(marker.has_data)?_c('div',{staticClass:"marker-pop-up-content"},_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key,staticClass:"marker-pop-up-single-info"},[_c('span',{staticClass:"marker-pop-up-info-title"},[_c('b',[_vm._v(_vm._s(col.name))])]),_vm._v(" "),_c('br'),_c('span',{staticClass:"marker-pop-up-info-content"},[_vm._v(" "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',{staticClass:"marker-pop-up-load-content"},[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.styleFunction,"options":_vm.options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
-var SheetsMapvue_type_template_id_1052106f_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=7b1293e0&scoped=true&
+var SheetsMapvue_type_template_id_7b1293e0_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{style:(_vm.css_vars)},[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"my_map",staticClass:"my-map",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":3},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{staticClass:"marker-pop-up",attrs:{"options":_vm.popup_point_options}},[(marker.has_data)?_c('div',{staticClass:"marker-pop-up-content"},_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key,staticClass:"marker-pop-up-single-info"},[_c('span',{staticClass:"marker-pop-up-info-title"},[_c('b',[_vm._v(_vm._s(col.name))])]),_vm._v(" "),_c('br'),_c('span',{staticClass:"marker-pop-up-info-content"},[_vm._v(" "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',{staticClass:"marker-pop-up-single-info"},[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.analytic_cluster_style,"options":_vm.analytic_cluster_options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_7b1293e0_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -60383,7 +60383,7 @@ function getY(p) {
 // EXTERNAL MODULE: ./node_modules/heatmap.js/plugins/leaflet-heatmap/leaflet-heatmap.js
 var leaflet_heatmap = __webpack_require__(2260);
 var leaflet_heatmap_default = /*#__PURE__*/__webpack_require__.n(leaflet_heatmap);
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=script&lang=js&
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=script&lang=js&
 
 
 
@@ -60580,6 +60580,9 @@ leaflet_src.Icon.Default.mergeOptions({
         "--sh-map-radius-multiplier": custom_styles["radius-multiplier"] || "8px",
         //Pop-up
         "--sh-map-marker-pop-up-background": custom_styles["marker-pop-up-background"] || "white",
+        "--sh-map-marker-pop-up-border-color": custom_styles["marker-pop-up-border-color"] || "white",
+        "--sh-map-marker-pop-up-border-width": custom_styles["marker-pop-up-border-width"] || "0px",
+        "--sh-map-marker-pop-up-border-style": custom_styles["marker-pop-up-border-style"] || "solid",
         "--sh-map-marker-pop-up-title-font": custom_styles["marker-pop-up-title-font"] || '"Helvetica Neue", Arial, Helvetica, sans-serif',
         "--sh-map-marker-pop-up-title-color": custom_styles["marker-pop-up-title-color"] || "black",
         "--sh-map-marker-pop-up-content-font": custom_styles["marker-pop-up-content-font"] || '"Helvetica Neue", Arial, Helvetica, sans-serif',
@@ -60615,6 +60618,29 @@ leaflet_src.Icon.Default.mergeOptions({
         "--sh-map-point-cluster-large-border-color": custom_styles["point-cluster-large-border-color"] || "rgba(253, 156, 115, 0.6)",
         "--sh-map-point-cluster-large-border-style": custom_styles["point-cluster-large-border-style"] || "hidden",
         "--sh-map-point-cluster-large-border-width": custom_styles["point-cluster-large-border-width"] || "1px"
+      };
+    },
+    hexagonal_clusters_style: function hexagonal_clusters_style() {
+      var custom_styles = JSON.parse(this.custom_styles) || {};
+      return {
+        "hexagonal-cluster-small-color": custom_styles["hexagonal-cluster-small-color"] || "#F9E79F",
+        "hexagonal-cluster-small-opacity": custom_styles["hexagonal-cluster-small-opacity"] || 0.6,
+        "hexagonal-cluster-small-border-color": custom_styles["hexagonal-cluster-small-border-color"] || "#ECEFF1",
+        "hexagonal-cluster-small-border-opacity": custom_styles["hexagonal-cluster-small-border-opacity"] || 0.6,
+        "hexagonal-cluster-small-font": custom_styles["hexagonal-cluster-small-font"] || "",
+        "hexagonal-cluster-small-font-color": custom_styles["hexagonal-cluster-small-font-color"] || "",
+        "hexagonal-cluster-medium-color": custom_styles["hexagonal-cluster-medium-color"] || "#FCAC49",
+        "hexagonal-cluster-medium-opacity": custom_styles["hexagonal-cluster-medium-opacity"] || 0.6,
+        "hexagonal-cluster-medium-border-color": custom_styles["hexagonal-cluster-medium-border-color"] || "#ECEFF1",
+        "hexagonal-cluster-medium-border-opacity": custom_styles["hexagonal-cluster-medium-border-opacity"] || 0.6,
+        "hexagonal-cluster-medium-font": custom_styles["hexagonal-cluster-medium-font"] || "",
+        "hexagonal-cluster-medium-font-color": custom_styles["hexagonal-cluster-medium-font-color"] || "#E74C3C",
+        "hexagonal-cluster-large-color": custom_styles["hexagonal-cluster-large-color"] || "",
+        "hexagonal-cluster-large-opacity": custom_styles["hexagonal-cluster-large-opacity"] || 0.6,
+        "hexagonal-cluster-large-border-color": custom_styles["hexagonal-cluster-large-border-color"] || "#ECEFF1",
+        "hexagonal-cluster-large-border-opacity": custom_styles["hexagonal-cluster-large-border-opacity"] || 0.6,
+        "hexagonal-cluster-large-font": custom_styles["hexagonal-cluster-large-font"] || "",
+        "hexagonal-cluster-large-font-color": custom_styles["hexagonal-cluster-large-font-color"] || ""
       };
     },
     markers_latlgn: function markers_latlgn() {
@@ -60707,7 +60733,7 @@ leaflet_src.Icon.Default.mergeOptions({
       });
       return markers;
     },
-    options: function options() {
+    analytic_cluster_options: function analytic_cluster_options() {
       return {
         onEachFeature: function onEachFeature(feature, layer) {
           layer.bindTooltip(function (layer) {
@@ -60720,7 +60746,7 @@ leaflet_src.Icon.Default.mergeOptions({
         }
       };
     },
-    popupOptions: function popupOptions() {
+    popup_point_options: function popup_point_options() {
       return {
         minWidth: 300,
         className: 'popupCustom'
@@ -60739,67 +60765,108 @@ leaflet_src.Icon.Default.mergeOptions({
       var heatmapLayer = new (leaflet_heatmap_default())(config);
       return heatmapLayer;
     },
-    styleFunction: function styleFunction() {
+    analytic_cluster_style: function analytic_cluster_style() {
+      var _this4 = this;
+
       return function (feature) {
         var color;
+        var opacity;
+        var border_color;
+        var border_opacity;
+        var font;
+        var font_color;
         /*
-        //Rojo fuerte
-        if (feature.properties.total > 2000) {
-        color = "#DA2323";
+            custom_styles["hexagonal-cluster-small-color"]
+              hexagonal-cluster-small-color
+            hexagonal-cluster-small-opacity
+            hexagonal-cluster-small-border-color
+            hexagonal-cluster-small-font
+            hexagonal-cluster-small-font-color
+              hexagonal-cluster-medium-color
+            hexagonal-cluster-medium-opacity
+            hexagonal-cluster-medium-border-color
+            hexagonal-cluster-medium-font
+            hexagonal-cluster-medium-font-color
+              hexagonal-cluster-large-color
+            hexagonal-cluster-large-opacity
+            hexagonal-cluster-large-border-color
+            hexagonal-cluster-large-font
+            hexagonal-cluster-large-font-color
+              //Rojo fuerte
+            if (feature.properties.total > 2000) {
+                color = "#E74C3C";
+            }
+            //Rojo 
+            if (feature.properties.total <= 2000) {
+                color = "#FA7548";
+            }
+            //Naranja
+            if (feature.properties.total < 1000) {
+                color = "#FCAC49"; //"#EB984E";
+            }
+            //Naranja claro
+            if (feature.properties.total < 500) {
+                color = "#F2DB88"; //"#F5B041";
+            }
+            //naranja crema
+            if (feature.properties.total < 250) {
+                color = "#F9E79F";
+            }
+          return {
+            weight: 2,
+            color: "#ECEFF1",
+            opacity: 0.5,
+            fillOpacity: 0.5,
+            fillColor: color,
+        };
+        */
+        //Concentración Alta
+
+        if (feature.properties.total >= 20) {
+          color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-color"];
+          opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
+          border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
+          border_opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-large-border-opacity"];
+          font = _this4.hexagonal_clusters_style["hexagonal-cluster-large-font"];
+          font_color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-font-color"];
+        } //Concentración Media 
+
+
+        if (feature.properties.total < 20) {
+          color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
+          opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
+          border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
+          border_opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-border-opacity"];
+          font = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-font"];
+          font_color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-font-color"];
+        } //Baja
+
+
+        if (feature.properties.total < 10) {
+          color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-color"];
+          opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
+          border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
+          border_opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-small-border-opacity"];
+          font = _this4.hexagonal_clusters_style["hexagonal-cluster-small-font"];
+          font_color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-font-color"];
         }
-        //Rojo 
-        if (feature.properties.total <= 2000) {
-        color = "#E74C3C";
-        }
-        //Naranja
-        if (feature.properties.total < 1000) {
-        color = "#E76B3C"; //"#EB984E";
-        }
-        //Naranja claro
-        if (feature.properties.total < 500) {
-        color = "#E7973C"; //"#F5B041";
-        }
-        //naranja crema
-        if (feature.properties.total < 250) {
-        color = "#E4CE7F";
-        }
-        //Amarillo
-        if (feature.properties.total < 50) {
-        color = "#F9E79F";//"#F7DC6F";
-        }*/
-        //Rojo fuerte
 
-        if (feature.properties.total > 2000) {
-          color = "#E74C3C";
-        } //Rojo 
-
-
-        if (feature.properties.total <= 2000) {
-          color = "#FA7548";
-        } //Naranja
-
-
-        if (feature.properties.total < 1000) {
-          color = "#FCAC49"; //"#EB984E";
-        } //Naranja claro
-
-
-        if (feature.properties.total < 500) {
-          color = "#F2DB88"; //"#F5B041";
-        } //naranja crema
-
-
-        if (feature.properties.total < 250) {
-          color = "#F9E79F";
-        }
-
-        return {
-          weight: 2,
-          color: "#ECEFF1",
-          opacity: 0.5,
-          fillOpacity: 0.5,
+        var retur = {
+          weight: 5,
+          color: border_color,
+          opacity: opacity,
+          fillOpacity: opacity,
           fillColor: color
         };
+        console.log('//--------------------------');
+        console.log(color);
+        console.log(opacity);
+        console.log(border_color);
+        console.log(border_opacity);
+        console.log(font);
+        console.log(font_color);
+        console.log(retur);
+        return retur;
       };
     },
     // Se genera una lista general de todas las capas activas
@@ -60886,21 +60953,21 @@ leaflet_src.Icon.Default.mergeOptions({
   methods: {
     ready: function ready() {
       this.setTileLayer();
-      this.map = this.$refs.myMap.mapObject;
+      this.map = this.$refs.my_map.mapObject;
     },
     filter: function filter() {
       this.findBounds();
     },
     switchLayers: function switchLayers() {
-      var _this4 = this;
+      var _this5 = this;
 
       // Recalculamos siempre las operative_geoserver_wms activas
       this.operative_geoserver_wms = [];
       this.active_layers.forEach(function (l) {
-        _this4.activeLayers(l);
+        _this5.activeLayers(l);
       });
       this.disabled_layers.forEach(function (l) {
-        _this4.disableLayers(l);
+        _this5.disableLayers(l);
       });
     },
     activeLayers: function activeLayers(layer) {
@@ -61007,7 +61074,7 @@ leaflet_src.Icon.Default.mergeOptions({
       }
     },
     getAnalyticalCountourMap: function getAnalyticalCountourMap(layer) {
-      var _this5 = this;
+      var _this6 = this;
 
       var data;
       var h3_zoom = this.calculateH3ZoomContour();
@@ -61037,29 +61104,29 @@ leaflet_src.Icon.Default.mergeOptions({
           return d;
           });*/
 
-          var data_lat_lng = _this5.h3ToLngLat(h3_indexes_data, key_dimension, key_count);
+          var data_lat_lng = _this6.h3ToLngLat(h3_indexes_data, key_dimension, key_count);
 
           var contour_data = {
             max: 4000,
             data: data_lat_lng
           };
 
-          _this5.heatmapLayer.addTo(_this5.map);
+          _this6.heatmapLayer.addTo(_this6.map);
 
-          _this5.heatmapLayer.setData(contour_data);
+          _this6.heatmapLayer.setData(contour_data);
 
-          _this5.analytic_countour_map = {
+          _this6.analytic_countour_map = {
             bounds: Object.freeze(geojson_bounds)
           };
         } else {
-          _this5.makeEmptyHeatmap();
+          _this6.makeEmptyHeatmap();
         }
 
         console.log('Mapa de calor completado');
       });
     },
     getAnalyticalClusterGeoJson: function getAnalyticalClusterGeoJson(layer) {
-      var _this6 = this;
+      var _this7 = this;
 
       var polygon;
       var geojson_bounds = this.getMapGeoJsonBounds();
@@ -61095,10 +61162,10 @@ leaflet_src.Icon.Default.mergeOptions({
           return 'total';
         });
 
-        var filters = _this6.getFilters(h3_indexes);
+        var filters = _this7.getFilters(h3_indexes);
 
-        polygon = _this6.asPolygon(null, _this6.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex));
-        _this6.analytic_cluster = {
+        polygon = _this7.asPolygon(null, _this7.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex));
+        _this7.analytic_cluster = {
           geo_json: polygon,
           bounds: Object.freeze(geojson_bounds)
         };
@@ -61314,7 +61381,7 @@ leaflet_src.Icon.Default.mergeOptions({
       this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     },
     getMarkerData: function getMarkerData(marker) {
-      var _this7 = this;
+      var _this8 = this;
 
       var url = "".concat(this.base_url, "/entity/data/").concat(this.entity_type_id, "/").concat(marker.id, "?page=1");
       axios_default().get(url).then(function (response) {
@@ -61322,7 +61389,7 @@ leaflet_src.Icon.Default.mergeOptions({
           var all_data = response.data.content;
           var marker_data = lodash_default().first(all_data.data) || {};
 
-          _this7.$set(_this7.markers_data, marker.id, marker_data);
+          _this8.$set(_this8.markers_data, marker.id, marker_data);
         } catch (error) {
           console.error(error);
         }
@@ -61333,7 +61400,7 @@ leaflet_src.Icon.Default.mergeOptions({
       });
     },
     getMapConfiguration: function getMapConfiguration() {
-      var _this8 = this;
+      var _this9 = this;
 
       //data
       var url = "".concat(this.base_url).concat(this.endpoint_config).concat(this.config_entity_type_id, "/").concat(this.config_entity_id, "?page=1&set_alias=alias");
@@ -61343,8 +61410,8 @@ leaflet_src.Icon.Default.mergeOptions({
         try {
           all_data = response.data.content;
           data = lodash_default().first(all_data.data);
-          _this8.col_lng = data.sh_map_column_longitude;
-          _this8.col_lat = data.sh_map_column_latitude;
+          _this9.col_lng = data.sh_map_column_longitude;
+          _this9.col_lat = data.sh_map_column_latitude;
         } catch (error) {
           console.error(error);
         }
@@ -61363,18 +61430,18 @@ leaflet_src.Icon.Default.mergeOptions({
       this.clusters_markers = clusters_markers;
     },
     findBounds: function findBounds() {
-      var _this9 = this;
+      var _this10 = this;
 
       var h = this.map.getZoom();
       var bounds = this.map.getBounds();
       var all_col = this.info.columns;
       var bounds_filters = all_col.filter(function (columns) {
-        if (columns.id == _this9.col_lat || columns.id == _this9.col_lng) {
+        if (columns.id == _this10.col_lat || columns.id == _this10.col_lng) {
           return columns;
         }
       }).map(function (columns, key) {
-        var start = columns.id == _this9.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
-        var end = columns.id == _this9.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
+        var start = columns.id == _this10.col_lat ? bounds._southWest.lat : bounds._southWest.lng;
+        var end = columns.id == _this10.col_lat ? bounds._northEast.lat : bounds._northEast.lng;
         var bounds_filter = {
           "column": columns,
           "id": "external-filter-" + columns.id,
@@ -61585,12 +61652,12 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=1052106f&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=7b1293e0&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=1052106f&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=7b1293e0&prod&scoped=true&lang=css&
 
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
 
 // IMPORTANT: Do NOT use ES2015 features in this file (except for modules).
@@ -61699,17 +61766,17 @@ function componentNormalizer_normalizeComponent(
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_1052106f_scoped_true_render,
-  SheetsMapvue_type_template_id_1052106f_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_7b1293e0_scoped_true_render,
+  SheetsMapvue_type_template_id_7b1293e0_scoped_true_staticRenderFns,
   false,
   null,
-  "1052106f",
+  "7b1293e0",
   null
   
 )
 
 /* harmony default export */ var SheetsMap = (component.exports);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=28dedf24&scoped=true&
+;// CONCATENATED MODULE: ./node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=28dedf24&scoped=true&
 var SheetsMapToolsvue_type_template_id_28dedf24_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('b-dropdown',{attrs:{"id":"dropdown_base_layers","menu-class":"layers-dropdown-menu","dropleft":""},scopedSlots:_vm._u([{key:"button-content",fn:function(){return [_c('b-icon',{attrs:{"icon":"layers-half","aria-hidden":"false"}})]},proxy:true}])},[_c('h5',[_vm._v("Capas Analíticas")]),_vm._l((_vm.analytical_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{
                 'layer-option-active': option.active,
             },attrs:{"value":option.value,"href":"#"},nativeOn:{"!click":function($event){$event.stopPropagation();return _vm.getOption(option)}}},[_c('div',{staticClass:"layer-option",style:({
@@ -69759,7 +69826,7 @@ var BVConfigPlugin=/*#__PURE__*/(/* unused pure expression or super */ null && (
 var install=/*#__PURE__*/installFactory({plugins:{componentsPlugin:componentsPlugin,directivesPlugin:directivesPlugin}});// --- BootstrapVue plugin ---
 var BootstrapVue=/*#__PURE__*/{install:install,NAME:NAME};// --- Named exports for BvConfigPlugin ---
 /* harmony default export */ var bootstrap_vue_esm = ((/* unused pure expression or super */ null && (BootstrapVue)));
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
 
 
 
@@ -69990,7 +70057,7 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-62.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-62.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-62.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-62.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=28dedf24&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-62.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-62.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-62.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-62.use[3]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=28dedf24&prod&scoped=true&lang=scss&
 // extracted by mini-css-extract-plugin
 
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=28dedf24&prod&scoped=true&lang=scss&
@@ -70016,7 +70083,7 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
 )
 
 /* harmony default export */ var SheetsMapTools = (SheetsMapTools_component.exports);
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-80.use[1]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
 
 
 
@@ -70095,13 +70162,9 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
       endpoint_config: "/entity/data/",
       // configuracion component sheets map tools 
       default_info: "bd478f21-43d8-4380-bad8-ecce651b9ba7",
-
-      /*
-              "point-cluster-small-size"  Solo acepta VALORES NUMÉRICOS, 
-              "point-cluster-medium-size" Solo acepta VALORES NUMÉRICOS, 
-              "point-cluster-large-size"  Solo acepta VALORES NUMÉRICOS, 
-                 */
-      map_tools_custom_styles: "\n                {\n                    \"radius-multiplier\"                 : \"8px\",\n                    \"marker-pop-up-title-font\"          : \"10px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"marker-pop-up-title-color\"         : \"#28b7ab\",\n                    \"marker-pop-up-content-font\"        : \"12px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"marker-pop-up-content-color\"       : \"#202124\",\n                    \"marker-pop-up-background\"          : \"yellow\",\n                    \"marker-pop-up-scroll-color\"        : \"#23d7cd\",\n                    \"marker-pop-up-scroll-color-hover\"  : \"#0ee5d9\",\n                    \"marker-pop-up-scroll-color-active\" : \"#06938b\",\n\n                    \"point-cluster-small-size\"          : \"30px\", \n                    \"point-cluster-small-color\"         : \"rgb(106, 136, 115, 0.8)\", \n                    \"point-cluster-small-color-div\"     : \"rgb(106, 136, 115, 0.8)\", \n                    \"point-cluster-small-border-color\"  : \"#70d195\", \n                    \"point-cluster-small-border-style\"  : \"solid\", \n                    \"point-cluster-small-border-width\"  : \"3px\", \n                    \"point-cluster-small-font-color\"    : \"white\",\n\n                    \"point-cluster-medium-size\"         : \"30px\", \n                    \"point-cluster-medium-color\"        : \"rgb(124, 108, 52, 0.8)\", \n                    \"point-cluster-medium-color-div\"    : \"rgb(124, 108, 52, 0.8)\", \n                    \"point-cluster-medium-border-color\" : \"#dee07c\", \n                    \"point-cluster-medium-border-style\" : \"solid\", \n                    \"point-cluster-medium-border-width\" : \"3px\", \n                    \"point-cluster-medium-font-color\"   : \"white\",\n\n                    \"point-cluster-large-size\"          : \"30px\", \n                    \"point-cluster-large-color\"         : \"rgb(116, 36, 38, 0.8)\", \n                    \"point-cluster-large-color-div\"     : \"rgb(116, 36, 38, 0.8)\", \n                    \"point-cluster-large-border-color\"  : \"#d14d4a\",\n                    \"point-cluster-large-border-style\"  : \"solid\",\n                    \"point-cluster-large-border-width\"  : \"3px\",\n                    \"point-cluster-large-font-color\"    : \"white\"\n                }\n            ",
+      map_tools_custom_styles: "\n                {\n                    \"radius-multiplier\"                 : \"8px\"\n                }\n            ",
+      //Los valores de color de hexagonal-cluster deben ser en formato HEX
+      map_custom_styles: "\n                {\n                    \"marker-pop-up-title-font\"              : \"8px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"marker-pop-up-title-color\"             : \"#7EF0A6\",\n                    \"marker-pop-up-content-font\"            : \"12px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"marker-pop-up-content-color\"           : \"#FFFFFF\",\n                    \"marker-pop-up-background\"              : \"#02220B\",\n                    \"marker-pop-up-border-color\"            : \"#7EF0A6\",\n                    \"marker-pop-up-border-width\"            : \"3px\", \n                    \"marker-pop-up-border-style\"            : \"solid\",\n                    \"marker-pop-up-scroll-color\"            : \"#7EF0A6\",\n                    \"marker-pop-up-scroll-color-hover\"      : \"#17935BA7\",\n                    \"marker-pop-up-scroll-color-active\"     : \"#7EF0A6\",\n\n                    \"point-cluster-small-size\"              : \"30px\", \n                    \"point-cluster-small-color\"             : \"rgb(106, 136, 115, 0.8)\", \n                    \"point-cluster-small-color-div\"         : \"rgb(106, 136, 115, 0.8)\", \n                    \"point-cluster-small-border-color\"      : \"#70d195\", \n                    \"point-cluster-small-border-style\"      : \"solid\", \n                    \"point-cluster-small-border-width\"      : \"3px\", \n                    \"point-cluster-small-font-color\"        : \"white\",\n\n                    \"point-cluster-medium-size\"             : \"40px\", \n                    \"point-cluster-medium-color\"            : \"rgb(124, 108, 52, 0.8)\", \n                    \"point-cluster-medium-color-div\"        : \"rgb(124, 108, 52, 0.8)\", \n                    \"point-cluster-medium-border-color\"     : \"#dee07c\", \n                    \"point-cluster-medium-border-style\"     : \"solid\", \n                    \"point-cluster-medium-border-width\"     : \"3px\", \n                    \"point-cluster-medium-font-color\"       : \"white\",\n\n                    \"point-cluster-large-size\"              : \"60px\", \n                    \"point-cluster-large-color\"             : \"rgb(116, 36, 38, 0.8)\", \n                    \"point-cluster-large-color-div\"         : \"rgb(116, 36, 38, 0.8)\", \n                    \"point-cluster-large-border-color\"      : \"#d14d4a\",\n                    \"point-cluster-large-border-style\"      : \"solid\",\n                    \"point-cluster-large-border-width\"      : \"3px\",\n                    \"point-cluster-large-font-color\"        : \"white\",\n                                                            \n                    \"hexagonal-cluster-small-color\"         : \"#6a8873\",\n                    \"hexagonal-cluster-small-opacity\"       : 0.6,\n                    \"hexagonal-cluster-small-border-color\"  : \"#70d195\",\n                    \"hexagonal-cluster-small-font\"          : \"12px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"hexagonal-cluster-small-font-color\"    : \"white\",\n                    \"hexagonal-cluster-medium-color\"        : \"#7c6c34\",\n                    \"hexagonal-cluster-medium-opacity\"      : 0.6,\n                    \"hexagonal-cluster-medium-border-color\" : \"#dee07c\",\n                    \"hexagonal-cluster-medium-font\"         : \"12px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"hexagonal-cluster-medium-font-color\"   : \"white\",\n                    \"hexagonal-cluster-large-color\"         : \"#742426\",\n                    \"hexagonal-cluster-large-opacity\"       : 0.6,\n                    \"hexagonal-cluster-large-border-color\"  : \"#d14d4a\",\n                    \"hexagonal-cluster-large-font\"          : \"12px 'Helvetica Neue', Arial, Helvetica, sans-serif\",\n                    \"hexagonal-cluster-large-font-color\"    : \"white\"\n\n                }\n            ",
       data: {},
       info: {},
       config_data: {},
@@ -70410,10 +70473,10 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
 });
 ;// CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
  /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=171dae02&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-52.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-52.use[1]!./node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-52.use[2]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=c74faeb6&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=171dae02&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=c74faeb6&prod&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./src/App.vue
 
@@ -70430,7 +70493,7 @@ var App_component = componentNormalizer_normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "171dae02",
+  "c74faeb6",
   null
   
 )
