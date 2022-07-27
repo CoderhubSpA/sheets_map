@@ -1280,7 +1280,7 @@ export default {
         border-radius: 100%;
     }
     .marker-cluster span {
-        line-height: 30px;
+        line-height: var(--sh-map-point-cluster-small-size);
     }
     .marker-cluster-medium span {
         line-height: var(--sh-map-point-cluster-medium-size);
