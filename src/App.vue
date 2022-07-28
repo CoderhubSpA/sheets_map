@@ -22,23 +22,26 @@
         />
     </div>
     <div class="zone zone-d">
-      <div class="zone-body">
-        <SheetsMapTools
-          ref="sheetsMapTools"
-          :base_url="base_url"
-          :id="id"
-          :entity_type_id="entity_type_id"
-          :config_entity_type_id="config_entity_type_id"
-          :config_entity_id="config_entity_id"
-          :endpoint_config="endpoint_config"
-          code="map_tools"
-          :active_filters="active_filters"
-          :data="data"
-          :info="info"
-          :layers="layers"
-          :custom_styles="map_tools_custom_styles"
-        />
-      </div>
+        <button @click="toggleZoneD()">
+            <b-icon icon="gear-fill" aria-hidden="false"></b-icon>
+        </button>
+        <div class="zone-body">
+            <SheetsMapTools
+            ref="sheetsMapTools"
+            :base_url="base_url"
+            :id="id"
+            :entity_type_id="entity_type_id"
+            :config_entity_type_id="config_entity_type_id"
+            :config_entity_id="config_entity_id"
+            :endpoint_config="endpoint_config"
+            code="map_tools"
+            :active_filters="active_filters"
+            :data="data"
+            :info="info"
+            :layers="layers"
+            :custom_styles="map_tools_custom_styles"
+            />
+        </div>
     </div>
   </div>
 </template>
@@ -48,6 +51,14 @@ import SheetsMap from "./components/SheetsMap.vue";
 import SheetsMapTools from "./components/SheetsMapTools.vue";
 import axios from "axios";
 import _ from "lodash";
+import Vue from "vue";
+import {
+    BootstrapVue,
+    BootstrapVueIcons,
+} from "bootstrap-vue/dist/bootstrap-vue.esm";
+
+Vue.use(BootstrapVue);
+Vue.use(BootstrapVueIcons);
 
 export default {
     name: "App",
@@ -298,6 +309,13 @@ export default {
             });
 
         },
+        // toggle .zone-d class .active
+        toggleZoneD(){
+            const zone_d = document.querySelector('.zone-d');
+            if(zone_d){
+                zone_d.classList.toggle('active');
+            }
+        },
         async requestData(){
             //data
             let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=["${this.col_lng}","${this.col_lat}"]&page=1`;
@@ -378,7 +396,11 @@ export default {
 };
 </script>
 
-<style scoped>
+<style scoped >
+
+    @import "~bootstrap-vue/dist/bootstrap-vue.css";
+    @import "~bootstrap/dist/css/bootstrap.min";
+
     #app {
         font-family: Avenir, Helvetica, Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
@@ -392,6 +414,8 @@ export default {
     }
     #app .zone-c{
         flex-grow: 1;
+        /* Eliminar este heigth si se modifica el boton "Ver esta zona" */
+        height: calc(100vh - 38px);
     }
     #app >>> .zone-c > div,
     #app >>> .zone-c > div > div,
@@ -403,21 +427,38 @@ export default {
         width: 48px;
         background-color: #001D09;
         display: flex;
-        justify-content: center;
+        flex-flow: column;
+        justify-content: flex-start;
+        overflow: hidden;
+        transition: width .4s ease;
     }
     .zone-d > .zone-body{
-        width: 40px;
+        width: 300px;
+        overflow: hidden;
+        opacity: 0;
+        transition: opacity .4s ease;
     }
     .zone-d > .zone-body > .layers-dropdown .b-dropdown{
         width: 100%;
     }
     .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle{
-        
         max-width: 40px;
         padding-left: 0;
         padding-right: 0;
     }
+    
+    .zone-d.active {
+        width: 308px;
+    }
+    .zone-d.active > .zone-body{
+        opacity: 1;
+    }
     .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle::after{
         display: none;
+    }
+    .zone-d > button {
+        color: #fff;
+        background-color: #565e6466;
+        border-color: transparent;
     }
 </style>

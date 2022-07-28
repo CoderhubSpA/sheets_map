@@ -54953,8 +54953,8 @@ if (typeof window !== 'undefined') {
 // EXTERNAL MODULE: external {"commonjs":"vue","commonjs2":"vue","root":"Vue"}
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__(3797);
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=c74faeb6&scoped=true&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('div',{staticClass:"zone zone-c"},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer,"custom_styles":_vm.map_custom_styles}})],1),_c('div',{staticClass:"zone zone-d"},[_c('div',{staticClass:"zone-body"},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"layers":_vm.layers,"custom_styles":_vm.map_tools_custom_styles}})],1)])])}
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=9098776e&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('div',{staticClass:"zone zone-c"},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer,"custom_styles":_vm.map_custom_styles}})],1),_c('div',{staticClass:"zone zone-d"},[_c('button',{on:{"click":function($event){return _vm.toggleZoneD()}}},[_c('b-icon',{attrs:{"icon":"gear-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"zone-body"},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"layers":_vm.layers,"custom_styles":_vm.map_tools_custom_styles}})],1)])])}
 var staticRenderFns = []
 
 
@@ -61766,21 +61766,275 @@ var component = componentNormalizer_normalizeComponent(
 )
 
 /* harmony default export */ var SheetsMap = (component.exports);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=28dedf24&scoped=true&
-var SheetsMapToolsvue_type_template_id_28dedf24_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('b-dropdown',{attrs:{"id":"dropdown_base_layers","menu-class":"layers-dropdown-menu","dropleft":""},scopedSlots:_vm._u([{key:"button-content",fn:function(){return [_c('b-icon',{attrs:{"icon":"layers-half","aria-hidden":"false"}})]},proxy:true}])},[_c('h5',[_vm._v("Capas Analíticas")]),_vm._l((_vm.analytical_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=56b8ce28&scoped=true&
+var SheetsMapToolsvue_type_template_id_56b8ce28_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('div',{staticClass:"layers-menu",attrs:{"id":"dropdown_base_layers"}},[_c('h5',[_vm._v("Capas Analíticas")]),_vm._l((_vm.analytical_layer),function(option){return _c('div',{key:option.key,class:{
+                'layer-option-wrapper': true,
                 'layer-option-active': option.active,
-            },attrs:{"value":option.value,"href":"#"},nativeOn:{"!click":function($event){$event.stopPropagation();return _vm.getOption(option)}}},[_c('div',{staticClass:"layer-option",style:({
+            },attrs:{"value":option.value,"href":"#"},on:{"click":function($event){return _vm.getOption(option)}}},[_c('button',{staticClass:"layer-option",style:({
                     backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
-                })},[_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Base")]),_vm._l((_vm.base_layers),function(option){return _c('b-dropdown-item',{key:option.key,class:{
+                })},[_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Base")]),_vm._l((_vm.base_layers),function(option){return _c('div',{key:option.key,class:{
+                'layer-option-wrapper': true,
                 'layer-option-active': option.active,
-            },attrs:{"value":option.value},nativeOn:{"!click":function($event){$event.stopPropagation();return _vm.getOption(option)}}},[_c('div',{staticClass:"layer-option",style:({
+            },attrs:{"value":option.value},on:{"click":function($event){return _vm.getOption(option)}}},[_c('button',{staticClass:"layer-option",style:({
                     backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
-                })},[_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Operativas")]),_c('div',{staticClass:"layer-group"},_vm._l((_vm.operational_layer),function(option){return _c('b-dropdown-item',{key:option.key,class:{
+                })},[_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Operativas")]),_c('div',{staticClass:"layer-group"},_vm._l((_vm.operational_layer),function(option){return _c('div',{key:option.key,class:{
+                    'layer-option-wrapper': true,
                     'layer-option-active': option.active,
-                },attrs:{"value":option.value,"href":"#"},nativeOn:{"!click":function($event){$event.stopPropagation();return _vm.getOption(option)}}},[_c('div',{staticClass:"layer-option layer-option-grouped"},[_c('div',{staticClass:"layer-option-body"},[_c('div',{staticClass:"layer-image-container"},[(option.image)?_c('img',{attrs:{"src":("" + _vm.base_url + (option.image)),"alt":""}}):_vm._e()]),_c('span',[_vm._v(_vm._s(option.value))])])])])}),1)],2)],1)}
-var SheetsMapToolsvue_type_template_id_28dedf24_scoped_true_staticRenderFns = []
+                },attrs:{"value":option.value,"href":"#"},on:{"click":function($event){return _vm.getOption(option)}}},[_c('button',{staticClass:"layer-option layer-option-grouped"},[_c('div',{staticClass:"layer-option-body"},[_c('div',{staticClass:"layer-image-container"},[(option.image)?_c('img',{attrs:{"src":("" + _vm.base_url + (option.image)),"alt":""}}):_vm._e()]),_c('span',[_vm._v(_vm._s(option.value))])])])])}),0)],2)])}
+var SheetsMapToolsvue_type_template_id_56b8ce28_scoped_true_staticRenderFns = []
 
 
+;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
+
+
+
+
+
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+/* harmony default export */ var SheetsMapToolsvue_type_script_lang_js_ = ({
+  props: {
+    // Propiedades de componentes
+    id: String,
+    entity_type_id: String,
+    config_entity_id: String,
+    config_entity_type_id: String,
+    endpoint_config: String,
+    code: String,
+    base_url: String,
+    active_filters: Array,
+    info: Object,
+    data: Object,
+    layers: Object,
+    // Todas las capas
+    custom_styles: String,
+    data_pivots: {
+      type: Object,
+      default: function _default() {}
+    },
+    all_info: {
+      type: Object,
+      default: function _default() {}
+    }
+  },
+  data: function data() {
+    return {
+      data_tools: [],
+      data_tools_id: "",
+      base_layer: {},
+      base_layers: [],
+      operational_layer: [],
+      analytical_layer: []
+    };
+  },
+  computed: {
+    parsed_layers: function parsed_layers() {
+      var parsed_layers = [];
+
+      if (!lodash_default().isEmpty(this.layers)) {
+        parsed_layers = this.parseData();
+      }
+
+      return parsed_layers;
+    },
+    css_vars: function css_vars() {
+      var custom_styles = JSON.parse(this.custom_styles) || {};
+      return {
+        "--radius-multiplier": custom_styles["radius-multiplier"] || "8px",
+        "--option-color": custom_styles["option-color"] || "#001D09",
+        "--border-color": custom_styles["border-color"] || "#7EF0A6",
+        "--menu-bg-color": custom_styles["menu-bg-color"] || "#343B30AA",
+        "--button-bg-color": custom_styles["button-bg-color"] || "#6a6a6a22",
+        "--button-text-color": custom_styles["button-text-color"] || "#D3D3D3"
+      };
+    }
+  },
+  watch: {
+    parsed_layers: {
+      handler: function handler() {
+        if (Array.isArray(this.parsed_layers)) {
+          this.base_layers = this.parsed_layers.filter(function (item) {
+            return item.type == "base";
+          });
+          this.operational_layer = this.parsed_layers.filter(function (item) {
+            return item.type == "operative";
+          });
+          this.analytical_layer = this.parsed_layers.filter(function (item) {
+            return item.type == "analytic";
+          }); // Elegimos la primera si existe y si no se ha seleccionado alguna capa
+
+          if (lodash_default().isEmpty(this.base_layer) && lodash_default().first(this.base_layers)) {
+            this.base_layer = lodash_default().first(this.base_layers) || {};
+            this.base_layer.active = true;
+          }
+        }
+      },
+      deep: true
+    }
+  },
+  methods: {
+    getOption: function getOption(option) {
+      var _this = this;
+
+      var option_active_val = option.active;
+
+      switch (option.type) {
+        case "base":
+          // La capa base solo debe tener una activa
+          if (this.base_layer.key == option.key) {
+            option.active = !option_active_val;
+            this.base_layer = {};
+          } else {
+            if (lodash_default().isEmpty(this.base_layer)) {
+              option.active = !option_active_val;
+              this.base_layer = option;
+            } else if (this.base_layer.key !== option.key) {
+              var cb = this.base_layers.find(function (elem) {
+                return elem.key == _this.base_layer.key;
+              });
+              cb.active = option_active_val;
+              option.active = !option_active_val;
+              this.base_layer = option;
+            }
+          }
+
+          break;
+
+        case "analytic":
+          option.active = !option_active_val;
+          break;
+
+        case "operative":
+          option.active = !option_active_val;
+          break;
+      }
+    },
+    parseData: function parseData() {
+      var parsed_layers_result = Object.values(this.layers).map(function (layer) {
+        return {
+          key: layer.id,
+          type: layer["sh_map_has_layer_type"],
+          image: layer["sh_map_has_layer_image"],
+          value: layer.name,
+          active: false // la capa esta desactiva por default
+
+        };
+      });
+      return parsed_layers_result;
+    }
+  }
+});
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
+ /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-22.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-22.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-22.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-22.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=56b8ce28&prod&scoped=true&lang=scss&
+// extracted by mini-css-extract-plugin
+
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=56b8ce28&prod&scoped=true&lang=scss&
+
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue
+
+
+
+;
+
+
+/* normalize component */
+
+var SheetsMapTools_component = componentNormalizer_normalizeComponent(
+  components_SheetsMapToolsvue_type_script_lang_js_,
+  SheetsMapToolsvue_type_template_id_56b8ce28_scoped_true_render,
+  SheetsMapToolsvue_type_template_id_56b8ce28_scoped_true_staticRenderFns,
+  false,
+  null,
+  "56b8ce28",
+  null
+  
+)
+
+/* harmony default export */ var SheetsMapTools = (SheetsMapTools_component.exports);
 // EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/typeof.js
 var esm_typeof = __webpack_require__(3336);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptor.js
@@ -69816,263 +70070,6 @@ var BVConfigPlugin=/*#__PURE__*/(/* unused pure expression or super */ null && (
 var install=/*#__PURE__*/installFactory({plugins:{componentsPlugin:componentsPlugin,directivesPlugin:directivesPlugin}});// --- BootstrapVue plugin ---
 var BootstrapVue=/*#__PURE__*/{install:install,NAME:NAME};// --- Named exports for BvConfigPlugin ---
 /* harmony default export */ var bootstrap_vue_esm = ((/* unused pure expression or super */ null && (BootstrapVue)));
-;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
-
-
-
-
-
-
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
-
-
-external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVue);
-external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
-/* harmony default export */ var SheetsMapToolsvue_type_script_lang_js_ = ({
-  props: {
-    // Propiedades de componentes
-    id: String,
-    entity_type_id: String,
-    config_entity_id: String,
-    config_entity_type_id: String,
-    endpoint_config: String,
-    code: String,
-    base_url: String,
-    active_filters: Array,
-    info: Object,
-    data: Object,
-    layers: Object,
-    // Todas las capas
-    custom_styles: String,
-    data_pivots: {
-      type: Object,
-      default: function _default() {}
-    },
-    all_info: {
-      type: Object,
-      default: function _default() {}
-    }
-  },
-  data: function data() {
-    return {
-      data_tools: [],
-      data_tools_id: "",
-      base_layer: {},
-      base_layers: [],
-      operational_layer: [],
-      analytical_layer: []
-    };
-  },
-  computed: {
-    parsed_layers: function parsed_layers() {
-      var parsed_layers = [];
-
-      if (!lodash_default().isEmpty(this.layers)) {
-        parsed_layers = this.parseData();
-      }
-
-      return parsed_layers;
-    },
-    css_vars: function css_vars() {
-      var custom_styles = JSON.parse(this.custom_styles) || {};
-      return {
-        "--radius-multiplier": custom_styles["radius-multiplier"] || "8px",
-        "--option-color": custom_styles["option-color"] || "#001D09",
-        "--border-color": custom_styles["border-color"] || "#7EF0A6",
-        "--menu-bg-color": custom_styles["menu-bg-color"] || "#343B30AA",
-        "--button-bg-color": custom_styles["button-bg-color"] || "#6a6a6a22",
-        "--button-text-color": custom_styles["button-text-color"] || "#D3D3D3"
-      };
-    }
-  },
-  watch: {
-    parsed_layers: {
-      handler: function handler() {
-        if (Array.isArray(this.parsed_layers)) {
-          this.base_layers = this.parsed_layers.filter(function (item) {
-            return item.type == "base";
-          });
-          this.operational_layer = this.parsed_layers.filter(function (item) {
-            return item.type == "operative";
-          });
-          this.analytical_layer = this.parsed_layers.filter(function (item) {
-            return item.type == "analytic";
-          }); // Elegimos la primera si existe y si no se ha seleccionado alguna capa
-
-          if (lodash_default().isEmpty(this.base_layer) && lodash_default().first(this.base_layers)) {
-            this.base_layer = lodash_default().first(this.base_layers) || {};
-            this.base_layer.active = true;
-          }
-        }
-      },
-      deep: true
-    }
-  },
-  methods: {
-    getOption: function getOption(option) {
-      var _this = this;
-
-      var option_active_val = option.active;
-
-      switch (option.type) {
-        case "base":
-          // La capa base solo debe tener una activa
-          if (this.base_layer.key == option.key) {
-            option.active = !option_active_val;
-            this.base_layer = {};
-          } else {
-            if (lodash_default().isEmpty(this.base_layer)) {
-              option.active = !option_active_val;
-              this.base_layer = option;
-            } else if (this.base_layer.key !== option.key) {
-              var cb = this.base_layers.find(function (elem) {
-                return elem.key == _this.base_layer.key;
-              });
-              cb.active = option_active_val;
-              option.active = !option_active_val;
-              this.base_layer = option;
-            }
-          }
-
-          break;
-
-        case "analytic":
-          option.active = !option_active_val;
-          break;
-
-        case "operative":
-          option.active = !option_active_val;
-          break;
-      }
-    },
-    parseData: function parseData() {
-      var parsed_layers_result = Object.values(this.layers).map(function (layer) {
-        return {
-          key: layer.id,
-          type: layer["sh_map_has_layer_type"],
-          image: layer["sh_map_has_layer_image"],
-          value: layer.name,
-          active: false // la capa esta desactiva por default
-
-        };
-      });
-      return parsed_layers_result;
-    }
-  }
-});
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
- /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-22.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-22.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-22.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-22.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=28dedf24&prod&scoped=true&lang=scss&
-// extracted by mini-css-extract-plugin
-
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=28dedf24&prod&scoped=true&lang=scss&
-
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue
-
-
-
-;
-
-
-/* normalize component */
-
-var SheetsMapTools_component = componentNormalizer_normalizeComponent(
-  components_SheetsMapToolsvue_type_script_lang_js_,
-  SheetsMapToolsvue_type_template_id_28dedf24_scoped_true_render,
-  SheetsMapToolsvue_type_template_id_28dedf24_scoped_true_staticRenderFns,
-  false,
-  null,
-  "28dedf24",
-  null
-  
-)
-
-/* harmony default export */ var SheetsMapTools = (SheetsMapTools_component.exports);
 ;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
 
 
@@ -70133,10 +70130,17 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
 //
 //
 //
+//
+//
+//
 
 
 
 
+
+
+external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVue);
+external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
 /* harmony default export */ var Appvue_type_script_lang_js_ = ({
   name: "App",
   data: function data() {
@@ -70330,6 +70334,14 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
         console.error(error);
       });
     },
+    // toggle .zone-d class .active
+    toggleZoneD: function toggleZoneD() {
+      var zone_d = document.querySelector('.zone-d');
+
+      if (zone_d) {
+        zone_d.classList.toggle('active');
+      }
+    },
     requestData: function requestData() {
       var _this4 = this;
 
@@ -70463,10 +70475,10 @@ var SheetsMapTools_component = componentNormalizer_normalizeComponent(
 });
 ;// CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
  /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=c74faeb6&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=9098776e&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=c74faeb6&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=9098776e&prod&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./src/App.vue
 
@@ -70483,7 +70495,7 @@ var App_component = componentNormalizer_normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "c74faeb6",
+  "9098776e",
   null
   
 )
