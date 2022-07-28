@@ -22,6 +22,9 @@
                         backgroundImage: `url(${base_url}${option.image})`,
                     }"
                 >
+                    <div class="layer-option-active-icon">
+                        <b-icon icon="dash-circle-fill" aria-hidden="false"></b-icon>
+                    </div>
                     <div class="layer-option-body">
                         <span>{{ option.value }}</span>
                     </div>
@@ -45,6 +48,9 @@
                         backgroundImage: `url(${base_url}${option.image})`,
                     }"
                 >
+                    <div class="layer-option-active-icon">
+                        <b-icon icon="dash-circle-fill" aria-hidden="false"></b-icon>
+                    </div>
                     <div class="layer-option-body">
                         <span>{{ option.value }}</span>
                     </div>
@@ -65,6 +71,9 @@
                     }"
                 >
                     <button class="layer-option layer-option-grouped">
+                        <div class="layer-option-active-icon">
+                            <b-icon icon="dash-circle-fill" aria-hidden="false"></b-icon>
+                        </div>
                         <div class="layer-option-body">
                             <div class="layer-image-container">
                                 <img
@@ -219,25 +228,16 @@ export default {
 
 <style scoped lang="scss">
 .layers-dropdown /deep/ {
-
     h5 {
         font-size: 0.75rem;
         color: var(--border-color);
         margin-top: 15px;
     }
-    // .dropdown-toggle {
-    //     border: none;
-    //     background-color: var(--button-bg-color);
-    //     color: var(--button-text-color);
-    //     &::after {
-    //         display: none;
-    //     }
-    // }
     .layers-menu {
         overflow: auto;
         border-radius: var(--radius-multiplier);
         max-height: 80vh;
-        min-width: 272px;
+        min-width: 250px;
     }
     .layer-option-wrapper {
         padding: 0;
@@ -254,10 +254,11 @@ export default {
         border-radius: var(--radius-multiplier);
         overflow: hidden;
         height: 72px;
-        background: transparent;
+        background-color: transparent;
         border: none;
         width: 100%;
         padding: 0;
+        cursor: pointer;
         .layer-option-body {
             background: linear-gradient(
                 transparent 20%,
@@ -272,6 +273,7 @@ export default {
             color: white;
             font-size: 0.75rem;
             transition: all 0.4s ease;
+            box-sizing: border-box;
         }
         .layer-option-body span {
             max-width: 100%;
@@ -281,10 +283,26 @@ export default {
         &:hover .layer-option-body {
             background: linear-gradient(transparent 20%, #044617 92%);
         }
+        .layer-option-active-icon{
+            display: none;
+            height: 0;
+            overflow: visible;
+            color: var(--border-color);
+            svg{
+                height: 16px;
+                width: 16px;
+                margin-top: 3px;
+                margin-right: 3px;
+            }
+        }
     }
     .layer-option-active {
         .layer-option {
             border: 2px solid var(--border-color);
+            .layer-option-active-icon{
+                display: flex;
+                justify-content: flex-end;
+            }
         }
         .layer-option-grouped {
             background-color: var(--option-color);

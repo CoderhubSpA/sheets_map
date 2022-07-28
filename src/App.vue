@@ -22,7 +22,7 @@
         />
     </div>
     <div class="zone zone-d">
-        <button @click="toggleZoneD()">
+        <button class="zone-d-toggle-btn" @click="toggleZoneD()">
             <b-icon icon="gear-fill" aria-hidden="false"></b-icon>
         </button>
         <div class="zone-body">
@@ -396,12 +396,9 @@ export default {
 };
 </script>
 
-<style scoped >
-
-    @import "~bootstrap-vue/dist/bootstrap-vue.css";
-    @import "~bootstrap/dist/css/bootstrap.min";
-
-    #app {
+<style scoped lang="scss">
+  
+    #app /deep/ {
         font-family: Avenir, Helvetica, Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -410,56 +407,63 @@ export default {
         box-shadow: 2px 2px 20px #2c3e50aa;
         flex-direction: row;
         display: flex;
-        height: 100vh
-    }
-    #app .zone-c{
-        flex-grow: 1;
-        /* Eliminar este heigth si se modifica el boton "Ver esta zona" */
-        height: calc(100vh - 38px);
-    }
-    #app >>> .zone-c > div,
-    #app >>> .zone-c > div > div,
-    #app >>> .zone-c > div > div > div{
-        height: 100%;
-    }
-    .zone-d {
-        padding-top: 1rem;
-        width: 48px;
-        background-color: #001D09;
-        display: flex;
-        flex-flow: column;
-        justify-content: flex-start;
-        overflow: hidden;
-        transition: width .4s ease;
-    }
-    .zone-d > .zone-body{
-        width: 300px;
-        padding: 1.25rem;
-        overflow: hidden;
-        opacity: 0;
-        transition: opacity .4s ease;
-    }
-    .zone-d > .zone-body > .layers-dropdown .b-dropdown{
-        width: 100%;
-    }
-    .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle{
-        max-width: 40px;
-        padding-left: 0;
-        padding-right: 0;
-    }
-    
-    .zone-d.active {
-        width: 308px;
-    }
-    .zone-d.active > .zone-body{
-        opacity: 1;
-    }
-    .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle::after{
-        display: none;
-    }
-    .zone-d > button {
-        color: #fff;
-        background-color: #565e6466;
-        border-color: transparent;
+        height: 100vh;
+        .zone-d-toggle-btn{
+            cursor: pointer;
+            svg{
+                font-size: 1.5rem;
+            }
+        }
+        .zone-c{
+            flex-grow: 1;
+            /* Eliminar este heigth si se modifica el boton "Ver esta zona" */
+            height: calc(100vh - 38px);
+            & > div,
+            & > div > div,
+            & > div > div > div{
+                height: 100%;
+            }
+        }
+        .zone-d {
+            padding-top: 1rem;
+            width: 48px;
+            background-color: #001D09;
+            display: flex;
+            flex-flow: column;
+            justify-content: flex-start;
+            overflow: hidden;
+            transition: width .4s ease;
+            & > .zone-body{
+                box-sizing: border-box;
+                width: 300px;
+                padding: 1.25rem;
+                overflow: hidden;
+                opacity: 0;
+                transition: opacity .4s ease;
+            }
+            & > .zone-body > .layers-dropdown .b-dropdown{
+                width: 100%;
+            }
+            & > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle{
+                max-width: 40px;
+                padding-left: 0;
+                padding-right: 0;
+            }
+        }
+        
+        .zone-d.active {
+            width: 308px;
+        }
+        .zone-d.active > .zone-body{
+            opacity: 1;
+        }
+        .zone-d > .zone-body > .layers-dropdown .b-dropdown .dropdown-toggle::after{
+            display: none;
+        }
+        .zone-d > button {
+            color: #fff;
+            background-color: #565e6466;
+            border-color: transparent;
+        }
     }
 </style>
