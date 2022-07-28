@@ -434,6 +434,7 @@ export default {
     }
     .zone-d > .zone-body{
         width: 300px;
+        padding: 1.25rem;
         overflow: hidden;
         opacity: 0;
         transition: opacity .4s ease;

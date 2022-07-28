@@ -134,8 +134,6 @@ export default {
                     custom_styles["radius-multiplier"] || "8px",
                 "--option-color": custom_styles["option-color"] || "#001D09",
                 "--border-color": custom_styles["border-color"] || "#7EF0A6",
-                "--menu-bg-color":
-                    custom_styles["menu-bg-color"] || "#343B30AA",
                 "--button-bg-color":
                     custom_styles["button-bg-color"] || "#6a6a6a22",
                 "--button-text-color":
@@ -236,10 +234,8 @@ export default {
     //     }
     // }
     .layers-menu {
-        background-color: var(--menu-bg-color);
         overflow: auto;
         border-radius: var(--radius-multiplier);
-        padding: 1.25rem;
         max-height: 80vh;
         min-width: 272px;
     }
