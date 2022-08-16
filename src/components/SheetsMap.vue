@@ -382,59 +382,8 @@ export default {
                 let font;
                 let font_color;
 
-                /*
-                    custom_styles["hexagonal-cluster-small-color"]
-
-                    hexagonal-cluster-small-color
-                    hexagonal-cluster-small-opacity
-                    hexagonal-cluster-small-border-color
-                    hexagonal-cluster-small-font
-                    hexagonal-cluster-small-font-color
-
-                    hexagonal-cluster-medium-color
-                    hexagonal-cluster-medium-opacity
-                    hexagonal-cluster-medium-border-color
-                    hexagonal-cluster-medium-font
-                    hexagonal-cluster-medium-font-color
-
-                    hexagonal-cluster-large-color
-                    hexagonal-cluster-large-opacity
-                    hexagonal-cluster-large-border-color
-                    hexagonal-cluster-large-font
-                    hexagonal-cluster-large-font-color
-
-                    //Rojo fuerte
-                    if (feature.properties.total > 2000) {
-                        color = "#E74C3C";
-                    }
-                    //Rojo 
-                    if (feature.properties.total <= 2000) {
-                        color = "#FA7548";
-                    }
-                    //Naranja
-                    if (feature.properties.total < 1000) {
-                        color = "#FCAC49"; //"#EB984E";
-                    }
-                    //Naranja claro
-                    if (feature.properties.total < 500) {
-                        color = "#F2DB88"; //"#F5B041";
-                    }
-                    //naranja crema
-                    if (feature.properties.total < 250) {
-                        color = "#F9E79F";
-                    }
-
-                return {
-                    weight: 2,
-                    color: "#ECEFF1",
-                    opacity: 0.5,
-                    fillOpacity: 0.5,
-                    fillColor: color,
-                };
-                */
-
                 //Concentración Alta
-                if (feature.properties.total >= 20) {
+                if (feature.properties.total >= this.config.sh_map_large_cluster_size_starts_at) {
                     color          = this.hexagonal_clusters_style["hexagonal-cluster-large-color"];
                     opacity        = this.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
                     border_color   = this.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
@@ -444,7 +393,7 @@ export default {
                 }
 
                 //Concentración Media 
-                if (feature.properties.total < 20) {
+                if (feature.properties.total < this.config.sh_map_large_cluster_size_starts_at) {
                     color          = this.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
                     opacity        = this.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
                     border_color   = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
@@ -453,7 +402,7 @@ export default {
                     font_color     = this.hexagonal_clusters_style["hexagonal-cluster-medium-font-color"];
                 }
                 //Baja
-                if (feature.properties.total < 10) {
+                if (feature.properties.total < this.config.sh_map_medium_cluster_size_starts_at) {
                     color          = this.hexagonal_clusters_style["hexagonal-cluster-small-color"];
                     opacity        = this.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
                     border_color   = this.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
@@ -469,14 +418,6 @@ export default {
                     fillColor: color,
                 };
 
-                console.log('//--------------------------');
-                console.log(color);
-                console.log(opacity);
-                console.log(border_color);
-                console.log(border_opacity);
-                console.log(font);
-                console.log(font_color);
-                console.log(retur);
 
                 return retur;
             };
@@ -691,11 +632,7 @@ export default {
 
                     let key_count        = data_map_hex.indexOf("total");
                     let key_dimension    = data_map_hex.indexOf("h3");
-                    let h3_indexes_data  = data;/*
-                    let h3_indexes_data  = data.map(d => {
-                        d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
-                        return d;
-                    });*/
+                    let h3_indexes_data  = data;
                     
                     let data_lat_lng = this.h3ToLngLat(h3_indexes_data,key_dimension,key_count);
                     let contour_data = {
@@ -729,16 +666,7 @@ export default {
 
                 let key_dimension    = data_map.indexOf("h3r".concat(h3_zoom));
                 let h3_indexes_data  = data; 
-                /*
-                console.log('a');
-                let h3_indexes_data  = data.map(d => {
-                    d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
-                    return d;
-                });
-                console.log('b');
-                let h3_indexes = data.map(d => {
-                    return this.decimalToHexadecimal(d[key_dimension]);
-                });*/
+
                 let h3_indexes = data.map(d => {
                     return d[key_dimension];
                 });
