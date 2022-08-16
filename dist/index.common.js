@@ -13960,7 +13960,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "splitLongToh3Index": function() { return /* binding */ splitLongToh3Index; },
 /* harmony export */   "uncompact": function() { return /* binding */ uncompact; }
 /* harmony export */ });
-/* harmony import */ var C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3336);
+/* harmony import */ var C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3336);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1539);
 /* harmony import */ var core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_object_to_string_js__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6992);
@@ -27631,7 +27631,7 @@ var libh3 = function (libh3) {
 
   run();
   return libh3;
-}((0,C_xampp81_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
+}((0,C_xamppphp8_1_htdocs_sheets_map_node_modules_babel_runtime_helpers_esm_typeof_js__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(libh3) === 'object' ? libh3 : {});
 /*
  * Copyright 2018-2019 Uber Technologies, Inc.
  *
@@ -55023,9 +55023,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=1d661d85&scoped=true&
-var SheetsMapvue_type_template_id_1d661d85_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{style:(_vm.css_vars)},[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"my_map",staticClass:"my-map",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":3},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{staticClass:"marker-pop-up",attrs:{"options":_vm.popup_point_options}},[(marker.has_data)?_c('div',{staticClass:"marker-pop-up-content"},_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key,staticClass:"marker-pop-up-single-info"},[_c('span',{staticClass:"marker-pop-up-info-title"},[_c('b',[_vm._v(_vm._s(col.name))])]),_vm._v(" "),_c('br'),_c('span',{staticClass:"marker-pop-up-info-content"},[_vm._v(" "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',{staticClass:"marker-pop-up-single-info"},[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.analytic_cluster_style,"options":_vm.analytic_cluster_options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
-var SheetsMapvue_type_template_id_1d661d85_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=f8754d8e&scoped=true&
+var SheetsMapvue_type_template_id_f8754d8e_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{style:(_vm.css_vars)},[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"my_map",staticClass:"my-map",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":3},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{staticClass:"marker-pop-up",attrs:{"options":_vm.popup_point_options}},[(marker.has_data)?_c('div',{staticClass:"marker-pop-up-content"},_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key,staticClass:"marker-pop-up-single-info"},[_c('span',{staticClass:"marker-pop-up-info-title"},[_c('b',[_vm._v(_vm._s(col.name))])]),_vm._v(" "),_c('br'),_c('span',{staticClass:"marker-pop-up-info-content"},[_vm._v(" "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',{staticClass:"marker-pop-up-single-info"},[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.analytic_cluster_style,"options":_vm.analytic_cluster_options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_f8754d8e_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -60764,55 +60764,9 @@ leaflet_src.Icon.Default.mergeOptions({
         var border_color;
         var border_opacity;
         var font;
-        var font_color;
-        /*
-            custom_styles["hexagonal-cluster-small-color"]
-              hexagonal-cluster-small-color
-            hexagonal-cluster-small-opacity
-            hexagonal-cluster-small-border-color
-            hexagonal-cluster-small-font
-            hexagonal-cluster-small-font-color
-              hexagonal-cluster-medium-color
-            hexagonal-cluster-medium-opacity
-            hexagonal-cluster-medium-border-color
-            hexagonal-cluster-medium-font
-            hexagonal-cluster-medium-font-color
-              hexagonal-cluster-large-color
-            hexagonal-cluster-large-opacity
-            hexagonal-cluster-large-border-color
-            hexagonal-cluster-large-font
-            hexagonal-cluster-large-font-color
-              //Rojo fuerte
-            if (feature.properties.total > 2000) {
-                color = "#E74C3C";
-            }
-            //Rojo 
-            if (feature.properties.total <= 2000) {
-                color = "#FA7548";
-            }
-            //Naranja
-            if (feature.properties.total < 1000) {
-                color = "#FCAC49"; //"#EB984E";
-            }
-            //Naranja claro
-            if (feature.properties.total < 500) {
-                color = "#F2DB88"; //"#F5B041";
-            }
-            //naranja crema
-            if (feature.properties.total < 250) {
-                color = "#F9E79F";
-            }
-          return {
-            weight: 2,
-            color: "#ECEFF1",
-            opacity: 0.5,
-            fillOpacity: 0.5,
-            fillColor: color,
-        };
-        */
-        //Concentración Alta
+        var font_color; //Concentración Alta
 
-        if (feature.properties.total >= 20) {
+        if (feature.properties.total >= _this4.config.sh_map_large_cluster_size_starts_at) {
           color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-color"];
           opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
           border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
@@ -60822,7 +60776,7 @@ leaflet_src.Icon.Default.mergeOptions({
         } //Concentración Media 
 
 
-        if (feature.properties.total < 20) {
+        if (feature.properties.total < _this4.config.sh_map_large_cluster_size_starts_at) {
           color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
           opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
           border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
@@ -60832,7 +60786,7 @@ leaflet_src.Icon.Default.mergeOptions({
         } //Baja
 
 
-        if (feature.properties.total < 10) {
+        if (feature.properties.total < _this4.config.sh_map_medium_cluster_size_starts_at) {
           color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-color"];
           opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
           border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
@@ -60848,14 +60802,6 @@ leaflet_src.Icon.Default.mergeOptions({
           fillOpacity: opacity,
           fillColor: color
         };
-        console.log('//--------------------------');
-        console.log(color);
-        console.log(opacity);
-        console.log(border_color);
-        console.log(border_opacity);
-        console.log(font);
-        console.log(font_color);
-        console.log(retur);
         return retur;
       };
     },
@@ -61088,11 +61034,6 @@ leaflet_src.Icon.Default.mergeOptions({
           var key_count = data_map_hex.indexOf("total");
           var key_dimension = data_map_hex.indexOf("h3");
           var h3_indexes_data = data;
-          /*
-          let h3_indexes_data  = data.map(d => {
-          d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
-          return d;
-          });*/
 
           var data_lat_lng = _this6.h3ToLngLat(h3_indexes_data, key_dimension, key_count);
 
@@ -61130,17 +61071,6 @@ leaflet_src.Icon.Default.mergeOptions({
         var data_map = lodash_default().first(Object.values(all_cubes.data_map)) || {};
         var key_dimension = data_map.indexOf("h3r".concat(h3_zoom));
         var h3_indexes_data = data;
-        /*
-        console.log('a');
-        let h3_indexes_data  = data.map(d => {
-            d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
-            return d;
-        });
-        console.log('b');
-        let h3_indexes = data.map(d => {
-            return this.decimalToHexadecimal(d[key_dimension]);
-        });*/
-
         var h3_indexes = data.map(function (d) {
           return d[key_dimension];
         });
@@ -61642,10 +61572,10 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=1d661d85&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=f8754d8e&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=1d661d85&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=f8754d8e&prod&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -61756,11 +61686,11 @@ function componentNormalizer_normalizeComponent(
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_1d661d85_scoped_true_render,
-  SheetsMapvue_type_template_id_1d661d85_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_f8754d8e_scoped_true_render,
+  SheetsMapvue_type_template_id_f8754d8e_scoped_true_staticRenderFns,
   false,
   null,
-  "1d661d85",
+  "f8754d8e",
   null
   
 )
