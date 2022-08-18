@@ -61698,13 +61698,13 @@ var component = componentNormalizer_normalizeComponent(
 )
 
 /* harmony default export */ var SheetsMap = (component.exports);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=71fbaf48&scoped=true&
-var SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('menu',{staticClass:"layers-menu",attrs:{"id":"dropdown_base_layers"}},_vm._l((_vm.grouped_layers),function(group,group_key){return _c('section',{key:group_key},[_c('h5',[_vm._v(_vm._s(group_key))]),_vm._l((group),function(subgroup,subgroup_key){return _c('div',{key:subgroup_key},[(subgroup_key == 'null')?_c('div',{staticClass:"layer-group"},_vm._l((subgroup),function(option){return _c('div',{key:option.key,staticClass:"layer-option-wrapper",class:{
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=2aa46eea&scoped=true&
+var SheetsMapToolsvue_type_template_id_2aa46eea_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('menu',{staticClass:"layers-menu",attrs:{"id":"dropdown_base_layers"}},_vm._l((_vm.grouped_layers),function(group,group_key){return _c('section',{key:group_key},[_c('h5',[_vm._v(_vm._s(group_key))]),_vm._l((group),function(subgroup,subgroup_key){return _c('div',{key:subgroup_key},[(subgroup_key == 'null')?_c('div',{staticClass:"layer-group"},_vm._l((subgroup),function(option){return _c('div',{key:option.key,staticClass:"layer-option-wrapper",class:{
                             'active': option.active,
                         },on:{"click":function($event){return _vm.toggleLayer(option)}}},[(Object.values(group).length > 1)?_c('button',{staticClass:"layer-option grouped"},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('div',{staticClass:"layer-image-container"},[(option.image)?_c('img',{attrs:{"src":("" + _vm.base_url + (option.image)),"alt":""}}):_vm._e()]),_c('span',[_vm._v(_vm._s(option.value))])])]):_c('button',{staticClass:"layer-option",style:({
                                 backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
                             })},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),0):_c('div',{staticClass:"layer-subgroup"},[_c('fieldset',{staticClass:"collapsed"},[_c('legend',{on:{"click":function (e) { return e.currentTarget.parentNode.classList.toggle('collapsed'); }}},[_vm._v(" "+_vm._s(subgroup_key)+" "),_c('b-icon',{attrs:{"icon":"chevron-up"}})],1),_c('ul',{staticClass:"layer-subgroup-body"},_vm._l((subgroup),function(option){return _c('li',{key:option.key,on:{"click":function($event){return _vm.toggleLayer(option)}}},[_c('input',{attrs:{"type":"checkbox"},domProps:{"checked":option.active}}),_c('label',[_vm._v(_vm._s(option.value))])])}),0)])])])})],2)}),0)])}
-var SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_staticRenderFns = []
+var SheetsMapToolsvue_type_template_id_2aa46eea_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.sort.js
@@ -61907,10 +61907,10 @@ var es_array_sort = __webpack_require__(2707);
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-62.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-62.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-62.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-62.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=71fbaf48&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-62.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-62.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-62.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-62.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=2aa46eea&prod&scoped=true&lang=scss&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=71fbaf48&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=2aa46eea&prod&scoped=true&lang=scss&
 
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue
 
@@ -61923,11 +61923,11 @@ var es_array_sort = __webpack_require__(2707);
 
 var SheetsMapTools_component = componentNormalizer_normalizeComponent(
   components_SheetsMapToolsvue_type_script_lang_js_,
-  SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_render,
-  SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_staticRenderFns,
+  SheetsMapToolsvue_type_template_id_2aa46eea_scoped_true_render,
+  SheetsMapToolsvue_type_template_id_2aa46eea_scoped_true_staticRenderFns,
   false,
   null,
-  "71fbaf48",
+  "2aa46eea",
   null
   
 )

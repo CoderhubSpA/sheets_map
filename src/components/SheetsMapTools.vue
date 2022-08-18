@@ -198,7 +198,7 @@ export default {
 .layers-dropdown /deep/ {
     .layers-menu {
         h5 {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: var(--option-active-color);
             margin-top: 30px;
             margin-bottom: 5px;
@@ -322,6 +322,8 @@ export default {
                     cursor: pointer;
                     display: flex;
                     justify-content: space-between;
+                    font-size: .8rem;
+                    margin: 0;
                     svg {
                         transition: transform 0.4s ease;
                         stroke-width: 1;
