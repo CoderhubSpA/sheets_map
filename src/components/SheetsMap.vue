@@ -132,10 +132,7 @@ export default {
         // SheetsMapTools
         config                : Object, // Todas las capas
         layers                : Object, // Todas las capas
-        analytical_layer      : Array,
-        operational_layer     : Array,
-        base_layer            : Object
-        
+        working_layers        : Array
     },
     data () {
         return {
@@ -427,9 +424,8 @@ export default {
         active_layers(){
             if(_.isEmpty(this.layers)){ return []}
             let active_layers_raw = []
-            active_layers_raw = active_layers_raw.concat(this.analytical_layer.filter( l => l.active));
-            active_layers_raw = active_layers_raw.concat(this.operational_layer.filter( l => l.active));
-            active_layers_raw = active_layers_raw.concat([this.base_layer].filter( l => l.active));
+
+            active_layers_raw = active_layers_raw.concat(this.working_layers.filter( l => l.active));
 
             let active_layers_keys = active_layers_raw.map( lr => lr.key );
 
@@ -573,17 +569,13 @@ export default {
 
                 }
                 case 'analytic_countour_map' : {
-
                     if (!_.isEmpty(this.analytic_countour_map)) {
 
                         this.analytic_countour_map = undefined;
                         
                         this.makeEmptyHeatmap();
                     }
-
-
                     break;
-
                 }
                 case 'base_google_map' : {
                     this.base_google_map = undefined;

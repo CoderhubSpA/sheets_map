@@ -15,9 +15,7 @@
         :info="info"
         :config="config"
         :layers="layers"
-        :analytical_layer="analytical_layer"
-        :operational_layer="operational_layer"
-        :base_layer="base_layer"
+        :working_layers="working_layers"
         :custom_styles="map_custom_styles"
         />
     </div>
@@ -142,9 +140,7 @@ export default {
             config_data       : {},
             config_info       : {},
             layers_info       : {},
-            analytical_layer  : [],
-            operational_layer : [],
-            base_layer        : {},
+            working_layers    : [],
             active_filters    : []
         };
     },
@@ -272,23 +268,11 @@ export default {
     },
     mounted(){
         this.$watch(
-            "$refs.sheetsMapTools.analytical_layer",
+            "$refs.sheetsMapTools.working_layers",
             (new_value) => {
-                this.analytical_layer = new_value;
-            }
-        );
-        this.$watch(
-            "$refs.sheetsMapTools.operational_layer",
-            (new_value) => {
-                this.operational_layer = new_value;
+                this.working_layers = new_value;
             }
         ); 
-        this.$watch(
-            "$refs.sheetsMapTools.base_layer",
-            (new_value) => {
-                this.base_layer = new_value;
-            }
-        );
         this.$watch("$refs.sheetsMap.bounds_filters", (active_filters) => {
             this.active_filters = active_filters;
             this.requestData();
