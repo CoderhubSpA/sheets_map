@@ -54953,8 +54953,8 @@ if (typeof window !== 'undefined') {
 // EXTERNAL MODULE: external {"commonjs":"vue","commonjs2":"vue","root":"Vue"}
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__(3797);
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=913023fe&scoped=true&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('div',{staticClass:"zone zone-c"},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"analytical_layer":_vm.analytical_layer,"operational_layer":_vm.operational_layer,"base_layer":_vm.base_layer,"custom_styles":_vm.map_custom_styles}})],1),_c('div',{staticClass:"zone zone-d"},[_c('button',{staticClass:"zone-d-toggle-btn",on:{"click":function($event){return _vm.toggleZoneD()}}},[_c('b-icon',{attrs:{"icon":"gear-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"zone-body"},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"layers":_vm.layers,"custom_styles":_vm.map_tools_custom_styles}})],1)])])}
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=template&id=922d9354&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"app"}},[_c('div',{staticClass:"zone zone-c"},[_c('SheetsMap',{ref:"sheetsMap",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"config":_vm.config,"layers":_vm.layers,"working_layers":_vm.working_layers,"custom_styles":_vm.map_custom_styles}})],1),_c('div',{staticClass:"zone zone-d"},[_c('button',{staticClass:"zone-d-toggle-btn",on:{"click":function($event){return _vm.toggleZoneD()}}},[_c('b-icon',{attrs:{"icon":"gear-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"zone-body"},[_c('SheetsMapTools',{ref:"sheetsMapTools",attrs:{"base_url":_vm.base_url,"id":_vm.id,"entity_type_id":_vm.entity_type_id,"config_entity_type_id":_vm.config_entity_type_id,"config_entity_id":_vm.config_entity_id,"endpoint_config":_vm.endpoint_config,"code":"map_tools","active_filters":_vm.active_filters,"data":_vm.data,"info":_vm.info,"layers":_vm.layers,"custom_styles":_vm.map_tools_custom_styles}})],1)])])}
 var staticRenderFns = []
 
 
@@ -55023,9 +55023,9 @@ var es_string_iterator = __webpack_require__(8783);
 var web_dom_collections_iterator = __webpack_require__(3948);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
 var es_array_filter = __webpack_require__(7327);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=1d661d85&scoped=true&
-var SheetsMapvue_type_template_id_1d661d85_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{style:(_vm.css_vars)},[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"my_map",staticClass:"my-map",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":3},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{staticClass:"marker-pop-up",attrs:{"options":_vm.popup_point_options}},[(marker.has_data)?_c('div',{staticClass:"marker-pop-up-content"},_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key,staticClass:"marker-pop-up-single-info"},[_c('span',{staticClass:"marker-pop-up-info-title"},[_c('b',[_vm._v(_vm._s(col.name))])]),_vm._v(" "),_c('br'),_c('span',{staticClass:"marker-pop-up-info-content"},[_vm._v(" "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',{staticClass:"marker-pop-up-single-info"},[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.analytic_cluster_style,"options":_vm.analytic_cluster_options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
-var SheetsMapvue_type_template_id_1d661d85_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=template&id=6056025a&scoped=true&
+var SheetsMapvue_type_template_id_6056025a_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{style:(_vm.css_vars)},[_c('button',{staticClass:"btn btn-filter",attrs:{"type":"button"},on:{"click":function($event){return _vm.filter()}}},[_vm._v(" Ver esta zona ")]),_c('div',[_c('l-map',{ref:"my_map",staticClass:"my-map",attrs:{"zoom":_vm.zoom,"center":_vm.center},on:{"ready":function($event){return _vm.ready()},"moveend":function($event){return _vm.getClusterInfo();}}},[(_vm.base_open_street_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_open_street_map.sh_map_has_layer_url}}):(_vm.base_google_map)?_c('l-tile-layer',{attrs:{"url":_vm.base_google_map.sh_map_has_layer_url}}):(_vm.base_map_guide)?_c('l-tile-layer',{attrs:{"url":_vm.base_map_guide.sh_map_has_layer_url}}):_c('l-tile-layer',{attrs:{"url":_vm.default_base_layer,"attribution":_vm.default_attribution}}),_c('l-layer-group',{ref:"lgroup"},[_vm._l((_vm.clusters),function(cluster,index){return _c('l-marker',{key:index,attrs:{"lat-lng":cluster.lat_lng}},[_c('l-icon',{attrs:{"icon-anchor":[40,40],"class-name":'marker-cluster marker-cluster-'+cluster.size}},[_c('div',{staticClass:"headline"},[_c('span',[_vm._v(" "+_vm._s(cluster.properties.point_count_abbreviated))])])])],1)}),_vm._l((_vm.markers),function(marker,index){return _c('l-circle-marker',{key:'marker-' + index,ref:"circlemarker",refInFor:true,attrs:{"lat-lng":marker.lat_lng,"radius":3},on:{"click":function($event){return _vm.getMarkerData(marker)}}},[_c('l-popup',{staticClass:"marker-pop-up",attrs:{"options":_vm.popup_point_options}},[(marker.has_data)?_c('div',{staticClass:"marker-pop-up-content"},_vm._l((_vm.visible_columns),function(col,key){return _c('div',{key:'col-' + key,staticClass:"marker-pop-up-single-info"},[_c('span',{staticClass:"marker-pop-up-info-title"},[_c('b',[_vm._v(_vm._s(col.name))])]),_vm._v(" "),_c('br'),_c('span',{staticClass:"marker-pop-up-info-content"},[_vm._v(" "+_vm._s(_vm.getPopupData(marker,col))+" ")])])}),0):_c('div',{staticClass:"marker-pop-up-single-info"},[_vm._v(" Cargando... ")])])],1)})],2),(_vm.analytic_cluster != undefined)?_c('l-geo-json',{attrs:{"geojson":_vm.analytic_cluster.geo_json,"options-style":_vm.analytic_cluster_style,"options":_vm.analytic_cluster_options}}):_vm._e(),_vm._l(((_vm.operative_geoserver_wms || [])),function(layer){return _c('l-wms-tile-layer',{key:layer.id,attrs:{"base-url":layer.sh_map_has_layer_url,"layers":layer.sh_map_has_layer_geoserver_layer,"name":layer.sh_map_has_layer_geoserver_layer,"transparent":true,"format":"image/png","layer-type":"base","service":"WMS"}})})],2)],1)])}
+var SheetsMapvue_type_template_id_6056025a_scoped_true_staticRenderFns = []
 
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.map.js
@@ -60526,9 +60526,7 @@ leaflet_src.Icon.Default.mergeOptions({
     // Todas las capas
     layers: Object,
     // Todas las capas
-    analytical_layer: Array,
-    operational_layer: Array,
-    base_layer: Object
+    working_layers: Array
   },
   data: function data() {
     return {
@@ -60764,55 +60762,9 @@ leaflet_src.Icon.Default.mergeOptions({
         var border_color;
         var border_opacity;
         var font;
-        var font_color;
-        /*
-            custom_styles["hexagonal-cluster-small-color"]
-              hexagonal-cluster-small-color
-            hexagonal-cluster-small-opacity
-            hexagonal-cluster-small-border-color
-            hexagonal-cluster-small-font
-            hexagonal-cluster-small-font-color
-              hexagonal-cluster-medium-color
-            hexagonal-cluster-medium-opacity
-            hexagonal-cluster-medium-border-color
-            hexagonal-cluster-medium-font
-            hexagonal-cluster-medium-font-color
-              hexagonal-cluster-large-color
-            hexagonal-cluster-large-opacity
-            hexagonal-cluster-large-border-color
-            hexagonal-cluster-large-font
-            hexagonal-cluster-large-font-color
-              //Rojo fuerte
-            if (feature.properties.total > 2000) {
-                color = "#E74C3C";
-            }
-            //Rojo 
-            if (feature.properties.total <= 2000) {
-                color = "#FA7548";
-            }
-            //Naranja
-            if (feature.properties.total < 1000) {
-                color = "#FCAC49"; //"#EB984E";
-            }
-            //Naranja claro
-            if (feature.properties.total < 500) {
-                color = "#F2DB88"; //"#F5B041";
-            }
-            //naranja crema
-            if (feature.properties.total < 250) {
-                color = "#F9E79F";
-            }
-          return {
-            weight: 2,
-            color: "#ECEFF1",
-            opacity: 0.5,
-            fillOpacity: 0.5,
-            fillColor: color,
-        };
-        */
-        //Concentración Alta
+        var font_color; //Concentración Alta
 
-        if (feature.properties.total >= 20) {
+        if (feature.properties.total >= _this4.config.sh_map_large_cluster_size_starts_at) {
           color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-color"];
           opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
           border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
@@ -60822,7 +60774,7 @@ leaflet_src.Icon.Default.mergeOptions({
         } //Concentración Media 
 
 
-        if (feature.properties.total < 20) {
+        if (feature.properties.total < _this4.config.sh_map_large_cluster_size_starts_at) {
           color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
           opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
           border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
@@ -60832,7 +60784,7 @@ leaflet_src.Icon.Default.mergeOptions({
         } //Baja
 
 
-        if (feature.properties.total < 10) {
+        if (feature.properties.total < _this4.config.sh_map_medium_cluster_size_starts_at) {
           color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-color"];
           opacity = _this4.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
           border_color = _this4.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
@@ -60848,14 +60800,6 @@ leaflet_src.Icon.Default.mergeOptions({
           fillOpacity: opacity,
           fillColor: color
         };
-        console.log('//--------------------------');
-        console.log(color);
-        console.log(opacity);
-        console.log(border_color);
-        console.log(border_opacity);
-        console.log(font);
-        console.log(font_color);
-        console.log(retur);
         return retur;
       };
     },
@@ -60866,13 +60810,7 @@ leaflet_src.Icon.Default.mergeOptions({
       }
 
       var active_layers_raw = [];
-      active_layers_raw = active_layers_raw.concat(this.analytical_layer.filter(function (l) {
-        return l.active;
-      }));
-      active_layers_raw = active_layers_raw.concat(this.operational_layer.filter(function (l) {
-        return l.active;
-      }));
-      active_layers_raw = active_layers_raw.concat([this.base_layer].filter(function (l) {
+      active_layers_raw = active_layers_raw.concat(this.working_layers.filter(function (l) {
         return l.active;
       }));
       var active_layers_keys = active_layers_raw.map(function (lr) {
@@ -61088,11 +61026,6 @@ leaflet_src.Icon.Default.mergeOptions({
           var key_count = data_map_hex.indexOf("total");
           var key_dimension = data_map_hex.indexOf("h3");
           var h3_indexes_data = data;
-          /*
-          let h3_indexes_data  = data.map(d => {
-          d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
-          return d;
-          });*/
 
           var data_lat_lng = _this6.h3ToLngLat(h3_indexes_data, key_dimension, key_count);
 
@@ -61130,17 +61063,6 @@ leaflet_src.Icon.Default.mergeOptions({
         var data_map = lodash_default().first(Object.values(all_cubes.data_map)) || {};
         var key_dimension = data_map.indexOf("h3r".concat(h3_zoom));
         var h3_indexes_data = data;
-        /*
-        console.log('a');
-        let h3_indexes_data  = data.map(d => {
-            d[key_dimension] = this.decimalToHexadecimal(d[key_dimension]);
-            return d;
-        });
-        console.log('b');
-        let h3_indexes = data.map(d => {
-            return this.decimalToHexadecimal(d[key_dimension]);
-        });*/
-
         var h3_indexes = data.map(function (d) {
           return d[key_dimension];
         });
@@ -61642,10 +61564,10 @@ leaflet_src.Icon.Default.mergeOptions({
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapvue_type_script_lang_js_ = (SheetsMapvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=1d661d85&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-12.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-12.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-12.use[2]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMap.vue?vue&type=style&index=0&id=6056025a&prod&scoped=true&lang=css&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=1d661d85&prod&scoped=true&lang=css&
+;// CONCATENATED MODULE: ./src/components/SheetsMap.vue?vue&type=style&index=0&id=6056025a&prod&scoped=true&lang=css&
 
 ;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -61756,34 +61678,27 @@ function componentNormalizer_normalizeComponent(
 
 var component = componentNormalizer_normalizeComponent(
   components_SheetsMapvue_type_script_lang_js_,
-  SheetsMapvue_type_template_id_1d661d85_scoped_true_render,
-  SheetsMapvue_type_template_id_1d661d85_scoped_true_staticRenderFns,
+  SheetsMapvue_type_template_id_6056025a_scoped_true_render,
+  SheetsMapvue_type_template_id_6056025a_scoped_true_staticRenderFns,
   false,
   null,
-  "1d661d85",
+  "6056025a",
   null
   
 )
 
 /* harmony default export */ var SheetsMap = (component.exports);
-;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=4adfcaaa&scoped=true&
-var SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('div',{staticClass:"layers-menu",attrs:{"id":"dropdown_base_layers"}},[_c('h5',[_vm._v("Capas Analíticas")]),_vm._l((_vm.analytical_layer),function(option){return _c('div',{key:option.key,class:{
-                'layer-option-wrapper': true,
-                'layer-option-active': option.active,
-            },attrs:{"value":option.value,"href":"#"},on:{"click":function($event){return _vm.getOption(option)}}},[_c('button',{staticClass:"layer-option",style:({
-                    backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
-                })},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Base")]),_vm._l((_vm.base_layers),function(option){return _c('div',{key:option.key,class:{
-                'layer-option-wrapper': true,
-                'layer-option-active': option.active,
-            },attrs:{"value":option.value},on:{"click":function($event){return _vm.getOption(option)}}},[_c('button',{staticClass:"layer-option",style:({
-                    backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
-                })},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),_c('h5',[_vm._v("Capas Operativas")]),_c('div',{staticClass:"layer-group"},_vm._l((_vm.operational_layer),function(option){return _c('div',{key:option.key,class:{
-                    'layer-option-wrapper': true,
-                    'layer-option-active': option.active,
-                },attrs:{"value":option.value,"href":"#"},on:{"click":function($event){return _vm.getOption(option)}}},[_c('button',{staticClass:"layer-option layer-option-grouped"},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('div',{staticClass:"layer-image-container"},[(option.image)?_c('img',{attrs:{"src":("" + _vm.base_url + (option.image)),"alt":""}}):_vm._e()]),_c('span',[_vm._v(_vm._s(option.value))])])])])}),0)],2)])}
-var SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_staticRenderFns = []
+;// CONCATENATED MODULE: ./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=template&id=71fbaf48&scoped=true&
+var SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"dropdown",staticClass:"layers-dropdown",style:(_vm.css_vars)},[_c('menu',{staticClass:"layers-menu",attrs:{"id":"dropdown_base_layers"}},_vm._l((_vm.grouped_layers),function(group,group_key){return _c('section',{key:group_key},[_c('h5',[_vm._v(_vm._s(group_key))]),_vm._l((group),function(subgroup,subgroup_key){return _c('div',{key:subgroup_key},[(subgroup_key == 'null')?_c('div',{staticClass:"layer-group"},_vm._l((subgroup),function(option){return _c('div',{key:option.key,staticClass:"layer-option-wrapper",class:{
+                            'active': option.active,
+                        },on:{"click":function($event){return _vm.toggleLayer(option)}}},[(Object.values(group).length > 1)?_c('button',{staticClass:"layer-option grouped"},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill","aria-hidden":"false"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('div',{staticClass:"layer-image-container"},[(option.image)?_c('img',{attrs:{"src":("" + _vm.base_url + (option.image)),"alt":""}}):_vm._e()]),_c('span',[_vm._v(_vm._s(option.value))])])]):_c('button',{staticClass:"layer-option",style:({
+                                backgroundImage: ("url(" + _vm.base_url + (option.image) + ")"),
+                            })},[_c('div',{staticClass:"layer-option-active-icon"},[_c('b-icon',{attrs:{"icon":"dash-circle-fill"}})],1),_c('div',{staticClass:"layer-option-body"},[_c('span',[_vm._v(_vm._s(option.value))])])])])}),0):_c('div',{staticClass:"layer-subgroup"},[_c('fieldset',{staticClass:"collapsed"},[_c('legend',{on:{"click":function (e) { return e.currentTarget.parentNode.classList.toggle('collapsed'); }}},[_vm._v(" "+_vm._s(subgroup_key)+" "),_c('b-icon',{attrs:{"icon":"chevron-up"}})],1),_c('ul',{staticClass:"layer-subgroup-body"},_vm._l((subgroup),function(option){return _c('li',{key:option.key,on:{"click":function($event){return _vm.toggleLayer(option)}}},[_c('input',{attrs:{"type":"checkbox"},domProps:{"checked":option.active}}),_c('label',[_vm._v(_vm._s(option.value))])])}),0)])])])})],2)}),0)])}
+var SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_staticRenderFns = []
 
 
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.sort.js
+var es_array_sort = __webpack_require__(2707);
 ;// CONCATENATED MODULE: ./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
 
 
@@ -61791,6 +61706,11 @@ var SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_staticRenderFns = []
 
 
 
+
+//
+//
+//
+//
 //
 //
 //
@@ -61899,128 +61819,88 @@ var SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_staticRenderFns = []
     data: Object,
     layers: Object,
     // Todas las capas
-    custom_styles: String,
-    data_pivots: {
-      type: Object,
-      default: function _default() {}
-    },
-    all_info: {
-      type: Object,
-      default: function _default() {}
-    }
+    custom_styles: String
   },
   data: function data() {
     return {
-      data_tools: [],
-      data_tools_id: "",
-      base_layer: {},
-      base_layers: [],
-      operational_layer: [],
-      analytical_layer: []
+      active_layers: {},
+      active_base_layers: ''
     };
   },
   computed: {
-    parsed_layers: function parsed_layers() {
-      var parsed_layers = [];
+    working_layers: function working_layers() {
+      var _this = this;
 
-      if (!lodash_default().isEmpty(this.layers)) {
-        parsed_layers = this.parseData();
-      }
+      if (lodash_default().isEmpty(this.layers)) return [];
+      return Object.values(this.layers).map(function (layer) {
+        return {
+          key: layer.id,
+          value: layer.name,
+          type: layer["sh_map_has_layer_type"],
+          image: layer["sh_map_has_layer_image"],
+          group: layer["sh_map_has_layer_group"],
+          subgroup: layer["sh_map_has_layer_subgroup"],
+          order: layer["sh_map_has_layer_order"],
+          // Si la capa está activa, se le asigna el valor true
+          active: _this.active_layers[layer.id] || layer.id == _this.active_base_layers
+        };
+      }).sort(function (a, b) {
+        return a.order - b.order;
+      });
+    },
+    // group layers by group and subgroup attributes
+    grouped_layers: function grouped_layers() {
+      // group layers by group attribute
+      var grouped_layers = lodash_default().groupBy(this.working_layers, 'group'); // group layers by subgroup attribute
 
-      return parsed_layers;
+
+      Object.keys(grouped_layers).forEach(function (group_key) {
+        grouped_layers[group_key] = lodash_default().groupBy(grouped_layers[group_key], 'subgroup');
+      });
+      return grouped_layers;
     },
     css_vars: function css_vars() {
-      var custom_styles = JSON.parse(this.custom_styles) || {};
+      var custom_styles;
+
+      try {
+        custom_styles = JSON.parse(this.custom_styles);
+      } catch (e) {
+        custom_styles = {};
+      }
+
       return {
-        "--radius-multiplier": custom_styles["radius-multiplier"] || "8px",
+        "--global-radius": custom_styles["global-radius"] || "8px",
+        "--subgroup-accordion-color": custom_styles["subgroup-accordion-color"] || "#044617",
+        "--subgroup-accordion-active-color": custom_styles["subgroup-accordion-color"] || "#46845C",
+        "--subgroup-accordion-text-color": custom_styles["subgroup-accordion-text-color"] || "#FFFFFF",
+        "--subgroup-checkbox-background": custom_styles["subgroup-checkbox-background"] || "transparent",
+        "--subgroup-checkbox-border-color": custom_styles["subgroup-checkbox-border-color"] || "#f7f7f7t",
         "--option-color": custom_styles["option-color"] || "#001D09",
-        "--border-color": custom_styles["border-color"] || "#7EF0A6",
-        "--button-bg-color": custom_styles["button-bg-color"] || "#6a6a6a22",
-        "--button-text-color": custom_styles["button-text-color"] || "#D3D3D3"
+        "--option-active-color": custom_styles["option-active-color"] || "#7EF0A6",
+        "--scrollbar-color": custom_styles["scrollbar-color"] || "#7EF0A6",
+        "--scrollbar-color-hover": custom_styles["scrollbar-color-hover"] || "#17935BA7",
+        "--button-color": custom_styles["button-color"] || "#6a6a6a22",
+        "--button-hover-color": custom_styles["button-hover-color"] || "#044617",
+        "--button-text-color": custom_styles["button-text-color"] || "#FFFFFF"
       };
     }
   },
-  watch: {
-    parsed_layers: {
-      handler: function handler() {
-        if (Array.isArray(this.parsed_layers)) {
-          this.base_layers = this.parsed_layers.filter(function (item) {
-            return item.type == "base";
-          });
-          this.operational_layer = this.parsed_layers.filter(function (item) {
-            return item.type == "operative";
-          });
-          this.analytical_layer = this.parsed_layers.filter(function (item) {
-            return item.type == "analytic";
-          }); // Elegimos la primera si existe y si no se ha seleccionado alguna capa
-
-          if (lodash_default().isEmpty(this.base_layer) && lodash_default().first(this.base_layers)) {
-            this.base_layer = lodash_default().first(this.base_layers) || {};
-            this.base_layer.active = true;
-          }
-        }
-      },
-      deep: true
-    }
-  },
   methods: {
-    getOption: function getOption(option) {
-      var _this = this;
-
-      var option_active_val = option.active;
-
-      switch (option.type) {
-        case "base":
-          // La capa base solo debe tener una activa
-          if (this.base_layer.key == option.key) {
-            option.active = !option_active_val;
-            this.base_layer = {};
-          } else {
-            if (lodash_default().isEmpty(this.base_layer)) {
-              option.active = !option_active_val;
-              this.base_layer = option;
-            } else if (this.base_layer.key !== option.key) {
-              var cb = this.base_layers.find(function (elem) {
-                return elem.key == _this.base_layer.key;
-              });
-              cb.active = option_active_val;
-              option.active = !option_active_val;
-              this.base_layer = option;
-            }
-          }
-
-          break;
-
-        case "analytic":
-          option.active = !option_active_val;
-          break;
-
-        case "operative":
-          option.active = !option_active_val;
-          break;
+    toggleLayer: function toggleLayer(layer) {
+      if (layer.type == "base") {
+        this.active_base_layers = this.active_base_layers != layer.key ? layer.key : '';
+      } else {
+        this.$set(this.active_layers, layer.key, !this.active_layers[layer.key]);
       }
-    },
-    parseData: function parseData() {
-      var parsed_layers_result = Object.values(this.layers).map(function (layer) {
-        return {
-          key: layer.id,
-          type: layer["sh_map_has_layer_type"],
-          image: layer["sh_map_has_layer_image"],
-          value: layer.name,
-          active: false // la capa esta desactiva por default
-
-        };
-      });
-      return parsed_layers_result;
     }
   }
 });
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_SheetsMapToolsvue_type_script_lang_js_ = (SheetsMapToolsvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-22.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-22.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-22.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-22.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=4adfcaaa&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-22.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-22.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-22.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-22.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=71fbaf48&prod&scoped=true&lang=scss&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=4adfcaaa&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue?vue&type=style&index=0&id=71fbaf48&prod&scoped=true&lang=scss&
 
 ;// CONCATENATED MODULE: ./src/components/SheetsMapTools.vue
 
@@ -62033,11 +61913,11 @@ var SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_staticRenderFns = []
 
 var SheetsMapTools_component = componentNormalizer_normalizeComponent(
   components_SheetsMapToolsvue_type_script_lang_js_,
-  SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_render,
-  SheetsMapToolsvue_type_template_id_4adfcaaa_scoped_true_staticRenderFns,
+  SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_render,
+  SheetsMapToolsvue_type_template_id_71fbaf48_scoped_true_staticRenderFns,
   false,
   null,
-  "4adfcaaa",
+  "71fbaf48",
   null
   
 )
@@ -62061,8 +61941,6 @@ var es_map = __webpack_require__(1532);
 var es_reflect_get = __webpack_require__(4819);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-names.js
 var es_object_get_own_property_names = __webpack_require__(6210);
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.sort.js
-var es_array_sort = __webpack_require__(2707);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.split.js
 var es_string_split = __webpack_require__(3123);
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.constructor.js
@@ -70139,8 +70017,6 @@ var BootstrapVue=/*#__PURE__*/{install:install,NAME:NAME};// --- Named exports f
 //
 //
 //
-//
-//
 
 
 
@@ -70172,9 +70048,7 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
       config_data: {},
       config_info: {},
       layers_info: {},
-      analytical_layer: [],
-      operational_layer: [],
-      base_layer: {},
+      working_layers: [],
       active_filters: []
     };
   },
@@ -70314,14 +70188,8 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
   mounted: function mounted() {
     var _this2 = this;
 
-    this.$watch("$refs.sheetsMapTools.analytical_layer", function (new_value) {
-      _this2.analytical_layer = new_value;
-    });
-    this.$watch("$refs.sheetsMapTools.operational_layer", function (new_value) {
-      _this2.operational_layer = new_value;
-    });
-    this.$watch("$refs.sheetsMapTools.base_layer", function (new_value) {
-      _this2.base_layer = new_value;
+    this.$watch("$refs.sheetsMapTools.working_layers", function (new_value) {
+      _this2.working_layers = new_value;
     });
     this.$watch("$refs.sheetsMap.bounds_filters", function (active_filters) {
       _this2.active_filters = active_filters;
@@ -70483,10 +70351,10 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default().use(BootstrapVueIcons);
 });
 ;// CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
  /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
-;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-22.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-22.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-22.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-22.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=913023fe&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./node_modules/mini-css-extract-plugin/dist/loader.js??clonedRuleSet-22.use[0]!./node_modules/css-loader/dist/cjs.js??clonedRuleSet-22.use[1]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/loaders/stylePostLoader.js!./node_modules/postcss-loader/dist/cjs.js??clonedRuleSet-22.use[2]!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-22.use[3]!./node_modules/@vue/cli-service/node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/App.vue?vue&type=style&index=0&id=922d9354&prod&scoped=true&lang=scss&
 // extracted by mini-css-extract-plugin
 
-;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=913023fe&prod&scoped=true&lang=scss&
+;// CONCATENATED MODULE: ./src/App.vue?vue&type=style&index=0&id=922d9354&prod&scoped=true&lang=scss&
 
 ;// CONCATENATED MODULE: ./src/App.vue
 
@@ -70503,7 +70371,7 @@ var App_component = componentNormalizer_normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "913023fe",
+  "922d9354",
   null
   
 )
