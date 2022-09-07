@@ -170,6 +170,8 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
+                "--sh-map-zoom-button-background-color"      : custom_styles["zoom-button-background-color"]       || "#001D09",
+                "--sh-map-zoom-button-text-color"            : custom_styles["zoom-button-text-color"]             || "#D3D3D3",
                 "--sh-map-radius-multiplier"                 : custom_styles["radius-multiplier"]                  || "8px",
                 //Pop-up
                 "--sh-map-marker-pop-up-background"          : custom_styles["marker-pop-up-background"]           || "white",
@@ -1247,5 +1249,39 @@ export default {
         border-color : var(--sh-map-marker-pop-up-border-color);
         border-width : var(--sh-map-marker-pop-up-border-width);
         border-style : var(--sh-map-marker-pop-up-border-style);
+    }
+
+    .my-map >>> .leaflet-top.leaflet-left {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-top: 24px;
+    }
+
+    .my-map >>> .leaflet-top.leaflet-left .leaflet-control-zoom {
+        margin: 0;
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 8px;
+        border: none;
+    }
+
+    .my-map >>> .leaflet-control-zoom > a {
+        background-color: var(--sh-map-zoom-button-background-color);
+        color: var(--sh-map-zoom-button-text-color);
+        border-radius: var(--sh-map-radius-multiplier);
+        border: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 32px;
+        height: 32px;
+    }
+    .my-map >>> .leaflet-control-zoom > a > span {
+        /* La fuente anterior no permitía centrar el
+        texto, incluso usando flexbox. */
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 1.8rem;
+        font-weight: lighter;
     }
 </style>
