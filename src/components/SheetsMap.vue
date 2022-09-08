@@ -7,7 +7,23 @@
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
-                @ready="ready()" @moveend="getClusterInfo();" :zoom="zoom" :center="center" ref="my_map" class="my-map">
+                @ready="ready()"
+                @moveend="getClusterInfo();"
+                :zoom="zoom"
+                :center="center"
+                ref="my_map"
+                class="my-map"
+                @update:zoom="zoom = $event"
+                :options="{ zoomControl: false }">
+
+                <section class="custom-controls">
+                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
+                        <b-icon icon="dash-lg"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
+                        <b-icon icon="plus-lg"></b-icon>
+                    </b-button>
+                </section>
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
@@ -94,6 +110,9 @@ import {h3ToGeo} from "h3-js";
 import Supercluster from 'supercluster';
 import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
 import h337 from'heatmap.js/plugins/leaflet-heatmap'
+import { BButton, BIcon } from 'bootstrap-vue'
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 
 delete Icon.Default.prototype._getIconUrl;
@@ -114,6 +133,8 @@ export default {
         LMarker,
         LGeoJson,
         "l-wms-tile-layer": LWMSTileLayer,
+        BButton,
+        BIcon
     },
     props: {
         // Propiedades de componentes
@@ -488,6 +509,14 @@ export default {
         this.index.load([]);
     },
     methods:{
+        zoomMap(zoom){
+            if(zoom === "out") this.zoom--;
+            else if(zoom === "in") this.zoom++;
+            else this.zoom++;
+            
+            if(this.zoom > 18) this.zoom = 18;
+            if(this.zoom < 0) this.zoom = 0;
+        },
         ready(){
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
@@ -1251,37 +1280,26 @@ export default {
         border-style : var(--sh-map-marker-pop-up-border-style);
     }
 
-    .my-map >>> .leaflet-top.leaflet-left {
-        width: 100%;
+    .custom-controls {
+        position: relative;
+        z-index: 800;
         display: flex;
         justify-content: center;
+        gap: 8px;
         margin-top: 24px;
     }
 
-    .my-map >>> .leaflet-top.leaflet-left .leaflet-control-zoom {
-        margin: 0;
-        display: flex;
-        flex-direction: row-reverse;
-        gap: 8px;
-        border: none;
-    }
-
-    .my-map >>> .leaflet-control-zoom > a {
+    .custom-controls .zoom-btn {
         background-color: var(--sh-map-zoom-button-background-color);
         color: var(--sh-map-zoom-button-text-color);
         border-radius: var(--sh-map-radius-multiplier);
-        border: none;
         display: flex;
         justify-content: center;
         align-items: center;
         width: 32px;
         height: 32px;
-    }
-    .my-map >>> .leaflet-control-zoom > a > span {
-        /* La fuente anterior no permitía centrar el
-        texto, incluso usando flexbox. */
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 1.8rem;
-        font-weight: lighter;
+        padding: 0;
+        border: none;
+        font-size: 0.7rem;
     }
 </style>
