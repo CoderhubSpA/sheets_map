@@ -17,6 +17,7 @@
                 :options="{ zoomControl: false }">
 
                 <section class="custom-controls">
+                    <search-bar/>
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
                         <b-icon icon="dash-lg"></b-icon>
                     </b-button>
@@ -103,6 +104,7 @@
 // import L from 'leaflet';
 import _ from 'lodash';
 import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
+import SearchBar from './SearchBar.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -134,7 +136,8 @@ export default {
         LGeoJson,
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
-        BIcon
+        BIcon,
+        SearchBar,
     },
     props: {
         // Propiedades de componentes
@@ -1285,6 +1288,7 @@ export default {
         z-index: 800;
         display: flex;
         justify-content: center;
+        align-items: center;
         gap: 8px;
         margin-top: 24px;
     }
@@ -1296,8 +1300,9 @@ export default {
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 32px;
-        height: 32px;
+        --size: 36px;
+        width: var(--size);
+        height: var(--size);
         padding: 0;
         border: none;
         font-size: 0.7rem;
