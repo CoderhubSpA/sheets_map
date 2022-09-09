@@ -16,6 +16,14 @@
       />
       <b-input-group-append>
         <b-button
+          title="Borrar búsqueda"
+          class="remove-btn"
+          type="button"
+          @click="input('')"
+        >
+          <b-icon icon="x" />
+        </b-button>
+        <b-button
           class="search-btn"
           title="Buscar"
           @click="search"
@@ -121,7 +129,8 @@ export default {
 }
 
 .search-input,
-.search-btn {
+.search-btn,
+.remove-btn {
   padding: var(--border-radius);
   height: 36px;
   background-color: var(--background-color);
@@ -129,7 +138,7 @@ export default {
   color: var(--text-color);
 }
 
-:is(.search-input, .search-btn):is(:focus:active, :focus) {
+:is(.search-input, .search-btn, .remove-btn):is(:focus:active, :focus) {
   box-shadow: 0 0 0 0.2rem var(--focus-shadow-color);
 }
 
@@ -141,8 +150,12 @@ export default {
   color: var(--text-color);
 }
 
-.search-btn {
+.search-btn,
+.remove-btn {
   font-size: 100%;
+}
+
+.search-btn {
   border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
