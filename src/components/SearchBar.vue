@@ -38,8 +38,7 @@
       <li
         v-for="(suggestion, index) in suggestions"
         :key="getSuggestionId(suggestion)"
-        @click="$emit('select', suggestion)"
-        ref="suggestionList"
+        @click="$emit('search', index)"
         :class="{ selected: index === selectedSuggestionIndex }"
       >
         {{ getSuggestionDisplayValue(suggestion) }}
@@ -175,9 +174,11 @@ export default {
 
   > li {
     padding: 8px;
+    cursor: pointer;
   }
 
-  > li.selected {
+  > li.selected,
+  li:hover {
     background-color: var(--selected-background-color);
   }
 
@@ -186,11 +187,17 @@ export default {
   }
 }
 
+// Separamos estas dos reglas, pues algunos navegadores
+// aún no soportan :has().
 .search-bar:focus-within.show-suggestions {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
+.search-bar:has(.suggestions:hover) {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
 
-.search-bar:focus-within.show-suggestions .suggestions {
+.search-bar:focus-within.show-suggestions .suggestions,
+.suggestions:hover {
   display: block;
 }
 </style>
