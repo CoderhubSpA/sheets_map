@@ -4,7 +4,7 @@
     :suggestions="suggestions"
     :getSuggestionDisplayValue="(address) => address['DireccionOrPOI']"
     :getSuggestionId="(address) => address['ID']"
-    @search="search"
+    @search="changeLocation"
   />
 </template>
 
@@ -21,7 +21,6 @@ const getAddressFromNode = (xmlAddressNode) => {
 };
 
 const fetchSearchType = async (searchString, abortSignal) => {
-  console.log("buscando");
   const headers = new Headers();
   headers.append("Content-Type", "text/xml");
 
@@ -93,24 +92,6 @@ const fetchAddresses = async (searchString, searchType, abortSignal) => {
   );
 };
 
-const getSuggestions = _.debounce(async function (component) {
-  component.currentAbortController?.abort();
-  component.currentAbortController = new AbortController();
-  const { signal } = component.currentAbortController;
-  const { searchString } = component;
-  try {
-    const searchType = await fetchSearchType(searchString, signal);
-    component.suggestions = await fetchAddresses(
-      searchString,
-      searchType,
-      signal
-    );
-    component.currentAbortController = null;
-  } catch (error) {
-    if (error.name !== "AbortError") console.debug(error);
-  }
-}, 500);
-
 export default {
   name: "SAITSearchBar",
   components: {
@@ -124,13 +105,43 @@ export default {
     };
   },
   watch: {
-    searchString() {
-      getSuggestions(this);
+    searchString(newValue) {
+      if (newValue === "") {
+        this.suggestions = [];
+        return;
+      }
+      this.getSuggestions(this);
     },
   },
   methods: {
-    search() {
-      console.log("searching...");
+    getSuggestions: _.throttle(async function () {
+      this.currentAbortController?.abort();
+      this.currentAbortController = new AbortController();
+      const { signal } = this.currentAbortController;
+      const { searchString } = this;
+      try {
+        const searchType = await fetchSearchType(searchString, signal);
+        this.suggestions = await fetchAddresses(
+          searchString,
+          searchType,
+          signal
+        );
+        this.currentAbortController = null;
+      } catch (error) {
+        if (error.name !== "AbortError") console.debug(error);
+      }
+    }, 500),
+    changeLocation(selectedSuggestionIndex) {
+      if (this.suggestions.length === 0) return;
+
+      const suggestion = this.suggestions[selectedSuggestionIndex];
+      const { Latitud, Longitud, DireccionOrPOI } = suggestion;
+
+      this.searchString = DireccionOrPOI;
+
+      const parse = (string) => parseFloat(string.replace(",", "."));
+      const latLng = [parse(Latitud), parse(Longitud)];
+      this.$emit("change-location", latLng);
     },
   },
 };
