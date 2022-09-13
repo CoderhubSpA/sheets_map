@@ -9,15 +9,14 @@
             <l-map 
                 @ready="ready()"
                 @moveend="getClusterInfo();"
-                :zoom="zoom"
-                :center="center"
+                :zoom.sync="zoom"
+                :center.sync="center"
                 ref="my_map"
                 class="my-map"
-                @update:zoom="zoom = $event"
                 :options="{ zoomControl: false }">
 
                 <section class="custom-controls">
-                    <search-bar/>
+                    <sait-search-bar @change-location="zoomToLocation"/>
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
                         <b-icon icon="dash-lg"></b-icon>
                     </b-button>
@@ -25,6 +24,8 @@
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
                 </section>
+
+                <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
@@ -104,7 +105,7 @@
 // import L from 'leaflet';
 import _ from 'lodash';
 import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
-import SearchBar from './SearchBar.vue';
+import SAITSearchBar from './SAITSearchBar.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -137,7 +138,7 @@ export default {
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
         BIcon,
-        SearchBar,
+        "sait-search-bar": SAITSearchBar,
     },
     props: {
         // Propiedades de componentes
@@ -186,7 +187,9 @@ export default {
             bounds                : [],
             index                 : [],
             h3                    : require("h3-js"),
-            enableTooltip         : true
+            enableTooltip         : true,
+            shouldShowSearchMarker: false,
+            searchMarkerLatLng    : null
         };
     },
     computed:{
@@ -512,6 +515,11 @@ export default {
         this.index.load([]);
     },
     methods:{
+        zoomToLocation(latLng){
+            this.searchMarkerLatLng = latLng;
+            this.shouldShowSearchMarker = true;
+            this.map.flyTo(latLng, 16);
+        },
         zoomMap(zoom){
             if(zoom === "out") this.zoom--;
             else if(zoom === "in") this.zoom++;
