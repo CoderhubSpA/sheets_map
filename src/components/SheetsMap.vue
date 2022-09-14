@@ -17,6 +17,7 @@
 
                 <section class="custom-controls">
                     <search-bar-proxy
+                        v-if="config.sh_map_search_component && config.sh_map_search_component_config"
                         :componentName="config.sh_map_search_component"
                         :config="JSON.parse(config.sh_map_search_component_config)"
                         @change-location="zoomToLocation" />
