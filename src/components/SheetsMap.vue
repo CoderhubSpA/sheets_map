@@ -18,7 +18,7 @@
                 <section class="custom-controls">
                     <search-bar-proxy
                         :componentName="config.sh_map_search_component"
-                        :config="config.sh_map_search_component_config"
+                        :config="JSON.parse(config.sh_map_search_component_config)"
                         @change-location="zoomToLocation" />
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
                         <b-icon icon="dash-lg"></b-icon>
