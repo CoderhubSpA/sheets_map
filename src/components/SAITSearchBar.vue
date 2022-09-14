@@ -20,7 +20,7 @@ const getAddressFromNode = (xmlAddressNode) => {
   }, {});
 };
 
-const fetchSearchType = async (searchString, abortSignal) => {
+const fetchSearchType = async (searchString, searchUrl, abortSignal) => {
   const headers = new Headers();
   headers.append("Content-Type", "text/xml");
 
@@ -43,17 +43,21 @@ const fetchSearchType = async (searchString, abortSignal) => {
     redirect: "follow",
     signal: abortSignal,
   };
-  const response = await fetch(
-    "http://0.0.0.0:3000/Ws_Texto_Libre/Service.asmx",
-    requestOptions
-  );
+  const response = await fetch(searchUrl, requestOptions);
 
   const parser = new DOMParser();
   const xml = parser.parseFromString(await response.text(), "text/xml");
   return xml.querySelector("GetTipoResult").textContent.trim();
 };
 
-const fetchAddresses = async (searchString, searchType, abortSignal) => {
+const fetchAddresses = async (
+  searchString,
+  searchType,
+  searchUrl,
+  searchCountry,
+  maxResults,
+  abortSignal
+) => {
   const headers = new Headers();
   headers.append("Content-Type", "text/xml");
 
@@ -66,8 +70,8 @@ const fetchAddresses = async (searchString, searchType, abortSignal) => {
     <FindDireccionesTextLibre xmlns="http://tempuri.org/">
         <busqueda>${searchString}</busqueda>
         <tipo>${searchType}</tipo>
-        <pais>Chile</pais>
-        <canResultados>10</canResultados>
+        <pais>${searchCountry}</pais>
+        <canResultados>${maxResults}</canResultados>
     </FindDireccionesTextLibre>
   </soap:Body>
 </soap:Envelope>`;
@@ -80,10 +84,7 @@ const fetchAddresses = async (searchString, searchType, abortSignal) => {
     signal: abortSignal,
   };
 
-  const response = await fetch(
-    "http://0.0.0.0:3000/Ws_Texto_Libre/Service.asmx",
-    requestOptions
-  );
+  const response = await fetch(searchUrl, requestOptions);
 
   const parser = new DOMParser();
   const xml = parser.parseFromString(await response.text(), "text/xml");
@@ -96,6 +97,17 @@ export default {
   name: "SAITSearchBar",
   components: {
     SearchBar,
+  },
+  props: {
+    /**
+     * @typedef {object} SearchConfig
+     * @property {string} search_type_url
+     * @property {string} search_address_url
+     * @property {string} search_country
+     * @property {number} search_max_results
+     */
+    /** @type {SearchConfig} */
+    config: Object,
   },
   data() {
     return {
@@ -119,11 +131,24 @@ export default {
       this.currentAbortController = new AbortController();
       const { signal } = this.currentAbortController;
       const { searchString } = this;
+      const {
+        search_type_url,
+        search_addresses_url,
+        search_country,
+        search_max_results,
+      } = this.config;
       try {
-        const searchType = await fetchSearchType(searchString, signal);
+        const searchType = await fetchSearchType(
+          searchString,
+          search_type_url,
+          signal
+        );
         this.suggestions = await fetchAddresses(
           searchString,
           searchType,
+          search_addresses_url,
+          search_country,
+          search_max_results,
           signal
         );
         this.currentAbortController = null;

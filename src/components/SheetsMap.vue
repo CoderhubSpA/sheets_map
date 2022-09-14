@@ -16,7 +16,10 @@
                 :options="{ zoomControl: false }">
 
                 <section class="custom-controls">
-                    <sait-search-bar @change-location="zoomToLocation"/>
+                    <search-bar-proxy
+                        :componentName="config.sh_map_search_component"
+                        :config="config.sh_map_search_component_config"
+                        @change-location="zoomToLocation" />
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
                         <b-icon icon="dash-lg"></b-icon>
                     </b-button>
@@ -105,7 +108,7 @@
 // import L from 'leaflet';
 import _ from 'lodash';
 import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
-import SAITSearchBar from './SAITSearchBar.vue';
+import SearchBarProxy from './SearchBarProxy.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -138,7 +141,7 @@ export default {
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
         BIcon,
-        "sait-search-bar": SAITSearchBar,
+        SearchBarProxy,
     },
     props: {
         // Propiedades de componentes
