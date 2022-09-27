@@ -7,7 +7,23 @@
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
-                @ready="ready()" @moveend="getClusterInfo();" :zoom="zoom" :center="center" ref="my_map" class="my-map">
+                @ready="ready()"
+                @moveend="getClusterInfo();"
+                :zoom="zoom"
+                :center="center"
+                ref="my_map"
+                class="my-map"
+                @update:zoom="zoom = $event"
+                :options="{ zoomControl: false }">
+
+                <section class="custom-controls">
+                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
+                        <b-icon icon="dash-lg"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
+                        <b-icon icon="plus-lg"></b-icon>
+                    </b-button>
+                </section>
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
@@ -101,6 +117,9 @@ import {h3ToGeo} from "h3-js";
 import Supercluster from 'supercluster';
 import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
 import h337 from'heatmap.js/plugins/leaflet-heatmap'
+import { BButton, BIcon } from 'bootstrap-vue'
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 
 delete Icon.Default.prototype._getIconUrl;
@@ -121,6 +140,8 @@ export default {
         LMarker,
         LGeoJson,
         "l-wms-tile-layer": LWMSTileLayer,
+        BButton,
+        BIcon
     },
     props: {
         // Propiedades de componentes
@@ -178,6 +199,8 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
+                "--sh-map-zoom-button-background-color"      : custom_styles["zoom-button-background-color"]       || "#001D09",
+                "--sh-map-zoom-button-text-color"            : custom_styles["zoom-button-text-color"]             || "#D3D3D3",
                 "--sh-map-radius-multiplier"                 : custom_styles["radius-multiplier"]                  || "8px",
                 //Pop-up
                 "--sh-map-marker-pop-up-background"          : custom_styles["marker-pop-up-background"]           || "white",
@@ -494,6 +517,14 @@ export default {
         this.index.load([]);
     },
     methods:{
+        zoomMap(zoom){
+            if(zoom === "out") this.zoom--;
+            else if(zoom === "in") this.zoom++;
+            else this.zoom++;
+            
+            if(this.zoom > 18) this.zoom = 18;
+            if(this.zoom < 0) this.zoom = 0;
+        },
         ready(){
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
@@ -1289,5 +1320,28 @@ export default {
         border-color : var(--sh-map-marker-pop-up-border-color);
         border-width : var(--sh-map-marker-pop-up-border-width);
         border-style : var(--sh-map-marker-pop-up-border-style);
+    }
+
+    .custom-controls {
+        position: relative;
+        z-index: 800;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 24px;
+    }
+
+    .custom-controls .zoom-btn {
+        background-color: var(--sh-map-zoom-button-background-color);
+        color: var(--sh-map-zoom-button-text-color);
+        border-radius: var(--sh-map-radius-multiplier);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: none;
+        font-size: 0.7rem;
     }
 </style>
