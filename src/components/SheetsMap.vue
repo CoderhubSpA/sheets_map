@@ -64,6 +64,13 @@
                 </l-layer-group> 
                 <!-- Analytic layers -->
                 <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
+                <div v-if="analytic_geojson_list.length > 0">
+                    <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
+                        
+                        <l-geo-json :geojson="analytic_geojson.geojson"></l-geo-json>
+                    </div>
+                    
+                </div>
                 <!-- Operative layers -->
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -151,6 +158,7 @@ export default {
             /*Layers*/
             analytic_cluster        : undefined,
             analytic_countour_map   : undefined,
+            analytic_geojson_list   : [],
             base_google_map         : undefined,
             base_map_guide          : undefined,
             base_open_street_map    : undefined,
@@ -512,6 +520,27 @@ export default {
             let geojson_bounds = this.getMapGeoJsonBounds();
 
             switch(layer.sh_map_has_layer_code){
+                case 'analytic_geojson' : {
+                    let is_empty     = (this.analytic_geojson_list.length < 1) ? true : false;
+                    let is_new_layer = false;
+                    //let new_bounds   = false;
+                    if (!is_empty) {
+
+                        let analytic_geojson_ids = this.analytic_geojson_list.map(function(analytic_geojson){
+                            return analytic_geojson.layer_id
+                        });
+                        //determina si ya existe la capa en la lista
+                        is_new_layer = !analytic_geojson_ids.includes(layer.id);
+                        //new_bounds = ((this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
+
+                    }
+
+                    if(is_empty || (!is_empty && (is_new_layer /*|| new_bounds*/))){
+                        this.getAnalyticalGeoJson(layer);
+                    }
+                    break;
+
+                }
                 case 'analytic_cluster' : {
                     let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
                     let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
@@ -677,6 +706,19 @@ export default {
                 console.log('Cluster Hexagonal completado');
             });
 
+        },
+        getAnalyticalGeoJson(layer){
+            axios.get(layer.sh_map_has_layer_url)
+                .then((response) => {
+                    let geojson = {
+                        "layer_id" : layer.id,
+                        "geojson"  : {
+                            "type"     : response.data.type, 
+                            "features" : response.data.features
+                        }
+                    };
+                    this.analytic_geojson_list.push(geojson);
+                });
         },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();

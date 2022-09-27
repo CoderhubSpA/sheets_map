@@ -63,12 +63,14 @@ export default {
     data() {
         return {
             base_url: "http://sheetsmock.local",
-            id: "f52dd8c5-6504-4601-912f-acf56ddf7ca1",
-            entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
+            id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
+            entity_type_id: "e428f5f2-bdb0-4dee-a4c7-a3486c731c3c",
+            //sait entity_type_id de59f145-a291-4474-91da-7e3ec3744f4f
             // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
             // Registro de configuracion
-            config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
+            config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            //sait config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
             // Endpoint de configuracion
             endpoint_config: "/entity/data/",
             // configuracion component sheets map tools 
