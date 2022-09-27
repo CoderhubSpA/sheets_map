@@ -623,6 +623,17 @@ export default {
         disableLayers(layer){
             
             switch(layer.sh_map_has_layer_code){
+                case 'analytic_geojson' : {
+                    //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
+                    let analytic_geojson_active_list = this.analytic_geojson_list.filter( analytic_geojson => {
+                        if (analytic_geojson.layer_id != layer.id) {
+                            return analytic_geojson;
+                        }
+                    });
+
+                    this.analytic_geojson_list = analytic_geojson_active_list;
+                    break;
+                }
                 case 'analytic_cluster' : {
                     this.analytic_cluster = undefined;
                     break;
