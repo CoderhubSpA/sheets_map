@@ -83,17 +83,17 @@ export default {
             //Los valores de color de hexagonal-cluster deben ser en formato HEX
             map_custom_styles:`
                 {
-                    "marker-pop-up-title-font"              : "8px 'Helvetica Neue', Arial, Helvetica, sans-serif",
-                    "marker-pop-up-title-color"             : "#7EF0A6",
-                    "marker-pop-up-content-font"            : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
-                    "marker-pop-up-content-color"           : "#FFFFFF",
-                    "marker-pop-up-background"              : "#02220B",
-                    "marker-pop-up-border-color"            : "#7EF0A6",
-                    "marker-pop-up-border-width"            : "3px", 
+                    "marker-pop-up-title-font"              : "10px gobCL_Regular",
+                    "marker-pop-up-title-color"             : "#0f69b4",
+                    "marker-pop-up-content-font"            : "13px gobCL_Regular",
+                    "marker-pop-up-content-color"           : "#303030",
+                    "marker-pop-up-background"              : "#ffffff",
+                    "marker-pop-up-border-color"            : "#dbeeffe6",
+                    "marker-pop-up-border-width"            : "2px", 
                     "marker-pop-up-border-style"            : "solid",
-                    "marker-pop-up-scroll-color"            : "#7EF0A6",
-                    "marker-pop-up-scroll-color-hover"      : "#17935BA7",
-                    "marker-pop-up-scroll-color-active"     : "#7EF0A6",
+                    "marker-pop-up-scroll-color"            : "#419ce9",
+                    "marker-pop-up-scroll-color-hover"      : "#0f69b4",
+                    "marker-pop-up-scroll-color-active"     : "#419ce9",
 
                     "point-cluster-small-size"              : "30px", 
                     "point-cluster-small-color"             : "rgb(106, 136, 115, 0.8)", 

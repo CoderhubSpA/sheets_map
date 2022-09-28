@@ -86,7 +86,7 @@
                 <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
                 <div v-if="analytic_geojson_list.length > 0">
                     <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
-                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style"></l-geo-json>
+                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style" :options ="analytic_geojson_options"></l-geo-json>
                     </div>
                     
                 </div>
@@ -393,6 +393,45 @@ export default {
                 layer.bindTooltip(function (layer) {
                     return `${layer.feature.properties.total.toLocaleString('es-ES')}`; 
                 }, {permanent: true, direction: "center", className: "my-labels"});
+            }
+          };
+        },
+        analytic_geojson_options() {
+          return {
+            onEachFeature: (feature, layer) => {
+                //let properties = feature.properties;
+                if (Object.values(feature.properties)?.length < 1) {
+                    return;
+                }
+                layer.bindPopup((layer) => {
+
+                    let active_layer = this.active_layers.find(l => {
+                        return layer.feature.layer_id == l.id;
+                    });
+
+                    let total_reference = active_layer.total_dimension_ref;
+                    ;
+                    /*
+                    let more_information = Object.entries(layer.feature.properties).filter((info) => {
+                        if (info[0] != 'default_value' && info[0] != total_reference) {
+                            return info
+                        }
+                    }).reduce((all,info) => {
+                        if (!all) {
+                            all = `<br>Más información`;
+                        }
+                        info = `<br>
+                            <span class="marker-pop-up-info-title"> <b>${info[0]} : </b> </span> 
+                            <span class="marker-pop-up-info-content"> ${info[1]} </span>
+                        `;
+                        console.log(all);
+                        console.log(info);
+                        return all + info;
+                    });*/
+
+                    return `
+                        <span class="marker-pop-up-info-content"> ${layer.feature.properties[total_reference]} </span>`;
+                }, {permanent: false, direction: "center"});
             }
           };
         },
