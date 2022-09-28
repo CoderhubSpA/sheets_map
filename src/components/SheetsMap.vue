@@ -476,8 +476,8 @@ export default {
                 });
 
                 let total_reference = layer.total_dimension_ref;
-                let max_total       = layer.max_total;
-                let min_total       = layer.min_total;
+                const max_total     = layer.max_total;
+                const min_total     = layer.min_total;
 
                 let color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
                                                    this.style_variables["analytic-geojson-large-color"], 
@@ -609,7 +609,6 @@ export default {
                 case 'analytic_geojson' : {
                     let is_empty     = (this.analytic_geojson_list.length < 1) ? true : false;
                     let is_new_layer = false;
-                    //let new_bounds   = false;
                     if (!is_empty) {
 
                         let analytic_geojson_ids = this.analytic_geojson_list.map(function(analytic_geojson){
@@ -617,11 +616,10 @@ export default {
                         });
                         //determina si ya existe la capa en la lista
                         is_new_layer = !analytic_geojson_ids.includes(layer.id);
-                        //new_bounds = ((this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
 
                     }
 
-                    if(is_empty || (!is_empty && (is_new_layer /*|| new_bounds*/))){
+                    if(is_empty || (!is_empty && is_new_layer)){
                         this.getAnalyticalGeoJson(layer);
                     }
                     break;
