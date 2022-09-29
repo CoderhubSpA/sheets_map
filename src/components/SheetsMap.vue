@@ -410,6 +410,7 @@ export default {
                     //Almacenamos el calculo hecho entre el Bi y el feature
                     let total_reference = active_layer.total_dimension_ref;
                     ;
+
                     // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
                     // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
                     if (active_layer.sh_map_has_layer_property_keys == null) {
@@ -417,16 +418,18 @@ export default {
 
                         return `<span class="marker-pop-up-info-content"> ${total} </span>`;
                     }
+                    
+                    //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
                     if (active_layer.sh_map_has_layer_property_keys == '*') {
                         let info = Object.entries(layer.feature.properties).map((property) =>{
-                            let key   = this.formatKeyToHumanText(property[0]); // Tomamos la clave de la propiedad
-                            let value = property[1]; // Tomamos el valor de la propiedad
+                            const title = this.formatKeyToHumanText(property[0]); // Tomamos la clave de la propiedad
+                            let value   = property[1]; // Tomamos el valor de la propiedad
 
                             value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
                             value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
 
                             return `
-                                <span class="marker-pop-up-info-title"> <b>${key} : </b> </span> 
+                                <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
                                 <span class="marker-pop-up-info-content"> ${value} </span>
                             `;
                         });
