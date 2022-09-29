@@ -403,36 +403,56 @@ export default {
                     return;
                 }
                 layer.bindPopup((layer) => {
-
+                    //Obtenemos la configuración de la capa a la que pertenece
                     let active_layer = this.active_layers.find(l => {
                         return layer.feature.layer_id == l.id;
                     });
-
+                    //Almacenamos el calculo hecho entre el Bi y el feature
                     let total_reference = active_layer.total_dimension_ref;
                     ;
-                    
-                    if (layer.feature.properties[total_reference] == null) {
-                        return `<span class="marker-pop-up-info-content"> Sin información disponible </span>`;
-                    }
-                    /*
-                    let more_information = Object.entries(layer.feature.properties).filter((info) => {
-                        if (info[0] != 'default_value' && info[0] != total_reference) {
-                            return info
-                        }
-                    }).reduce((all,info) => {
-                        if (!all) {
-                            all = `<br>Más información`;
-                        }
-                        info = `<br>
-                            <span class="marker-pop-up-info-title"> <b>${info[0]} : </b> </span> 
-                            <span class="marker-pop-up-info-content"> ${info[1]} </span>
-                        `;
-                        console.log(all);
-                        console.log(info);
-                        return all + info;
-                    });*/
 
-                    return `<span class="marker-pop-up-info-content"> ${layer.feature.properties[total_reference].toLocaleString('es-ES')} </span>`;
+                    // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
+                    // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
+                    if (active_layer.sh_map_has_layer_property_keys == null) {
+                        let total = (layer.feature.properties[total_reference] == null) ? 'Sin información disponible' : layer.feature.properties[total_reference].toLocaleString('es-ES');
+
+                        return `<span class="marker-pop-up-info-content"> ${total} </span>`;
+                    }
+                    
+                    //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
+                    if (active_layer.sh_map_has_layer_property_keys == '*') {
+                        let info = Object.entries(layer.feature.properties).map((property) =>{
+                            const title = this.formatKeyToHumanText(property[0]); // Tomamos la clave de la propiedad
+                            let value   = property[1]; // Tomamos el valor de la propiedad
+
+                            value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
+                            value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+
+                            return `
+                                <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
+                                <span class="marker-pop-up-info-content"> ${value} </span>
+                            `;
+                        });
+
+                        return `${info.join('<br>')}`;
+                    }
+
+                    let property_keys = JSON.parse(active_layer.sh_map_has_layer_property_keys);
+                    //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
+                    let info = Object.entries(property_keys).map((property_info) =>{
+                        let key      = property_info[0]; // Tomamos el nombre técnico de la propiedad
+                        let property = property_info[1]; // Tomamos el nombre humano de la propiedad
+                        let value    = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key]; // parseamos el valor resultante
+                        
+                        value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+
+                        return `
+                            <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
+                            <span class="marker-pop-up-info-content"> ${value} </span>
+                        `;
+                    });
+
+                    return `${info.join('<br>')}`;
                 }, {permanent: false, direction: "center"});
             }
           };
@@ -914,27 +934,6 @@ export default {
 
                 }));
         },
-        // calc hexadecimal between two colors by ratio (0.0 - 1.0)
-        calcColor(color1, color2, ratio){
-            const hex = function(x) {
-                if(x > 255) x = 255;
-                x = x.toString(16);
-                return (x.length == 1) ? '0' + x : x;
-            };
-            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
-            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
-            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
-            const calc = '#' + hex(r) + hex(g) + hex(b);
-            return calc;
-        },
-        // calc hexadecimal between two colors by min and max values
-        calcColorByMinMax(color_min, color_max, min, max, value) {
-            if (value == null) {
-                value = 0;
-            }
-            const ratio = (max - value) / (max - min);
-            return this.calcColor(color_min, color_max, ratio);
-        },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
             let geojson_bounds = [
@@ -1380,9 +1379,48 @@ export default {
                 features.push(this.getBoundary(index,properties));
             }
             return features;
-        }
+        },
         //----------------------------------------------------------------------------------------------
         // SCRIPT DE MAURICIO
+        //----------------------------------------------------------------------------------------------
+        //
+        //----------------------------------------------------------------------------------------------
+        // Helpers
+        //----------------------------------------------------------------------------------------------
+                // format text with "_" to text legible for humans,
+        // set all on lowercase but first letter to uppercase and each after "_" or " " to uppercase,
+        // separe letter from numbers
+        formatKeyToHumanText(text){
+            let textFormated = text.replace(/_/g, " ");
+            textFormated = textFormated.toLowerCase();
+            textFormated = textFormated.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+            textFormated = textFormated.replace(/([a-z])([0-9])/i, '$1 $2');
+            textFormated = textFormated.replace(/([0-9])([a-z])/i, '$1 $2');
+            return textFormated;
+        },
+        // calc hexadecimal between two colors by ratio (0.0 - 1.0)
+        calcColor(color1, color2, ratio){
+            const hex = function(x) {
+                if(x > 255) x = 255;
+                x = x.toString(16);
+                return (x.length == 1) ? '0' + x : x;
+            };
+            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
+            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
+            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
+            const calc = '#' + hex(r) + hex(g) + hex(b);
+            return calc;
+        },
+        // calc hexadecimal between two colors by min and max values
+        calcColorByMinMax(color_min, color_max, min, max, value) {
+            if (value == null) {
+                value = 0;
+            }
+            const ratio = (max - value) / (max - min);
+            return this.calcColor(color_min, color_max, ratio);
+        }
+        //----------------------------------------------------------------------------------------------
+        // Helpers
         //----------------------------------------------------------------------------------------------
     }
 }
