@@ -893,7 +893,7 @@ export default {
                         let index_dimension = code_id_list.indexOf(geojson_col_reference);
 
                         //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
-                        let total         = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+                        let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
 
                         feature.properties[layer.total_dimension_ref] = total;
                         feature['layer_id'] = layer.id;
@@ -1186,9 +1186,9 @@ export default {
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
 
-                let bounds_filters = all_col.filter((columns)=>{
-                    columns.id == this.col_lat || columns.id == this.col_lng;
-                }).map((columns,key)=>{
+                let bounds_filters = all_col.filter(columns=>
+                    columns.id == this.col_lat || columns.id == this.col_lng
+                ).map((columns,key)=>{
                     let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
                     let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
                     let bounds_filter = {
