@@ -78,8 +78,20 @@
                         </l-popup>
                     </l-circle-marker>
                 </l-layer-group> 
-                <!-- Analytic layers -->
+                <!-- 
+                    Analytic layers 
+                        - Analytic Cluster 
+                        - Analytic GeoJson 
+                -->
                 <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
+                <div v-if="analytic_geojson_list.length > 0">
+                    <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
+                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style" :options ="analytic_geojson_options"></l-geo-json>
+                    </div>
+                    
+                </div>
+                <!-- End Analytic layers -->
+
                 <!-- Operative layers -->
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -161,29 +173,31 @@ export default {
             url: '',
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom                  : 7,
-            center_default        : [-33.472 , -70.769],
-            center                : undefined,
-            col_lat               : undefined,
-            col_lng               : undefined,
-            markers_data          : {},
-            map                   : undefined,
-            circle                : undefined,
+            zoom                      : 7,
+            center_default            : [-33.472 , -70.769],
+            center                    : undefined,
+            col_lat                   : undefined,
+            col_lng                   : undefined,
+            markers_data              : {},
+            map                       : undefined,
+            circle                    : undefined,
             /*Layers*/
-            analytic_cluster        : undefined,
-            analytic_countour_map   : undefined,
-            base_google_map         : undefined,
-            base_map_guide          : undefined,
-            base_open_street_map    : undefined,
-            operative_geoserver_wms : [],
+            analytic_cluster          : undefined,
+            analytic_countour_map     : undefined,
+            analytic_geojson_list     : [],
+            base_google_map           : undefined,
+            base_map_guide            : undefined,
+            base_open_street_map      : undefined,
+            operative_geoserver_wms   : [],
             /*Layers*/
-            clusters_markers      : [],
-            bounds_filters        : [],
-            num_zoom              : false,
-            bounds                : [],
-            index                 : [],
-            h3                    : require("h3-js"),
-            enableTooltip         : true
+            clusters_markers          : [],
+            bounds_filters            : [],
+            num_zoom                  : false,
+            bounds                    : [],
+            index                     : [],
+            h3                        : require("h3-js"),
+            // Usadas para las capas analiticas tipo analytic_geojson
+            should_skip_bounds_filter : false // Usada para no filtrar por los limites del mapa en analytic_geojson
         };
     },
     computed:{
@@ -235,14 +249,17 @@ export default {
                 "--sh-map-point-cluster-large-color-div"     : custom_styles["point-cluster-large-color-div"]      || "rgba(241, 128, 23, 0.6)", 
                 "--sh-map-point-cluster-large-border-color"  : custom_styles["point-cluster-large-border-color"]   || "rgba(253, 156, 115, 0.6)", 
                 "--sh-map-point-cluster-large-border-style"  : custom_styles["point-cluster-large-border-style"]   || "hidden", 
-                "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px", 
+                "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px",
+
+                
             };
 
         },
-        hexagonal_clusters_style() {
+        style_variables() {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
+                // Hexagonal Clusters Style
                 "hexagonal-cluster-small-color"           : custom_styles["hexagonal-cluster-small-color"]           || "#F9E79F",
                 "hexagonal-cluster-small-opacity"         : custom_styles["hexagonal-cluster-small-opacity"]         || 0.6,
                 "hexagonal-cluster-small-border-color"    : custom_styles["hexagonal-cluster-small-border-color"]    || "#ECEFF1",
@@ -260,7 +277,14 @@ export default {
                 "hexagonal-cluster-large-border-color"    : custom_styles["hexagonal-cluster-large-border-color"]    || "#ECEFF1",
                 "hexagonal-cluster-large-border-opacity"  : custom_styles["hexagonal-cluster-large-border-opacity"]  || 0.6,
                 "hexagonal-cluster-large-font"            : custom_styles["hexagonal-cluster-large-font"]            || "",
-                "hexagonal-cluster-large-font-color"      : custom_styles["hexagonal-cluster-large-font-color"]      || ""
+                "hexagonal-cluster-large-font-color"      : custom_styles["hexagonal-cluster-large-font-color"]      || "",
+                // Analytic GeoJson Style
+                "analytic-geojson-small-color"          : custom_styles["analytic-geojson-small-color"]          || "#FDFEFE",
+                "analytic-geojson-small-border-color"   : custom_styles["analytic-geojson-small-border-color"]   || "#FDFEFE",
+                "analytic-geojson-large-color"          : custom_styles["analytic-geojson-large-color"]          || "#0074BD",
+                "analytic-geojson-large-border-color"   : custom_styles["analytic-geojson-large-border-color"]   || "#0074BD",
+                "analytic-geojson-opacity"              : custom_styles["analytic-geojson-opacity"]              || 0.6,
+                "analytic-geojson-border-opacity"       : custom_styles["analytic-geojson-border-opacity"]       || 1,
             };
             
         },
@@ -371,6 +395,48 @@ export default {
             }
           };
         },
+        analytic_geojson_options() {
+          return {
+            onEachFeature: (feature, layer) => {
+                //let properties = feature.properties;
+                if (Object.values(feature.properties)?.length < 1) {
+                    return;
+                }
+                layer.bindPopup((layer) => {
+
+                    let active_layer = this.active_layers.find(l => {
+                        return layer.feature.layer_id == l.id;
+                    });
+
+                    let total_reference = active_layer.total_dimension_ref;
+                    ;
+                    
+                    if (layer.feature.properties[total_reference] == null) {
+                        return `<span class="marker-pop-up-info-content"> Sin información disponible </span>`;
+                    }
+                    /*
+                    let more_information = Object.entries(layer.feature.properties).filter((info) => {
+                        if (info[0] != 'default_value' && info[0] != total_reference) {
+                            return info
+                        }
+                    }).reduce((all,info) => {
+                        if (!all) {
+                            all = `<br>Más información`;
+                        }
+                        info = `<br>
+                            <span class="marker-pop-up-info-title"> <b>${info[0]} : </b> </span> 
+                            <span class="marker-pop-up-info-content"> ${info[1]} </span>
+                        `;
+                        console.log(all);
+                        console.log(info);
+                        return all + info;
+                    });*/
+
+                    return `<span class="marker-pop-up-info-content"> ${layer.feature.properties[total_reference].toLocaleString('es-ES')} </span>`;
+                }, {permanent: false, direction: "center"});
+            }
+          };
+        },
         popup_point_options(){
             return {
                 minWidth : 300,
@@ -404,31 +470,31 @@ export default {
 
                 //Concentración Alta
                 if (feature.properties.total >= this.config.sh_map_large_cluster_size_starts_at) {
-                    color          = this.hexagonal_clusters_style["hexagonal-cluster-large-color"];
-                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
-                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
-                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-large-border-opacity"];
-                    font           = this.hexagonal_clusters_style["hexagonal-cluster-large-font"];
-                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-large-font-color"];
+                    color          = this.style_variables["hexagonal-cluster-large-color"];
+                    opacity        = this.style_variables["hexagonal-cluster-large-opacity"];
+                    border_color   = this.style_variables["hexagonal-cluster-large-border-color"];
+                    border_opacity = this.style_variables["hexagonal-cluster-large-border-opacity"];
+                    font           = this.style_variables["hexagonal-cluster-large-font"];
+                    font_color     = this.style_variables["hexagonal-cluster-large-font-color"];
                 }
 
                 //Concentración Media 
                 if (feature.properties.total < this.config.sh_map_large_cluster_size_starts_at) {
-                    color          = this.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
-                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
-                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
-                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-opacity"];
-                    font           = this.hexagonal_clusters_style["hexagonal-cluster-medium-font"];
-                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-medium-font-color"];
+                    color          = this.style_variables["hexagonal-cluster-medium-color"];
+                    opacity        = this.style_variables["hexagonal-cluster-medium-opacity"];
+                    border_color   = this.style_variables["hexagonal-cluster-medium-border-color"];
+                    border_opacity = this.style_variables["hexagonal-cluster-medium-border-opacity"];
+                    font           = this.style_variables["hexagonal-cluster-medium-font"];
+                    font_color     = this.style_variables["hexagonal-cluster-medium-font-color"];
                 }
                 //Baja
                 if (feature.properties.total < this.config.sh_map_medium_cluster_size_starts_at) {
-                    color          = this.hexagonal_clusters_style["hexagonal-cluster-small-color"];
-                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
-                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
-                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-small-border-opacity"];
-                    font           = this.hexagonal_clusters_style["hexagonal-cluster-small-font"];
-                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-small-font-color"];
+                    color          = this.style_variables["hexagonal-cluster-small-color"];
+                    opacity        = this.style_variables["hexagonal-cluster-small-opacity"];
+                    border_color   = this.style_variables["hexagonal-cluster-small-border-color"];
+                    border_opacity = this.style_variables["hexagonal-cluster-small-border-opacity"];
+                    font           = this.style_variables["hexagonal-cluster-small-font"];
+                    font_color     = this.style_variables["hexagonal-cluster-small-font-color"];
                 }
                 let retur = {
                     weight: 5,
@@ -440,6 +506,44 @@ export default {
 
 
                 return retur;
+            };
+
+        },
+        analytic_geojson_style() {
+            return (feature) => {
+
+                const layer = this.active_layers.find(l => {
+                    return feature.layer_id == l.id;
+                });
+
+                const total_reference = layer.total_dimension_ref;
+
+                const { max_total, min_total } = layer;
+
+                const color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
+                                                     this.style_variables["analytic-geojson-large-color"], 
+                                                     min_total, 
+                                                     max_total, 
+                                                     feature.properties[total_reference]);
+                const border_color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-border-color"],
+                                                            this.style_variables["analytic-geojson-large-border-color"], 
+                                                            min_total, 
+                                                            max_total, 
+                                                            feature.properties[total_reference]);
+
+                const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
+                const opacity = this.style_variables["analytic-geojson-opacity"];
+
+                const style = {
+                    weight      : 5,
+                    color       : border_color,
+                    opacity     : opacity,
+                    fillOpacity : opacity,
+                    fillColor   : color,
+                };
+
+
+                return style;
             };
 
         },
@@ -543,6 +647,31 @@ export default {
             let geojson_bounds = this.getMapGeoJsonBounds();
 
             switch(layer.sh_map_has_layer_code){
+                case 'analytic_geojson' : {
+                    // Analytic_geojson es un tipo de capa que permite tener a la vez varias capas de su mismo tipo
+                    // Pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
+                    // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
+                    const is_empty   = (this.analytic_geojson_list.length < 1) ? true : false;
+                    let is_new_layer = false;
+
+                    // Si la lista de GeoJson no está vacía se revisa si la Layer a activar fue activada previamente
+                    if (!is_empty) {
+
+                        let analytic_geojson_ids = this.analytic_geojson_list.map(function(analytic_geojson){
+                            return analytic_geojson.layer_id
+                        });
+                        //determina si ya existe la capa en la lista
+                        is_new_layer = !analytic_geojson_ids.includes(layer.id);
+
+                    }
+
+                    // Finalmente se agrega una capa si analytic_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
+                    if(is_empty || (!is_empty && is_new_layer)){
+                        this.getAnalyticalGeoJson(layer);
+                    }
+                    break;
+
+                }
                 case 'analytic_cluster' : {
                     let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
                     let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
@@ -594,6 +723,17 @@ export default {
         disableLayers(layer){
             
             switch(layer.sh_map_has_layer_code){
+                case 'analytic_geojson' : {
+                    //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
+                    let analytic_geojson_active_list = this.analytic_geojson_list.filter( analytic_geojson => {
+                        if (analytic_geojson.layer_id != layer.id) {
+                            return analytic_geojson;
+                        }
+                    });
+
+                    this.analytic_geojson_list = analytic_geojson_active_list;
+                    break;
+                }
                 case 'analytic_cluster' : {
                     this.analytic_cluster = undefined;
                     break;
@@ -634,7 +774,7 @@ export default {
         getAnalyticalCountourMap(layer){
             let data;
             let h3_zoom        = this.calculateH3ZoomContour();
-            let query_params   = this.makeCubeQueryParameters(layer,h3_zoom);
+            let query_params   = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
             let url            = query_params.url;
             let body           = query_params.body;
             let geojson_bounds = this.getMapGeoJsonBounds();
@@ -678,7 +818,7 @@ export default {
             let polygon; 
             let geojson_bounds = this.getMapGeoJsonBounds();
             let h3_zoom       = this.calculateH3Zoom();
-            let query_params  = this.makeCubeQueryParameters(layer,h3_zoom);
+            let query_params  = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
             let url           = query_params.url;
             let body          = query_params.body;
             
@@ -709,6 +849,92 @@ export default {
             });
 
         },
+        getAnalyticalGeoJson(layer){
+            axios.get(layer.sh_map_has_layer_url)
+                .then((response) => {
+                    this.should_skip_bounds_filter = true;
+                    const features      = response.data.features;
+                    const dimension_ids = [layer.sh_map_has_layer_dimension_id_reference];
+                    const query_params  = this.makeCubeQueryParameters(layer,dimension_ids);
+                    const url           = query_params.url;
+                    const body          = query_params.body;
+
+                    return [url, body, features];
+
+                }).then(([url, body, features]) => axios.post(url, body).then(response => {
+                    let all_cubes = response.data.content;
+                    let data      = _.first(Object.values(all_cubes.data)) || {};
+                    let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+
+                    //Conseguir lista de códigos de identificación
+                    let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
+
+                    layer['total_dimension_ref'] = data_map.find((dm, key) => {
+                        if (key != key_code_dimension) return dm
+                    });
+
+                    let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
+                    let code_id_list = data.map(d => {
+                        return parseInt(d[key_code_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
+                    });
+
+                    let total_list = data.map(d => {
+                        return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
+                    });
+
+                    layer['max_total'] = Math.max(...total_list);
+                    layer['min_total'] = Math.min(...total_list);
+
+                    //Relacionar el total de data con feature
+                        
+                    let feature_complete = features.map(feature => {
+                        // Aquí se busca el la coincicencia entre feature y data
+                        let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
+                        let index_dimension = code_id_list.indexOf(geojson_col_reference);
+
+                        //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
+                        let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+
+                        feature.properties[layer.total_dimension_ref] = total;
+                        feature['layer_id'] = layer.id;
+
+                        return feature; 
+                    });
+
+                    let geojson  = {
+                        "layer_id" : layer.id,
+                        "geojson"  : {
+                            "type"     : response.data.type, 
+                            "features" : feature_complete
+                        }
+                    };
+
+                    this.analytic_geojson_list.push(geojson);
+                    
+
+                }));
+        },
+        // calc hexadecimal between two colors by ratio (0.0 - 1.0)
+        calcColor(color1, color2, ratio){
+            const hex = function(x) {
+                if(x > 255) x = 255;
+                x = x.toString(16);
+                return (x.length == 1) ? '0' + x : x;
+            };
+            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
+            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
+            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
+            const calc = '#' + hex(r) + hex(g) + hex(b);
+            return calc;
+        },
+        // calc hexadecimal between two colors by min and max values
+        calcColorByMinMax(color_min, color_max, min, max, value) {
+            if (value == null) {
+                value = 0;
+            }
+            const ratio = (max - value) / (max - min);
+            return this.calcColor(color_min, color_max, ratio);
+        },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
             let geojson_bounds = [
@@ -720,12 +946,12 @@ export default {
 
             return geojson_bounds;
         },
-        makeCubeQueryParameters(layer,h3_zoom){
-            let url           = this.base_url+layer.sh_map_has_layer_url;
+        makeCubeQueryParameters(layer,columns_dimension_ids){
+            let url           = this.base_url+layer.sh_map_has_layer_bi_url;
             let metric        = layer.sh_map_has_layer_metric_id;
             let calculation   = layer.sh_map_has_layer_calculation;
             let filters       = this.formatFilter();
-            let dimension_ids = ["h3r".concat(h3_zoom)];
+            let dimension_ids = columns_dimension_ids;
 
             let body          = {
                 calculation   : calculation,
@@ -955,30 +1181,31 @@ export default {
         },
         
         findBounds(){
-            let h        = this.map.getZoom();
-            let bounds   = this.map.getBounds();
-            let all_col  = this.info.columns;
+            if (!this.should_skip_bounds_filter) {
+                let h        = this.map.getZoom();
+                let bounds   = this.map.getBounds();
+                let all_col  = this.info.columns;
 
-            let bounds_filters = all_col.filter((columns)=>{
-                if (columns.id == this.col_lat || columns.id == this.col_lng) {
-                    return columns;
-                }
-            }).map((columns,key)=>{
-                let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
-                let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
-                let bounds_filter = {
-                    "column": columns,
-                    "id": "external-filter-"+columns.id,
-                    "order": key+1,
-                    "search": {
-                        "start": start,
-                        "end": end
-                    },
-                    "type": "BETWEEN"
-                };
-                return bounds_filter;
-            });
-            this.bounds_filters = bounds_filters;
+                let bounds_filters = all_col.filter(columns=>
+                    columns.id == this.col_lat || columns.id == this.col_lng
+                ).map((columns,key)=>{
+                    let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
+                    let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
+                    let bounds_filter = {
+                        "column": columns,
+                        "id": "external-filter-"+columns.id,
+                        "order": key+1,
+                        "search": {
+                            "start": start,
+                            "end": end
+                        },
+                        "type": "BETWEEN"
+                    };
+                    return bounds_filter;
+                });
+                this.bounds_filters = bounds_filters;
+            }
+            this.should_skip_bounds_filter = false;
         },
 
         //#Convierte un indice h3 en lng lat
