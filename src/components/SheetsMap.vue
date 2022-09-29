@@ -651,8 +651,8 @@ export default {
                     // Analytic_geojson es un tipo de capa que permite tener a la vez varias capas de su mismo tipo
                     // Pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
                     // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
-                    const is_empty     = (this.analytic_geojson_list.length < 1) ? true : false;
-                    const is_new_layer = false;
+                    const is_empty   = (this.analytic_geojson_list.length < 1) ? true : false;
+                    let is_new_layer = false;
 
                     // Si la lista de GeoJson no está vacía se revisa si la Layer a activar fue activada previamente
                     if (!is_empty) {
