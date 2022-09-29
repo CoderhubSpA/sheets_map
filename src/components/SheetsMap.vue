@@ -875,11 +875,11 @@ export default {
 
                     let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
                     let code_id_list = data.map(d => {
-                        return parseInt(d[key_code_dimension]);
+                        return parseInt(d[key_code_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
                     });
 
                     let total_list = data.map(d => {
-                        return parseInt(d[key_total_dimension]);
+                        return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
                     });
 
                     layer['max_total'] = Math.max(...total_list);
