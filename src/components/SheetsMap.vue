@@ -173,32 +173,31 @@ export default {
             url: '',
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom                  : 7,
-            center_default        : [-33.472 , -70.769],
-            center                : undefined,
-            col_lat               : undefined,
-            col_lng               : undefined,
-            markers_data          : {},
-            map                   : undefined,
-            circle                : undefined,
+            zoom                      : 7,
+            center_default            : [-33.472 , -70.769],
+            center                    : undefined,
+            col_lat                   : undefined,
+            col_lng                   : undefined,
+            markers_data              : {},
+            map                       : undefined,
+            circle                    : undefined,
             /*Layers*/
-            analytic_cluster        : undefined,
-            analytic_countour_map   : undefined,
-            analytic_geojson_list   : [],
-            base_google_map         : undefined,
-            base_map_guide          : undefined,
-            base_open_street_map    : undefined,
-            operative_geoserver_wms : [],
+            analytic_cluster          : undefined,
+            analytic_countour_map     : undefined,
+            analytic_geojson_list     : [],
+            base_google_map           : undefined,
+            base_map_guide            : undefined,
+            base_open_street_map      : undefined,
+            operative_geoserver_wms   : [],
             /*Layers*/
-            clusters_markers      : [],
-            bounds_filters        : [],
-            num_zoom              : false,
-            bounds                : [],
-            index                 : [],
-            h3                    : require("h3-js"),
-            enableTooltip         : true,
+            clusters_markers          : [],
+            bounds_filters            : [],
+            num_zoom                  : false,
+            bounds                    : [],
+            index                     : [],
+            h3                        : require("h3-js"),
             // Usadas para las capas analiticas tipo analytic_geojson
-            skip_bounds_search    : false // Usada para no filtrar por los limites del mapa en analytic_geojson
+            should_skip_bounds_filter : false // Usada para no filtrar por los limites del mapa en analytic_geojson
         };
     },
     computed:{
@@ -411,6 +410,10 @@ export default {
 
                     let total_reference = active_layer.total_dimension_ref;
                     ;
+                    
+                    if (layer.feature.properties[total_reference] == null) {
+                        return `<span class="marker-pop-up-info-content"> Sin información disponible </span>`;
+                    }
                     /*
                     let more_information = Object.entries(layer.feature.properties).filter((info) => {
                         if (info[0] != 'default_value' && info[0] != total_reference) {
@@ -429,8 +432,7 @@ export default {
                         return all + info;
                     });*/
 
-                    return `
-                        <span class="marker-pop-up-info-content"> ${layer.feature.properties[total_reference]} </span>`;
+                    return `<span class="marker-pop-up-info-content"> ${layer.feature.properties[total_reference]} </span>`;
                 }, {permanent: false, direction: "center"});
             }
           };
@@ -510,29 +512,29 @@ export default {
         analytic_geojson_style() {
             return (feature) => {
 
-                let layer = this.active_layers.find(l => {
+                const layer = this.active_layers.find(l => {
                     return feature.layer_id == l.id;
                 });
 
-                let total_reference = layer.total_dimension_ref;
-                const max_total     = layer.max_total;
-                const min_total     = layer.min_total;
+                const total_reference = layer.total_dimension_ref;
 
-                let color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
-                                                   this.style_variables["analytic-geojson-large-color"], 
-                                                   min_total, 
-                                                   max_total, 
-                                                   feature.properties[total_reference]);
-                let border_color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-border-color"],
-                                                          this.style_variables["analytic-geojson-large-border-color"], 
-                                                          min_total, 
-                                                          max_total, 
-                                                          feature.properties[total_reference]);
+                const { max_total, min_total } = layer;
 
-                let border_opacity = this.style_variables["analytic-geojson-border-opacity"];
-                let opacity = this.style_variables["analytic-geojson-opacity"];
+                const color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
+                                                     this.style_variables["analytic-geojson-large-color"], 
+                                                     min_total, 
+                                                     max_total, 
+                                                     feature.properties[total_reference]);
+                const border_color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-border-color"],
+                                                            this.style_variables["analytic-geojson-large-border-color"], 
+                                                            min_total, 
+                                                            max_total, 
+                                                            feature.properties[total_reference]);
 
-                let style = {
+                const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
+                const opacity = this.style_variables["analytic-geojson-opacity"];
+
+                const style = {
                     weight      : 5,
                     color       : border_color,
                     opacity     : opacity,
@@ -646,8 +648,13 @@ export default {
 
             switch(layer.sh_map_has_layer_code){
                 case 'analytic_geojson' : {
-                    let is_empty     = (this.analytic_geojson_list.length < 1) ? true : false;
-                    let is_new_layer = false;
+                    // Analytic_geojson es un tipo de capa que permite tener a la vez varias capas de su mismo tipo
+                    // Pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
+                    // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
+                    const is_empty     = (this.analytic_geojson_list.length < 1) ? true : false;
+                    const is_new_layer = false;
+
+                    // Si la lista de GeoJson no está vacía se revisa si la Layer a activar fue activada previamente
                     if (!is_empty) {
 
                         let analytic_geojson_ids = this.analytic_geojson_list.map(function(analytic_geojson){
@@ -658,6 +665,7 @@ export default {
 
                     }
 
+                    // Finalmente se agrega una capa si analytic_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
                     if(is_empty || (!is_empty && is_new_layer)){
                         this.getAnalyticalGeoJson(layer);
                     }
@@ -848,87 +856,90 @@ export default {
                     /*
                         Procesar features
                     */
-                    this.skip_bounds_search = true;
-                    let dimension_id_code   = [layer.sh_map_has_layer_dimension_id_reference];
-                    let query_params        = this.makeCubeQueryParameters(layer,dimension_id_code);
+                    this.should_skip_bounds_filter = true;
+                    let dimension_ids       = [layer.sh_map_has_layer_dimension_id_reference];
+                    let query_params        = this.makeCubeQueryParameters(layer,dimension_ids);
                     let url                 = query_params.url;
                     let body                = query_params.body;
 
-                    axios.post(url, body).then(response => {
-                        let all_cubes = response.data.content;
-                        let data      = _.first(Object.values(all_cubes.data)) || {};
-                        let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+                    return [url, body];
 
-                        //Conseguir lista de códigos de identificación
-                        let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
+                }).then(([url, body]) => {
+                    let all_cubes = response.data.content;
+                    let data      = _.first(Object.values(all_cubes.data)) || {};
+                    let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
 
-                        layer['total_dimension_ref'] = _.first(Object.values(data_map.filter((dm, key) => {
-                            if (key != key_code_dimension) return dm
-                        })));
+                    //Conseguir lista de códigos de identificación
+                    let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
 
-
-                        let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
-
-
-                        let code_id_list = data.map(d => {
-                            return parseInt(d[key_code_dimension]);
-                        });
-
-                        let total_list = data.map(d => {
-                            return parseInt(d[key_total_dimension]);
-                        });
-
-                        layer['max_total'] = Math.max(...total_list);
-                        layer['min_total'] = Math.min(...total_list);
-
-                        //Relacionar el total de data con feature
-                        
-                        let feature_complete = features.map(feature => {
-                            // Aquí se busca el la coincicencia entre feature y data
-                            let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
-                            let index_dimension = code_id_list.indexOf(geojson_col_reference);
-
-                            //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
-                            let total         = (index_dimension != -1) ? data[index_dimension][key_total_dimension] : 0;
-                            let default_value = (index_dimension != -1) ? false : true;
-
-                            feature.properties[layer.total_dimension_ref] = total;
-                            feature.properties['default_value']           = default_value;
-                            feature['layer_id'] = layer.id;
-
-                            return feature; 
-                        });
-
-                        let geojson  = {
-                            "layer_id" : layer.id,
-                            "geojson"  : {
-                                "type"     : response.data.type, 
-                                "features" : feature_complete
-                            }
-                        };
-
-                        this.analytic_geojson_list.push(geojson);
+                    layer['total_dimension_ref'] = data_map.find((dm, key) => {
+                        if (key != key_code_dimension) return dm
                     });
+
+                    let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
+                    let code_id_list = data.map(d => {
+                        return parseInt(d[key_code_dimension]);
+                    });
+
+                    let total_list = data.map(d => {
+                        return parseInt(d[key_total_dimension]);
+                    });
+
+                    layer['max_total'] = Math.max(...total_list);
+                    layer['min_total'] = Math.min(...total_list);
+
+                    //Relacionar el total de data con feature
+                        
+                    let feature_complete = features.map(feature => {
+                        // Aquí se busca el la coincicencia entre feature y data
+                        let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
+                        let index_dimension = code_id_list.indexOf(geojson_col_reference);
+
+                        //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
+                        let total         = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+
+                        feature.properties[layer.total_dimension_ref] = total;
+                        feature['layer_id'] = layer.id;
+
+                        return feature; 
+                    });
+
+                    let geojson  = {
+                        "layer_id" : layer.id,
+                        "geojson"  : {
+                            "type"     : response.data.type, 
+                            "features" : feature_complete
+                        }
+                    };
+
+                    this.analytic_geojson_list.push(geojson);
+                    
 
                 });
         },
         // calc hexadecimal between two colors by ratio (0.0 - 1.0)
         calcColor(color1, color2, ratio){
-            let hex = function(x) {
+            const hex = function(x) {
                 if(x > 255) x = 255;
                 x = x.toString(16);
                 return (x.length == 1) ? '0' + x : x;
             };
-            let r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
-            let g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
-            let b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
-            let calc = '#' + hex(r) + hex(g) + hex(b);
+            let r = calRgb(color1, color2, ratio, 1, 3);
+            let g = calRgb(color1, color2, ratio, 3, 5);
+            let b = calRgb(color1, color2, ratio, 5, 7);
+            let calc = '#' + r + g + b;
             return calc;
         },
         // calc hexadecimal between two colors by min and max values
         calcColorByMinMax(color_min, color_max, min, max, value) {
+            if (value == null) {
+                value = 0;
+            }
             let ratio = (max - value) / (max - min);
             return this.calcColor(color_min, color_max, ratio);
+        },
+        calRgb(color1, color2, ratio,n,m){
+            return hex(Math.ceil(parseInt(color1.substring(n,m), 16) * ratio + parseInt(color2.substring(n,m), 16) * (1 - ratio)));
         },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
@@ -1176,15 +1187,13 @@ export default {
         },
         
         findBounds(){
-            if (!this.skip_bounds_search) {
+            if (!this.should_skip_bounds_filter) {
                 let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
 
                 let bounds_filters = all_col.filter((columns)=>{
-                    if (columns.id == this.col_lat || columns.id == this.col_lng) {
-                        return columns;
-                    }
+                    columns.id == this.col_lat || columns.id == this.col_lng;
                 }).map((columns,key)=>{
                     let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
                     let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
@@ -1202,7 +1211,7 @@ export default {
                 });
                 this.bounds_filters = bounds_filters;
             }
-            this.skip_bounds_search = false;
+            this.should_skip_bounds_filter = false;
         },
 
         //#Convierte un indice h3 en lng lat
