@@ -417,6 +417,22 @@ export default {
 
                         return `<span class="marker-pop-up-info-content"> ${total} </span>`;
                     }
+                    if (active_layer.sh_map_has_layer_property_keys == '*') {
+                        let info = Object.entries(layer.feature.properties).map((property) =>{
+                            let key   = this.formatKeyToHumanText(property[0]); // Tomamos la clave de la propiedad
+                            let value = property[1]; // Tomamos el valor de la propiedad
+
+                            value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
+                            value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+
+                            return `
+                                <span class="marker-pop-up-info-title"> <b>${key} : </b> </span> 
+                                <span class="marker-pop-up-info-content"> ${value} </span>
+                            `;
+                        });
+
+                        return `${info.join('<br>')}`;
+                    }
 
                     let property_keys = JSON.parse(active_layer.sh_map_has_layer_property_keys);
                     //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
@@ -915,27 +931,6 @@ export default {
 
                 }));
         },
-        // calc hexadecimal between two colors by ratio (0.0 - 1.0)
-        calcColor(color1, color2, ratio){
-            const hex = function(x) {
-                if(x > 255) x = 255;
-                x = x.toString(16);
-                return (x.length == 1) ? '0' + x : x;
-            };
-            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
-            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
-            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
-            const calc = '#' + hex(r) + hex(g) + hex(b);
-            return calc;
-        },
-        // calc hexadecimal between two colors by min and max values
-        calcColorByMinMax(color_min, color_max, min, max, value) {
-            if (value == null) {
-                value = 0;
-            }
-            const ratio = (max - value) / (max - min);
-            return this.calcColor(color_min, color_max, ratio);
-        },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
             let geojson_bounds = [
@@ -1381,9 +1376,48 @@ export default {
                 features.push(this.getBoundary(index,properties));
             }
             return features;
-        }
+        },
         //----------------------------------------------------------------------------------------------
         // SCRIPT DE MAURICIO
+        //----------------------------------------------------------------------------------------------
+        //
+        //----------------------------------------------------------------------------------------------
+        // Helpers
+        //----------------------------------------------------------------------------------------------
+                // format text with "_" to text legible for humans,
+        // set all on lowercase but first letter to uppercase and each after "_" or " " to uppercase,
+        // separe letter from numbers
+        formatKeyToHumanText(text){
+            let textFormated = text.replace(/_/g, " ");
+            textFormated = textFormated.toLowerCase();
+            textFormated = textFormated.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+            textFormated = textFormated.replace(/([a-z])([0-9])/i, '$1 $2');
+            textFormated = textFormated.replace(/([0-9])([a-z])/i, '$1 $2');
+            return textFormated;
+        },
+        // calc hexadecimal between two colors by ratio (0.0 - 1.0)
+        calcColor(color1, color2, ratio){
+            const hex = function(x) {
+                if(x > 255) x = 255;
+                x = x.toString(16);
+                return (x.length == 1) ? '0' + x : x;
+            };
+            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
+            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
+            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
+            const calc = '#' + hex(r) + hex(g) + hex(b);
+            return calc;
+        },
+        // calc hexadecimal between two colors by min and max values
+        calcColorByMinMax(color_min, color_max, min, max, value) {
+            if (value == null) {
+                value = 0;
+            }
+            const ratio = (max - value) / (max - min);
+            return this.calcColor(color_min, color_max, ratio);
+        }
+        //----------------------------------------------------------------------------------------------
+        // Helpers
         //----------------------------------------------------------------------------------------------
     }
 }
