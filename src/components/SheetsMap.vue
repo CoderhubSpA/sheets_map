@@ -185,6 +185,7 @@ export default {
             analytic_cluster          : undefined,
             analytic_countour_map     : undefined,
             analytic_geojson_list     : [],
+            analytic_geojson_features : [],
             base_google_map           : undefined,
             base_map_guide            : undefined,
             base_open_street_map      : undefined,
@@ -684,11 +685,13 @@ export default {
                         is_new_layer = !analytic_geojson_ids.includes(layer.id);
 
                     }
+                    if (!is_new_layer) {
+                        this.cleanAnalyticGeojsonLayer(layer);
+
+                    }
 
                     // Finalmente se agrega una capa si analytic_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
-                    if(is_empty || (!is_empty && is_new_layer)){
-                        this.getAnalyticalGeoJson(layer);
-                    }
+                    this.getAnalyticalGeoJson(layer);
                     break;
 
                 }
@@ -745,13 +748,7 @@ export default {
             switch(layer.sh_map_has_layer_code){
                 case 'analytic_geojson' : {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
-                    let analytic_geojson_active_list = this.analytic_geojson_list.filter( analytic_geojson => {
-                        if (analytic_geojson.layer_id != layer.id) {
-                            return analytic_geojson;
-                        }
-                    });
-
-                    this.analytic_geojson_list = analytic_geojson_active_list;
+                    this.cleanAnalyticGeojsonLayer(layer);
                     break;
                 }
                 case 'analytic_cluster' : {
@@ -870,69 +867,92 @@ export default {
 
         },
         getAnalyticalGeoJson(layer){
-            axios.get(layer.sh_map_has_layer_url)
-                .then((response) => {
-                    this.should_skip_bounds_filter = true;
-                    const features      = response.data.features;
-                    const dimension_ids = [layer.sh_map_has_layer_dimension_id_reference];
-                    const query_params  = this.makeCubeQueryParameters(layer,dimension_ids);
-                    const url           = query_params.url;
-                    const body          = query_params.body;
+            this.should_skip_bounds_filter = true;
+            const dimension_ids = [layer.sh_map_has_layer_dimension_id_reference];
+            const query_params  = this.makeCubeQueryParameters(layer,dimension_ids);
+            const url           = query_params.url;
+            const body          = query_params.body;
 
-                    return [url, body, features];
+            if (!(this.analytic_geojson_features.hasOwnProperty(layer.id))) {
+                this.getGeoJson(layer, url, body);
+            }else{
+                this.getAnalyticalGeoJsonBi(layer, url, body);
+            }
+        },
+        getAnalyticalGeoJsonBi(layer, url, body){
+            axios.post(url, body).then(response => {
+                let all_cubes = response.data.content;
+                let data      = _.first(Object.values(all_cubes.data)) || {};
+                let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
 
-                }).then(([url, body, features]) => axios.post(url, body).then(response => {
-                    let all_cubes = response.data.content;
-                    let data      = _.first(Object.values(all_cubes.data)) || {};
-                    let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+                //Conseguir lista de códigos de identificación
+                let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
 
-                    //Conseguir lista de códigos de identificación
-                    let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
+                layer['total_dimension_ref'] = data_map.find((dm, key) => {
+                    if (key != key_code_dimension) return dm
+                });
 
-                    layer['total_dimension_ref'] = data_map.find((dm, key) => {
-                        if (key != key_code_dimension) return dm
-                    });
+                let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
 
-                    let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
-                    let code_id_list = data.map(d => {
-                        return parseInt(d[key_code_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
-                    });
+                let code_id_list = data.map(d => {
+                    return parseInt(d[key_code_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
+                });
 
-                    let total_list = data.map(d => {
-                        return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
-                    });
+                let total_list = data.map(d => {
+                    return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
+                });
 
-                    layer['max_total'] = Math.max(...total_list);
-                    layer['min_total'] = Math.min(...total_list);
+                layer['max_total'] = Math.max(...total_list);
+                layer['min_total'] = Math.min(...total_list);
 
-                    //Relacionar el total de data con feature
+                //Relacionar el total de data con feature
                         
-                    let feature_complete = features.map(feature => {
-                        // Aquí se busca el la coincicencia entre feature y data
-                        let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
-                        let index_dimension = code_id_list.indexOf(geojson_col_reference);
+                let features = this.analytic_geojson_features[layer.id].map(feature => {
+                    // Aquí se busca el la coincicencia entre feature y data
+                    let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
+                    let index_dimension = code_id_list.indexOf(geojson_col_reference);
 
-                        //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
-                        let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+                    //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
+                    let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+                    feature.properties[layer.total_dimension_ref] = total;
+                    feature['layer_id'] = layer.id;
 
-                        feature.properties[layer.total_dimension_ref] = total;
-                        feature['layer_id'] = layer.id;
+                    return feature; 
+                });
+                let geojson  = {
+                    "layer_id" : layer.id,
+                    "geojson"  : {
+                        "type"     : response.data.type, 
+                        "features" : features
+                    }
+                };
 
-                        return feature; 
-                    });
-
-                    let geojson  = {
-                        "layer_id" : layer.id,
-                        "geojson"  : {
-                            "type"     : response.data.type, 
-                            "features" : feature_complete
-                        }
-                    };
-
-                    this.analytic_geojson_list.push(geojson);
+                this.analytic_geojson_list.push(geojson);
                     
 
-                }));
+            });
+        },
+        getGeoJson(layer, url = null, body = null){
+            axios.get(layer.sh_map_has_layer_url)
+                .then((response) => {
+                    this.analytic_geojson_features[layer.id] = response.data.features;
+                    let features = response.data.features;
+
+                }).then((features) => {
+                    if (layer.sh_map_has_layer_code == 'analytic_geojson') {
+                        this.getAnalyticalGeoJsonBi(layer, url, body);
+                    }
+                });
+        },
+        cleanAnalyticGeojsonLayer(layer){
+            // Desactiva la capa actual en layer
+            let analytic_geojson_active_list = this.analytic_geojson_list.filter( analytic_geojson => {
+                if (analytic_geojson.layer_id != layer.id) {
+                    return analytic_geojson;
+                }
+            });
+
+            this.analytic_geojson_list = analytic_geojson_active_list;
         },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
@@ -984,6 +1004,16 @@ export default {
             }
 
             let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : this.active_filters;
+
+            if (this.should_skip_bounds_filter) {
+                const columns    = this.info.columns;
+                const lat_column = columns.find(column => column.id == this.col_lat);
+                const lng_column = columns.find(column => column.id == this.col_lng);
+
+                active_filters = active_filters.filter(a_f => a_f.column.col_name != lat_column.col_name && a_f.column.col_name != lng_column.col_name);
+                
+                this.should_skip_bounds_filter = false;
+            }
 
             let filters = active_filters.map(a_f => {
                 let value;
