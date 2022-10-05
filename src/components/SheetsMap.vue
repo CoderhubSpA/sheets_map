@@ -902,8 +902,8 @@ export default {
                     return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
                 });
 
-                const max_total = Math.max(...total_list);
-                const min_total = Math.min(...total_list);
+                const max_total = (total_list.length > 0) ? Math.max(...total_list) : 0;
+                const min_total = (total_list.length > 0) ? Math.min(...total_list) : 0;
 
                 layer['max_total'] = max_total;
                 layer['min_total'] = (max_total != min_total) ? min_total : 0;
@@ -1443,6 +1443,9 @@ export default {
         },
         // calc hexadecimal between two colors by min and max values
         calcColorByMinMax(color_min, color_max, min, max, value) {
+            if (max == min) {
+                 return color_min;
+            }
             if (value == null) {
                 value = 0;
             }
