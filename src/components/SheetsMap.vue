@@ -902,8 +902,11 @@ export default {
                     return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
                 });
 
-                layer['max_total'] = Math.max(...total_list);
-                layer['min_total'] = Math.min(...total_list);
+                const max_total = Math.max(...total_list);
+                const min_total = Math.min(...total_list);
+
+                layer['max_total'] = max_total;
+                layer['min_total'] = (max_total != min_total) ? min_total : 0;
 
                 //Relacionar el total de data con feature
                         
@@ -1006,11 +1009,8 @@ export default {
             let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : this.active_filters;
 
             if (this.should_skip_bounds_filter) {
-                const columns    = this.info.columns;
-                const lat_column = columns.find(column => column.id == this.col_lat);
-                const lng_column = columns.find(column => column.id == this.col_lng);
 
-                active_filters = active_filters.filter(a_f => a_f.column.col_name != lat_column.col_name && a_f.column.col_name != lng_column.col_name);
+                active_filters = active_filters.filter(a_f => a_f.column.id != this.col_lat && a_f.column.id != this.col_lng);
                 
                 this.should_skip_bounds_filter = false;
             }
