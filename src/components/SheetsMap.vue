@@ -296,9 +296,9 @@ export default {
                 "analytic-geojson-opacity"              : custom_styles["analytic-geojson-opacity"]              || 0.6,
                 "analytic-geojson-border-opacity"       : custom_styles["analytic-geojson-border-opacity"]       || 1,
                 // Analytic GeoJson Poits Style
-                "analytic-geojson-point-iconSize"       : custom_styles["analytic-geojson-point-iconSize"]    || 38,
-                "analytic-geojson-point-iconAnchor"     : custom_styles["analytic-geojson-point-iconAnchor"]  || 25,
-                "analytic-geojson-point-popupAnchor"    : custom_styles["analytic-geojson-point-popupAnchor"] || 0,
+                "analytic-geojson-point-icon-size"    : custom_styles["analytic-geojson-point-icon-size"]    || 38,
+                "analytic-geojson-point-icon-anchor"  : custom_styles["analytic-geojson-point-icon-anchor"]  || 25,
+                "analytic-geojson-point-popup-anchor" : custom_styles["analytic-geojson-point-popup-anchor"] || 0,
                 
             };
 
@@ -419,10 +419,10 @@ export default {
                 });
 
                 if (active_layer.sh_map_has_layer_image != null) {
-                    const icon_size    = this.style_variables['analytic-geojson-point-iconSize'];
-                    const icon_anchor  = this.style_variables['analytic-geojson-point-iconAnchor'];
-                    const popup_anchor = this.style_variables['analytic-geojson-point-popupAnchor'];
-                    
+                    const icon_size    = this.style_variables['analytic-geojson-point-icon-size'];
+                    const icon_anchor  = this.style_variables['analytic-geojson-point-icon-anchor'];
+                    const popup_anchor = this.style_variables['analytic-geojson-point-popupA-anchor'];
+
                     const icon = L.icon({
                       iconUrl: this.base_url+active_layer.sh_map_has_layer_image,
                         iconSize:     [icon_size, icon_size], // size of the icon
