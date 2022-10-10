@@ -86,13 +86,20 @@
                 <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
                 <div v-if="analytic_geojson_list.length > 0">
                     <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
-                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style" :options ="analytic_geojson_options"></l-geo-json>
+                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style" :options ="geojson_options"></l-geo-json>
                     </div>
                     
                 </div>
                 <!-- End Analytic layers -->
 
                 <!-- Operative layers -->
+
+                <div v-if="operative_geojson_list.length > 0">
+                    <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
+                        <l-geo-json :geojson="operative_geojson.geojson" icon-url="https://png.pngtree.com/png-vector/20201130/ourmid/pngtree-sun-png-clipart-colored-png-image_2490377.png" :options ="geojson_options"></l-geo-json>
+                    </div>
+                    
+                </div>
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
                     v-for="layer in (operative_geoserver_wms || [])"
@@ -186,6 +193,8 @@ export default {
             analytic_countour_map     : undefined,
             analytic_geojson_list     : [],
             analytic_geojson_features : [],
+            operative_geojson_list    : [],
+            operative_geojson_features : [],
             base_google_map           : undefined,
             base_map_guide            : undefined,
             base_open_street_map      : undefined,
@@ -286,8 +295,13 @@ export default {
                 "analytic-geojson-large-border-color"   : custom_styles["analytic-geojson-large-border-color"]   || "#0074BD",
                 "analytic-geojson-opacity"              : custom_styles["analytic-geojson-opacity"]              || 0.6,
                 "analytic-geojson-border-opacity"       : custom_styles["analytic-geojson-border-opacity"]       || 1,
+                // Analytic GeoJson Poits Style
+                "analytic-geojson-point-iconSize"       : custom_styles["analytic-geojson-point-iconSize"]    || 38,
+                "analytic-geojson-point-iconAnchor"     : custom_styles["analytic-geojson-point-iconAnchor"]  || 25,
+                "analytic-geojson-point-popupAnchor"    : custom_styles["analytic-geojson-point-popupAnchor"] || 0,
+                
             };
-            
+
         },
         markers_latlgn(){
             
@@ -396,8 +410,31 @@ export default {
             }
           };
         },
-        analytic_geojson_options() {
+        geojson_options() {
           return {
+            pointToLayer: (feature, latLng) => {
+                //Obtenemos la configuración de la capa a la que pertenece
+                const active_layer = this.active_layers.find(l => {
+                    return feature.layer_id == l.id;
+                });
+
+                if (active_layer.sh_map_has_layer_image != null) {
+                    const icon_size    = this.style_variables['analytic-geojson-point-iconSize'];
+                    const icon_anchor  = this.style_variables['analytic-geojson-point-iconAnchor'];
+                    const popup_anchor = this.style_variables['analytic-geojson-point-popupAnchor'];
+                    
+                    const icon = L.icon({
+                      iconUrl: this.base_url+active_layer.sh_map_has_layer_image,
+                        iconSize:     [icon_size, icon_size], // size of the icon
+                        iconAnchor:   [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
+                        popupAnchor:  [popup_anchor, popup_anchor] // point from which the popup should open relative to the iconAnchor
+                    })
+                    return L.marker(latLng, {icon: icon})
+                }
+
+                return L.marker(latLng)
+
+            },
             onEachFeature: (feature, layer) => {
                 //let properties = feature.properties;
                 if (Object.values(feature.properties)?.length < 1) {
@@ -405,53 +442,47 @@ export default {
                 }
                 layer.bindPopup((layer) => {
                     //Obtenemos la configuración de la capa a la que pertenece
-                    let active_layer = this.active_layers.find(l => {
+                    const active_layer = this.active_layers.find(l => {
                         return layer.feature.layer_id == l.id;
                     });
-                    //Almacenamos el calculo hecho entre el Bi y el feature
-                    let total_reference = active_layer.total_dimension_ref;
-                    ;
+
+                    let info = ['Sin información disponible']; //Información a retornar en el popup
+                    let property_configuration = active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
 
                     // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
                     // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
-                    if (active_layer.sh_map_has_layer_property_keys == null) {
-                        let total = (layer.feature.properties[total_reference] == null) ? 'Sin información disponible' : layer.feature.properties[total_reference].toLocaleString('es-ES');
+                    if (property_configuration == null) {
+                        switch(active_layer.sh_map_has_layer_code){
+                            case 'analytic_geojson' :{
+                                //Almacenamos el calculo hecho entre el Bi y el feature
+                                const total_reference = active_layer.total_dimension_ref;
 
-                        return `<span class="marker-pop-up-info-content"> ${total} </span>`;
+                                const total = (layer.feature.properties[total_reference] == null) ? 'Sin información disponible' : layer.feature.properties[total_reference].toLocaleString('es-ES');
+
+                                return `<span class="marker-pop-up-info-content"> ${total} </span>`;
+
+                            }
+                            case 'operative_geoserver_wfs_point' :{
+
+                                info = this.infoGeojsonWithKeys(layer, false);
+                                break;
+                            }
+                        }
+                    }else{
+
+                        //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
+                        if ((property_configuration).charAt(0) == '*') {
+                            const human_keys = (property_configuration == '*') ? true : false;
+                            info = this.infoGeojsonWithKeys(layer, human_keys);
+                        }
+
+                        // Si la configuración proporcionada es un json entonces retorna la configuración + alias proporcionado por la configuración
+                        if (this.isJson(property_configuration)) {
+                            let property_keys = JSON.parse(property_configuration);
+                            info = this.infoGeojsonWithAlias(layer, property_keys);
+                        }
                     }
                     
-                    //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
-                    if (active_layer.sh_map_has_layer_property_keys == '*') {
-                        let info = Object.entries(layer.feature.properties).map((property) =>{
-                            const title = this.formatKeyToHumanText(property[0]); // Tomamos la clave de la propiedad
-                            let value   = property[1]; // Tomamos el valor de la propiedad
-
-                            value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
-                            value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
-
-                            return `
-                                <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
-                                <span class="marker-pop-up-info-content"> ${value} </span>
-                            `;
-                        });
-
-                        return `${info.join('<br>')}`;
-                    }
-
-                    let property_keys = JSON.parse(active_layer.sh_map_has_layer_property_keys);
-                    //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
-                    let info = Object.entries(property_keys).map((property_info) =>{
-                        let key      = property_info[0]; // Tomamos el nombre técnico de la propiedad
-                        let property = property_info[1]; // Tomamos el nombre humano de la propiedad
-                        let value    = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key]; // parseamos el valor resultante
-                        
-                        value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
-
-                        return `
-                            <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
-                            <span class="marker-pop-up-info-content"> ${value} </span>
-                        `;
-                    });
 
                     return `${info.join('<br>')}`;
                 }, {permanent: false, direction: "center"});
@@ -669,28 +700,12 @@ export default {
 
             switch(layer.sh_map_has_layer_code){
                 case 'analytic_geojson' : {
-                    // Analytic_geojson es un tipo de capa que permite tener a la vez varias capas de su mismo tipo
-                    // Pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
-                    // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
-                    const is_empty   = (this.analytic_geojson_list.length < 1) ? true : false;
-                    let is_new_layer = false;
+                    const {is_empty,is_new_layer}= this.organizeLayers(layer, this.analytic_geojson_list);
 
-                    // Si la lista de GeoJson no está vacía se revisa si la Layer a activar fue activada previamente
-                    if (!is_empty) {
-
-                        let analytic_geojson_ids = this.analytic_geojson_list.map(function(analytic_geojson){
-                            return analytic_geojson.layer_id
-                        });
-                        //determina si ya existe la capa en la lista
-                        is_new_layer = !analytic_geojson_ids.includes(layer.id);
-
-                    }
                     if (!is_new_layer) {
-                        this.cleanAnalyticGeojsonLayer(layer);
-
+                        this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
                     }
 
-                    // Finalmente se agrega una capa si analytic_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
                     this.getAnalyticalGeoJson(layer);
                     break;
 
@@ -735,6 +750,16 @@ export default {
                     break;
 
                 }
+                case 'operative_geoserver_wfs_point': {
+                    const {is_empty,is_new_layer} = this.organizeLayers(layer, this.operative_geojson_list);
+
+                    // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
+                    if(is_empty || (!is_empty && is_new_layer)){
+                        this.getGeoJson(layer, this.operative_geojson_features);
+                    }
+
+                    break;
+                }
                 default:{
                     console.log('Intento de activar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
@@ -748,7 +773,7 @@ export default {
             switch(layer.sh_map_has_layer_code){
                 case 'analytic_geojson' : {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
-                    this.cleanAnalyticGeojsonLayer(layer);
+                    this.analytic_geojson_list = this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
                     break;
                 }
                 case 'analytic_cluster' : {
@@ -779,6 +804,12 @@ export default {
                     this.base_open_street_map = undefined;
                     break;
 
+                }
+                case 'operative_geoserver_wfs_point': {
+                    //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
+                    this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+
+                    break;
                 }
                 default:{
                     //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
@@ -874,7 +905,7 @@ export default {
             const body          = query_params.body;
 
             if (!(this.analytic_geojson_features.hasOwnProperty(layer.id))) {
-                this.getGeoJson(layer, url, body);
+                this.getGeoJson(layer, this.analytic_geojson_features, url, body);
             }else{
                 this.getAnalyticalGeoJsonBi(layer, url, body);
             }
@@ -925,7 +956,7 @@ export default {
                 let geojson  = {
                     "layer_id" : layer.id,
                     "geojson"  : {
-                        "type"     : response.data.type, 
+                        "type"     : "FeatureCollection",
                         "features" : features
                     }
                 };
@@ -935,27 +966,57 @@ export default {
 
             });
         },
-        getGeoJson(layer, url = null, body = null){
+        getOperativeGeoJson(layer){
+
+                //Relacionar el total de data con feature
+                let features = this.operative_geojson_features[layer.id].map(feature => {
+
+                    feature['layer_id'] = layer.id;
+
+                    return feature; 
+                });
+
+                let geojson  = {
+                    "layer_id" : layer.id,
+                    "geojson"  : {
+                        "type"     : "FeatureCollection",
+                        "features" : features
+                    }
+                };
+
+
+                this.operative_geojson_list.push(geojson);
+        },
+        getGeoJson(layer, feature_container, url = null, body = null){
             axios.get(layer.sh_map_has_layer_url)
                 .then((response) => {
-                    this.analytic_geojson_features[layer.id] = response.data.features;
-                    let features = response.data.features;
+                    feature_container[layer.id] = response.data.features;
+                    const features              = response.data.features;
 
                 }).then((features) => {
-                    if (layer.sh_map_has_layer_code == 'analytic_geojson') {
-                        this.getAnalyticalGeoJsonBi(layer, url, body);
+
+                    switch(layer.sh_map_has_layer_code){
+                        case 'analytic_geojson' : {
+                            this.getAnalyticalGeoJsonBi(layer, url, body);
+                            break;
+                        }
+                        case 'operative_geoserver_wfs_point' : {
+                            this.getOperativeGeoJson(layer);
+                            break;
+                        }
                     }
+
                 });
         },
-        cleanAnalyticGeojsonLayer(layer){
+        cleanGeojsonLayer(layer, layer_geojson_list){
             // Desactiva la capa actual en layer
-            let analytic_geojson_active_list = this.analytic_geojson_list.filter( analytic_geojson => {
-                if (analytic_geojson.layer_id != layer.id) {
-                    return analytic_geojson;
+            let layer_geojson_active_list = layer_geojson_list.filter( layer_geojson => {
+                if (layer_geojson.layer_id != layer.id) {
+                    return layer_geojson;
                 }
             });
 
-            this.analytic_geojson_list = analytic_geojson_active_list;
+            return layer_geojson_active_list;
         },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
@@ -1451,10 +1512,75 @@ export default {
             }
             const ratio = (max - value) / (max - min);
             return this.calcColor(color_min, color_max, ratio);
-        }
+        },
+        isJson(str) {
+            try {
+                JSON.parse(str);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        },
         //----------------------------------------------------------------------------------------------
         // Helpers
-        //----------------------------------------------------------------------------------------------
+        //----------------------------------------------------------------------------------------------,
+        // Enlistar capas geojson
+        organizeLayers(layer, layer_list) {
+            // Analytic_geojson y operative_geoserver_wfs_point son un tipo de capa que 
+            // permite tener a la vez varias capas de su mismo tipo
+            // pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
+            // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
+            const is_empty   = (layer_list.length < 1) ? true : false;
+            let is_new_layer = false;
+
+            // Si la lista de capas no está vacía se revisa si la Layer a activar fue activada previamente
+            if (!is_empty) {
+                const layer_ids = layer_list.map(function(layer_l){
+                    return layer_l.layer_id
+                });
+                //determina si ya existe la capa en la lista
+                is_new_layer = !layer_ids.includes(layer.id);
+
+            }
+
+            return {'is_empty':is_empty,'is_new_layer':is_new_layer};
+        },
+        infoGeojsonWithAlias(layer, property_keys) {
+
+            //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
+            let info = Object.entries(property_keys).map((property_info) =>{
+                const key      = property_info[0]; // Tomamos el nombre técnico de la propiedad
+                const property = property_info[1]; // Tomamos el nombre humano de la propiedad
+                let value      = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
+
+                value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+                return `
+                    <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
+                    <span class="marker-pop-up-info-content"> ${value} </span>
+                `;
+            });
+
+
+            return info;
+        },
+        //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
+        //o puede retornarse justo como la presenta el GeoJson
+        infoGeojsonWithKeys(layer, human_keys) {
+
+            let info = Object.entries(layer.feature.properties).map((property) =>{
+                const title = (human_keys) ? this.formatKeyToHumanText(property[0]) : property[0]; // Tomamos la clave de la propiedad
+                let value   = property[1]; // Tomamos el valor de la propiedad
+
+                value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
+                value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+                return `
+                    <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
+                    <span class="marker-pop-up-info-content"> ${value} </span>
+                `;
+            });
+
+            return info;
+        }
     }
 }
 </script>
