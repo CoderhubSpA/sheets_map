@@ -96,7 +96,7 @@
 
                 <div v-if="operative_geojson_list.length > 0">
                     <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
-                        <l-geo-json :geojson="operative_geojson.geojson" icon-url="https://png.pngtree.com/png-vector/20201130/ourmid/pngtree-sun-png-clipart-colored-png-image_2490377.png" :options ="geojson_options"></l-geo-json>
+                        <l-geo-json :geojson="operative_geojson.geojson" :options ="geojson_options"></l-geo-json>
                     </div>
                     
                 </div>
