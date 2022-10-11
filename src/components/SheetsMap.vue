@@ -421,10 +421,10 @@ export default {
                 if (active_layer.sh_map_has_layer_image != null) {
                     const icon_size    = this.style_variables['analytic-geojson-point-icon-size'];
                     const icon_anchor  = this.style_variables['analytic-geojson-point-icon-anchor'];
-                    const popup_anchor = this.style_variables['analytic-geojson-point-popupA-anchor'];
+                    const popup_anchor = this.style_variables['analytic-geojson-point-popup-anchor'];
 
                     const icon = L.icon({
-                      iconUrl: this.base_url+active_layer.sh_map_has_layer_image,
+                        iconUrl: this.base_url+active_layer.sh_map_has_layer_image,
                         iconSize:     [icon_size, icon_size], // size of the icon
                         iconAnchor:   [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
                         popupAnchor:  [popup_anchor, popup_anchor] // point from which the popup should open relative to the iconAnchor
@@ -436,7 +436,6 @@ export default {
 
             },
             onEachFeature: (feature, layer) => {
-                //let properties = feature.properties;
                 if (Object.values(feature.properties)?.length < 1) {
                     return;
                 }
@@ -447,7 +446,7 @@ export default {
                     });
 
                     let info = ['Sin información disponible']; //Información a retornar en el popup
-                    let property_configuration = active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
+                    const property_configuration = active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
 
                     // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
                     // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
@@ -755,7 +754,10 @@ export default {
 
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
                     if(is_empty || (!is_empty && is_new_layer)){
-                        this.getGeoJson(layer, this.operative_geojson_features);
+                        this.requestGeoJson(layer, this.operative_geojson_features)
+                        .then((features) => {
+                            this.getOperativeGeoJson(layer);
+                        });
                     }
 
                     break;
@@ -905,7 +907,11 @@ export default {
             const body          = query_params.body;
 
             if (!(this.analytic_geojson_features.hasOwnProperty(layer.id))) {
-                this.getGeoJson(layer, this.analytic_geojson_features, url, body);
+                this.requestGeoJson(layer, this.analytic_geojson_features, url, body)
+                .then((features) => {
+                    this.getAnalyticalGeoJsonBi(layer, url, body);
+                });
+
             }else{
                 this.getAnalyticalGeoJsonBi(layer, url, body);
             }
@@ -987,24 +993,11 @@ export default {
 
                 this.operative_geojson_list.push(geojson);
         },
-        getGeoJson(layer, feature_container, url = null, body = null){
-            axios.get(layer.sh_map_has_layer_url)
+        requestGeoJson(layer, feature_container, url = null, body = null){
+            return axios.get(layer.sh_map_has_layer_url)
                 .then((response) => {
                     feature_container[layer.id] = response.data.features;
                     const features              = response.data.features;
-
-                }).then((features) => {
-
-                    switch(layer.sh_map_has_layer_code){
-                        case 'analytic_geojson' : {
-                            this.getAnalyticalGeoJsonBi(layer, url, body);
-                            break;
-                        }
-                        case 'operative_geoserver_wfs_point' : {
-                            this.getOperativeGeoJson(layer);
-                            break;
-                        }
-                    }
 
                 });
         },
