@@ -9,8 +9,8 @@
             <l-map 
                 @ready="ready()"
                 @moveend="getClusterInfo();"
-                :zoom="zoom"
-                :center="center"
+                :zoom.sync="zoom"
+                :center.sync="center"
                 ref="my_map"
                 class="my-map"
                 @update:zoom="zoom = $event"
