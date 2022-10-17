@@ -3,18 +3,17 @@
         <button type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div>
+        <div ref="map_container">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
                 @ready="ready()"
                 @moveend="getClusterInfo();"
-                :zoom="zoom"
-                :center="center"
+                :zoom.sync="zoom"
+                :center.sync="center"
                 ref="my_map"
                 class="my-map"
-                @update:zoom="zoom = $event"
-                :options="{ zoomControl: false }">
+                :options="{ zoomControl: false, trackResize: false }">
 
                 <section class="custom-controls">
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
@@ -645,7 +644,7 @@ export default {
                 acc[1] = acc[1]+d.lat_lng[1];
                 return acc;
             },[0,0])
-            
+
             this.center = [markers_sum[0]/total,markers_sum[1]/total];
         }
     },
@@ -675,6 +674,10 @@ export default {
         ready(){
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
+            const resizeObserver = new ResizeObserver(() => {
+                this.map.invalidateSize(false);
+            });
+            resizeObserver.observe(this.$refs.map_container);
         }, 
         filter(){
             this.findBounds();
