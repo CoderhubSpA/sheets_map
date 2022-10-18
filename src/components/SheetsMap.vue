@@ -1027,9 +1027,9 @@ export default {
         },
         makeCubeQueryParameters(layer,columns_dimension_ids){
             let url           = this.base_url+layer.sh_map_has_layer_bi_url;
-            let metric        = layer.sh_map_has_layer_metric_id;
             let calculation   = layer.sh_map_has_layer_calculation;
             let filters       = this.formatFilter();
+            let metric        = this.metricFilter(layer);
             let dimension_ids = columns_dimension_ids;
 
             let body          = {
@@ -1091,6 +1091,20 @@ export default {
             });
 
             return filters;
+        },
+        metricFilter(layer){
+            let metric = layer.sh_map_has_layer_metric_id;
+            if (!_.isEmpty(this.active_filters)) {
+                //Buscamos en los filtros activos un filtro de tipo metric
+                const new_metric = this.active_filters.find((filter) => {
+                    return filter.type == "METRIC";
+                });
+
+                metric = (new_metric) ? new_metric : metric;
+
+            }
+
+            return metric;
         },
         calculateH3Zoom(){
 
