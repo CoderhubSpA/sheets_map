@@ -1,6 +1,6 @@
 <template>
     <div :style="css_vars">
-        <button type="button" class="btn btn-filter" v-on:click="filter()">
+        <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
         <div ref="map_container">
