@@ -1100,7 +1100,7 @@ export default {
                     return filter.type == "METRIC";
                 });
 
-                metric = (new_metric) ? new_metric : metric;
+                metric = (new_metric) ? new_metric.search : metric;
 
             }
 
