@@ -1076,7 +1076,11 @@ export default {
                 let value;
 
                 if (typeof a_f.type !== 'undefined') {
-                  value = (a_f.type == 'EQUAL') ? [a_f.search] : a_f.search;
+                    value = a_f.search;
+                    if(a_f.type == 'EQUAL'){
+                        a_f.type = 'IN';
+                        value = [a_f.search];
+                    }
                 }else{
                     a_f.type = 'IN';
                     value    = a_f.search;
