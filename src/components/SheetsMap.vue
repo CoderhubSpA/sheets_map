@@ -1027,9 +1027,9 @@ export default {
         },
         makeCubeQueryParameters(layer,columns_dimension_ids){
             let url           = this.base_url+layer.sh_map_has_layer_bi_url;
-            let metric        = layer.sh_map_has_layer_metric_id;
             let calculation   = layer.sh_map_has_layer_calculation;
             let filters       = this.formatFilter();
+            let metric        = this.metricFilter(layer);
             let dimension_ids = columns_dimension_ids;
 
             let body          = {
@@ -1073,24 +1073,39 @@ export default {
             }
 
             let filters = active_filters.map(a_f => {
-                let value;
 
-                if (typeof a_f.type !== 'undefined') {
-                  value = (a_f.type == 'EQUAL') ? [a_f.search] : a_f.search;
-                }else{
+                if(a_f.type == 'EQUAL'){
                     a_f.type = 'IN';
-                    value    = a_f.search;
+                    a_f.search = [a_f.search];
+                }
+
+                if (typeof a_f.type === 'undefined'){
+                    a_f.type = 'IN';
                 }
 
                 let filter = {
                     column : a_f.column.col_name,
-                    value  : value,
+                    value  : a_f.search,
                     type   : a_f.type,
                 };
                 return filter;
             });
 
             return filters;
+        },
+        metricFilter(layer){
+            let metric = layer.sh_map_has_layer_metric_id;
+            if (!_.isEmpty(this.active_filters)) {
+                //Buscamos en los filtros activos un filtro de tipo metric
+                const new_metric = this.active_filters.find((filter) => {
+                    return filter.type == "METRIC";
+                });
+
+                metric = (new_metric) ? new_metric.search : metric;
+
+            }
+
+            return metric;
         },
         calculateH3Zoom(){
 
