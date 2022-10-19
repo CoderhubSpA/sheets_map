@@ -1073,22 +1073,19 @@ export default {
             }
 
             let filters = active_filters.map(a_f => {
-                let value;
 
-                if (typeof a_f.type !== 'undefined') {
-                    value = a_f.search;
-                    if(a_f.type == 'EQUAL'){
-                        a_f.type = 'IN';
-                        value = [a_f.search];
-                    }
-                }else{
+                if(a_f.type == 'EQUAL'){
                     a_f.type = 'IN';
-                    value    = a_f.search;
+                    a_f.search = [a_f.search];
+                }
+
+                if (typeof a_f.type === 'undefined'){
+                    a_f.type = 'IN';
                 }
 
                 let filter = {
                     column : a_f.column.col_name,
-                    value  : value,
+                    value  : a_f.search,
                     type   : a_f.type,
                 };
                 return filter;
