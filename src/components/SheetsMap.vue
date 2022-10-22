@@ -1,9 +1,9 @@
 <template>
     <div :style="css_vars">
-        <button type="button" class="btn btn-filter" v-on:click="filter()">
+        <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div>
+        <div ref="map_container">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
@@ -13,7 +13,7 @@
                 :center.sync="center"
                 ref="my_map"
                 class="my-map"
-                :options="{ zoomControl: false }">
+                :options="{ zoomControl: false, trackResize: false }">
 
                 <section class="custom-controls">
                     <search-bar-proxy
@@ -84,9 +84,28 @@
                         </l-popup>
                     </l-circle-marker>
                 </l-layer-group> 
-                <!-- Analytic layers -->
+                <!-- 
+                    Analytic layers 
+                        - Analytic Cluster 
+                        - Analytic GeoJson 
+                -->
                 <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
+                <div v-if="analytic_geojson_list.length > 0">
+                    <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
+                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style" :options ="geojson_options"></l-geo-json>
+                    </div>
+                    
+                </div>
+                <!-- End Analytic layers -->
+
                 <!-- Operative layers -->
+
+                <div v-if="operative_geojson_list.length > 0">
+                    <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
+                        <l-geo-json :geojson="operative_geojson.geojson" :options ="geojson_options"></l-geo-json>
+                    </div>
+                    
+                </div>
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
                     v-for="layer in (operative_geoserver_wms || [])"
@@ -169,31 +188,36 @@ export default {
             url: '',
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom                  : 7,
-            center_default        : [-33.472 , -70.769],
-            center                : undefined,
-            col_lat               : undefined,
-            col_lng               : undefined,
-            markers_data          : {},
-            map                   : undefined,
-            circle                : undefined,
+            zoom                      : 7,
+            center_default            : [-33.472 , -70.769],
+            center                    : undefined,
+            col_lat                   : undefined,
+            col_lng                   : undefined,
+            markers_data              : {},
+            map                       : undefined,
+            circle                    : undefined,
             /*Layers*/
-            analytic_cluster        : undefined,
-            analytic_countour_map   : undefined,
-            base_google_map         : undefined,
-            base_map_guide          : undefined,
-            base_open_street_map    : undefined,
-            operative_geoserver_wms : [],
+            analytic_cluster          : undefined,
+            analytic_countour_map     : undefined,
+            analytic_geojson_list     : [],
+            analytic_geojson_features : [],
+            operative_geojson_list    : [],
+            operative_geojson_features : [],
+            base_google_map           : undefined,
+            base_map_guide            : undefined,
+            base_open_street_map      : undefined,
+            operative_geoserver_wms   : [],
             /*Layers*/
-            clusters_markers      : [],
-            bounds_filters        : [],
-            num_zoom              : false,
-            bounds                : [],
-            index                 : [],
-            h3                    : require("h3-js"),
-            enableTooltip         : true,
-            shouldShowSearchMarker: false,
-            searchMarkerLatLng    : null
+            clusters_markers          : [],
+            bounds_filters            : [],
+            num_zoom                  : false,
+            bounds                    : [],
+            index                     : [],
+            h3                        : require("h3-js"),
+            shouldShowSearchMarker    : false,
+            searchMarkerLatLng        : null,
+            // Usadas para las capas analiticas tipo analytic_geojson
+            should_skip_bounds_filter : false // Usada para no filtrar por los limites del mapa en analytic_geojson
         };
     },
     computed:{
@@ -245,14 +269,17 @@ export default {
                 "--sh-map-point-cluster-large-color-div"     : custom_styles["point-cluster-large-color-div"]      || "rgba(241, 128, 23, 0.6)", 
                 "--sh-map-point-cluster-large-border-color"  : custom_styles["point-cluster-large-border-color"]   || "rgba(253, 156, 115, 0.6)", 
                 "--sh-map-point-cluster-large-border-style"  : custom_styles["point-cluster-large-border-style"]   || "hidden", 
-                "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px", 
+                "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px",
+
+                
             };
 
         },
-        hexagonal_clusters_style() {
+        style_variables() {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
+                // Hexagonal Clusters Style
                 "hexagonal-cluster-small-color"           : custom_styles["hexagonal-cluster-small-color"]           || "#F9E79F",
                 "hexagonal-cluster-small-opacity"         : custom_styles["hexagonal-cluster-small-opacity"]         || 0.6,
                 "hexagonal-cluster-small-border-color"    : custom_styles["hexagonal-cluster-small-border-color"]    || "#ECEFF1",
@@ -270,9 +297,21 @@ export default {
                 "hexagonal-cluster-large-border-color"    : custom_styles["hexagonal-cluster-large-border-color"]    || "#ECEFF1",
                 "hexagonal-cluster-large-border-opacity"  : custom_styles["hexagonal-cluster-large-border-opacity"]  || 0.6,
                 "hexagonal-cluster-large-font"            : custom_styles["hexagonal-cluster-large-font"]            || "",
-                "hexagonal-cluster-large-font-color"      : custom_styles["hexagonal-cluster-large-font-color"]      || ""
+                "hexagonal-cluster-large-font-color"      : custom_styles["hexagonal-cluster-large-font-color"]      || "",
+                // Analytic GeoJson Style
+                "analytic-geojson-small-color"          : custom_styles["analytic-geojson-small-color"]          || "#FDFEFE",
+                "analytic-geojson-small-border-color"   : custom_styles["analytic-geojson-small-border-color"]   || "#FDFEFE",
+                "analytic-geojson-large-color"          : custom_styles["analytic-geojson-large-color"]          || "#0074BD",
+                "analytic-geojson-large-border-color"   : custom_styles["analytic-geojson-large-border-color"]   || "#0074BD",
+                "analytic-geojson-opacity"              : custom_styles["analytic-geojson-opacity"]              || 0.6,
+                "analytic-geojson-border-opacity"       : custom_styles["analytic-geojson-border-opacity"]       || 1,
+                // Analytic GeoJson Poits Style
+                "analytic-geojson-point-icon-size"    : custom_styles["analytic-geojson-point-icon-size"]    || 38,
+                "analytic-geojson-point-icon-anchor"  : custom_styles["analytic-geojson-point-icon-anchor"]  || 25,
+                "analytic-geojson-point-popup-anchor" : custom_styles["analytic-geojson-point-popup-anchor"] || 0,
+                
             };
-            
+
         },
         markers_latlgn(){
             
@@ -381,6 +420,84 @@ export default {
             }
           };
         },
+        geojson_options() {
+          return {
+            pointToLayer: (feature, latLng) => {
+                //Obtenemos la configuración de la capa a la que pertenece
+                const active_layer = this.active_layers.find(l => {
+                    return feature.layer_id == l.id;
+                });
+
+                if (active_layer.sh_map_has_layer_image != null) {
+                    const icon_size    = this.style_variables['analytic-geojson-point-icon-size'];
+                    const icon_anchor  = this.style_variables['analytic-geojson-point-icon-anchor'];
+                    const popup_anchor = this.style_variables['analytic-geojson-point-popup-anchor'];
+
+                    const icon = L.icon({
+                        iconUrl: this.base_url+active_layer.sh_map_has_layer_image,
+                        iconSize:     [icon_size, icon_size], // size of the icon
+                        iconAnchor:   [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
+                        popupAnchor:  [popup_anchor, popup_anchor] // point from which the popup should open relative to the iconAnchor
+                    })
+                    return L.marker(latLng, {icon: icon})
+                }
+
+                return L.marker(latLng)
+
+            },
+            onEachFeature: (feature, layer) => {
+                if (Object.values(feature.properties)?.length < 1) {
+                    return;
+                }
+                layer.bindPopup((layer) => {
+                    //Obtenemos la configuración de la capa a la que pertenece
+                    const active_layer = this.active_layers.find(l => {
+                        return layer.feature.layer_id == l.id;
+                    });
+
+                    let info = ['Sin información disponible']; //Información a retornar en el popup
+                    const property_configuration = active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
+
+                    // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
+                    // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
+                    if (property_configuration == null) {
+                        switch(active_layer.sh_map_has_layer_code){
+                            case 'analytic_geojson' :{
+                                //Almacenamos el calculo hecho entre el Bi y el feature
+                                const total_reference = active_layer.total_dimension_ref;
+
+                                const total = (layer.feature.properties[total_reference] == null) ? 'Sin información disponible' : layer.feature.properties[total_reference].toLocaleString('es-ES');
+
+                                return `<span class="marker-pop-up-info-content"> ${total} </span>`;
+
+                            }
+                            case 'operative_geoserver_wfs_point' :{
+
+                                info = this.infoGeojsonWithKeys(layer, false);
+                                break;
+                            }
+                        }
+                    }else{
+
+                        //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
+                        if ((property_configuration).charAt(0) == '*') {
+                            const human_keys = (property_configuration == '*') ? true : false;
+                            info = this.infoGeojsonWithKeys(layer, human_keys);
+                        }
+
+                        // Si la configuración proporcionada es un json entonces retorna la configuración + alias proporcionado por la configuración
+                        if (this.isJson(property_configuration)) {
+                            let property_keys = JSON.parse(property_configuration);
+                            info = this.infoGeojsonWithAlias(layer, property_keys);
+                        }
+                    }
+                    
+
+                    return `${info.join('<br>')}`;
+                }, {permanent: false, direction: "center"});
+            }
+          };
+        },
         popup_point_options(){
             return {
                 minWidth : 300,
@@ -414,31 +531,31 @@ export default {
 
                 //Concentración Alta
                 if (feature.properties.total >= this.config.sh_map_large_cluster_size_starts_at) {
-                    color          = this.hexagonal_clusters_style["hexagonal-cluster-large-color"];
-                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-large-opacity"];
-                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-large-border-color"];
-                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-large-border-opacity"];
-                    font           = this.hexagonal_clusters_style["hexagonal-cluster-large-font"];
-                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-large-font-color"];
+                    color          = this.style_variables["hexagonal-cluster-large-color"];
+                    opacity        = this.style_variables["hexagonal-cluster-large-opacity"];
+                    border_color   = this.style_variables["hexagonal-cluster-large-border-color"];
+                    border_opacity = this.style_variables["hexagonal-cluster-large-border-opacity"];
+                    font           = this.style_variables["hexagonal-cluster-large-font"];
+                    font_color     = this.style_variables["hexagonal-cluster-large-font-color"];
                 }
 
                 //Concentración Media 
                 if (feature.properties.total < this.config.sh_map_large_cluster_size_starts_at) {
-                    color          = this.hexagonal_clusters_style["hexagonal-cluster-medium-color"];
-                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-medium-opacity"];
-                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-color"];
-                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-medium-border-opacity"];
-                    font           = this.hexagonal_clusters_style["hexagonal-cluster-medium-font"];
-                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-medium-font-color"];
+                    color          = this.style_variables["hexagonal-cluster-medium-color"];
+                    opacity        = this.style_variables["hexagonal-cluster-medium-opacity"];
+                    border_color   = this.style_variables["hexagonal-cluster-medium-border-color"];
+                    border_opacity = this.style_variables["hexagonal-cluster-medium-border-opacity"];
+                    font           = this.style_variables["hexagonal-cluster-medium-font"];
+                    font_color     = this.style_variables["hexagonal-cluster-medium-font-color"];
                 }
                 //Baja
                 if (feature.properties.total < this.config.sh_map_medium_cluster_size_starts_at) {
-                    color          = this.hexagonal_clusters_style["hexagonal-cluster-small-color"];
-                    opacity        = this.hexagonal_clusters_style["hexagonal-cluster-small-opacity"];
-                    border_color   = this.hexagonal_clusters_style["hexagonal-cluster-small-border-color"];
-                    border_opacity = this.hexagonal_clusters_style["hexagonal-cluster-small-border-opacity"];
-                    font           = this.hexagonal_clusters_style["hexagonal-cluster-small-font"];
-                    font_color     = this.hexagonal_clusters_style["hexagonal-cluster-small-font-color"];
+                    color          = this.style_variables["hexagonal-cluster-small-color"];
+                    opacity        = this.style_variables["hexagonal-cluster-small-opacity"];
+                    border_color   = this.style_variables["hexagonal-cluster-small-border-color"];
+                    border_opacity = this.style_variables["hexagonal-cluster-small-border-opacity"];
+                    font           = this.style_variables["hexagonal-cluster-small-font"];
+                    font_color     = this.style_variables["hexagonal-cluster-small-font-color"];
                 }
                 let retur = {
                     weight: 5,
@@ -450,6 +567,44 @@ export default {
 
 
                 return retur;
+            };
+
+        },
+        analytic_geojson_style() {
+            return (feature) => {
+
+                const layer = this.active_layers.find(l => {
+                    return feature.layer_id == l.id;
+                });
+
+                const total_reference = layer.total_dimension_ref;
+
+                const { max_total, min_total } = layer;
+
+                const color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
+                                                     this.style_variables["analytic-geojson-large-color"], 
+                                                     min_total, 
+                                                     max_total, 
+                                                     feature.properties[total_reference]);
+                const border_color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-border-color"],
+                                                            this.style_variables["analytic-geojson-large-border-color"], 
+                                                            min_total, 
+                                                            max_total, 
+                                                            feature.properties[total_reference]);
+
+                const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
+                const opacity = this.style_variables["analytic-geojson-opacity"];
+
+                const style = {
+                    weight      : 5,
+                    color       : border_color,
+                    opacity     : opacity,
+                    fillOpacity : opacity,
+                    fillColor   : color,
+                };
+
+
+                return style;
             };
 
         },
@@ -500,7 +655,7 @@ export default {
                 acc[1] = acc[1]+d.lat_lng[1];
                 return acc;
             },[0,0])
-            
+
             this.center = [markers_sum[0]/total,markers_sum[1]/total];
         }
     },
@@ -535,6 +690,10 @@ export default {
         ready(){
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
+            const resizeObserver = new ResizeObserver(() => {
+                this.map.invalidateSize(false);
+            });
+            resizeObserver.observe(this.$refs.map_container);
         }, 
         filter(){
             this.findBounds();
@@ -558,6 +717,17 @@ export default {
             let geojson_bounds = this.getMapGeoJsonBounds();
 
             switch(layer.sh_map_has_layer_code){
+                case 'analytic_geojson' : {
+                    const {is_empty,is_new_layer}= this.organizeLayers(layer, this.analytic_geojson_list);
+
+                    if (!is_new_layer) {
+                        this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
+                    }
+
+                    this.getAnalyticalGeoJson(layer);
+                    break;
+
+                }
                 case 'analytic_cluster' : {
                     let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
                     let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
@@ -598,6 +768,19 @@ export default {
                     break;
 
                 }
+                case 'operative_geoserver_wfs_point': {
+                    const {is_empty,is_new_layer} = this.organizeLayers(layer, this.operative_geojson_list);
+
+                    // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
+                    if(is_empty || (!is_empty && is_new_layer)){
+                        this.requestGeoJson(layer, this.operative_geojson_features)
+                        .then((features) => {
+                            this.getOperativeGeoJson(layer);
+                        });
+                    }
+
+                    break;
+                }
                 default:{
                     console.log('Intento de activar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
@@ -609,6 +792,11 @@ export default {
         disableLayers(layer){
             
             switch(layer.sh_map_has_layer_code){
+                case 'analytic_geojson' : {
+                    //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
+                    this.analytic_geojson_list = this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
+                    break;
+                }
                 case 'analytic_cluster' : {
                     this.analytic_cluster = undefined;
                     break;
@@ -638,6 +826,12 @@ export default {
                     break;
 
                 }
+                case 'operative_geoserver_wfs_point': {
+                    //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
+                    this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+
+                    break;
+                }
                 default:{
                     //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
@@ -649,7 +843,7 @@ export default {
         getAnalyticalCountourMap(layer){
             let data;
             let h3_zoom        = this.calculateH3ZoomContour();
-            let query_params   = this.makeCubeQueryParameters(layer,h3_zoom);
+            let query_params   = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
             let url            = query_params.url;
             let body           = query_params.body;
             let geojson_bounds = this.getMapGeoJsonBounds();
@@ -693,7 +887,7 @@ export default {
             let polygon; 
             let geojson_bounds = this.getMapGeoJsonBounds();
             let h3_zoom       = this.calculateH3Zoom();
-            let query_params  = this.makeCubeQueryParameters(layer,h3_zoom);
+            let query_params  = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
             let url           = query_params.url;
             let body          = query_params.body;
             
@@ -724,6 +918,118 @@ export default {
             });
 
         },
+        getAnalyticalGeoJson(layer){
+            this.should_skip_bounds_filter = true;
+            const dimension_ids = [layer.sh_map_has_layer_dimension_id_reference];
+            const query_params  = this.makeCubeQueryParameters(layer,dimension_ids);
+            const url           = query_params.url;
+            const body          = query_params.body;
+
+            if (!(this.analytic_geojson_features.hasOwnProperty(layer.id))) {
+                this.requestGeoJson(layer, this.analytic_geojson_features, url, body)
+                .then((features) => {
+                    this.getAnalyticalGeoJsonBi(layer, url, body);
+                });
+
+            }else{
+                this.getAnalyticalGeoJsonBi(layer, url, body);
+            }
+        },
+        getAnalyticalGeoJsonBi(layer, url, body){
+            axios.post(url, body).then(response => {
+                let all_cubes = response.data.content;
+                let data      = _.first(Object.values(all_cubes.data)) || {};
+                let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+
+                //Conseguir lista de códigos de identificación
+                let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
+
+                layer['total_dimension_ref'] = data_map.find((dm, key) => {
+                    if (key != key_code_dimension) return dm
+                });
+
+                let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
+
+                let code_id_list = data.map(d => {
+                    return parseInt(d[key_code_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
+                });
+
+                let total_list = data.map(d => {
+                    return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
+                });
+
+                const max_total = (total_list.length > 0) ? Math.max(...total_list) : 0;
+                const min_total = (total_list.length > 0) ? Math.min(...total_list) : 0;
+
+                layer['max_total'] = max_total;
+                layer['min_total'] = (max_total != min_total) ? min_total : 0;
+
+                //Relacionar el total de data con feature
+                        
+                let features = this.analytic_geojson_features[layer.id].map(feature => {
+                    // Aquí se busca el la coincicencia entre feature y data
+                    let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
+                    let index_dimension = code_id_list.indexOf(geojson_col_reference);
+
+                    //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
+                    let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+                    feature.properties[layer.total_dimension_ref] = total;
+                    feature['layer_id'] = layer.id;
+
+                    return feature; 
+                });
+                let geojson  = {
+                    "layer_id" : layer.id,
+                    "geojson"  : {
+                        "type"     : "FeatureCollection",
+                        "features" : features
+                    }
+                };
+
+                this.analytic_geojson_list.push(geojson);
+                    
+
+            });
+        },
+        getOperativeGeoJson(layer){
+
+                //Relacionar el total de data con feature
+                let features = this.operative_geojson_features[layer.id].map(feature => {
+
+                    feature['layer_id'] = layer.id;
+
+                    return feature; 
+                });
+
+                let geojson  = {
+                    "layer_id" : layer.id,
+                    "geojson"  : {
+                        "type"     : "FeatureCollection",
+                        "features" : features
+                    }
+                };
+
+
+                this.operative_geojson_list.push(geojson);
+        },
+        requestGeoJson(layer, feature_container, url = null, body = null){
+            return axios.get(layer.sh_map_has_layer_url)
+                .then((response) => {
+                    feature_container[layer.id] = response.data.features;
+                    const features              = response.data.features;
+
+                });
+        },
+        cleanGeojsonLayer(layer, layer_geojson_list){
+            // Desactiva la capa actual en layer
+            let layer_geojson_active_list = layer_geojson_list.filter( layer_geojson => {
+                if (layer_geojson.layer_id != layer.id) {
+                    return layer_geojson;
+                }
+            });
+
+            return layer_geojson_active_list;
+        },
         getMapGeoJsonBounds(){
             let bounds         = this.map.getBounds();
             let geojson_bounds = [
@@ -735,12 +1041,12 @@ export default {
 
             return geojson_bounds;
         },
-        makeCubeQueryParameters(layer,h3_zoom){
-            let url           = this.base_url+layer.sh_map_has_layer_url;
-            let metric        = layer.sh_map_has_layer_metric_id;
+        makeCubeQueryParameters(layer,columns_dimension_ids){
+            let url           = this.base_url+layer.sh_map_has_layer_bi_url;
             let calculation   = layer.sh_map_has_layer_calculation;
             let filters       = this.formatFilter();
-            let dimension_ids = ["h3r".concat(h3_zoom)];
+            let metric        = this.metricFilter(layer);
+            let dimension_ids = columns_dimension_ids;
 
             let body          = {
                 calculation   : calculation,
@@ -775,25 +1081,47 @@ export default {
 
             let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : this.active_filters;
 
-            let filters = active_filters.map(a_f => {
-                let value;
+            if (this.should_skip_bounds_filter) {
 
-                if (typeof a_f.type !== 'undefined') {
-                  value = (a_f.type == 'EQUAL') ? [a_f.search] : a_f.search;
-                }else{
+                active_filters = active_filters.filter(a_f => a_f.column.id != this.col_lat && a_f.column.id != this.col_lng);
+                
+                this.should_skip_bounds_filter = false;
+            }
+
+            let filters = active_filters.map(a_f => {
+
+                if(a_f.type == 'EQUAL'){
                     a_f.type = 'IN';
-                    value    = a_f.search;
+                    a_f.search = [a_f.search];
+                }
+
+                if (typeof a_f.type === 'undefined'){
+                    a_f.type = 'IN';
                 }
 
                 let filter = {
                     column : a_f.column.col_name,
-                    value  : value,
+                    value  : a_f.search,
                     type   : a_f.type,
                 };
                 return filter;
             });
 
             return filters;
+        },
+        metricFilter(layer){
+            let metric = layer.sh_map_has_layer_metric_id;
+            if (!_.isEmpty(this.active_filters)) {
+                //Buscamos en los filtros activos un filtro de tipo metric
+                const new_metric = this.active_filters.find((filter) => {
+                    return filter.type == "METRIC";
+                });
+
+                metric = (new_metric) ? new_metric.search : metric;
+
+            }
+
+            return metric;
         },
         calculateH3Zoom(){
 
@@ -970,30 +1298,31 @@ export default {
         },
         
         findBounds(){
-            let h        = this.map.getZoom();
-            let bounds   = this.map.getBounds();
-            let all_col  = this.info.columns;
+            if (!this.should_skip_bounds_filter) {
+                let h        = this.map.getZoom();
+                let bounds   = this.map.getBounds();
+                let all_col  = this.info.columns;
 
-            let bounds_filters = all_col.filter((columns)=>{
-                if (columns.id == this.col_lat || columns.id == this.col_lng) {
-                    return columns;
-                }
-            }).map((columns,key)=>{
-                let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
-                let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
-                let bounds_filter = {
-                    "column": columns,
-                    "id": "external-filter-"+columns.id,
-                    "order": key+1,
-                    "search": {
-                        "start": start,
-                        "end": end
-                    },
-                    "type": "BETWEEN"
-                };
-                return bounds_filter;
-            });
-            this.bounds_filters = bounds_filters;
+                let bounds_filters = all_col.filter(columns=>
+                    columns.id == this.col_lat || columns.id == this.col_lng
+                ).map((columns,key)=>{
+                    let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
+                    let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
+                    let bounds_filter = {
+                        "column": columns,
+                        "id": "external-filter-"+columns.id,
+                        "order": key+1,
+                        "search": {
+                            "start": start,
+                            "end": end
+                        },
+                        "type": "BETWEEN"
+                    };
+                    return bounds_filter;
+                });
+                this.bounds_filters = bounds_filters;
+            }
+            this.should_skip_bounds_filter = false;
         },
 
         //#Convierte un indice h3 en lng lat
@@ -1168,10 +1497,117 @@ export default {
                 features.push(this.getBoundary(index,properties));
             }
             return features;
-        }
+        },
         //----------------------------------------------------------------------------------------------
         // SCRIPT DE MAURICIO
         //----------------------------------------------------------------------------------------------
+        //
+        //----------------------------------------------------------------------------------------------
+        // Helpers
+        //----------------------------------------------------------------------------------------------
+                // format text with "_" to text legible for humans,
+        // set all on lowercase but first letter to uppercase and each after "_" or " " to uppercase,
+        // separe letter from numbers
+        formatKeyToHumanText(text){
+            let textFormated = text.replace(/_/g, " ");
+            textFormated = textFormated.toLowerCase();
+            textFormated = textFormated.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+            textFormated = textFormated.replace(/([a-z])([0-9])/i, '$1 $2');
+            textFormated = textFormated.replace(/([0-9])([a-z])/i, '$1 $2');
+            return textFormated;
+        },
+        // calc hexadecimal between two colors by ratio (0.0 - 1.0)
+        calcColor(color1, color2, ratio){
+            const hex = function(x) {
+                if(x > 255) x = 255;
+                x = x.toString(16);
+                return (x.length == 1) ? '0' + x : x;
+            };
+            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
+            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
+            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
+            const calc = '#' + hex(r) + hex(g) + hex(b);
+            return calc;
+        },
+        // calc hexadecimal between two colors by min and max values
+        calcColorByMinMax(color_min, color_max, min, max, value) {
+            if (max == min) {
+                 return color_min;
+            }
+            if (value == null) {
+                value = 0;
+            }
+            const ratio = (max - value) / (max - min);
+            return this.calcColor(color_min, color_max, ratio);
+        },
+        isJson(str) {
+            try {
+                JSON.parse(str);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        },
+        //----------------------------------------------------------------------------------------------
+        // Helpers
+        //----------------------------------------------------------------------------------------------,
+        // Enlistar capas geojson
+        organizeLayers(layer, layer_list) {
+            // Analytic_geojson y operative_geoserver_wfs_point son un tipo de capa que 
+            // permite tener a la vez varias capas de su mismo tipo
+            // pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
+            // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
+            const is_empty   = (layer_list.length < 1) ? true : false;
+            let is_new_layer = false;
+
+            // Si la lista de capas no está vacía se revisa si la Layer a activar fue activada previamente
+            if (!is_empty) {
+                const layer_ids = layer_list.map(function(layer_l){
+                    return layer_l.layer_id
+                });
+                //determina si ya existe la capa en la lista
+                is_new_layer = !layer_ids.includes(layer.id);
+
+            }
+
+            return {'is_empty':is_empty,'is_new_layer':is_new_layer};
+        },
+        infoGeojsonWithAlias(layer, property_keys) {
+
+            //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
+            let info = Object.entries(property_keys).map((property_info) =>{
+                const key      = property_info[0]; // Tomamos el nombre técnico de la propiedad
+                const property = property_info[1]; // Tomamos el nombre humano de la propiedad
+                let value      = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
+
+                value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+                return `
+                    <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
+                    <span class="marker-pop-up-info-content"> ${value} </span>
+                `;
+            });
+
+
+            return info;
+        },
+        //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
+        //o puede retornarse justo como la presenta el GeoJson
+        infoGeojsonWithKeys(layer, human_keys) {
+
+            let info = Object.entries(layer.feature.properties).map((property) =>{
+                const title = (human_keys) ? this.formatKeyToHumanText(property[0]) : property[0]; // Tomamos la clave de la propiedad
+                let value   = property[1]; // Tomamos el valor de la propiedad
+
+                value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
+                value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+                return `
+                    <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
+                    <span class="marker-pop-up-info-content"> ${value} </span>
+                `;
+            });
+
+            return info;
+        }
     }
 }
 </script>
