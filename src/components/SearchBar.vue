@@ -3,12 +3,12 @@
     <b-input-group>
       <!-- Usamos prevent con keydown.down y up para que el cursor (|) no
      se mueva del final al inicio al cambiar de sugerencia. -->
-      <b-form-input
-        class="search-input"
+      <input
+        class="search-input form-control"
         type="text"
         placeholder="Buscar"
         title="Buscar una dirección, comuna o zona"
-        @input="input"
+        @input="handleInput"
         :value="value"
         @keydown.enter="search"
         @keydown.down.prevent="moveToSuggestion('down')"
@@ -48,7 +48,7 @@
 </template>
 
 <script>
-import { BIcon, BButton, BFormInput, BInputGroupAppend } from "bootstrap-vue";
+import { BIcon, BButton, BInputGroupAppend, BInputGroup } from "bootstrap-vue";
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
 
@@ -70,8 +70,8 @@ export default {
   components: {
     BIcon,
     BButton,
-    BFormInput,
     BInputGroupAppend,
+    BInputGroup,
   },
   props: {
     value: String,
@@ -103,6 +103,9 @@ export default {
       if (this.selectedSuggestionIndex >= suggestionsLength)
         this.selectedSuggestionIndex = suggestionsLength - 1;
       if (this.selectedSuggestionIndex < 0) this.selectedSuggestionIndex = 0;
+    },
+    handleInput(event) {
+      this.input(event.target.value);
     },
     input(value) {
       this.selectedSuggestionIndex = 0;

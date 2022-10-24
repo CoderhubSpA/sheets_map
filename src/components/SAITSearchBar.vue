@@ -12,69 +12,24 @@
 import SearchBar from "./SearchBar.vue";
 import _ from "lodash";
 
-const getAddressFromNode = (xmlAddressNode) => {
-  const tags = ["ID", "DireccionOrPOI", "Latitud", "Longitud"];
-  return tags.reduce((address, tag) => {
-    address[tag] = xmlAddressNode.querySelector(tag).textContent.trim();
-    return address;
-  }, {});
-};
-
-const fetchSearchType = async (searchString, searchUrl, abortSignal) => {
-  const headers = new Headers();
-  headers.append("Content-Type", "text/xml");
-
-  const body = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:soap="https://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-      <GetTipo xmlns="http://tempuri.org/">
-          <busqueda>${searchString}</busqueda>
-      </GetTipo>
-  </soap:Body>
-</soap:Envelope>`;
-
-  const requestOptions = {
-    method: "POST",
-    headers: headers,
-    body,
-    redirect: "follow",
-    signal: abortSignal,
-  };
-  const response = await fetch(searchUrl, requestOptions);
-
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(await response.text(), "text/xml");
-  return xml.querySelector("GetTipoResult").textContent.trim();
-};
-
 const fetchAddresses = async (
   searchString,
-  searchType,
-  searchUrl,
-  searchCountry,
+  url,
+  country,
   maxResults,
+  csrfToken,
   abortSignal
 ) => {
   const headers = new Headers();
-  headers.append("Content-Type", "text/xml");
+  headers.append("Content-Type", "application/json");
+  if (csrfToken) headers.append("X-CSRF-TOKEN", csrfToken);
 
-  const body = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:soap="https://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <FindDireccionesTextLibre xmlns="http://tempuri.org/">
-        <busqueda>${searchString}</busqueda>
-        <tipo>${searchType}</tipo>
-        <pais>${searchCountry}</pais>
-        <canResultados>${maxResults}</canResultados>
-    </FindDireccionesTextLibre>
-  </soap:Body>
-</soap:Envelope>`;
+  const body = JSON.stringify({
+    search_string: searchString,
+    url,
+    country,
+    max_results: maxResults,
+  });
 
   const requestOptions = {
     method: "POST",
@@ -82,15 +37,28 @@ const fetchAddresses = async (
     body,
     redirect: "follow",
     signal: abortSignal,
+    credentials: "same-origin",
   };
 
-  const response = await fetch(searchUrl, requestOptions);
+  const base = location.origin;
+  const response = await fetch(base + "/sait/addresses", requestOptions);
 
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(await response.text(), "text/xml");
-  return Array.from(xml.querySelectorAll("DireccionTextLibre")).map(
-    getAddressFromNode
-  );
+  /**
+   * @typedef {object} Address
+   * @property {string} ID
+   * @property {string} DireccionOrPOI
+   * @property {string} Tipo
+   * @property {string} Pais
+   * @property {string} Latitud
+   * @property {string} Longitud
+   * @property {string} Calle
+   * @property {string} Comuna
+   * @property {string} IdTipo
+   */
+
+  /** @type {Address[]} */
+  const addresses = await response.json();
+  return addresses;
 };
 
 export default {
@@ -101,10 +69,9 @@ export default {
   props: {
     /**
      * @typedef {object} SearchConfig
-     * @property {string} search_type_url
-     * @property {string} search_address_url
-     * @property {string} search_country
-     * @property {number} search_max_results
+     * @property {string} url La url para obtener opciones de autocompletar.
+     * @property {string} country
+     * @property {number} max_results
      */
     /** @type {SearchConfig} */
     config: Object,
@@ -114,7 +81,13 @@ export default {
       searchString: "",
       suggestions: [],
       currentAbortController: null,
+      csrfToken: null,
     };
+  },
+  mounted() {
+    this.csrfToken = document
+      .querySelector('meta[name="csrf-token"')
+      ?.getAttribute("content");
   },
   watch: {
     searchString(newValue) {
@@ -131,24 +104,14 @@ export default {
       this.currentAbortController = new AbortController();
       const { signal } = this.currentAbortController;
       const { searchString } = this;
-      const {
-        search_type_url,
-        search_addresses_url,
-        search_country,
-        search_max_results,
-      } = this.config;
+      const { url, country, max_results } = this.config;
       try {
-        const searchType = await fetchSearchType(
-          searchString,
-          search_type_url,
-          signal
-        );
         this.suggestions = await fetchAddresses(
           searchString,
-          searchType,
-          search_addresses_url,
-          search_country,
-          search_max_results,
+          url,
+          country,
+          max_results,
+          this.csrfToken,
           signal
         );
         this.currentAbortController = null;
