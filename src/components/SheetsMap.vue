@@ -62,6 +62,7 @@
                             :lat-lng="marker.lat_lng"
                             :radius="3"
                             v-on:click="getMarkerData(marker)" 
+                            color="#00642a"
                             >
                         <!-- https://leafletjs.com/reference.html#popup-->
                         <l-popup :options="popup_point_options" class="marker-pop-up">
