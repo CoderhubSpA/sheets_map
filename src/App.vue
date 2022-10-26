@@ -63,8 +63,9 @@ export default {
     data() {
         return {
             base_url: "http://sheetsmock.local",
-            id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
-            entity_type_id: "e428f5f2-bdb0-4dee-a4c7-a3486c731c3c",
+            //id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
+            id: "99863740-4c01-11ed-b21a-f23c9240db0f",
+            entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
             //sait entity_type_id de59f145-a291-4474-91da-7e3ec3744f4f
             // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",

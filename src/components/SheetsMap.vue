@@ -705,7 +705,7 @@ export default {
                     const {is_empty,is_new_layer}= this.organizeLayers(layer, this.analytic_geojson_list);
 
                     if (!is_new_layer) {
-                        this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
+                        this.analytic_geojson_list = this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
                     }
 
                     this.getAnalyticalGeoJson(layer);
@@ -1543,7 +1543,6 @@ export default {
             // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
             const is_empty   = (layer_list.length < 1) ? true : false;
             let is_new_layer = false;
-
             // Si la lista de capas no está vacía se revisa si la Layer a activar fue activada previamente
             if (!is_empty) {
                 const layer_ids = layer_list.map(function(layer_l){
