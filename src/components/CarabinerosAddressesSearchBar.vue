@@ -12,6 +12,11 @@
 import SearchBar from "./SearchBar.vue";
 import _ from "lodash";
 
+/**
+ * Consulta la API externa de Carabineros (a través del endpoint
+ * de Sheets `/external/carabineros_addresses`) para obtener direcciones
+ * que calcen con `searchString`.
+ */
 const fetchAddresses = async (
   searchString,
   url,
@@ -41,7 +46,10 @@ const fetchAddresses = async (
   };
 
   const base = location.origin;
-  const response = await fetch(base + "/sait/addresses", requestOptions);
+  const response = await fetch(
+    base + "/external/carabineros_addresses",
+    requestOptions
+  );
 
   /**
    * @typedef {object} Address
@@ -62,7 +70,7 @@ const fetchAddresses = async (
 };
 
 export default {
-  name: "SAITSearchBar",
+  name: "CarabinerosAddressesSearchBar",
   components: {
     SearchBar,
   },

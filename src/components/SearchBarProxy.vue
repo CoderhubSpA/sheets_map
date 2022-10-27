@@ -7,12 +7,12 @@
 </template>
 
 <script>
-import SAITSearchBar from "./SAITSearchBar.vue";
+import CarabinerosAddressesSearchBar from "./CarabinerosAddressesSearchBar.vue";
 
 export default {
   name: "SearchBarProxy",
   components: {
-    SAITSearchBar,
+    CarabinerosAddressesSearchBar,
   },
   props: {
     componentName: String,
