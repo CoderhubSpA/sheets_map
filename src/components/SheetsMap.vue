@@ -1026,11 +1026,10 @@ export default {
             return geojson_bounds;
         },
         makeCubeQueryParameters(layer,columns_dimension_ids){
-            let url           = this.base_url+layer.sh_map_has_layer_bi_url;
-            let calculation   = layer.sh_map_has_layer_calculation;
-            let filters       = this.formatFilter();
-            let metric        = this.metricFilter(layer);
-            let dimension_ids = columns_dimension_ids;
+            const url           = this.base_url+layer.sh_map_has_layer_bi_url;
+            const filters       = this.formatFilter();
+            const dimension_ids = columns_dimension_ids;
+            const {metric, calculation} = this.metricFilter(layer);
 
             let body          = {
                 calculation   : calculation,
@@ -1094,18 +1093,19 @@ export default {
             return filters;
         },
         metricFilter(layer){
-            let metric = layer.sh_map_has_layer_metric_id;
+            let metric      = layer.sh_map_has_layer_metric_id;
+            let calculation = layer.sh_map_has_layer_calculation;
             if (!_.isEmpty(this.active_filters)) {
                 //Buscamos en los filtros activos un filtro de tipo metric
                 const new_metric = this.active_filters.find((filter) => {
                     return filter.type == "METRIC";
                 });
 
-                metric = (new_metric) ? new_metric.search : metric;
-
+                metric      = (new_metric) ? new_metric.search : metric;
+                calculation = (new_metric) ? null              : calculation;
             }
 
-            return metric;
+            return {'metric':metric,'calculation':calculation};
         },
         calculateH3Zoom(){
 
