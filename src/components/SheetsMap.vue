@@ -16,6 +16,11 @@
                 :options="{ zoomControl: false, trackResize: false }">
 
                 <section class="custom-controls">
+                    <search-bar-proxy
+                        v-if="config.sh_map_search_component && config.sh_map_search_component_config"
+                        :componentName="config.sh_map_search_component"
+                        :config="JSON.parse(config.sh_map_search_component_config)"
+                        @change-location="zoomToLocation" />
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
                         <b-icon icon="dash-lg"></b-icon>
                     </b-button>
@@ -23,6 +28,8 @@
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
                 </section>
+
+                <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
@@ -122,6 +129,7 @@
 // import L from 'leaflet';
 import _ from 'lodash';
 import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
+import SearchBarProxy from './SearchBarProxy.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -153,7 +161,8 @@ export default {
         LGeoJson,
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
-        BIcon
+        BIcon,
+        SearchBarProxy,
     },
     props: {
         // Propiedades de componentes
@@ -206,6 +215,8 @@ export default {
             bounds                    : [],
             index                     : [],
             h3                        : require("h3-js"),
+            shouldShowSearchMarker    : false,
+            searchMarkerLatLng        : null,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false // Usada para no filtrar por los limites del mapa en analytic_geojson
         };
@@ -664,6 +675,11 @@ export default {
         this.index.load([]);
     },
     methods:{
+        zoomToLocation(latLng){
+            this.searchMarkerLatLng = latLng;
+            this.shouldShowSearchMarker = true;
+            this.map.flyTo(latLng, 16);
+        },
         zoomMap(zoom){
             if(zoom === "out") this.zoom--;
             else if(zoom === "in") this.zoom++;
@@ -1721,6 +1737,7 @@ export default {
         z-index: 800;
         display: flex;
         justify-content: center;
+        align-items: center;
         gap: 8px;
         margin-top: 24px;
     }
@@ -1732,8 +1749,9 @@ export default {
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 32px;
-        height: 32px;
+        --size: 36px;
+        width: var(--size);
+        height: var(--size);
         padding: 0;
         border: none;
         font-size: 0.7rem;
