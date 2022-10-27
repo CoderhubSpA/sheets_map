@@ -95,7 +95,7 @@ export default {
         this.suggestions = [];
         return;
       }
-      this.getSuggestions(this);
+      this.getSuggestions();
     },
   },
   methods: {
