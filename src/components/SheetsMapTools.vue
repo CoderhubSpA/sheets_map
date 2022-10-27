@@ -96,8 +96,12 @@
 </template>
 <script>
 import _ from "lodash";
+import { BIcon } from 'bootstrap-vue';
 
 export default {
+    components: {
+        BIcon
+    },
     props: {
         // Propiedades de componentes
         id: String,
