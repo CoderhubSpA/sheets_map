@@ -1016,8 +1016,27 @@ export default {
         requestGeoJson(layer, feature_container, url = null, body = null){
             return axios.get(layer.sh_map_has_layer_url)
                 .then((response) => {
-                    feature_container[layer.id] = response.data.features;
-                    const features              = response.data.features;
+                    let raw_data;
+                    if (typeof response.data === 'object' && response.data !== null) {
+                        raw_data = response.data;
+                    }else{//Si data no recibe un objeto
+                        const regex_numeric = /(?<=\[\s*|:\s*|,\s*)(NaN|Infinity)(?=\s*,|\s*]|\s*})/gm;
+                        const regex_text    = /(?<=\[\s*|:\s*|,\s*)([A-Za-zÀ-ÿ\s]*?)(?=\s*,|\s*]|\s*})/gm;
+
+                        let info = response.data;
+                        info = info.replaceAll(regex_numeric, 0);
+                        info = info.replaceAll(regex_text, '"$1"');
+
+                        try{
+                            raw_data = JSON.parse(info);
+                        }catch(e){
+                            console.warn(e);
+                            raw_data = {};
+                        }
+                    }
+                    
+                    feature_container[layer.id] = raw_data.features;
+                    const features              = raw_data.features;
 
                 });
         },
