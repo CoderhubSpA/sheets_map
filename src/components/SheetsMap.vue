@@ -1027,7 +1027,12 @@ export default {
                         info = info.replaceAll(regex_numeric, 0);
                         info = info.replaceAll(regex_text, '"$1"');
 
-                        raw_data = JSON.parse(info);
+                        try{
+                            raw_data = JSON.parse(info);
+                        }catch(e){
+                            console.warn(e);
+                            raw_data = {};
+                        }
                     }
                     
                     feature_container[layer.id] = raw_data.features;
