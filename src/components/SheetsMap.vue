@@ -13,6 +13,7 @@
                 :center.sync="center"
                 ref="my_map"
                 class="my-map"
+                :class="{ 'hide-cluster-labels': should_hide_cluster_labels }"
                 :options="{ zoomControl: false, trackResize: false }">
 
                 <section class="custom-controls">
@@ -190,6 +191,9 @@ export default {
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom                      : 7,
+            /** Zoom del mapa al momento de carga analytic_cluster. */
+            analytic_cluster_initial_zoom: undefined,
+            should_hide_cluster_labels: false,
             center_default            : [-33.472 , -70.769],
             center                    : undefined,
             col_lat                   : undefined,
@@ -558,7 +562,8 @@ export default {
                     font           = this.style_variables["hexagonal-cluster-small-font"];
                     font_color     = this.style_variables["hexagonal-cluster-small-font-color"];
                 }
-                let retur = {
+
+                return {
                     weight: 5,
                     color: border_color,
                     opacity: opacity,
@@ -566,8 +571,6 @@ export default {
                     fillColor: color,
                 };
 
-
-                return retur;
             };
 
         },
@@ -630,6 +633,13 @@ export default {
         }
     },
     watch:{
+        analytic_cluster() {
+            this.analytic_cluster_initial_zoom = this.zoom;
+        },
+        zoom(newZoom){
+          if(this.analytic_cluster_initial_zoom !== undefined)
+            this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
+        },
         active_layers: {
           handler() {
             this.switchLayers();
@@ -1144,88 +1154,43 @@ export default {
             return {'metric':metric,'calculation':calculation};
         },
         calculateH3Zoom(){
-
-            var zoom = this.map.getZoom();
-            var h;
-            switch (zoom) {
+            const h3Zoom = (() => {
+                switch (this.zoom) {
                 case 1:
                 case 2:
-                case 3:{
-                    h = 1;
-                    break;
-                }
-                case 4:{
-                    h = 2;
-                    break;
-                }
+                case 3:
+                    return 1;
+                case 4:
+                    return 2;
                 case 5:
-                case 6:{
-                    h = 3;
-                    break;
-                }
-                case 7:{
-                    h = 4;
-                    break;
-                }
+                case 6:
+                    return 3;
+                case 7:
+                    return 4;
                 case 8:
-                case 9:{
-                    h = 5;
-                    break;
-                }
-                case 10:{
-                    h = 6;
-                    break;
-                }
+                case 9:
+                    return 5;
+                case 10:
+                    return 6;
                 case 11:
-                case 12:{
-                    h = 7;
-                    break;
-                }
-                case 13:{
-                    h = 8;
-                    break;
-                }
-
-                case 14:{
-                    h = 9;
-                    break;
-                }
-                case 15:
-                case 16:{
-                    h = 10;
-                    break;
-                }
-                case 17:{
-                    h = 11;
-                    break;
-                }
-                case 18:{
-                    h = 12;
-                    break;
-                }
-                default:{
-                    h = 1;
-                    break;
-                }/*
+                case 12:
+                    return 7;
+                case 13:
+                    return 8;
+                case 14:
+                    return 9;
                 case 15:
                 case 16:
+                    return 10;
                 case 17:
-                case 18:{
-                    h = zoom - this.num_zoom;
-                    break;
+                    return 11;
+                case 18:
+                    return 12;
+                default:
+                    return 1;
                 }
-                default:{
-                    h = zoom - 3;
-                    break;
-                }*/
-                if (this.num_zoom) {
-                    if (zoom>15) {
-                        zoom =15;
-                    }
-                    h = zoom;
-                }
-            }
-            return h;
+            })();
+            return h3Zoom - 1;
         },
         calculateH3ZoomContour(){
 
@@ -1640,7 +1605,9 @@ export default {
         border: transparent !important;
         box-shadow: none !important;
         color: white;
-        font-weight: bold;
+    }
+    .my-map.hide-cluster-labels >>> .my-labels {
+        display: none;
     }
     li {
         text-align: left;
