@@ -3,5 +3,6 @@ module.exports = defineConfig({
   transpileDependencies: true,
   publicPath: process.env.NODE_ENV === 'production'
     ? '/dist/'
-    : '/'
+    : '/',
+  devtool : 'source-map'
 })
