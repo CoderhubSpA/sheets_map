@@ -4,5 +4,8 @@ module.exports = defineConfig({
   publicPath: process.env.NODE_ENV === 'production'
     ? '/dist/'
     : '/',
-  devtool : 'source-map'
+    configureWebpack: {
+      devtool: 'source-map'
+    }
+  // devtool : 'source-map'
 })
