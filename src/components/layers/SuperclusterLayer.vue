@@ -1,5 +1,5 @@
 <template>
-    <l-layer-group ref="lgroup">
+    <l-layer-group :visible="visible" ref="lgroup">
         <l-marker
             v-for="(cluster, index) in clusters"
             v-bind:key="index"
@@ -89,7 +89,8 @@ export default {
         col_lat: String,
         col_lng: String,
         entity_type_id: String,
-        base_url: String
+        base_url: String,
+        visible: Boolean,
     },
     computed: {
         geo_json() {

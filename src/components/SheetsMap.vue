@@ -49,6 +49,7 @@
                 
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <supercluster-layer
+                    :visible="active_layers.some(layer => layer.sh_map_has_layer_type === 'supercluster')"
                     :data="data"
                     :info="info"
                     :map="map"
