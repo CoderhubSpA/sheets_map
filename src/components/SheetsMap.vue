@@ -499,7 +499,7 @@ export default {
                     
 
                     return `${info.join('<br>')}`;
-                }, {permanent: false, direction: "center"});
+                }, {permanent: false, direction: "center", className: "marker-pop-up-content"});
             }
           };
         },
@@ -961,13 +961,9 @@ export default {
 
                 let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
 
-                let code_id_list = data.map(d => {
-                    return parseInt(d[key_code_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
-                });
+                let code_id_list = data.map(d => { return d[key_code_dimension]; });
 
-                let total_list = data.map(d => {
-                    return parseInt(d[key_total_dimension]); // Advertencia este parseInt solo permitira relacionarlo con cubos que tengan valores númericos en su dimension
-                });
+                let total_list = data.map(d => { return d[key_total_dimension]; });
 
                 const max_total = (total_list.length > 0) ? Math.max(...total_list) : 0;
                 const min_total = (total_list.length > 0) ? Math.min(...total_list) : 0;
@@ -979,16 +975,16 @@ export default {
                         
                 let features = this.analytic_geojson_features[layer.id].map(feature => {
                     // Aquí se busca el la coincicencia entre feature y data
-                    let geojson_col_reference = parseInt(feature.properties[layer.sh_map_has_layer_geojson_col_reference]);
+                    let geojson_col_reference = feature.properties[layer.sh_map_has_layer_geojson_col_reference];
                     let index_dimension = code_id_list.indexOf(geojson_col_reference);
 
                     //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
                     let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
                     feature.properties[layer.total_dimension_ref] = total;
                     feature['layer_id'] = layer.id;
-
                     return feature; 
                 });
+
                 let geojson  = {
                     "layer_id" : layer.id,
                     "geojson"  : {
