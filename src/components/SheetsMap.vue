@@ -125,23 +125,19 @@
     </div>
         
 </template>
-<script src="https://unpkg.com/h3-js"></script>
 <script>
-// import L from 'leaflet';
+import L from 'leaflet';
 import _ from 'lodash';
 import {LMap, LTileLayer, LLayerGroup, LMarker, LCircleMarker, LPopup, LIcon,LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
-import {h3ToGeo} from "h3-js";
 import Supercluster from 'supercluster';
 import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
-import h337 from'heatmap.js/plugins/leaflet-heatmap'
 import { BButton, BIcon } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -149,6 +145,7 @@ Icon.Default.mergeOptions({
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
+
 export default {
     name: 'SheetsMap',
     components: {
@@ -530,18 +527,18 @@ export default {
                 let color;
                 let opacity;
                 let border_color;
-                let border_opacity;
-                let font;
-                let font_color;
+                // let border_opacity;
+                // let font;
+                // let font_color;
 
                 //Concentración Alta
                 if (feature.properties.total >= this.config.sh_map_large_cluster_size_starts_at) {
                     color          = this.style_variables["hexagonal-cluster-large-color"];
                     opacity        = this.style_variables["hexagonal-cluster-large-opacity"];
                     border_color   = this.style_variables["hexagonal-cluster-large-border-color"];
-                    border_opacity = this.style_variables["hexagonal-cluster-large-border-opacity"];
-                    font           = this.style_variables["hexagonal-cluster-large-font"];
-                    font_color     = this.style_variables["hexagonal-cluster-large-font-color"];
+                    // border_opacity = this.style_variables["hexagonal-cluster-large-border-opacity"];
+                    // font           = this.style_variables["hexagonal-cluster-large-font"];
+                    // font_color     = this.style_variables["hexagonal-cluster-large-font-color"];
                 }
 
                 //Concentración Media 
@@ -549,18 +546,18 @@ export default {
                     color          = this.style_variables["hexagonal-cluster-medium-color"];
                     opacity        = this.style_variables["hexagonal-cluster-medium-opacity"];
                     border_color   = this.style_variables["hexagonal-cluster-medium-border-color"];
-                    border_opacity = this.style_variables["hexagonal-cluster-medium-border-opacity"];
-                    font           = this.style_variables["hexagonal-cluster-medium-font"];
-                    font_color     = this.style_variables["hexagonal-cluster-medium-font-color"];
+                    // border_opacity = this.style_variables["hexagonal-cluster-medium-border-opacity"];
+                    // font           = this.style_variables["hexagonal-cluster-medium-font"];
+                    // font_color     = this.style_variables["hexagonal-cluster-medium-font-color"];
                 }
                 //Baja
                 if (feature.properties.total < this.config.sh_map_medium_cluster_size_starts_at) {
                     color          = this.style_variables["hexagonal-cluster-small-color"];
                     opacity        = this.style_variables["hexagonal-cluster-small-opacity"];
                     border_color   = this.style_variables["hexagonal-cluster-small-border-color"];
-                    border_opacity = this.style_variables["hexagonal-cluster-small-border-opacity"];
-                    font           = this.style_variables["hexagonal-cluster-small-font"];
-                    font_color     = this.style_variables["hexagonal-cluster-small-font-color"];
+                    // border_opacity = this.style_variables["hexagonal-cluster-small-border-opacity"];
+                    // font           = this.style_variables["hexagonal-cluster-small-font"];
+                    // font_color     = this.style_variables["hexagonal-cluster-small-font-color"];
                 }
 
                 return {
@@ -596,7 +593,7 @@ export default {
                                                             max_total, 
                                                             feature.properties[total_reference]);
 
-                const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
+                // const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
                 const opacity = this.style_variables["analytic-geojson-opacity"];
 
                 const style = {
@@ -729,6 +726,7 @@ export default {
 
             switch(layer.sh_map_has_layer_code){
                 case 'analytic_geojson' : {
+                    // eslint-disable-next-line
                     const {is_empty,is_new_layer}= this.organizeLayers(layer, this.analytic_geojson_list);
 
                     if (!is_new_layer) {
@@ -785,7 +783,7 @@ export default {
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
                     if(is_empty || (!is_empty && is_new_layer)){
                         this.requestGeoJson(layer, this.operative_geojson_features)
-                        .then((features) => {
+                        .then(() => {
                             this.getOperativeGeoJson(layer);
                         });
                     }
@@ -852,7 +850,6 @@ export default {
 
         },      
         getAnalyticalCountourMap(layer){
-            let data;
             let h3_zoom        = this.calculateH3ZoomContour();
             let query_params   = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
             let url            = query_params.url;
@@ -922,7 +919,6 @@ export default {
                 });
 
 
-                var filters    = this.getFilters(h3_indexes);
                 polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
                 this.analytic_cluster = {geo_json : polygon, bounds : Object.freeze(geojson_bounds)};
                 console.log('Cluster Hexagonal completado');
@@ -936,9 +932,9 @@ export default {
             const url           = query_params.url;
             const body          = query_params.body;
 
-            if (!(this.analytic_geojson_features.hasOwnProperty(layer.id))) {
+            if (!(Object.prototype.hasOwnProperty.call(this.analytic_geojson_features,layer.id))) {
                 this.requestGeoJson(layer, this.analytic_geojson_features, url, body)
-                .then((features) => {
+                .then(() => {
                     this.getAnalyticalGeoJsonBi(layer, url, body);
                 });
 
@@ -1019,7 +1015,7 @@ export default {
 
                 this.operative_geojson_list.push(geojson);
         },
-        requestGeoJson(layer, feature_container, url = null, body = null){
+        requestGeoJson(layer, feature_container){
             return axios.get(layer.sh_map_has_layer_url)
                 .then((response) => {
                     let raw_data;
@@ -1042,7 +1038,6 @@ export default {
                     }
                     
                     feature_container[layer.id] = raw_data.features;
-                    const features              = raw_data.features;
 
                 });
         },
@@ -1280,7 +1275,7 @@ export default {
         
         findBounds(){
             if (!this.should_skip_bounds_filter) {
-                let h        = this.map.getZoom();
+                //let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
 
@@ -1312,7 +1307,6 @@ export default {
             let point;
             let index;
             let h3_index;
-            let properties;
             for(let i in h3_indexes){
                 index = h3_indexes[i][key_dimension];
                 h3_index = this.h3.h3ToGeo(index);
@@ -1342,7 +1336,7 @@ export default {
 
             for (let i = 0; i < polygons.length; i++) {
                 poly = polygons[i];
-                if (!unique_kring.hasOwnProperty(poly)){
+                if (!Object.prototype.hasOwnProperty.call(unique_kring,poly)){
                     indexes.push(poly);
                     unique_kring[poly] = null;
                 }
@@ -1354,7 +1348,7 @@ export default {
                 //#krings = h3.compact(krings)
                 for (let j = 0; j < krings.length; j++) {
                     kring = krings[j];
-                    if (!unique_kring.hasOwnProperty(kring)){
+                    if (!Object.prototype.hasOwnProperty.call(unique_kring,kring)){
                         indexes.push(kring);
                         unique_kring[kring] = null;
                     }
@@ -1373,7 +1367,7 @@ export default {
             for (let i = 0; i < indexes.length; i++) {
                 index = indexes[i];
                 r     = this.h3.h3GetResolution(index);
-                if(!filters_obj.hasOwnProperty("h3r"+r)){
+                if(!Object.prototype.hasOwnProperty.call(filters_obj,"h3r"+r)){
                     filters_obj["h3r"+r] = [];
                 }
                 filters_obj["h3r"+r].push(index);
