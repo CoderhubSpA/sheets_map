@@ -7,5 +7,4 @@ module.exports = defineConfig({
     configureWebpack: {
       devtool: 'source-map'
     }
-  // devtool : 'source-map'
 })

@@ -158,18 +158,16 @@ export default {
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom                      : 7,
-            /** Zoom del mapa al momento de carga analytic_cluster. */
-            analytic_cluster_initial_zoom: undefined,
-            should_hide_cluster_labels: false,
             center_default            : [-33.472 , -70.769],
             center                    : undefined,
             col_lat                   : undefined,
             col_lng                   : undefined,
-            
             map                       : undefined,
-            map_bounds                : undefined,
             circle                    : undefined,
             /*Layers*/
+            /** Zoom del mapa al momento de carga analytic_cluster. */
+            analytic_cluster_initial_zoom: undefined,
+            should_hide_cluster_labels: false,
             analytic_cluster          : undefined,
             analytic_countour_map     : undefined,
             analytic_geojson_list     : [],
@@ -180,8 +178,6 @@ export default {
             base_map_guide            : undefined,
             base_open_street_map      : undefined,
             operative_geoserver_wms   : [],
-            /*Layers*/
-            
             bounds_filters            : [],
             num_zoom                  : false,
             bounds                    : [],
@@ -637,6 +633,10 @@ export default {
 
                     break;
                 }
+                case 'supercluster': {
+                    // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
+                    break;
+                }
                 default:{
                     console.log('Intento de activar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
@@ -686,6 +686,10 @@ export default {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
                     this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
 
+                    break;
+                }
+                case 'supercluster': {
+                    // La capa supercluster se desactiva mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
                 default:{
@@ -1088,12 +1092,8 @@ export default {
 
         },
         onMapMoveEnd(){
-        
-            console.log('onMapMoveEnd');
             this.$refs.analytic_cluster_layer.getClusterMarkers();
-            
         },
-        
         findBounds(){
             if (!this.should_skip_bounds_filter) {
                 //let h        = this.map.getZoom();
@@ -1443,15 +1443,6 @@ export default {
         gap: 8px;
         margin-top: 24px;
     }
-    
-    .my-map >>> .leaflet-popup-content-wrapper,
-    .my-map >>> .leaflet-popup-tip{
-        background-color: var(--sh-map-marker-pop-up-background);
-        border-color : var(--sh-map-marker-pop-up-border-color);
-        border-width : var(--sh-map-marker-pop-up-border-width);
-        border-style : var(--sh-map-marker-pop-up-border-style);
-    }
-
 
     .custom-controls .zoom-btn {
         background-color: var(--sh-map-zoom-button-background-color);
