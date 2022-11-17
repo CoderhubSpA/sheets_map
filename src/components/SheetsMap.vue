@@ -949,8 +949,8 @@ export default {
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
             }
-
-            let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : this.active_filters;
+            // Se utiliza copia de active_filters para no modificar el original
+            let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : _.cloneDeep(this.active_filters);
 
             if (this.should_skip_bounds_filter) {
 
