@@ -1,6 +1,8 @@
-# sheets_map
+# Sheets Map
 
 ## Project setup
+---
+
 ```
 npm install
 ```
@@ -38,7 +40,8 @@ add to package.json
    }
 ```
 
-### How to publish
+## How to publish
+---
 
 1. Compile:
 ```
@@ -53,3 +56,87 @@ npm run build-library
 ```
 npm publish
 ```
+
+## Casos soportados por el "Mapa de claves" de Sheets Map :
+---
+
+1 - No mostrar nada
+
+2 - Mostrar todos los nombres formateados para que sea legible por el usuario
+Ejemplo:
+
+```Text
+*
+```
+
+3 - Mostrar solo los nombres definidos por el usuario
+Ejemplo:
+
+```JSON
+{
+    "CUT_REG":"Codigo región",
+    "REGION":"Región",
+    "SUPERFICIE":"Superficie total",
+}
+```
+
+3.1 - Mostrar nombres definidos de todas las metricas
+Se usa "metric_data" seguido de un punto "." y un asterisco "*"
+
+`{
+    "metric_data.*":"Metricas"
+}`
+
+Ejemplo:
+```JSON
+{
+    "CUT_REG":"Codigo región",
+    "REGION":"Región",
+    "SUPERFICIE":"Superficie total",
+    "metric_data.*":"Metrica"
+}
+```
+
+3.2 - Mostrar los nombres para cada metrica en concreto
+Se usa "metric_data" seguido de un punto "." y un la nombre de columna de la métrica "migraciones". *Si se agregan varias, solo se mostraría la métrica activa* y las otras no se ven
+
+`{
+    "metric_data.*":"Metricas"
+}`
+
+Ejemplo:
+```JSON
+
+{
+    "CUT_REG":"Codigo región",
+    "REGION":"Región",
+    "SUPERFICIE":"Superficie total",
+    "metric_data.nuevas_empresas":"Nuevas empresas",
+    "metric_data.migraciones":"Total migraciones"
+}
+```
+
+Notas:
+
+1. *Respecto a `metric_data`* :
+Siempre se debe usar `metric_data.` para mostrar el valor de una métrica, ya sea con asterisco o definiendo el nombre de columna.
+2. *Uso de `"."`* : Si una propiedad de una métrica es un objeto, se puede mostrar valores de ese objeto utilizando el recurso de puntos. Ejemplo:
+
+    Si mi propiedad del objeto GEOJSON se ve así:
+    
+    ```JSON
+    {
+        "direccion":{
+            "calle": "John Doe",
+            "numero": "123"
+        }
+    }
+    ```
+
+    Puedo configurar mi mapa de claves de la siguiente manera para obtener la calle:
+        
+    ```JSON
+    {
+        "direccion.calle": "Calle"
+    }
+    ```
