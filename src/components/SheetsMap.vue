@@ -335,9 +335,8 @@ export default {
                         switch(active_layer.sh_map_has_layer_code){
                             case 'analytic_geojson' :{
                                 //Almacenamos el calculo hecho entre el Bi y el feature
-                                const total_reference = active_layer.total_dimension_ref;
-
-                                const total = (layer.feature.properties[total_reference] == null) ? 'Sin información disponible' : layer.feature.properties[total_reference].toLocaleString('es-ES');
+                                const [metric_value] = Object.values(layer.feature.properties.metric_data);
+                                const total = (metric_value == null) ? 'Sin información disponible' : metric_value.toLocaleString('es-ES');
 
                                 return `<span class="marker-pop-up-info-content"> ${total} </span>`;
 
@@ -441,20 +440,19 @@ export default {
                     return feature.layer_id == l.id;
                 });
 
-                const total_reference = layer.total_dimension_ref;
-
                 const { max_total, min_total } = layer;
+                const [metric_total] = Object.values(feature.properties.metric_data);
 
                 const color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
                                                      this.style_variables["analytic-geojson-large-color"], 
                                                      min_total, 
                                                      max_total, 
-                                                     feature.properties[total_reference]);
+                                                     metric_total);
                 const border_color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-border-color"],
                                                             this.style_variables["analytic-geojson-large-border-color"], 
                                                             min_total, 
                                                             max_total, 
-                                                            feature.properties[total_reference]);
+                                                            metric_total);
 
                 // const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
                 const opacity = this.style_variables["analytic-geojson-opacity"];
@@ -738,7 +736,6 @@ export default {
                 }else{
                     this.makeEmptyHeatmap();
                 }
-                console.log('Mapa de calor completado');
             });
 
         },      
@@ -772,7 +769,6 @@ export default {
 
                 polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
                 this.analytic_cluster = {geo_json : polygon, bounds : Object.freeze(geojson_bounds)};
-                console.log('Cluster Hexagonal completado');
             });
 
         },
@@ -802,33 +798,33 @@ export default {
                 //Conseguir lista de códigos de identificación
                 let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
 
-                layer['total_dimension_ref'] = data_map.find((dm, key) => {
+                layer.total_dimension_ref = data_map.find((dm, key) => {
                     if (key != key_code_dimension) return dm
                 });
 
-                let key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
-
-                let code_id_list = data.map(d => { return d[key_code_dimension]; });
-
-                let total_list = data.map(d => { return d[key_total_dimension]; });
-
+                const key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
+                const total_list = data.map(d => { return d[key_total_dimension]; });
+                
                 const max_total = (total_list.length > 0) ? Math.max(...total_list) : 0;
                 const min_total = (total_list.length > 0) ? Math.min(...total_list) : 0;
-
-                layer['max_total'] = max_total;
-                layer['min_total'] = (max_total != min_total) ? min_total : 0;
-
+                
+                layer.max_total = max_total;
+                layer.min_total = (max_total != min_total) ? min_total : 0;
+                
                 //Relacionar el total de data con feature
-                        
-                let features = this.analytic_geojson_features[layer.id].map(feature => {
+                const code_id_list = data.map(d => { return d[key_code_dimension]; });
+                const features = this.analytic_geojson_features[layer.id].map(feature => {
                     // Aquí se busca el la coincicencia entre feature y data
-                    let geojson_col_reference = feature.properties[layer.sh_map_has_layer_geojson_col_reference];
-                    let index_dimension = code_id_list.indexOf(geojson_col_reference);
+                    const geojson_col_reference = feature.properties[layer.sh_map_has_layer_geojson_col_reference];
+                    const index_dimension = code_id_list.indexOf(geojson_col_reference);
 
-                    //Si el indice es encontrado se agrega su valor si no se deja el valor en 0
-                    let total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
-                    feature.properties[layer.total_dimension_ref] = total;
-                    feature['layer_id'] = layer.id;
+                    //Si el indice es encontrado se agrega su valor si no se deja el valor en null1
+                    const total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+
+                    feature.properties.metric_data = {
+                        [layer.total_dimension_ref] : total
+                    };
+                    feature.layer_id = layer.id;
                     return feature; 
                 });
 
@@ -942,7 +938,6 @@ export default {
             };
 
             this.heatmapLayer.setData(contour_data);
-            console.log(this.heatmapLayer);
 
         },
         formatFilter(){
@@ -1364,31 +1359,56 @@ export default {
             return {'is_empty':is_empty,'is_new_layer':is_new_layer};
         },
         infoGeojsonWithAlias(layer, property_keys) {
-
             //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
-            let info = Object.entries(property_keys).map((property_info) =>{
-                const key      = property_info[0]; // Tomamos el nombre técnico de la propiedad
-                const property = property_info[1]; // Tomamos el nombre humano de la propiedad
-                let value      = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
+            let info = Object.entries(property_keys).map(([key, property]) => {
+                let value = null;
+                if(key.includes('.')){
+                    /* Busca hacia adentro cada propiedad separada por `.`
+                    * Ejemplo:
+                    * "key.prop1.key2" => layer.feature.properties['key']['prop1']['key2']
+                    */
+                    let keys = key.split('.');
+                    value = layer.feature.properties;
+                    for(let i in keys){
+                        if(keys[i] == '*' && value != null && typeof value == 'object'){
+                            [value] = Object.values(value);
+                            continue;
+                        }
+                        value = value[keys[i]];
+                        // Si es asterisco, tomamos todos los valores
+                    }
+                }else{
+                    value = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
+                }
 
+                // Para soportar alias de mulitples metricas
+                // y que no nos aparezca una lista de metricas vacias,
+                // ignoramos las metricas no encontradas
+                if (value == null && key.includes('metric_data')) {
+                    return null;
+                }
                 value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+
                 return `
                     <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
                     <span class="marker-pop-up-info-content"> ${value} </span>
                 `;
-            });
-
+            }).filter( i => i);
 
             return info;
         },
         //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
         //o puede retornarse justo como la presenta el GeoJson
         infoGeojsonWithKeys(layer, human_keys) {
-
-            let info = Object.entries(layer.feature.properties).map((property) =>{
-                const title = (human_keys) ? this.formatKeyToHumanText(property[0]) : property[0]; // Tomamos la clave de la propiedad
-                let value   = property[1]; // Tomamos el valor de la propiedad
-
+            let info = Object.entries(layer.feature.properties).map(([property,value]) =>{
+                // Deconstruímos las propiedades reservadas
+                if(property === 'metric_data'){
+                    /* Ejemplo de contenido la variable `value` cuando la property es `metric_data`:
+                     * {'total_casos': 387.123}
+                     */
+                    [[property, value]] = Object.entries(value)
+                }
+                let title = (human_keys) ? this.formatKeyToHumanText(property) : property; // Tomamos la clave de la propiedad
                 value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
                 value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
                 return `
