@@ -1360,33 +1360,55 @@ export default {
         },
         infoGeojsonWithAlias(layer, property_keys) {
             //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
-            let info = Object.entries(property_keys).map((property_info) =>{
-                const key      = property_info[0]; // Tomamos el nombre técnico de la propiedad
-                const property = property_info[1]; // Tomamos el nombre humano de la propiedad
-                let value      = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
+            let info = Object.entries(property_keys).map(([key, property]) => {
+                let value = null;
+                if(key.includes('.')){
+                    /* Busca hacia adentro cada propiedad separada por `.`
+                    * Ejemplo:
+                    * "key.prop1.key2" => layer.feature.properties['key']['prop1']['key2']
+                    */
+                    let keys = key.split('.');
+                    value = layer.feature.properties;
+                    for(let i in keys){
+                        if(keys[i] == '*' && value != null && typeof value == 'object'){
+                            [value] = Object.values(value);
+                            continue;
+                        }
+                        value = value[keys[i]];
+                        // Si es asterisco, tomamos todos los valores
+                    }
+                }else{
+                    value = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
+                }
 
+                // Para soportar alias de mulitples metricas
+                // y que no nos aparezca una lista de metricas vacias,
+                // ignoramos las metricas no encontradas
+                if (value == null && key.includes('metric_data')) {
+                    return null;
+                }
                 value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+
                 return `
                     <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
                     <span class="marker-pop-up-info-content"> ${value} </span>
                 `;
-            });
-
+            }).filter( i => i);
 
             return info;
         },
         //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
         //o puede retornarse justo como la presenta el GeoJson
         infoGeojsonWithKeys(layer, human_keys) {
-            console.log('infoGeojsonWithKeys')
-            // console.log(layer.feature.properties);
             let info = Object.entries(layer.feature.properties).map(([property,value]) =>{
                 // Deconstruímos las propiedades reservadas
                 if(property === 'metric_data'){
+                    /* Ejemplo de contenido la variable `value` cuando la property es `metric_data`:
+                     * {'total_casos': 387.123}
+                     */
                     [[property, value]] = Object.entries(value)
                 }
                 let title = (human_keys) ? this.formatKeyToHumanText(property) : property; // Tomamos la clave de la propiedad
-                // console.log(title,value);
                 value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
                 value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
                 return `
