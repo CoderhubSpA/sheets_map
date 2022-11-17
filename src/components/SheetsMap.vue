@@ -816,10 +816,15 @@ export default {
                 const features = this.analytic_geojson_features[layer.id].map(feature => {
                     // Aquí se busca el la coincicencia entre feature y data
                     const geojson_col_reference = feature.properties[layer.sh_map_has_layer_geojson_col_reference];
-                    const index_dimension = code_id_list.indexOf(geojson_col_reference);
+                    
+                    // Se busca el indice de la coincidencia usando una "loosy comparison"
+                    // Esto para evitar problemas con los tipos de datos. Ejemplo: 1 == "1" => true
+                    const index_dimension = Object.keys(code_id_list).find( i => code_id_list[i] == geojson_col_reference);
 
                     //Si el indice es encontrado se agrega su valor si no se deja el valor en null1
-                    const total = (index_dimension == -1) ? null : data[index_dimension][key_total_dimension];
+                    const total = (index_dimension !== undefined)
+                        ? data[index_dimension][key_total_dimension]
+                        : null;
 
                     feature.properties.metric_data = {
                         [layer.total_dimension_ref] : total
