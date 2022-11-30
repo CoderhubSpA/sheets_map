@@ -10,7 +10,7 @@
                 <h5>{{group_key}}</h5>
                 <!-- Si no posee subgrupos -->
                 <div v-for="(subgroup, subgroup_key) in group"
-                    :key="subgroup_key"
+                    :key="subgroup_key" class="subgroup-container"
                 >
                     <div
                         v-if="subgroup_key == 'null'"
@@ -70,9 +70,10 @@
                         Se representan desde elementos colapsables -->
                         <fieldset class="collapsed">
                             <legend  @click="e => e.currentTarget.parentNode.classList.toggle('collapsed')">
-                                {{subgroup_key}}
+                                <span>{{subgroup_key}}</span>
                                 <b-icon
                                     icon="chevron-up"
+                                    class="action-icon"
                                 ></b-icon>
                             </legend>
                             <ul class="layer-subgroup-body">
@@ -89,6 +90,7 @@
                             </ul>
                         </fieldset>
                     </div>
+                    <SheetsTooltip v-if="subgroup[0].enriched_data" :data="subgroup[0].enriched_data" />
                 </div>
             </section>
         </menu>
@@ -97,10 +99,12 @@
 <script>
 import _ from "lodash";
 import { BIcon } from 'bootstrap-vue';
+import SheetsTooltip from "./SheetsTooltip.vue";
 
 export default {
     components: {
-        BIcon
+        BIcon,
+        SheetsTooltip
     },
     props: {
         // Propiedades de componentes
@@ -138,6 +142,7 @@ export default {
                         order: layer["sh_map_has_layer_order"],
                         // Si la capa está activa, se le asigna el valor true
                         active: (this.active_layers[layer.id] || layer.id == this.active_base_layers),
+                        enriched_data: layer["enriched_data"]
                     };
                 }
             ).sort(
@@ -155,7 +160,7 @@ export default {
                 (group_key) => {
                     grouped_layers[group_key] = _.groupBy(grouped_layers[group_key], 'subgroup')
                 }
-            )
+                )
             return grouped_layers;
         },
         css_vars() {
@@ -200,6 +205,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.subgroup-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
 .layers-dropdown /deep/ {
     .layers-menu {
         h5 {
@@ -311,7 +322,7 @@ export default {
             }
         }
         .layer-subgroup{
-            margin-top: 10px;
+            width: 92%;
             fieldset{
                 border: none;
                 padding: 0;
@@ -329,7 +340,13 @@ export default {
                     justify-content: space-between;
                     font-size: .8rem;
                     margin: 0;
+                    span {
+                        order: 1;
+                        width: inherit;
+                    }
                     svg {
+                        margin: 4px 0 0 4px;
+                        order: 2;
                         transition: transform 0.4s ease;
                         stroke-width: 1;
                         stroke: var(--subgroup-accordion-text-color);
@@ -384,7 +401,7 @@ export default {
                 &.collapsed{
                     legend{
                         background-color: var(--subgroup-accordion-color);
-                        svg{
+                        svg.action-icon{
                             transform: rotate(180deg);
                         }
                     }
