@@ -78,12 +78,7 @@ export default {
 <style scoped lang="scss">
 .sheets-tooltip {
     svg {
-        &.open-tooltip {
-            color: var(--option-active-color);
-        }
-        &.close-tooltip {
-            color: var(--subgroup-accordion-text-color);
-        }
+        color: var(--option-active-color);
     }
     .sheets-tooltip-text {
         position: absolute;
@@ -94,7 +89,9 @@ export default {
         background-color: var(--subgroup-accordion-color);
         margin-top: -20px;
         border-radius: var(--global-radius);
-
+        svg {
+            color: var(--subgroup-accordion-text-color);
+        }
        &::after {
             content: " ";
             position: absolute;
