@@ -1,18 +1,19 @@
 <template>
-    <div :class="[setPosition ? 'sheets-tooltip-right' : 'sheets-tooltip-left', 'text-white', 'mx-1']" v-if="dataEntries.length > 0">
+    <div :class="[setPosition ? 'sheets-tooltip-right' : 'sheets-tooltip-left', 'text-white', 'mx-1', 'sheets-tooltip']" v-if="dataEntries.length > 0">
         <b-icon
             icon="info-circle"
             :id="dataEntries['id']"
             @click="showTooltip = true"
+            custom-class="open-tooltip"
         ></b-icon>
         <div v-if="showTooltip">
-            <div :class="[setPosition ? 'sheets-tooltip-right-text' : 'sheets-tooltip-left-text', 'text-white']">
+            <div :class="[setPosition ? 'sheets-tooltip-right-text' : 'sheets-tooltip-left-text', 'text-white', 'sheets-tooltip-text']">
                 <div class="text-right">
                     <b-icon
                         icon="x-circle"
                         :id="dataEntries['id']"
                         @click="showTooltip = false"
-                        custom-class
+                        custom-class="close-tooltip"
                     ></b-icon>
                 </div>
                 <div>
@@ -28,7 +29,12 @@
 </template>
 
 <script>
+import { BIcon } from 'bootstrap-vue';
+
 export default {
+    components: {
+        BIcon
+    },
     props: {
         data: {
             type: Object,
@@ -70,32 +76,48 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.sheets-tooltip-left {
+.sheets-tooltip {
     svg {
-        color: var(--option-active-color);
+        &.open-tooltip {
+            color: var(--option-active-color);
+        }
+        &.close-tooltip {
+            color: var(--subgroup-accordion-text-color);
+        }
     }
-    .sheets-tooltip-left-text {
+    .sheets-tooltip-text {
         position: absolute;
         top: auto;
-        left: 320px;
         z-index: 9999;
         width: 400px;
-        padding: 4px;
-        border: solid 1px #001D09;
+        padding: calc((var(--global-radius) / 2) + 4px);
         background-color: var(--subgroup-accordion-color);
         margin-top: -20px;
+        border-radius: var(--global-radius);
 
        &::after {
             content: " ";
             position: absolute;
-            top: 7px;
-            right: 100%;
+            top: calc(var(--global-radius) + 7px);
             margin-top: -8px;
             border-width: 8px;
             border-style: solid;
             border-color: transparent var(--subgroup-accordion-color) transparent transparent;
         }
-
+        &.sheets-tooltip-right-text {
+            right: 100%;
+            &::after {
+                left: 100%;
+                border-color: transparent transparent transparent var(--subgroup-accordion-color);
+            }
+        }
+        &.sheets-tooltip-left-text {
+            left: 100%;
+            &::after {
+                right: 100%;
+                border-color: transparent var(--subgroup-accordion-color) transparent transparent;
+            }
+        }
         
 
         a.is-link {
@@ -116,48 +138,4 @@ export default {
     }
 }
 
-.sheets-tooltip-right {
-    svg {
-        color: var(--option-active-color);
-    }
-    .sheets-tooltip-right-text {
-        position: absolute;
-        top: auto;
-        right: 320px;
-        z-index: 9999;
-        width: 400px;
-        padding: 4px;
-        border: solid 1px #001D09;
-        background-color: var(--subgroup-accordion-color);
-        margin-top: -20px;
-
-        &::after {
-            content: " ";
-            position: absolute;
-            top: 7px;
-            left: 100%;
-            margin-top: -8px;
-            border-width: 8px;
-            border-style: solid;
-            border-color: transparent transparent transparent var(--subgroup-accordion-color);
-        }
-
-       
-
-        a.is-link {
-            color: var(--option-active-color);
-        }
-
-        @media (max-width: 600px) {
-            top: 30%;
-            right: 1%;
-            left: 1%;
-            width: 69%;
-
-            &::after {
-                content: " ";
-            }
-        }
-    }
-}
 </style>

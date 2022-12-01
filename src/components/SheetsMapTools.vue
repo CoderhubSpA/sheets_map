@@ -230,6 +230,7 @@ export default {
         .layer-group {
             display: flex;
             max-width: 100%;
+            width: 100%;
             flex-wrap: wrap;
             justify-content: space-between;
             .layer-option-wrapper {

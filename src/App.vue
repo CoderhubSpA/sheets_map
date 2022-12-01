@@ -1,24 +1,6 @@
 <template>
   <div id="app">
-    <div class="zone zone-c">
-        <SheetsMap
-        ref="sheetsMap"
-        :base_url="base_url"
-        :id="id"
-        :entity_type_id="entity_type_id"
-        :config_entity_type_id="config_entity_type_id"
-        :config_entity_id="config_entity_id"
-        :endpoint_config="endpoint_config"
-        code="map"
-        :active_filters="active_filters"
-        :data="data"
-        :info="info"
-        :config="config"
-        :layers="layers"
-        :working_layers="working_layers"
-        :custom_styles="map_custom_styles"
-        />
-    </div>
+
     <div class="zone zone-d">
         <button class="zone-d-toggle-btn" @click="toggleZoneD()">
             <b-icon icon="gear-fill" aria-hidden="false"></b-icon>
@@ -41,6 +23,25 @@
             />
         </div>
     </div>
+    <div class="zone zone-c">
+        <SheetsMap
+        ref="sheetsMap"
+        :base_url="base_url"
+        :id="id"
+        :entity_type_id="entity_type_id"
+        :config_entity_type_id="config_entity_type_id"
+        :config_entity_id="config_entity_id"
+        :endpoint_config="endpoint_config"
+        code="map"
+        :active_filters="active_filters"
+        :data="data"
+        :info="info"
+        :config="config"
+        :layers="layers"
+        :working_layers="working_layers"
+        :custom_styles="map_custom_styles"
+        />
+    </div>
   </div>
 </template>
 
@@ -62,7 +63,7 @@ export default {
     name: "App",
     data() {
         return {
-            base_url: "http://local.sheetsmock",
+            base_url: "http://sheetsmock.local",
             //id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
             id: "99863740-4c01-11ed-b21a-f23c9240db0f",
             // - Tipo de entidad
@@ -457,6 +458,8 @@ export default {
         
         .zone-d.active {
             width: 308px;
+            position: relative;
+            overflow: visible;
         }
         .zone-d.active > .zone-body{
             opacity: 1;
