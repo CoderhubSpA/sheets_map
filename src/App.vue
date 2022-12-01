@@ -1,24 +1,6 @@
 <template>
   <div id="app">
-    <div class="zone zone-c">
-        <SheetsMap
-        ref="sheetsMap"
-        :base_url="base_url"
-        :id="id"
-        :entity_type_id="entity_type_id"
-        :config_entity_type_id="config_entity_type_id"
-        :config_entity_id="config_entity_id"
-        :endpoint_config="endpoint_config"
-        code="map"
-        :active_filters="active_filters"
-        :data="data"
-        :info="info"
-        :config="config"
-        :layers="layers"
-        :working_layers="working_layers"
-        :custom_styles="map_custom_styles"
-        />
-    </div>
+
     <div class="zone zone-d">
         <button class="zone-d-toggle-btn" @click="toggleZoneD()">
             <b-icon icon="gear-fill" aria-hidden="false"></b-icon>
@@ -40,6 +22,25 @@
             :custom_styles="map_tools_custom_styles"
             />
         </div>
+    </div>
+    <div class="zone zone-c">
+        <SheetsMap
+        ref="sheetsMap"
+        :base_url="base_url"
+        :id="id"
+        :entity_type_id="entity_type_id"
+        :config_entity_type_id="config_entity_type_id"
+        :config_entity_id="config_entity_id"
+        :endpoint_config="endpoint_config"
+        code="map"
+        :active_filters="active_filters"
+        :data="data"
+        :info="info"
+        :config="config"
+        :layers="layers"
+        :working_layers="working_layers"
+        :custom_styles="map_custom_styles"
+        />
     </div>
   </div>
 </template>
@@ -69,12 +70,16 @@ export default {
             // GEOPYME:
             // entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
             // SAIT:
-            entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
+            // entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
+            // LITIO SALARES:
+            entity_type_id: "b7b021a0-aabd-4843-80dd-b88f1b5c3789",
             // - Registro de configuracion
             // GEOPYME:
             // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
             // SAIT:
-            config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
+            // config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
+            // LITIO SALARES:
+            config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
             // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
             // Endpoint de configuracion
@@ -179,6 +184,7 @@ export default {
 
                 Object.values(layers_raw).forEach( fk_group => {
                     Object.values(fk_group).forEach( pivot => {
+                        const enriched_data = {};
                         const layer = Object.keys(pivot).reduce( (acc,col_id) => {
                             
                             let key = col_id;
@@ -192,6 +198,10 @@ export default {
                                     if(col.entity_type_fk && col.entity_type_fk in this.layers_info.entities_fk){
                                         const entity_fk = this.layers_info.entities_fk[col.entity_type_fk].find((d) => d.id == value);
                                         if (entity_fk) {
+                                            if(col.col_name === 'gen_subgroup_fk' && col.visible == "1") {
+                                                enriched_data[col.name] = entity_fk[col.col_name_fk];
+                                            }
+
                                             value = entity_fk[col.col_name_fk || 'name']
                                         }
                                     }
@@ -206,6 +216,9 @@ export default {
 
                         layers[layer.id] = layer;
 
+                        if(Object.keys(enriched_data).length > 0) {
+                            layers[layer.id].enriched_data = enriched_data;
+                        }
                     });
                 });
             }
@@ -445,6 +458,8 @@ export default {
         
         .zone-d.active {
             width: 308px;
+            position: relative;
+            overflow: visible;
         }
         .zone-d.active > .zone-body{
             opacity: 1;
