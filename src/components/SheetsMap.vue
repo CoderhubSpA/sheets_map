@@ -158,7 +158,7 @@ export default {
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom                      : 7,
-            center_default            : [-33.472 , -70.769],
+            center_default            : [-45.7247315, -108.8552016],
             center                    : undefined,
             col_lat                   : undefined,
             col_lng                   : undefined,
@@ -517,7 +517,9 @@ export default {
         // TO DO:
         // Colocar primera capa base encontrada
 
-        this.center = this.center_default;
+        //Alguna parte del mar del Pacifico Sur
+        this.center = [-45.7247315, -108.8552016];
+
         this.getMapConfiguration();
         // Cuando geo_json es construido, se instancia Supercluster
 
@@ -1075,6 +1077,13 @@ export default {
                     data         = _.first(all_data.data);
                     this.col_lng = data.sh_map_column_longitude;
                     this.col_lat = data.sh_map_column_latitude;
+
+                    if (data.latitud_map_center && data.longitud_map_center) {
+                        this.center = [data.latitud_map_center, data.longitud_map_center]
+                    } else {
+                        // Coordenadas para Santiago de Chile - Chile
+                        this.center = [-33.472 , -70.769];
+                    }
                 } catch (error) {
                     console.error(error);
                 }
