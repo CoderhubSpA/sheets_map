@@ -158,7 +158,7 @@ export default {
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom                      : 7,
-            center_default            : [-45.7247315, -108.8552016],
+            center_default            : [-33.472 , -70.769],
             center                    : undefined,
             col_lat                   : undefined,
             col_lng                   : undefined,
@@ -1082,13 +1082,13 @@ export default {
                         this.center = [data.latitud_map_center, data.longitud_map_center]
                     } else {
                         // Coordenadas para Santiago de Chile - Chile
-                        this.center = [-33.472 , -70.769];
+                        this.center = this.center_default;
                     }
                 } catch (error) {
                     console.error(error);
                     
                     // Coordenadas para Santiago de Chile - Chile
-                    this.center = [-33.472 , -70.769];
+                    this.center = this.center_default;
                 }
             })
             .catch((error) => {
