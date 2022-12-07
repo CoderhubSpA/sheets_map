@@ -517,7 +517,9 @@ export default {
         // TO DO:
         // Colocar primera capa base encontrada
 
-        this.center = this.center_default;
+        //Alguna parte del mar del Pacifico Sur
+        this.center = [-45.7247315, -108.8552016];
+
         this.getMapConfiguration();
         // Cuando geo_json es construido, se instancia Supercluster
 
@@ -1075,8 +1077,18 @@ export default {
                     data         = _.first(all_data.data);
                     this.col_lng = data.sh_map_column_longitude;
                     this.col_lat = data.sh_map_column_latitude;
+
+                    if (data.latitud_map_center && data.longitud_map_center) {
+                        this.center = [data.latitud_map_center, data.longitud_map_center]
+                    } else {
+                        // Coordenadas para Santiago de Chile - Chile
+                        this.center = this.center_default;
+                    }
                 } catch (error) {
                     console.error(error);
+                    
+                    // Coordenadas para Santiago de Chile - Chile
+                    this.center = this.center_default;
                 }
             })
             .catch((error) => {
