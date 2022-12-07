@@ -1086,6 +1086,9 @@ export default {
                     }
                 } catch (error) {
                     console.error(error);
+                    
+                    // Coordenadas para Santiago de Chile - Chile
+                    this.center = [-33.472 , -70.769];
                 }
             })
             .catch((error) => {
