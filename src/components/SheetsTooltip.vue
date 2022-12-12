@@ -74,6 +74,7 @@ export default {
             const scrollDistance = containerScrolled.scrollTop;
 
             if(this.$refs[this.layerKey]) {
+                // SI el tooltip no aparece alineado, verificar el valor 28.
                 this.$refs[this.layerKey].style.marginTop = '-' + (scrollDistance + 28) + 'px';
             }
 
