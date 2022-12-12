@@ -90,7 +90,7 @@
                             </ul>
                         </fieldset>
                     </div>
-                    <SheetsTooltip v-if="subgroup[0].enriched_data" :data="subgroup[0].enriched_data" />
+                    <SheetsTooltip v-if="subgroup[0].enriched_data" :data="subgroup[0].enriched_data" :layerKey="subgroup[0].key" />
                 </div>
             </section>
         </menu>

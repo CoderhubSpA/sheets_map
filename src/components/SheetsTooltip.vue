@@ -1,13 +1,13 @@
 <template>
-    <div :class="[setPosition ? 'sheets-tooltip-right' : 'sheets-tooltip-left', 'text-white', 'mx-1', 'sheets-tooltip']" v-if="dataEntries.length > 0">
+    <div class="sheets-tooltip mx-1" v-if="dataEntries.length > 0">
         <b-icon
             icon="info-circle"
             :id="dataEntries['id']"
-            @click="showTooltip = true"
+            @click="hiddenShowTooltip()"
             custom-class="open-tooltip"
         ></b-icon>
-        <div v-if="showTooltip">
-            <div :class="[setPosition ? 'sheets-tooltip-right-text' : 'sheets-tooltip-left-text', 'text-white', 'sheets-tooltip-text']">
+        <div v-show="showTooltip">
+            <div :class="[setPosition ? 'sheets-tooltip-right-text' : 'sheets-tooltip-left-text', 'text-white', 'sheets-tooltip-text']" :ref="layerKey">
                 <div class="text-right">
                     <b-icon
                         icon="x-circle"
@@ -38,7 +38,12 @@ export default {
     props: {
         data: {
             type: Object,
-        }
+            require: true
+        },
+        layerKey: {
+            type: String,
+            require: true
+        },
     },
     data: () => {
         return {
@@ -62,6 +67,18 @@ export default {
         }
     },
     methods: {
+        hiddenShowTooltip() {
+            this.showTooltip = !this.showTooltip;
+
+            const containerScrolled = document.getElementById('dropdown_base_layers');
+            const scrollDistance = containerScrolled.scrollTop;
+
+            if(this.$refs[this.layerKey]) {
+                // SI el tooltip no aparece alineado, verificar el valor 28.
+                this.$refs[this.layerKey].style.marginTop = '-' + (scrollDistance + 28) + 'px';
+            }
+
+        },
         isLink(value) {
             if (value && typeof value === 'string') {
                 if (value.substring(0, 4) === 'http' || value.substring(0, 5) === 'https') {
@@ -82,12 +99,10 @@ export default {
     }
     .sheets-tooltip-text {
         position: absolute;
-        top: auto;
         z-index: 9999;
         width: 400px;
         padding: calc((var(--global-radius) / 2) + 4px);
         background-color: var(--subgroup-accordion-color);
-        margin-top: -20px;
         border-radius: var(--global-radius);
         svg {
             color: var(--subgroup-accordion-text-color);
