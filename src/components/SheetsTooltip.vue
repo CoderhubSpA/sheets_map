@@ -3,7 +3,7 @@
         <b-icon
             icon="info-circle"
             :id="dataEntries['id']"
-            @click="hiddenShowTooltip($event)"
+            @click="hiddenShowTooltip()"
             custom-class="open-tooltip"
         ></b-icon>
         <div v-show="showTooltip">
