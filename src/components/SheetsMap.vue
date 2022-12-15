@@ -299,13 +299,13 @@ export default {
                     return feature.layer_id == l.id;
                 });
 
-                if (active_layer.sh_map_has_layer_image != null) {
+                if (active_layer.sh_map_has_layer_point_image != null) {
                     const icon_size    = this.style_variables['analytic-geojson-point-icon-size'];
                     const icon_anchor  = this.style_variables['analytic-geojson-point-icon-anchor'];
                     const popup_anchor = this.style_variables['analytic-geojson-point-popup-anchor'];
 
                     const icon = L.icon({
-                        iconUrl: this.base_url+active_layer.sh_map_has_layer_image,
+                        iconUrl: this.base_url+active_layer.sh_map_has_layer_point_image,
                         iconSize:     [icon_size, icon_size], // size of the icon
                         iconAnchor:   [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
                         popupAnchor:  [popup_anchor, popup_anchor] // point from which the popup should open relative to the iconAnchor
