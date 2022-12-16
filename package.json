@@ -1,10 +1,10 @@
 {
   "name": "@paupololi/sheets_map",
-  "version": "1.14.2",
+  "version": "1.14.3",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "build": "npm run build-library",
     "lint": "vue-cli-service lint",
     "build-library": "vue-cli-service build --target lib --name index ./src/main.js"
   },

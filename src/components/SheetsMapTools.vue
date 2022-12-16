@@ -187,6 +187,8 @@ export default {
                 "--button-color": custom_styles["button-color"] || "#6a6a6a22",
                 "--button-hover-color": custom_styles["button-hover-color"] || "#044617",
                 "--button-text-color": custom_styles["button-text-color"] || "#FFFFFF",
+                "--link-color": custom_styles["link-color"] || "#7EF0A6",
+                "--tooltip-text-color": custom_styles["tooltip-text-color"] || "white",
             };
         },
     },

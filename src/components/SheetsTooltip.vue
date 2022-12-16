@@ -7,8 +7,8 @@
             custom-class="open-tooltip"
         ></b-icon>
         <div v-show="showTooltip">
-            <div :class="[setPosition ? 'sheets-tooltip-right-text' : 'sheets-tooltip-left-text', 'text-white', 'sheets-tooltip-text']" :ref="layerKey">
-                <div class="text-right">
+            <div :class="[setPosition ? 'sheets-tooltip-right-text' : 'sheets-tooltip-left-text', 'sheets-tooltip-text']" :ref="layerKey">
+                <div class="icon-container">
                     <b-icon
                         icon="x-circle"
                         :id="dataEntries['id']"
@@ -16,11 +16,11 @@
                         custom-class="close-tooltip"
                     ></b-icon>
                 </div>
-                <div>
+                <div class="data-container">
                     <p v-for="data in dataEntries" :key="data[0]" class="mb-0 text-justify">
-                        <span style="text-transform: capitalize"><b>{{ data[0] }}: </b></span>
+                        <span ><b>{{ data[0] }}: </b></span>
                         <span v-if="isLink(data[1])"><a :href="data[1]" target="_blank" rel="noopener noreferrer" class="is-link">Click aquí</a></span>
-                        <span v-else>{{ data[1] }}</span>
+                        <span v-else  v-html="data[1]"></span>
                     </p>
                 </div>
             </div>
@@ -48,12 +48,13 @@ export default {
     data: () => {
         return {
             showTooltip: false,
+            interval : null
         };
     },
     computed: {
         dataEntries() {
             if(this.data) {
-                const data = Object.entries(this.data);
+                const data = Object.entries(this.data)
                 return data;
             }
 
@@ -66,18 +67,20 @@ export default {
             return parentPosition > (vw / 2);
         }
     },
+    // watch listen when showToolTip is on
+    watch: {
+        showTooltip: function (val) {
+            if (val) {
+                this.interval = setInterval(this.calculateVerticalPosition, 500);
+            } else {
+                clearInterval(this.interval);
+            }
+        }
+    },
     methods: {
         hiddenShowTooltip() {
             this.showTooltip = !this.showTooltip;
-
-            const containerScrolled = document.getElementById('dropdown_base_layers');
-            const scrollDistance = containerScrolled.scrollTop;
-
-            if(this.$refs[this.layerKey]) {
-                // SI el tooltip no aparece alineado, verificar el valor 28.
-                this.$refs[this.layerKey].style.marginTop = '-' + (scrollDistance + 28) + 'px';
-            }
-
+            this.calculateVerticalPosition();
         },
         isLink(value) {
             if (value && typeof value === 'string') {
@@ -87,6 +90,16 @@ export default {
             }
 
             return false;
+        },
+        calculateVerticalPosition () {
+
+            const containerScrolled = document.getElementById('dropdown_base_layers');
+            const scrollDistance = containerScrolled.scrollTop;
+
+            if(this.$refs[this.layerKey]) {
+                // SI el tooltip no aparece alineado, verificar el valor 28.
+                this.$refs[this.layerKey].style.marginTop = '-' + (scrollDistance + 28) + 'px';
+            }
         }
     },
 };
@@ -96,6 +109,7 @@ export default {
 .sheets-tooltip {
     svg {
         color: var(--option-active-color);
+        cursor: pointer;
     }
     .sheets-tooltip-text {
         position: absolute;
@@ -104,10 +118,27 @@ export default {
         padding: calc((var(--global-radius) / 2) + 4px);
         background-color: var(--subgroup-accordion-color);
         border-radius: var(--global-radius);
+        color:var(--tooltip-text-color);
+        transition: margin-top .4s ease;
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        box-shadow: 0 0.2rem 1rem #00000055;
         svg {
             color: var(--subgroup-accordion-text-color);
+            background-color: var(--subgroup-accordion-color);
+            cursor: pointer;
         }
-       &::after {
+        .icon-container{
+            height: 0;
+            margin-left: calc( -1 * var(--global-radius) );
+        }
+        .data-container{
+          p:first-child{
+              margin-right: calc( var(--global-radius) + 4px);
+          }
+        }
+        &::after {
             content: " ";
             position: absolute;
             top: calc(var(--global-radius) + 7px);
@@ -130,10 +161,9 @@ export default {
                 border-color: transparent var(--subgroup-accordion-color) transparent transparent;
             }
         }
-        
 
-        a.is-link {
-            color: var(--option-active-color);
+        /deep/ a {
+            color: var(--link-color);
         }
 
         @media (max-width: 600px) {
