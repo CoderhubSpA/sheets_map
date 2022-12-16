@@ -164,6 +164,7 @@ export default {
 
         /deep/ a {
             color: var(--link-color);
+            text-decoration-line: underline;
         }
 
         @media (max-width: 600px) {
