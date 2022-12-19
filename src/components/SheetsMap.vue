@@ -78,7 +78,7 @@
 
                 <div v-if="operative_geojson_list.length > 0">
                     <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
-                        <l-geo-json :geojson="operative_geojson.geojson" :options ="geojson_options"></l-geo-json>
+                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style" :options ="geojson_options"></l-geo-json>
                     </div>
                     
                 </div>
@@ -463,6 +463,25 @@ export default {
                     opacity     : opacity,
                     fillOpacity : opacity,
                     fillColor   : color,
+                };
+
+
+                return style;
+            };
+
+        },
+        operative_geojson_style() {
+            return (feature) => {
+
+                const layer = this.active_layers.find(l => {
+                    return feature.layer_id == l.id;
+                });
+
+                const color = (layer.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
+
+                const style = {
+                    color       : color,
+                    fillColor   : color
                 };
 
 

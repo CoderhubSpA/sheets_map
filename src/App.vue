@@ -67,7 +67,7 @@ export default {
             // IMPORTANTE: ELIMINAR EL "/" AL FINAL DE LA RUTA
             // MAL  -> http://sheetsmock.local/ 
             // BIEN -> http://sheetsmock.local
-            base_url: "http://127.0.0.1:8000",
+            base_url: "http://sheetsmock.local",
             //id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
             id: "99863740-4c01-11ed-b21a-f23c9240db0f",
             // - Tipo de entidad
