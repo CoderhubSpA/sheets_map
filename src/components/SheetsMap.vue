@@ -543,6 +543,9 @@ export default {
         // Cuando geo_json es construido, se instancia Supercluster
 
     },
+    mounted(){
+       this.poweredCoderhub();
+    },
     methods:{
         zoomToLocation(latLng){
             this.searchMarkerLatLng = latLng;
@@ -1454,6 +1457,47 @@ export default {
             });
 
             return info;
+        },
+        poweredCoderhub() {
+             // Getting Open Street Map attribution container
+            const poweredByOpenStreetMap = document.querySelector('.leaflet-bottom.leaflet-right');
+            poweredByOpenStreetMap.style.display = "flex";
+            // Creating Coderhub powered by container
+            const poweredByCoderhubDiv = document.createElement('div');
+            poweredByCoderhubDiv.classList.add("leaflet-control-attribution");
+            poweredByCoderhubDiv.classList.add("leaflet-control");
+            // Creating Coderhub logo
+            const poweredByCoderhubImg = document.createElement('img');
+            poweredByCoderhubImg.src = `img/coderhub-logo.svg`;
+            poweredByCoderhubImg.alt = "coderhub-logo.svg"
+            poweredByCoderhubImg.style.marginRight = "2px"
+            poweredByCoderhubImg.width = "20"
+            poweredByCoderhubImg.height = "16"
+            // Creating additional text
+            const poweredByCoderhubSpan = document.createElement('span');
+            poweredByCoderhubSpan.innerHTML = "Powered by "
+            // Creating Coderhub poweredB by link
+            const poweredByCoderhubLink = document.createElement('a')
+            const poweredByCoderhubLinkTextNode = document.createTextNode("Coderhub");
+            poweredByCoderhubLink.appendChild(poweredByCoderhubLinkTextNode);
+            poweredByCoderhubLink.title = "Coderhub";
+            poweredByCoderhubLink.href = "https://www.coderhub.cl/";
+            poweredByCoderhubLink.target = '_blank';
+            poweredByCoderhubLink.style.paddingRight = "5px";
+            // Creating separator
+            const poweredByCoderhubSpanSeparator = document.createElement('span');
+            poweredByCoderhubSpanSeparator.ariaHidden = "true";
+            poweredByCoderhubSpanSeparator.innerHTML = "|";
+            // Adding Coderhub logo
+            poweredByCoderhubDiv.appendChild(poweredByCoderhubImg);
+            //Add additional text
+            poweredByCoderhubDiv.appendChild(poweredByCoderhubSpan);
+            // Adding Coderhub link
+            poweredByCoderhubDiv.appendChild(poweredByCoderhubLink);
+            // Adding separator
+            poweredByCoderhubDiv.appendChild(poweredByCoderhubSpanSeparator);
+            // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
+            poweredByOpenStreetMap.insertBefore(poweredByCoderhubDiv, poweredByOpenStreetMap.firstChild);
         }
     }
 }
