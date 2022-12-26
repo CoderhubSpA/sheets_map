@@ -80,11 +80,11 @@ Ejemplo:
 }
 ```
 
-3.1 - Mostrar nombres definidos de todas las metricas
+3.1 - Mostrar nombres definidos de todas las metricas:
 Se usa "metric_data" seguido de un punto "." y un asterisco "*"
 
 `{
-    "metric_data.*":"Metricas"
+    "metric_data.*":"Metrica"
 }`
 
 Ejemplo:
@@ -97,12 +97,10 @@ Ejemplo:
 }
 ```
 
-3.2 - Mostrar los nombres para cada metrica en concreto
-Se usa "metric_data" seguido de un punto "." y un la nombre de columna de la métrica "migraciones". *Si se agregan varias, solo se mostraría la métrica activa* y las otras no se ven
+3.2 - Mostrar los nombres para cada metrica en concreto:
+Se usa "metric_data" seguido de un punto "." y el nombre de columna de la métrica (Ejem. "migraciones").
+*Si se agregan varias, solo se mostraría la métrica activa* y las otras no se verían
 
-`{
-    "metric_data.*":"Metricas"
-}`
 
 Ejemplo:
 ```JSON
@@ -120,10 +118,10 @@ Notas:
 
 1. *Respecto a `metric_data`* :
 Siempre se debe usar `metric_data.` para mostrar el valor de una métrica, ya sea con asterisco o definiendo el nombre de columna.
-2. *Uso de `"."`* : Si una propiedad de una métrica es un objeto, se puede mostrar valores de ese objeto utilizando el recurso de puntos. Ejemplo:
+1. *Uso de `"."`* : Si una propiedad de una métrica o una metadata es un objeto, se puede mostrar valores de ese objeto utilizando el recurso de puntos. Ejemplo:
 
     Si mi propiedad del objeto GEOJSON se ve así:
-    
+
     ```JSON
     {
         "direccion":{
@@ -134,7 +132,7 @@ Siempre se debe usar `metric_data.` para mostrar el valor de una métrica, ya se
     ```
 
     Puedo configurar mi mapa de claves de la siguiente manera para obtener la calle:
-        
+
     ```JSON
     {
         "direccion.calle": "Calle"
