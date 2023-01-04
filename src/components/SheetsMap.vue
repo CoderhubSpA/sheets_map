@@ -1554,4 +1554,14 @@ export default {
         border: none;
         font-size: 0.7rem;
     }
+
+    /* This line delete the UKR flag in the leaflet powered banner */
+    .my-map >>> .leaflet-control-attribution svg {
+        display: none !important;
+    }
+
+    /* This line deletes additional padding-right of coderhub powered container after delete UKR flag */
+    .my-map >>> .leaflet-right > .leaflet-control:first-child {
+        padding-right: 0px;
+    }
 </style>
