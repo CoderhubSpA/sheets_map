@@ -76,14 +76,18 @@ export default {
             // SAIT:
             // entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
             // LITIO SALARES:
-            entity_type_id: "b7b021a0-aabd-4843-80dd-b88f1b5c3789",
+            // entity_type_id: "b7b021a0-aabd-4843-80dd-b88f1b5c3789",
+            // PROVIDENCIA:
+             entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
             // - Registro de configuracion
             // GEOPYME:
             // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
             // SAIT:
             // config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
             // LITIO SALARES:
-            config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // PROVIDENCIA:
+             config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
             // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
             // Endpoint de configuracion

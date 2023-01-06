@@ -9,6 +9,7 @@
             <l-map 
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
+                @click="addMarker"
                 :zoom.sync="zoom"
                 :center.sync="center"
                 ref="my_map"
@@ -27,6 +28,9 @@
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="draw()" title="Traza libremente sobre el mapa">
+                        <b-icon icon="pencil"></b-icon>
                     </b-button>
                 </section>
 
@@ -82,6 +86,14 @@
                     </div>
                     
                 </div>
+
+                <!-- Polygon draft && polygon_draft['features'][0]['geometry']['coordinates'][0].length > 1-->
+
+                <div v-if="polygon_draft ">
+                    <l-geo-json :geojson="polygon_draft"></l-geo-json>
+                </div>
+                <!-- Ppolygon draft -->
+
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
                     v-for="layer in (operative_geoserver_wms || [])"
@@ -185,7 +197,12 @@ export default {
             shouldShowSearchMarker    : false,
             searchMarkerLatLng        : null,
             // Usadas para las capas analiticas tipo analytic_geojson
-            should_skip_bounds_filter : false // Usada para no filtrar por los limites del mapa en analytic_geojson
+            should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
+            //Usadas para dibujar poligonos
+            drawing                   : false,
+            polygon_arr               : false, //Sin uso aun
+            polygon_draft             : undefined,
+            polygon_draft_length      : 0
         };
     },
     computed:{
@@ -507,6 +524,24 @@ export default {
             let active_layers_ids = this.active_layers.map(l=> l.id);
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
+        },
+        //Estructura base para poligonos y cuadrados
+        polygon_structure(){
+            let polygon_structure = {
+              "type": "FeatureCollection",
+              "features": [
+                {
+                  "type": "Feature",
+                  "properties": {},
+                  "geometry": {
+                    "coordinates": [],
+                    "type": "Polygon"
+                  }
+                }
+              ]
+            };
+
+            return polygon_structure;
         }
     },
     watch:{
@@ -1373,6 +1408,64 @@ export default {
                 return false;
             }
             return true;
+        },
+        draw(){
+            this.drawing = (this.drawing == false);
+            console.log(this.drawing);
+
+        },
+        addMarker(event){
+            if (this.drawing) {
+                // Tomamos las ultimas coordenadas seleccionadas
+                let lat = event.latlng.lat;
+                let lng = event.latlng.lng;
+
+                let coordinates = [lng, lat];
+                let polygon_structure;
+
+                if (!this.polygon_draft) {
+                    // Si no existe ningun borrador del poligono tomamos su estructura base y generamos uno
+                    polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
+                    polygon_structure["features"][0]["geometry"]["type"]        = "Point";
+                    polygon_structure["features"][0]["geometry"]["coordinates"] = coordinates;
+                    this.polygon_draft = polygon_structure;
+                    this.polygon_draft_length = 1;
+
+                }else{
+                    // Si existe calculamos su largo para saber si tiene mas de 3 puntos dentro de si
+                    
+                    let length = this.polygon_draft_length;
+                    //Si solo hemos agregado uno
+                    if (length < 2) {
+                        let first_coordinate = this.polygon_draft["features"][0]["geometry"]["coordinates"];
+                        this.polygon_draft["features"][0]["geometry"]["type"]        = "LineString";
+                        this.polygon_draft["features"][0]["geometry"]["coordinates"] = [first_coordinate, coordinates];
+
+                    }
+                    // Si tiene dos puntas cambiamos su estado por ultima vez a poligono y agrandamos una vez mas el array de las coordenadas
+                    else if (length == 2) {
+
+                        let all_coordinates  = JSON.parse(JSON.stringify(this.polygon_draft["features"][0]["geometry"]["coordinates"]));
+                        all_coordinates.push(coordinates);
+                        let first_coordinate = all_coordinates[0];
+                        
+                        this.polygon_draft["features"][0]["geometry"]["coordinates"]              = [all_coordinates];
+                        this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length+1] = first_coordinate;
+                        this.polygon_draft["features"][0]["geometry"]["type"]                     = "Polygon";
+
+                    }else if (length > 2) {
+                        //Para los siguientes eliminamos la ultima coordenada y la volvemos a agregar despues de haber agregado la coordenada actual
+                        let first_coordinate = this.polygon_draft["features"][0]["geometry"]["coordinates"][0].pop();
+
+                        this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length]   = coordinates;
+                        this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length+1] = first_coordinate;
+
+                    }
+                    this.polygon_draft_length ++;
+                }
+
+            }
+
         },
         //----------------------------------------------------------------------------------------------
         // Helpers
