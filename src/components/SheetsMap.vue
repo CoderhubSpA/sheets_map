@@ -9,7 +9,7 @@
             <l-map 
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
-                @click="addMarker"
+                @click="addPolygon"
                 :zoom.sync="zoom"
                 :center.sync="center"
                 ref="my_map"
@@ -31,6 +31,9 @@
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="draw()" title="Traza libremente sobre el mapa">
                         <b-icon icon="pencil"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="deletePolygon()" title="Elimina los trazos libres en el mapa">
+                        <b-icon icon="x-octagon"></b-icon>
                     </b-button>
                 </section>
 
@@ -87,12 +90,21 @@
                     
                 </div>
 
-                <!-- Polygon draft && polygon_draft['features'][0]['geometry']['coordinates'][0].length > 1-->
+                <!-- Polygon draft-->
 
                 <div v-if="polygon_draft ">
                     <l-geo-json :geojson="polygon_draft"></l-geo-json>
                 </div>
                 <!-- Ppolygon draft -->
+
+                <!-- Polygon drawing-->
+                <div v-if="Object.keys(polygon_arr).length > 0">
+                    <div v-for="(polygon, index) in polygon_arr" :key="index">
+                        <l-geo-json :geojson="polygon" ></l-geo-json>
+                    </div>
+                    
+                </div>
+                <!-- Polygon drawing -->
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -200,7 +212,8 @@ export default {
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             //Usadas para dibujar poligonos
             drawing                   : false,
-            polygon_arr               : false, //Sin uso aun
+            polygon_arr               : {}, 
+            polygon_arr_id_cont       : 0, 
             polygon_draft             : undefined,
             polygon_draft_length      : 0
         };
@@ -532,7 +545,7 @@ export default {
               "features": [
                 {
                   "type": "Feature",
-                  "properties": {},
+                  "properties": {"id":""},
                   "geometry": {
                     "coordinates": [],
                     "type": "Polygon"
@@ -1186,6 +1199,34 @@ export default {
             }
             this.should_skip_bounds_filter = false;
         },
+        polygonBounds(){
+
+            let search = [];
+
+            for (const [key, geojson] of Object.entries(this.polygon_arr)) {
+              console.log(key);
+                search.push(geojson.features[0].geometry.coordinates[0]);
+            }
+
+            let all_col  = this.info.columns;
+
+            let bounds_filters = all_col.filter(columns=>
+                columns.format == 'POLYGON'
+            ).map((columns,key)=>{
+
+            let bounds_filter = {
+                    "column": columns,
+                    "id": "external-filter-"+columns.id,
+                    "order": key+1,
+                    "search": search,
+                    "type": "POLYGON"
+                };
+                return bounds_filter;
+            });
+
+            this.bounds_filters = bounds_filters;
+        },
+
 
         //#Convierte un indice h3 en lng lat
         h3ToLngLat(h3_indexes,key_dimension,key_count){
@@ -1411,10 +1452,27 @@ export default {
         },
         draw(){
             this.drawing = (this.drawing == false);
-            console.log(this.drawing);
+            if (!this.drawing && this.polygon_draft) {
+                if (this.polygon_draft_length > 2) {
+                    let polygon_id = "ID"+this.polygon_arr_id_cont;
+
+                    this.polygon_draft["features"][0]["properties"]["id"] = polygon_id;
+
+                    this.polygon_arr[polygon_id] = this.polygon_draft;
+
+                    this.polygon_arr_id_cont ++;
+
+                    this.polygon_draft_length = 0;
+                    this.polygon_draft        = undefined;
+                    this.polygonBounds();
+                }else{
+                    console.log("Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas");
+
+                }
+            }
 
         },
-        addMarker(event){
+        addPolygon(event){
             if (this.drawing) {
                 // Tomamos las ultimas coordenadas seleccionadas
                 let lat = event.latlng.lat;
@@ -1466,6 +1524,10 @@ export default {
 
             }
 
+        },
+        deletePolygon(){
+            this.polygon_arr = {};
+            this.polygon_arr_id_cont = 0;
         },
         //----------------------------------------------------------------------------------------------
         // Helpers
