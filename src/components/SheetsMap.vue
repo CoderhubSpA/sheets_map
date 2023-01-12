@@ -9,7 +9,7 @@
             <l-map 
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
-                @click="addPolygon"
+                @click="onMapClick"
                 :zoom.sync="zoom"
                 :center.sync="center"
                 ref="my_map"
@@ -29,10 +29,10 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="draw()" title="Traza libremente sobre el mapa">
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
                         <b-icon icon="pencil"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="deletePolygon()" title="Elimina los trazos libres en el mapa">
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
                         <b-icon icon="x-octagon"></b-icon>
                     </b-button>
                 </section>
@@ -92,19 +92,11 @@
 
                 <!-- Polygon draft-->
 
-                <div v-if="polygon_draft ">
-                    <l-geo-json :geojson="polygon_draft"></l-geo-json>
-                </div>
-                <!-- Ppolygon draft -->
-
-                <!-- Polygon drawing-->
-                <div v-if="Object.keys(polygon_arr).length > 0">
-                    <div v-for="(polygon, index) in polygon_arr" :key="index">
-                        <l-geo-json :geojson="polygon" ></l-geo-json>
-                    </div>
-                    
-                </div>
-                <!-- Polygon drawing -->
+                <polygon-drafter
+                  :info="info"
+                  ref="polygon_drafter"
+                  v-on:apply-filter="polygonFilter"
+                ></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
@@ -129,6 +121,7 @@ import _ from 'lodash';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
+import PolygonDrafter from './PolygonDrafter.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -156,6 +149,7 @@ export default {
         BIcon,
         SearchBarProxy,
         SuperclusterLayer,
+        PolygonDrafter
     },
     props: {
         // Propiedades de componentes
@@ -210,12 +204,6 @@ export default {
             searchMarkerLatLng        : null,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
-            //Usadas para dibujar poligonos
-            drawing                   : false,
-            polygon_arr               : {}, 
-            polygon_arr_id_cont       : 0, 
-            polygon_draft             : undefined,
-            polygon_draft_length      : 0
         };
     },
     computed:{
@@ -537,24 +525,6 @@ export default {
             let active_layers_ids = this.active_layers.map(l=> l.id);
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
-        },
-        //Estructura base para poligonos y cuadrados
-        polygon_structure(){
-            let polygon_structure = {
-              "type": "FeatureCollection",
-              "features": [
-                {
-                  "type": "Feature",
-                  "properties": {"id":""},
-                  "geometry": {
-                    "coordinates": [],
-                    "type": "Polygon"
-                  }
-                }
-              ]
-            };
-
-            return polygon_structure;
         }
     },
     watch:{
@@ -592,7 +562,7 @@ export default {
 
     },
     mounted(){
-       this.poweredCoderhub();
+        this.poweredCoderhub();
     },
     methods:{
         zoomToLocation(latLng){
@@ -1172,8 +1142,12 @@ export default {
         onMapMoveEnd(){
             this.$refs.analytic_cluster_layer.getClusterMarkers();
         },
+        onMapClick(event){
+          this.$refs.polygon_drafter.addPolygon(event);
+        },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
+                this.$refs.polygon_drafter.deletePolygon();
                 //let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
@@ -1198,33 +1172,6 @@ export default {
                 this.bounds_filters = bounds_filters;
             }
             this.should_skip_bounds_filter = false;
-        },
-        polygonBounds(){
-
-            let search = [];
-
-            for (const [key, geojson] of Object.entries(this.polygon_arr)) {
-              console.log(key);
-                search.push(geojson.features[0].geometry.coordinates[0]);
-            }
-
-            let all_col  = this.info.columns;
-
-            let bounds_filters = all_col.filter(columns=>
-                columns.format == 'POLYGON'
-            ).map((columns,key)=>{
-
-            let bounds_filter = {
-                    "column": columns,
-                    "id": "external-filter-"+columns.id,
-                    "order": key+1,
-                    "search": search,
-                    "type": "POLYGON"
-                };
-                return bounds_filter;
-            });
-
-            this.bounds_filters = bounds_filters;
         },
 
 
@@ -1336,10 +1283,6 @@ export default {
             return obj;
         },
 
-        isInt(value) {
-            return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
-        },
-
         //#Dado un indice h3 (en hexadecimal o numérico), obtiene el pentagono que lo representa en formato feature
         getBoundary(h3_index, properties = {}){
             if (this.isInt(h3_index)){ //#si el indice es numérico, convertir a hexadecimal
@@ -1400,10 +1343,7 @@ export default {
             }
             return features;
         },
-        //----------------------------------------------------------------------------------------------
-        // SCRIPT DE MAURICIO
-        //----------------------------------------------------------------------------------------------
-        //
+        // END SCRIPT DE MAURICIO 
         //----------------------------------------------------------------------------------------------
         // Helpers
         //----------------------------------------------------------------------------------------------
@@ -1450,88 +1390,9 @@ export default {
             }
             return true;
         },
-        draw(){
-            this.drawing = (this.drawing == false);
-            if (!this.drawing && this.polygon_draft) {
-                if (this.polygon_draft_length > 2) {
-                    let polygon_id = "ID"+this.polygon_arr_id_cont;
-
-                    this.polygon_draft["features"][0]["properties"]["id"] = polygon_id;
-
-                    this.polygon_arr[polygon_id] = this.polygon_draft;
-
-                    this.polygon_arr_id_cont ++;
-
-                    this.polygon_draft_length = 0;
-                    this.polygon_draft        = undefined;
-                    this.polygonBounds();
-                }else{
-                    console.log("Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas");
-
-                }
-            }
-
+        isInt(value) {
+            return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
         },
-        addPolygon(event){
-            if (this.drawing) {
-                // Tomamos las ultimas coordenadas seleccionadas
-                let lat = event.latlng.lat;
-                let lng = event.latlng.lng;
-
-                let coordinates = [lng, lat];
-                let polygon_structure;
-
-                if (!this.polygon_draft) {
-                    // Si no existe ningun borrador del poligono tomamos su estructura base y generamos uno
-                    polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
-                    polygon_structure["features"][0]["geometry"]["type"]        = "Point";
-                    polygon_structure["features"][0]["geometry"]["coordinates"] = coordinates;
-                    this.polygon_draft = polygon_structure;
-                    this.polygon_draft_length = 1;
-
-                }else{
-                    // Si existe calculamos su largo para saber si tiene mas de 3 puntos dentro de si
-                    
-                    let length = this.polygon_draft_length;
-                    //Si solo hemos agregado uno
-                    if (length < 2) {
-                        let first_coordinate = this.polygon_draft["features"][0]["geometry"]["coordinates"];
-                        this.polygon_draft["features"][0]["geometry"]["type"]        = "LineString";
-                        this.polygon_draft["features"][0]["geometry"]["coordinates"] = [first_coordinate, coordinates];
-
-                    }
-                    // Si tiene dos puntas cambiamos su estado por ultima vez a poligono y agrandamos una vez mas el array de las coordenadas
-                    else if (length == 2) {
-
-                        let all_coordinates  = JSON.parse(JSON.stringify(this.polygon_draft["features"][0]["geometry"]["coordinates"]));
-                        all_coordinates.push(coordinates);
-                        let first_coordinate = all_coordinates[0];
-                        
-                        this.polygon_draft["features"][0]["geometry"]["coordinates"]              = [all_coordinates];
-                        this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length+1] = first_coordinate;
-                        this.polygon_draft["features"][0]["geometry"]["type"]                     = "Polygon";
-
-                    }else if (length > 2) {
-                        //Para los siguientes eliminamos la ultima coordenada y la volvemos a agregar despues de haber agregado la coordenada actual
-                        let first_coordinate = this.polygon_draft["features"][0]["geometry"]["coordinates"][0].pop();
-
-                        this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length]   = coordinates;
-                        this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length+1] = first_coordinate;
-
-                    }
-                    this.polygon_draft_length ++;
-                }
-
-            }
-
-        },
-        deletePolygon(){
-            this.polygon_arr = {};
-            this.polygon_arr_id_cont = 0;
-        },
-        //----------------------------------------------------------------------------------------------
-        // Helpers
-        //----------------------------------------------------------------------------------------------,
         // Enlistar capas geojson
         organizeLayers(layer, layer_list) {
             // Analytic_geojson y operative_geoserver_wfs_point son un tipo de capa que 
@@ -1612,6 +1473,24 @@ export default {
             });
 
             return info;
+        },
+        // END HELPERS
+        polygonAction(action) {
+            switch (action) {
+                case 'draw': {
+                    this.$refs.polygon_drafter.draw();
+                    break;
+                }
+                case 'delete': {
+                    this.$refs.polygon_drafter.deletePolygon();
+                    break;
+
+                }
+            }
+
+        },
+        polygonFilter(bounds_filters) {
+          this.bounds_filters = bounds_filters;  
         },
         poweredCoderhub() {
              // Getting Open Street Map attribution container
