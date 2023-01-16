@@ -2,29 +2,47 @@
     <div>
         <!-- Polygon draft -->
         <div v-if="polygon_draft ">
-            <l-geo-json :geojson="polygon_draft"></l-geo-json>
+            <l-geo-json :geojson="polygon_draft" :options-style="draft_style"></l-geo-json>
         </div>
         <!-- Polygon draft -->
         
         <!-- Polygon drawing-->
         <div v-if="Object.keys(polygon_arr).length > 0">
             <div v-for="(polygon, index) in polygon_arr" :key="index">
-                <l-geo-json :geojson="polygon" ></l-geo-json>
+                <l-geo-json :geojson="polygon"></l-geo-json>
             </div>
         </div>
         <!-- Polygon drawing -->
+
+        <!-- Circle drawing-->
+        <l-circle-marker
+            v-if="draft_circle_coordinates.length > 0"
+            :lat-lng="draft_circle_coordinates"
+            :radius="style_variables['polygon_draft_circle_radius']"
+            :color="style_variables['polygon_draft_fill_color']"
+            :fillColor="style_variables['polygon_draft_fill_color']"
+            :fillOpacity="1"
+            v-on:click="draw()"
+        />
+        <!-- Circle drawing-->
+
     </div>
 </template>
 <script>
-import {LGeoJson} from 'vue2-leaflet';
+import {
+    LGeoJson,
+    LCircleMarker
+} from 'vue2-leaflet';
 
 export default {
     name: "PolygonDrafter",
     props: {
-        info           : Object
+        info            : Object,
+        style_variables : Object
     },
     components: {
-        LGeoJson
+        LGeoJson,
+        LCircleMarker
     },
     data () {
         return {
@@ -33,7 +51,8 @@ export default {
             polygon_arr_id_cont  : 0, 
             polygon_draft        : undefined,
             polygon_draft_length : 0,
-            bounds_filters       : []
+            bounds_filters       : [],
+            draft_circle_coordinates : []
         };
     }, 
     computed: {
@@ -53,6 +72,20 @@ export default {
                 ]
             };
             return polygon_structure;
+        },
+        draft_style() {
+
+                const style = {
+                    fillColor   : this.style_variables['polygon_draft_fill_color'],
+                    weight      : this.style_variables['polygon_draft_weight'],
+                    opacity     : this.style_variables['polygon_draft_opacity'],
+                    color       : this.style_variables['polygon_draft_color'],
+                    dashArray   : this.style_variables['polygon_draft_dash_array'],
+                    fillOpacity : this.style_variables['polygon_draft_fill_opacity']
+                };
+
+
+                return style;
         }
     },
     watch : {
@@ -69,7 +102,6 @@ export default {
             let search = [];
 
             for (const [key, geojson] of Object.entries(this.polygon_arr)) {
-              console.log(key);
                 search.push(geojson.features[0].geometry.coordinates[0]);
             }
 
@@ -103,10 +135,10 @@ export default {
 
                     this.polygon_arr_id_cont ++;
 
-                    this.polygon_draft_length = 0;
-                    this.polygon_draft        = undefined;
+                    this.resetDraft();
                 }else{
                     console.log("Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas");
+                    this.resetDraft();
                 }
             }
             this.polygonBounds();
@@ -128,6 +160,7 @@ export default {
                     polygon_structure["features"][0]["geometry"]["coordinates"] = coordinates;
                     this.polygon_draft = polygon_structure;
                     this.polygon_draft_length = 1;
+                    this.draft_circle_coordinates = [lat, lng];
 
                 }else{
                     // Si existe calculamos su largo para saber si tiene mas de 3 puntos dentro de si
@@ -166,11 +199,23 @@ export default {
 
         },
         deletePolygon(){
-            this.polygon_arr          = {};
-            this.polygon_arr_id_cont  = 0;
-            this.polygon_draft        = undefined;
-            this.polygon_draft_length = 0;
-            this.bounds_filters       = [];
+            let polygon_ids  = Object.keys(this.polygon_arr);
+            let last_polygon = polygon_ids.pop();
+
+            delete this.polygon_arr[last_polygon];
+
+            if (this.polygon_arr == {}) {
+                this.bounds_filters = [];
+            }else{
+                this.polygonBounds()
+            }
+
+            this.resetDraft();
+        },
+        resetDraft(){
+            this.polygon_draft            = undefined;
+            this.polygon_draft_length     = 0;
+            this.draft_circle_coordinates = [];
         }
     }
 }

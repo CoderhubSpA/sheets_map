@@ -30,7 +30,7 @@
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
-                        <b-icon icon="pencil"></b-icon>
+                        <b-icon icon="bounding-box"></b-icon>
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
                         <b-icon icon="x-octagon"></b-icon>
@@ -94,6 +94,7 @@
 
                 <polygon-drafter
                   :info="info"
+                  :style_variables="style_variables"
                   ref="polygon_drafter"
                   v-on:apply-filter="polygonFilter"
                 ></polygon-drafter>
@@ -295,6 +296,14 @@ export default {
                 "analytic-geojson-point-icon-size"    : custom_styles["analytic-geojson-point-icon-size"]    || 38,
                 "analytic-geojson-point-icon-anchor"  : custom_styles["analytic-geojson-point-icon-anchor"]  || 25,
                 "analytic-geojson-point-popup-anchor" : custom_styles["analytic-geojson-point-popup-anchor"] || 0,
+                // Polygon Draft Style
+                "polygon_draft_fill_color"    : custom_styles["polygon_draft_fill_color"]    || '#FD8D3C',
+                "polygon_draft_weight"        : custom_styles["polygon_draft_weight"]        || 1,
+                "polygon_draft_opacity"       : custom_styles["polygon_draft_opacity"]       || 1,
+                "polygon_draft_color"         : custom_styles["polygon_draft_color"]         || '#FD8D3C',
+                "polygon_draft_dash_array"    : custom_styles["polygon_draft_dash_array"]    || '3',
+                "polygon_draft_fill_opacity"  : custom_styles["polygon_draft_fill_opacity"]  || 0.3,
+                "polygon_draft_circle_radius" : custom_styles["polygon_draft_circle_radius"] || 3,
                 
             };
 
