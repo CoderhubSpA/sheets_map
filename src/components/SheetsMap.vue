@@ -95,6 +95,8 @@
                 <polygon-drafter
                   :info="info"
                   :style_variables="style_variables"
+                  :analytic_geojson_list="analytic_geojson_list"
+                  :operative_geojson_list="operative_geojson_list"
                   ref="polygon_drafter"
                   v-on:apply-filter="polygonFilter"
                 ></polygon-drafter>

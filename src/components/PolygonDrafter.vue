@@ -26,6 +26,23 @@
         />
         <!-- Circle drawing-->
 
+        <div v-if="analytic_geojson_list.length > 0 && drawing">
+            <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
+                <l-geo-json :geojson="analytic_geojson.geojson" :options-style="active_layer_draft_style"></l-geo-json>
+            </div>
+            
+        </div>
+        <!-- End Analytic layers -->
+
+        <!-- Operative layers -->
+
+        <div v-if="operative_geojson_list.length > 0 && drawing">
+            <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
+                <l-geo-json :geojson="operative_geojson.geojson" :options-style="active_layer_draft_style"></l-geo-json>
+            </div>
+            
+        </div>
+
     </div>
 </template>
 <script>
@@ -37,8 +54,10 @@ import {
 export default {
     name: "PolygonDrafter",
     props: {
-        info            : Object,
-        style_variables : Object
+        info                   : Object,
+        style_variables        : Object,
+        analytic_geojson_list  : Array,
+        operative_geojson_list : Array
     },
     components: {
         LGeoJson,
@@ -86,6 +105,16 @@ export default {
 
 
                 return style;
+        },
+        active_layer_draft_style() {
+
+                const style = {
+                    opacity     : 0,
+                    fillOpacity : 0
+                };
+
+
+                return style;
         }
     },
     watch : {
@@ -102,6 +131,7 @@ export default {
             let search = [];
 
             for (const [key, geojson] of Object.entries(this.polygon_arr)) {
+                console.log(key);
                 search.push(geojson.features[0].geometry.coordinates[0]);
             }
 
