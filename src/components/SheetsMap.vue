@@ -3,7 +3,7 @@
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div ref="map_container">
+        <div ref="map_container" class="my-map-container" :class="{'drawing': $refs.polygon_drafter?.drawing}">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
@@ -14,7 +14,7 @@
                 :center.sync="center"
                 ref="my_map"
                 class="my-map"
-                :class="{ 'hide-cluster-labels': should_hide_cluster_labels }"
+                :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
                 :options="{ zoomControl: false, trackResize: false }">
 
                 <section class="custom-controls">
@@ -175,6 +175,7 @@ export default {
     },
     data () {
         return {
+            mounted: false,
             url: '',
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
@@ -536,6 +537,11 @@ export default {
             let active_layers_ids = this.active_layers.map(l=> l.id);
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
+        },
+        drawing() {
+            if(!this.mounted) return;
+            if(!this.$refs.polygon_drafter ) return;
+            return this.$refs.polygon_drafter?.drawing;
         }
     },
     watch:{
@@ -573,6 +579,7 @@ export default {
 
     },
     mounted(){
+        this.mounted = true;
         this.poweredCoderhub();
     },
     methods:{
@@ -1549,6 +1556,10 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+    .my-map-container.drawing .my-map,
+    .my-map-container.drawing >>> .leaflet-interactive:not(.polygon_draft_circle_marker){
+      cursor: crosshair !important;
+    }
     .my-map {
         min-height: 60vh;
     }
