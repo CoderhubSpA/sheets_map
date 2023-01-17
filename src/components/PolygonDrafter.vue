@@ -118,14 +118,6 @@ export default {
                 return style;
         }
     },
-    watch : {
-        bounds_filters:{
-          handler() {
-              this.$emit('apply-filter', this.bounds_filters);
-          },
-          deep: true
-        }
-    },
     methods:{
         polygonBounds(){
 
@@ -153,6 +145,9 @@ export default {
             });
 
             this.bounds_filters = bounds_filters;
+
+            this.$emit('apply-filter', this.bounds_filters);
+
         },
         draw(){
             this.drawing = (this.drawing == false);
