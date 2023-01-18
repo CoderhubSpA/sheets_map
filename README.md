@@ -14,7 +14,7 @@ npm run serve
 
 ### Compiles and minifies for production
 ```
-npm run build
+npm run build:lib
 ```
 
 ### Lints and fixes files
@@ -25,25 +25,13 @@ npm run lint
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
 
-### How to create libraries
-
-```
-npm init
-```
-
-add to package.json
-
-```
-  "scripts": {
-      /// ...
-      "build-library": "vue-cli-service build --target lib --name [YOUR_COMPONENT_NAME] ./src/[YOUR_COMPONENT].js",
-   }
-```
+\
+&nbsp;
 
 ## How to publish
 ---
 
-1. Upgrade `"version"` in package.json.
+1. Upgrade `"version"` in `package.json`.
 
 2. Compile:
 ```
@@ -55,11 +43,13 @@ npm run build:lib
 npm publish
 ```
 
-4. Add changes, commit and push.
+4. Update repo: `stage` changes, `commit` and `push`.
 
-
-## Casos soportados por el "Mapa de claves" de Sheets Map :
+\
+&nbsp;
+## Configuración en Sheets
 ---
+### Casos soportados por el "Mapa de claves" de Sheets Map :
 
 1 - No mostrar nada
 
