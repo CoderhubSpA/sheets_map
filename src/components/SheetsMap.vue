@@ -3,7 +3,7 @@
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div ref="map_container" class="my-map-container" :class="{'drawing': $refs.polygon_drafter?.drawing}">
+        <div ref="map_container" class="my-map-container" :class="{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
