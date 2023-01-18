@@ -175,7 +175,6 @@ export default {
     },
     data () {
         return {
-            mounted: false,
             url: '',
             default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
@@ -538,11 +537,6 @@ export default {
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
         },
-        drawing() {
-            if(!this.mounted) return;
-            if(!this.$refs.polygon_drafter ) return;
-            return this.$refs.polygon_drafter?.drawing;
-        }
     },
     watch:{
         analytic_cluster() {
@@ -579,7 +573,6 @@ export default {
 
     },
     mounted(){
-        this.mounted = true;
         this.poweredCoderhub();
     },
     methods:{
@@ -641,7 +634,8 @@ export default {
                 case 'analytic_cluster' : {
                     let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
                     let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
-
+                    
+                    // Si no existia ya una capa analytic_cluster o si los bounds son diferentes (cambio de lugar), se vuelve a generar
                     if(if_empty || if_diferent_bounds){
                         this.getAnalyticalClusterGeoJson(layer);
                     }

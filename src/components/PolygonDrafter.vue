@@ -129,12 +129,18 @@ export default {
             }
 
             let all_col  = this.info.columns;
+            
+            // Not continue if search is empty
+            if (search.length == 0) {
+                this.bounds_filters = [];
+                return;
+            }
 
             let bounds_filters = all_col.filter(columns=>
                 columns.format == 'POLYGON'
             ).map((columns,key)=>{
 
-            let bounds_filter = {
+                let bounds_filter = {
                     "column" : columns,
                     "id"     : "external-filter-"+columns.id,
                     "order"  : key+1,
@@ -145,8 +151,6 @@ export default {
             });
 
             this.bounds_filters = bounds_filters;
-
-            this.$emit('apply-filter', this.bounds_filters);
 
         },
         draw(){
@@ -167,7 +171,10 @@ export default {
                     this.resetDraft();
                 }
             }
+
             this.polygonBounds();
+
+            if(!this.drawing) this.$emit('apply-filter', this.bounds_filters);
 
         },
         addPolygon(event){
@@ -237,6 +244,8 @@ export default {
             }
 
             this.resetDraft();
+
+            this.$emit('apply-filter', this.bounds_filters);
         },
         resetDraft(){
             this.polygon_draft            = undefined;
