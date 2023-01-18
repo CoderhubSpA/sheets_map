@@ -43,19 +43,20 @@ add to package.json
 ## How to publish
 ---
 
-1. Compile:
+1. Upgrade `"version"` in package.json.
+
+2. Compile:
 ```
-npm run build-library
+npm run build:lib
 ```
 
-2. Upgrade `"version"` in package.json.
-
-3. Add changes, commit and push.
-
-4. Publish:
+3. Publish:
 ```
 npm publish
 ```
+
+4. Add changes, commit and push.
+
 
 ## Casos soportados por el "Mapa de claves" de Sheets Map :
 ---
