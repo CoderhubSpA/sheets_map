@@ -33,7 +33,7 @@
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
-                        <b-icon icon="x-octagon"></b-icon>
+                        <b-icon icon="eraser"></b-icon>
                     </b-button>
                 </section>
 
