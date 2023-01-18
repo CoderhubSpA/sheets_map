@@ -3,17 +3,18 @@
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div ref="map_container">
+        <div ref="map_container" class="my-map-container" :class="{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
+                @click="onMapClick"
                 :zoom.sync="zoom"
                 :center.sync="center"
                 ref="my_map"
                 class="my-map"
-                :class="{ 'hide-cluster-labels': should_hide_cluster_labels }"
+                :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
                 :options="{ zoomControl: false, trackResize: false }">
 
                 <section class="custom-controls">
@@ -27,6 +28,12 @@
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
+                        <b-icon icon="bounding-box"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
+                        <b-icon icon="x-octagon"></b-icon>
                     </b-button>
                 </section>
 
@@ -82,6 +89,18 @@
                     </div>
                     
                 </div>
+
+                <!-- Polygon draft-->
+
+                <polygon-drafter
+                  :info="info"
+                  :style_variables="style_variables"
+                  :analytic_geojson_list="analytic_geojson_list"
+                  :operative_geojson_list="operative_geojson_list"
+                  ref="polygon_drafter"
+                  v-on:apply-filter="polygonFilter"
+                ></polygon-drafter>
+
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
                 <l-wms-tile-layer
                     v-for="layer in (operative_geoserver_wms || [])"
@@ -105,6 +124,7 @@ import _ from 'lodash';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
+import PolygonDrafter from './PolygonDrafter.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
@@ -132,6 +152,7 @@ export default {
         BIcon,
         SearchBarProxy,
         SuperclusterLayer,
+        PolygonDrafter
     },
     props: {
         // Propiedades de componentes
@@ -185,7 +206,7 @@ export default {
             shouldShowSearchMarker    : false,
             searchMarkerLatLng        : null,
             // Usadas para las capas analiticas tipo analytic_geojson
-            should_skip_bounds_filter : false // Usada para no filtrar por los limites del mapa en analytic_geojson
+            should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
         };
     },
     computed:{
@@ -277,6 +298,14 @@ export default {
                 "analytic-geojson-point-icon-size"    : custom_styles["analytic-geojson-point-icon-size"]    || 38,
                 "analytic-geojson-point-icon-anchor"  : custom_styles["analytic-geojson-point-icon-anchor"]  || 25,
                 "analytic-geojson-point-popup-anchor" : custom_styles["analytic-geojson-point-popup-anchor"] || 0,
+                // Polygon Draft Style
+                "polygon_draft_fill_color"    : custom_styles["polygon_draft_fill_color"]    || '#FD8D3C',
+                "polygon_draft_weight"        : custom_styles["polygon_draft_weight"]        || 1,
+                "polygon_draft_opacity"       : custom_styles["polygon_draft_opacity"]       || 1,
+                "polygon_draft_color"         : custom_styles["polygon_draft_color"]         || '#FD8D3C',
+                "polygon_draft_dash_array"    : custom_styles["polygon_draft_dash_array"]    || '3',
+                "polygon_draft_fill_opacity"  : custom_styles["polygon_draft_fill_opacity"]  || 0.3,
+                "polygon_draft_circle_radius" : custom_styles["polygon_draft_circle_radius"] || 3,
                 
             };
 
@@ -507,7 +536,7 @@ export default {
             let active_layers_ids = this.active_layers.map(l=> l.id);
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
-        }
+        },
     },
     watch:{
         analytic_cluster() {
@@ -544,7 +573,7 @@ export default {
 
     },
     mounted(){
-       this.poweredCoderhub();
+        this.poweredCoderhub();
     },
     methods:{
         zoomToLocation(latLng){
@@ -605,7 +634,8 @@ export default {
                 case 'analytic_cluster' : {
                     let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
                     let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
-
+                    
+                    // Si no existia ya una capa analytic_cluster o si los bounds son diferentes (cambio de lugar), se vuelve a generar
                     if(if_empty || if_diferent_bounds){
                         this.getAnalyticalClusterGeoJson(layer);
                     }
@@ -1124,8 +1154,12 @@ export default {
         onMapMoveEnd(){
             this.$refs.analytic_cluster_layer.getClusterMarkers();
         },
+        onMapClick(event){
+          this.$refs.polygon_drafter.addPolygon(event);
+        },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
+                this.$refs.polygon_drafter.deletePolygon();
                 //let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
@@ -1151,6 +1185,7 @@ export default {
             }
             this.should_skip_bounds_filter = false;
         },
+
 
         //#Convierte un indice h3 en lng lat
         h3ToLngLat(h3_indexes,key_dimension,key_count){
@@ -1260,10 +1295,6 @@ export default {
             return obj;
         },
 
-        isInt(value) {
-            return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
-        },
-
         //#Dado un indice h3 (en hexadecimal o numérico), obtiene el pentagono que lo representa en formato feature
         getBoundary(h3_index, properties = {}){
             if (this.isInt(h3_index)){ //#si el indice es numérico, convertir a hexadecimal
@@ -1324,10 +1355,7 @@ export default {
             }
             return features;
         },
-        //----------------------------------------------------------------------------------------------
-        // SCRIPT DE MAURICIO
-        //----------------------------------------------------------------------------------------------
-        //
+        // END SCRIPT DE MAURICIO 
         //----------------------------------------------------------------------------------------------
         // Helpers
         //----------------------------------------------------------------------------------------------
@@ -1374,9 +1402,9 @@ export default {
             }
             return true;
         },
-        //----------------------------------------------------------------------------------------------
-        // Helpers
-        //----------------------------------------------------------------------------------------------,
+        isInt(value) {
+            return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
+        },
         // Enlistar capas geojson
         organizeLayers(layer, layer_list) {
             // Analytic_geojson y operative_geoserver_wfs_point son un tipo de capa que 
@@ -1458,6 +1486,24 @@ export default {
 
             return info;
         },
+        // END HELPERS
+        polygonAction(action) {
+            switch (action) {
+                case 'draw': {
+                    this.$refs.polygon_drafter.draw();
+                    break;
+                }
+                case 'delete': {
+                    this.$refs.polygon_drafter.deletePolygon();
+                    break;
+
+                }
+            }
+
+        },
+        polygonFilter(bounds_filters) {
+          this.bounds_filters = bounds_filters;  
+        },
         poweredCoderhub() {
              // Getting Open Street Map attribution container
             const poweredByOpenStreetMap = document.querySelector('.leaflet-bottom.leaflet-right');
@@ -1504,6 +1550,10 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+    .my-map-container.drawing .my-map,
+    .my-map-container.drawing >>> .leaflet-interactive:not(.polygon_draft_circle_marker){
+      cursor: crosshair !important;
+    }
     .my-map {
         min-height: 60vh;
     }
