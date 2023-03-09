@@ -72,6 +72,7 @@ export default {
             polygon_draft        : undefined,
             polygon_draft_length : 0,
             bounds_filters       : [],
+            operative_polygon_ids : [],
             draft_circle_coordinates : []
         };
     }, 
@@ -118,6 +119,16 @@ export default {
                 return style;
         }
     },
+    watch:{
+        operative_geojson_list: {
+          handler() {
+            this.filterByOperativeLayer();
+            console.log('a');
+          },
+          deep: true
+        },
+
+    },
     methods:{
         polygonBounds(){
 
@@ -149,11 +160,14 @@ export default {
                 };
                 return bounds_filter;
             });
-
+console.log('aaaft');
+console.log(this.bounds_filters);
+console.log('ay chuchu');
             this.bounds_filters = bounds_filters;
 
         },
         draw(){
+            console.log(this.operative_geojson_list);
             this.drawing = (this.drawing == false);
             if (!this.drawing && this.polygon_draft) {
                 if (this.polygon_draft_length > 2) {
@@ -163,6 +177,7 @@ export default {
 
                     this.polygon_arr[polygon_id] = this.polygon_draft;
 
+            console.log(this.polygon_arr);
                     this.polygon_arr_id_cont ++;
 
                     this.resetDraft();
@@ -251,6 +266,47 @@ export default {
             this.polygon_draft            = undefined;
             this.polygon_draft_length     = 0;
             this.draft_circle_coordinates = [];
+        },
+        filterByOperativeLayer(){
+            let operative_layers = this.operative_geojson_list.filter(operative_geojson=>
+                operative_geojson.filter == 1
+            ).reduce((all, operative_geojson)=>{
+                //Guardamos cada geojson
+                all[operative_geojson.layer_id] = operative_geojson.geojson;
+
+                return all;
+            }, []);
+
+            if (operative_layers != []) {
+                let all_polygon = Object.assign(this.polygon_arr, operative_layers);
+                this.polygon_arr = all_polygon;
+                this.polygonBounds();
+            }
+
+
+            console.log(operative_layers);
+            console.log(this.polygon_arr);
+            /*
+
+            let disable_operative_layers = this.operative_geojson_list.filter(operative_geojson=>
+                operative_geojson.filter == 0
+            ).reduce((all, operative_geojson)=>{
+                //Guardamos cada geojson
+                all[operative_geojson.layer_id] = operative_geojson.geojson;
+
+                return all;
+            }, []);
+
+            let disable_operative_layers_keys = Object.keys(disable_operative_layers);
+
+            console.log(disable_operative_layers_keys);
+            console.log(operative_layers);
+            console.log(this.polygon_arr);
+
+            this.polygon_arr = this.polygon_arr.filter((polygon, key) =>{
+                !disable_operative_layers_keys.includes(key)
+            });
+            console.log(this.polygon_arr);*/
         }
     }
 }

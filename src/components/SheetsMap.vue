@@ -912,6 +912,7 @@ export default {
 
                 let geojson  = {
                     "layer_id" : layer.id,
+                    "filter"   : 0,
                     "geojson"  : {
                         "type"     : "FeatureCollection",
                         "features" : features
