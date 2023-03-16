@@ -56,7 +56,7 @@
                 
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
                 <supercluster-layer
-                    :visible="active_layers.some(layer => layer.sh_map_has_layer_type === 'supercluster')"
+                    :visible="active_layers.some(layer => layer.sh_map_has_layer_code === 'supercluster')"
                     :data="data"
                     :info="info"
                     :map="map"
@@ -65,8 +65,18 @@
                     :col_lng="col_lng"
                     :entity_type_id="entity_type_id"
                     :base_url="base_url"
-                    ref="analytic_cluster_layer"
-                ></supercluster-layer>   
+                    ref="supercluster_layer"
+                ></supercluster-layer> 
+
+                <supercluster-entity-type-layer
+                    v-for="layer in supercluster_by_entity_type_layers"
+                    :key="layer.id"
+                    :layer="layer"
+                    :base_url="base_url"
+                    :map="map"
+                    :config="config"
+                    ref="supercluster_by_entity_type_layers"
+                ></supercluster-entity-type-layer>
                 <!-- 
                     Analytic layers 
                         - Analytic Cluster 
@@ -124,6 +134,7 @@ import _ from 'lodash';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
+import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
 import PolygonDrafter from './PolygonDrafter.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
@@ -152,6 +163,7 @@ export default {
         BIcon,
         SearchBarProxy,
         SuperclusterLayer,
+        SuperclusterEntityTypeLayer,
         PolygonDrafter
     },
     props: {
@@ -537,6 +549,10 @@ export default {
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
         },
+        supercluster_by_entity_type_layers(){
+            if(_.isEmpty(this.active_layers)) return [];
+            return this.active_layers.filter( l => l.sh_map_has_layer_code == 'supercluster_by_entity_type');
+        }
     },
     watch:{
         analytic_cluster() {
@@ -685,7 +701,11 @@ export default {
 
                     break;
                 }
-                case 'supercluster': {
+                case 'supercluster':{
+                    // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
+                    break;
+                }
+                case 'supercluster_by_entity_type': {
                     // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
@@ -740,7 +760,8 @@ export default {
 
                     break;
                 }
-                case 'supercluster': {
+                case 'supercluster': 
+                case 'supercluster_by_entity_type': {
                     // La capa supercluster se desactiva mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
@@ -1155,7 +1176,10 @@ export default {
 
         },
         onMapMoveEnd(){
-            this.$refs.analytic_cluster_layer.getClusterMarkers();
+            this.$refs.supercluster_layer.getClusterMarkers();
+            this.$refs.supercluster_by_entity_type_layers?.forEach((ref) => {
+                ref.getClusterMarkers();
+            });
         },
         onMapClick(event){
           this.$refs.polygon_drafter.addPolygon(event);

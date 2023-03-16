@@ -215,6 +215,7 @@ export default {
             maxZoom: 17, // Maximo zoom a clusterizar
         });
         this.index.load([]);
+        console.log("CREATED");
     },
     watch: {
         geo_json() {
