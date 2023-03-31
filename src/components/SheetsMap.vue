@@ -66,7 +66,8 @@
                     :entity_type_id="entity_type_id"
                     :base_url="base_url"
                     ref="analytic_cluster_layer"
-                ></supercluster-layer>   
+                    v-on:form="getForm"
+                ></supercluster-layer>
                 <!-- 
                     Analytic layers 
                         - Analytic Cluster 
@@ -1547,6 +1548,11 @@ export default {
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpanSeparator);
             // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
             poweredByOpenStreetMap.insertBefore(poweredByCoderhubDiv, poweredByOpenStreetMap.firstChild);
+        },
+        getForm(form) {
+            if(form) {
+                this.$emit("form", form);
+            }
         }
     }
 }
