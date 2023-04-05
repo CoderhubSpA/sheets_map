@@ -472,6 +472,16 @@ export default {
                 const { max_total, min_total } = layer;
                 const [metric_total] = Object.values(feature.properties.metric_data);
 
+                if(metric_total == null) {
+                    return {
+                        weight      : 5,
+                        color       : "#ffffff",
+                        opacity     : "0",
+                        fillOpacity : "0",
+                        fillColor   : "#ffffff",
+                    };
+                }
+
                 const color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
                                                      this.style_variables["analytic-geojson-large-color"], 
                                                      min_total, 
@@ -493,7 +503,6 @@ export default {
                     fillOpacity : opacity,
                     fillColor   : color,
                 };
-
 
                 return style;
             };
