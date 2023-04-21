@@ -72,7 +72,9 @@ export default {
             id: "99863740-4c01-11ed-b21a-f23c9240db0f",
             // - Tipo de entidad
             // GEOPYME:
-             entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
+            // entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
+            // Demo-fiscalizacion:
+             entity_type_id: "77ab0d33-beab-11ed-b309-f23c9240db0f",
             // SAIT:
             // entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
             // LITIO SALARES:
@@ -81,7 +83,9 @@ export default {
             // entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
             // - Registro de configuracion
             // GEOPYME:
-             config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // Demo-fiscalizacion:
+             config_entity_id: "c55bd65a-fd69-46c3-8870-01a8ee166565",
             // SAIT:
             // config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
             // LITIO SALARES:
@@ -153,8 +157,17 @@ export default {
                     "hexagonal-cluster-large-opacity"       : 0.6,
                     "hexagonal-cluster-large-border-color"  : "#d14d4a",
                     "hexagonal-cluster-large-font"          : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
-                    "hexagonal-cluster-large-font-color"    : "white"
+                    "hexagonal-cluster-large-font-color"    : "white",
 
+                    "point-cluster-theme-1-small-color"         : "#2ECC71a6",
+                    "point-cluster-theme-1-small-color-div"     : "#34ECA1a6",
+                    "point-cluster-theme-1-small-border-color"  : "#2ECC71a6",
+                    "point-cluster-theme-1-medium-color"        : "#F1C40Fcc",
+                    "point-cluster-theme-1-medium-color-div"    : "#FFFB80cc",
+                    "point-cluster-theme-1-medium-border-color" : "#F1C40Fcc",
+                    "point-cluster-theme-1-large-color"         : "#E74C3Ccc",
+                    "point-cluster-theme-1-large-color-div"     : "#F74558cc",
+                    "point-cluster-theme-1-large-border-color"  : "#E74C3Ccc"
                 }
             `,
             data              : {},

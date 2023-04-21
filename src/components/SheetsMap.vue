@@ -1,5 +1,5 @@
 <template>
-    <div :style="css_vars">
+    <div :id="'content-'+config.id" :style="css_vars">
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
@@ -54,9 +54,23 @@
                     :attribution="default_attribution"
                     ></l-tile-layer>
                 
+                <supercluster-entity-type-layer
+                    v-for="layer in supercluster_by_entity_type_layers"
+                    :key="layer.id"
+                    :cluster_key="layer.id"
+                    :layer="layer"
+                    :base_url="base_url"
+                    :map="map"
+                    :config="config"
+                    :css_vars="css_vars"
+                    ref="supercluster_by_entity_type_layers"
+                ></supercluster-entity-type-layer>
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
+                <div>
+                    
+                </div>
                 <supercluster-layer
-                    :visible="active_layers.some(layer => layer.sh_map_has_layer_type === 'supercluster')"
+                    :visible="active_layers.some(layer => layer.sh_map_has_layer_code === 'supercluster')"
                     :data="data"
                     :info="info"
                     :map="map"
@@ -65,9 +79,11 @@
                     :col_lng="col_lng"
                     :entity_type_id="entity_type_id"
                     :base_url="base_url"
-                    ref="analytic_cluster_layer"
+                    :theme="''"
+                    ref="supercluster_layer"
                     v-on:form="getForm"
                 ></supercluster-layer>
+                
                 <!-- 
                     Analytic layers 
                         - Analytic Cluster 
@@ -125,6 +141,7 @@ import _ from 'lodash';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
+import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
 import PolygonDrafter from './PolygonDrafter.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
@@ -153,6 +170,7 @@ export default {
         BIcon,
         SearchBarProxy,
         SuperclusterLayer,
+        SuperclusterEntityTypeLayer,
         PolygonDrafter
     },
     props: {
@@ -208,13 +226,13 @@ export default {
             searchMarkerLatLng        : null,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
+            color_point : 'yellow',
         };
     },
     computed:{
         css_vars() {
             let custom_styles = JSON.parse(this.custom_styles) || {};
-
-            return {
+            let content = {
                 "--sh-map-zoom-button-background-color"      : custom_styles["zoom-button-background-color"]       || "#001D09",
                 "--sh-map-zoom-button-text-color"            : custom_styles["zoom-button-text-color"]             || "#D3D3D3",
                 "--sh-map-radius-multiplier"                 : custom_styles["radius-multiplier"]                  || "8px",
@@ -232,37 +250,30 @@ export default {
                 "--sh-map-marker-pop-up-srcoll-color"        : custom_styles["marker-pop-up-scroll-color"]         || "#999393",
                 "--sh-map-marker-pop-up-srcoll-color-hover"  : custom_styles["marker-pop-up-scroll-color-hover"]   || "#b3b3b3",
                 "--sh-map-marker-pop-up-srcoll-color-active" : custom_styles["marker-pop-up-scroll-color-active"]  || "#999999",
-                //Point Clusters
-                //Small
-                "--sh-map-point-cluster-small-size"          : custom_styles["point-cluster-small-size"]           || "30px", 
-                "--sh-map-point-cluster-small-font"          : custom_styles["point-cluster-small-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
-                "--sh-map-point-cluster-small-font-color"    : custom_styles["point-cluster-small-font-color"]     || 'black', 
-                "--sh-map-point-cluster-small-color"         : custom_styles["point-cluster-small-color"]          || "rgba(181, 226, 140, 0.6)", 
-                "--sh-map-point-cluster-small-color-div"     : custom_styles["point-cluster-small-color-div"]      || "rgba(110, 204, 57, 0.6)", 
-                "--sh-map-point-cluster-small-border-color"  : custom_styles["point-cluster-small-border-color"]   || "rgba(181, 226, 140, 0.6)", 
-                "--sh-map-point-cluster-small-border-style"  : custom_styles["point-cluster-small-border-style"]   || "hidden", 
-                "--sh-map-point-cluster-small-border-width"  : custom_styles["point-cluster-small-border-width"]   || "1px", 
-                //Medium
-                "--sh-map-point-cluster-medium-size"         : custom_styles["point-cluster-medium-size"]          || "30px", 
-                "--sh-map-point-cluster-medium-font"         : custom_styles["point-cluster-medium-font"]          || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
-                "--sh-map-point-cluster-medium-font-color"   : custom_styles["point-cluster-medium-font-color"]    || 'black', 
-                "--sh-map-point-cluster-medium-color"        : custom_styles["point-cluster-medium-color"]         || "rgba(241, 211, 87, 0.6)", 
-                "--sh-map-point-cluster-medium-color-div"    : custom_styles["point-cluster-medium-color-div"]     || "rgba(240, 194, 12, 0.6)", 
-                "--sh-map-point-cluster-medium-border-color" : custom_styles["point-cluster-medium-border-color"]  || "rgba(241, 211, 87, 0.6)", 
-                "--sh-map-point-cluster-medium-border-style" : custom_styles["point-cluster-medium-border-style"]  || "hidden", 
-                "--sh-map-point-cluster-medium-border-width" : custom_styles["point-cluster-medium-border-width"]  || "1px", 
-                //Large
-                "--sh-map-point-cluster-large-size"          : custom_styles["point-cluster-large-size"]           || "30px", 
-                "--sh-map-point-cluster-large-font"          : custom_styles["point-cluster-large-font"]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif', 
-                "--sh-map-point-cluster-large-font-color"    : custom_styles["point-cluster-large-font-color"]     || 'black', 
-                "--sh-map-point-cluster-large-color"         : custom_styles["point-cluster-large-color"]          || "rgba(253, 156, 115, 0.6)", 
-                "--sh-map-point-cluster-large-color-div"     : custom_styles["point-cluster-large-color-div"]      || "rgba(241, 128, 23, 0.6)", 
-                "--sh-map-point-cluster-large-border-color"  : custom_styles["point-cluster-large-border-color"]   || "rgba(253, 156, 115, 0.6)", 
-                "--sh-map-point-cluster-large-border-style"  : custom_styles["point-cluster-large-border-style"]   || "hidden", 
-                "--sh-map-point-cluster-large-border-width"  : custom_styles["point-cluster-large-border-width"]   || "1px",
 
-                
             };
+
+
+            let size = ['small', 'medium', 'large'];
+            let type = ['', '-theme-1', '-theme-2', '-theme-3', '-theme-4'];
+            type.forEach((t)=>{
+                size.forEach((s)=>{
+                    let color        = (s == 'small') ? "rgba(181, 226, 140, 0.6)" : ((s == 'medium') ? "rgba(241, 211, 87, 0.6)" : "rgba(253, 156, 115, 0.6)");
+                    let color_div    = (s == 'small') ? "rgba(110, 204, 57, 0.6)"  : ((s == 'medium') ? "rgba(240, 194, 12, 0.6)" : "rgba(241, 128, 23, 0.6)");
+                    let border_color = (s == 'small') ? "rgba(181, 226, 140, 0.6)" : ((s == 'medium') ? "rgba(241, 211, 87, 0.6)" : "rgba(253, 156, 115, 0.6)");
+
+                    content[`--sh-map-point-cluster${t}-${s}-size`]         = custom_styles[`point-cluster${t}-${s}-size`]           || "30px";
+                    content[`--sh-map-point-cluster${t}-${s}-font`]         = custom_styles[`point-cluster${t}-${s}-font`]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif';
+                    content[`--sh-map-point-cluster${t}-${s}-font-color`]   = custom_styles[`point-cluster${t}-${s}-font-color`]     || 'black';
+                    content[`--sh-map-point-cluster${t}-${s}-color`]        = custom_styles[`point-cluster${t}-${s}-color`]          || color;
+                    content[`--sh-map-point-cluster${t}-${s}-color-div`]    = custom_styles[`point-cluster${t}-${s}-color-div`]      || color_div;
+                    content[`--sh-map-point-cluster${t}-${s}-border-color`] = custom_styles[`point-cluster${t}-${s}-border-color`]   || border_color;
+                    content[`--sh-map-point-cluster${t}-${s}-border-style`] = custom_styles[`point-cluster${t}-${s}-border-style`]   || "hidden";
+                    content[`--sh-map-point-cluster${t}-${s}-border-width`] = custom_styles[`point-cluster${t}-${s}-border-width`]   || "1px";     
+                });
+            });
+            
+            return content;
 
         },
         style_variables() {
@@ -547,6 +558,10 @@ export default {
             let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
             return disabled_layers;
         },
+        supercluster_by_entity_type_layers(){
+            if(_.isEmpty(this.active_layers)) return [];
+            return this.active_layers.filter( l => l.sh_map_has_layer_code == 'supercluster_by_entity_type');
+        }
     },
     watch:{
         analytic_cluster() {
@@ -695,7 +710,11 @@ export default {
 
                     break;
                 }
-                case 'supercluster': {
+                case 'supercluster':{
+                    // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
+                    break;
+                }
+                case 'supercluster_by_entity_type': {
                     // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
@@ -750,7 +769,8 @@ export default {
 
                     break;
                 }
-                case 'supercluster': {
+                case 'supercluster': 
+                case 'supercluster_by_entity_type': {
                     // La capa supercluster se desactiva mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
@@ -1165,7 +1185,10 @@ export default {
 
         },
         onMapMoveEnd(){
-            this.$refs.analytic_cluster_layer.getClusterMarkers();
+            this.$refs.supercluster_layer.getClusterMarkers();
+            this.$refs.supercluster_by_entity_type_layers?.forEach((ref) => {
+                ref.getClusterMarkers();
+            });
         },
         onMapClick(event){
           this.$refs.polygon_drafter.addPolygon(event);
