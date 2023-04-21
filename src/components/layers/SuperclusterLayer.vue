@@ -477,10 +477,10 @@ export default {
 
     /*TEMA 3*/
 
-    .marker-cluster-theme-3-small-3 {
+    .marker-cluster-theme-3-small {
         background-color: var(--sh-map-point-cluster-theme-3-small-color);
     }
-    .marker-cluster-theme-3-small-3 div {
+    .marker-cluster-theme-3-small div {
         background-color: var(--sh-map-point-cluster-theme-3-small-color-div);
         width:            var(--sh-map-point-cluster-theme-3-small-size);
         height:           var(--sh-map-point-cluster-theme-3-small-size);
@@ -491,10 +491,10 @@ export default {
         border-color:     var(--sh-map-point-cluster-theme-3-small-border-color);
     }
 
-    .marker-cluster-theme-3-medium-3 {
+    .marker-cluster-theme-3-medium {
         background-color: var(--sh-map-point-cluster-medium-color);
     }
-    .marker-cluster-theme-3-medium-3 div {
+    .marker-cluster-theme-3-medium div {
         background-color: var(--sh-map-point-cluster-theme-3-medium-color-div);
         width:            var(--sh-map-point-cluster-theme-3-medium-size);
         height:           var(--sh-map-point-cluster-theme-3-medium-size);
@@ -505,10 +505,10 @@ export default {
         border-color:     var(--sh-map-point-cluster-theme-3-medium-border-color);
     }
 
-    .marker-cluster-theme-3-large-3 {
+    .marker-cluster-theme-3-large {
         background-color: var(--sh-map-point-cluster-theme-3-large-color);
     }
-    .marker-cluster-theme-3-large-3 div {
+    .marker-cluster-theme-3-large div {
         background-color: var(--sh-map-point-cluster-theme-3-large-color-div);
         width:            var(--sh-map-point-cluster-theme-3-large-size);
         height:           var(--sh-map-point-cluster-theme-3-large-size);
@@ -522,10 +522,10 @@ export default {
     /*TEMA 3*/
 
 
-    .marker-cluster-theme-4-small-4 {
+    .marker-cluster-theme-4-small {
         background-color: var(--sh-map-point-cluster-theme-4-small-color);
     }
-    .marker-cluster-theme-4-small-4 div {
+    .marker-cluster-theme-4-small div {
         background-color: var(--sh-map-point-cluster-theme-4-small-color-div);
         width:            var(--sh-map-point-cluster-theme-4-small-size);
         height:           var(--sh-map-point-cluster-theme-4-small-size);
@@ -536,10 +536,10 @@ export default {
         border-color:     var(--sh-map-point-cluster-theme-4-small-border-color);
     }
 
-    .marker-cluster-theme-4-medium-4 {
+    .marker-cluster-theme-4-medium {
         background-color: var(--sh-map-point-cluster-medium-color);
     }
-    .marker-cluster-theme-4-medium-4 div {
+    .marker-cluster-theme-4-medium div {
         background-color: var(--sh-map-point-cluster-theme-4-medium-color-div);
         width:            var(--sh-map-point-cluster-theme-4-medium-size);
         height:           var(--sh-map-point-cluster-theme-4-medium-size);
@@ -550,10 +550,10 @@ export default {
         border-color:     var(--sh-map-point-cluster-theme-4-medium-border-color);
     }
 
-    .marker-cluster-theme-4-large-4 {
+    .marker-cluster-theme-4-large {
         background-color: var(--sh-map-point-cluster-theme-4-large-color);
     }
-    .marker-cluster-theme-4-large-4 div {
+    .marker-cluster-theme-4-large div {
         background-color: var(--sh-map-point-cluster-theme-4-large-color-div);
         width:            var(--sh-map-point-cluster-theme-4-large-size);
         height:           var(--sh-map-point-cluster-theme-4-large-size);
