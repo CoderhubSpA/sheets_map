@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="own_super_cluster">
         <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
         <supercluster-layer
                 :visible="true"
@@ -11,6 +11,7 @@
                 :col_lng="col_lng"
                 :entity_type_id="entity_type_id"
                 :base_url="base_url"
+                :theme="layer.sh_map_has_layer_custom_styles"
                 ref="supercluster_layer"
             ></supercluster-layer>
     </div>
@@ -30,8 +31,10 @@ export default {
         base_url:{
             type: String
         },
-        config: Object,
-        map: Object,
+        cluster_key : String,
+        css_vars : Object,
+        config   : Object,
+        map      : Object,
     },
     components: {
         SuperclusterLayer
@@ -97,6 +100,49 @@ export default {
     },
 }
 </script>
-<style>
+<style >
+
+    .marker-cluster-small-external-source {
+        background-color: var(--sh-map-point-cluster-small-external-source-color);
+    }
+    .marker-cluster-small-external-source div {
+        background-color: var(--sh-map-point-cluster-small-external-source-color-div);
+        width:            var(--sh-map-point-cluster-small-external-source-size);
+        height:           var(--sh-map-point-cluster-small-external-source-size);
+        font:             var(--sh-map-point-cluster-small-external-source-font);
+        color:            var(--sh-map-point-cluster-small-external-source-font-color);
+        border-style:     var(--sh-map-point-cluster-small-external-source-border-style);
+        border-width:     var(--sh-map-point-cluster-small-external-source-border-width);
+        border-color:     var(--sh-map-point-cluster-small-external-source-border-color);
+    }
+
+    .marker-cluster-medium-external-source {
+        background-color: var(--sh-map-point-cluster-medium-color);
+    }
+    .marker-cluster-medium-external-source div {
+        background-color: var(--sh-map-point-cluster-medium-external-source-color-div);
+        width:            var(--sh-map-point-cluster-medium-external-source-size);
+        height:           var(--sh-map-point-cluster-medium-external-source-size);
+        font:             var(--sh-map-point-cluster-medium-external-source-font);
+        color:            var(--sh-map-point-cluster-medium-external-source-font-color);
+        border-style:     var(--sh-map-point-cluster-medium-external-source-border-style);
+        border-width:     var(--sh-map-point-cluster-medium-external-source-border-width);
+        border-color:     var(--sh-map-point-cluster-medium-external-source-border-color);
+    }
+
+    .marker-cluster-large-external-source {
+        background-color: var(--sh-map-point-cluster-large-external-source-color);
+    }
+    .marker-cluster-large-external-source div {
+        background-color: var(--sh-map-point-cluster-large-external-source-color-div);
+        width:            var(--sh-map-point-cluster-large-external-source-size);
+        height:           var(--sh-map-point-cluster-large-external-source-size);
+        font:             var(--sh-map-point-cluster-large-external-source-font);
+        color:            var(--sh-map-point-cluster-large-external-source-font-color);
+        border-style:     var(--sh-map-point-cluster-large-external-source-border-style);
+        border-width:     var(--sh-map-point-cluster-large-external-source-border-width);
+        border-color:     var(--sh-map-point-cluster-large-external-source-border-color);
+    }
+
 
 </style>

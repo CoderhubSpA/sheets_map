@@ -4,10 +4,12 @@
             v-for="(cluster, index) in clusters"
             v-bind:key="index"
             :lat-lng="cluster.lat_lng"
+            :marker-options = "{'className': 'stringpawalito'}"
+
         >
             <l-icon
                 :icon-anchor="[40, 40]"
-                :class-name="'marker-cluster marker-cluster-' + cluster.size"
+                :class-name="'marker-cluster marker-cluster-'+ theme + cluster.size"
             >
                 <div class="headline">
                     <span>
@@ -91,6 +93,7 @@ export default {
         entity_type_id: String,
         base_url: String,
         visible: Boolean,
+        theme: String,
     },
     computed: {
         geo_json() {
@@ -380,6 +383,185 @@ export default {
         border-color : var(--sh-map-marker-pop-up-border-color);
         border-width : var(--sh-map-marker-pop-up-border-width);
         border-style : var(--sh-map-marker-pop-up-border-style);
+    }
+
+    /* Temas para`puntos de fuentes alternas a la del mapa original  */
+
+    /*TEMA 1*/
+
+    .marker-cluster-theme-1-small {
+        background-color: var(--sh-map-point-cluster-theme-1-small-color);
+    }
+    .marker-cluster-theme-1-small div {
+        background-color: var(--sh-map-point-cluster-theme-1-small-color-div);
+        width:            var(--sh-map-point-cluster-theme-1-small-size);
+        height:           var(--sh-map-point-cluster-theme-1-small-size);
+        font:             var(--sh-map-point-cluster-theme-1-small-font);
+        color:            var(--sh-map-point-cluster-theme-1-small-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-1-small-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-1-small-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-1-small-border-color);
+    }
+
+    .marker-cluster-theme-1-medium {
+        background-color: var(--sh-map-point-cluster-medium-color);
+    }
+    .marker-cluster-theme-1-medium div {
+        background-color: var(--sh-map-point-cluster-theme-1-medium-color-div);
+        width:            var(--sh-map-point-cluster-theme-1-medium-size);
+        height:           var(--sh-map-point-cluster-theme-1-medium-size);
+        font:             var(--sh-map-point-cluster-theme-1-medium-font);
+        color:            var(--sh-map-point-cluster-theme-1-medium-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-1-medium-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-1-medium-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-1-medium-border-color);
+    }
+
+    .marker-cluster-theme-1-large {
+        background-color: var(--sh-map-point-cluster-theme-1-large-color);
+    }
+    .marker-cluster-theme-1-large div {
+        background-color: var(--sh-map-point-cluster-theme-1-large-color-div);
+        width:            var(--sh-map-point-cluster-theme-1-large-size);
+        height:           var(--sh-map-point-cluster-theme-1-large-size);
+        font:             var(--sh-map-point-cluster-theme-1-large-font);
+        color:            var(--sh-map-point-cluster-theme-1-large-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-1-large-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-1-large-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-1-large-border-color);
+    }
+
+    /*TEMA 2*/
+
+    .marker-cluster-theme-2-small {
+        background-color: var(--sh-map-point-cluster-theme-2-small-color);
+    }
+    .marker-cluster-theme-2-small div {
+        background-color: var(--sh-map-point-cluster-theme-2-small-color-div);
+        width:            var(--sh-map-point-cluster-theme-2-small-size);
+        height:           var(--sh-map-point-cluster-theme-2-small-size);
+        font:             var(--sh-map-point-cluster-theme-2-small-font);
+        color:            var(--sh-map-point-cluster-theme-2-small-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-2-small-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-2-small-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-2-small-border-color);
+    }
+
+    .marker-cluster-theme-2-medium {
+        background-color: var(--sh-map-point-cluster-medium-color);
+    }
+    .marker-cluster-theme-2-medium div {
+        background-color: var(--sh-map-point-cluster-theme-2-medium-color-div);
+        width:            var(--sh-map-point-cluster-theme-2-medium-size);
+        height:           var(--sh-map-point-cluster-theme-2-medium-size);
+        font:             var(--sh-map-point-cluster-theme-2-medium-font);
+        color:            var(--sh-map-point-cluster-theme-2-medium-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-2-medium-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-2-medium-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-2-medium-border-color);
+    }
+
+    .marker-cluster-theme-2-large {
+        background-color: var(--sh-map-point-cluster-theme-2-large-color);
+    }
+    .marker-cluster-theme-2-large div {
+        background-color: var(--sh-map-point-cluster-theme-2-large-color-div);
+        width:            var(--sh-map-point-cluster-theme-2-large-size);
+        height:           var(--sh-map-point-cluster-theme-2-large-size);
+        font:             var(--sh-map-point-cluster-theme-2-large-font);
+        color:            var(--sh-map-point-cluster-theme-2-large-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-2-large-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-2-large-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-2-large-border-color);
+    }
+
+    /*TEMA 3*/
+
+    .marker-cluster-theme-3-small-3 {
+        background-color: var(--sh-map-point-cluster-theme-3-small-color);
+    }
+    .marker-cluster-theme-3-small-3 div {
+        background-color: var(--sh-map-point-cluster-theme-3-small-color-div);
+        width:            var(--sh-map-point-cluster-theme-3-small-size);
+        height:           var(--sh-map-point-cluster-theme-3-small-size);
+        font:             var(--sh-map-point-cluster-theme-3-small-font);
+        color:            var(--sh-map-point-cluster-theme-3-small-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-3-small-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-3-small-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-3-small-border-color);
+    }
+
+    .marker-cluster-theme-3-medium-3 {
+        background-color: var(--sh-map-point-cluster-medium-color);
+    }
+    .marker-cluster-theme-3-medium-3 div {
+        background-color: var(--sh-map-point-cluster-theme-3-medium-color-div);
+        width:            var(--sh-map-point-cluster-theme-3-medium-size);
+        height:           var(--sh-map-point-cluster-theme-3-medium-size);
+        font:             var(--sh-map-point-cluster-theme-3-medium-font);
+        color:            var(--sh-map-point-cluster-theme-3-medium-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-3-medium-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-3-medium-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-3-medium-border-color);
+    }
+
+    .marker-cluster-theme-3-large-3 {
+        background-color: var(--sh-map-point-cluster-theme-3-large-color);
+    }
+    .marker-cluster-theme-3-large-3 div {
+        background-color: var(--sh-map-point-cluster-theme-3-large-color-div);
+        width:            var(--sh-map-point-cluster-theme-3-large-size);
+        height:           var(--sh-map-point-cluster-theme-3-large-size);
+        font:             var(--sh-map-point-cluster-theme-3-large-font);
+        color:            var(--sh-map-point-cluster-theme-3-large-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-3-large-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-3-large-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-3-large-border-color);
+    }
+
+    /*TEMA 3*/
+
+
+    .marker-cluster-theme-4-small-4 {
+        background-color: var(--sh-map-point-cluster-theme-4-small-color);
+    }
+    .marker-cluster-theme-4-small-4 div {
+        background-color: var(--sh-map-point-cluster-theme-4-small-color-div);
+        width:            var(--sh-map-point-cluster-theme-4-small-size);
+        height:           var(--sh-map-point-cluster-theme-4-small-size);
+        font:             var(--sh-map-point-cluster-theme-4-small-font);
+        color:            var(--sh-map-point-cluster-theme-4-small-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-4-small-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-4-small-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-4-small-border-color);
+    }
+
+    .marker-cluster-theme-4-medium-4 {
+        background-color: var(--sh-map-point-cluster-medium-color);
+    }
+    .marker-cluster-theme-4-medium-4 div {
+        background-color: var(--sh-map-point-cluster-theme-4-medium-color-div);
+        width:            var(--sh-map-point-cluster-theme-4-medium-size);
+        height:           var(--sh-map-point-cluster-theme-4-medium-size);
+        font:             var(--sh-map-point-cluster-theme-4-medium-font);
+        color:            var(--sh-map-point-cluster-theme-4-medium-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-4-medium-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-4-medium-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-4-medium-border-color);
+    }
+
+    .marker-cluster-theme-4-large-4 {
+        background-color: var(--sh-map-point-cluster-theme-4-large-color);
+    }
+    .marker-cluster-theme-4-large-4 div {
+        background-color: var(--sh-map-point-cluster-theme-4-large-color-div);
+        width:            var(--sh-map-point-cluster-theme-4-large-size);
+        height:           var(--sh-map-point-cluster-theme-4-large-size);
+        font:             var(--sh-map-point-cluster-theme-4-large-font);
+        color:            var(--sh-map-point-cluster-theme-4-large-font-color);
+        border-style:     var(--sh-map-point-cluster-theme-4-large-border-style);
+        border-width:     var(--sh-map-point-cluster-theme-4-large-border-width);
+        border-color:     var(--sh-map-point-cluster-theme-4-large-border-color);
     }
 
 </style>
