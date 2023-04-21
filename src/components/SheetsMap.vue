@@ -1,5 +1,5 @@
 <template>
-    <div :id="'content-'+config.id" class="aaal" :style="css_vars">
+    <div :id="'content-'+config.id" :style="css_vars">
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
