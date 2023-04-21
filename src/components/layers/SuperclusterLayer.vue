@@ -84,6 +84,7 @@ export default {
         entity_type_id: String,
         base_url: String,
         visible: Boolean,
+        theme: String,
     },
     components: {
         LLayerGroup,
@@ -106,18 +107,6 @@ export default {
             markers_data: {},
             clusters_markers: []
         };
-    },
-    props: {
-        info: Object,
-        map: Object,
-        data: Object,
-        config: Object,
-        col_lat: String,
-        col_lng: String,
-        entity_type_id: String,
-        base_url: String,
-        visible: Boolean,
-        theme: String,
     },
     computed: {
         geo_json() {
