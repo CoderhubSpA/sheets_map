@@ -157,8 +157,17 @@ export default {
                     "hexagonal-cluster-large-opacity"       : 0.6,
                     "hexagonal-cluster-large-border-color"  : "#d14d4a",
                     "hexagonal-cluster-large-font"          : "12px 'Helvetica Neue', Arial, Helvetica, sans-serif",
-                    "hexagonal-cluster-large-font-color"    : "white"
+                    "hexagonal-cluster-large-font-color"    : "white",
 
+                    "point-cluster-theme-1-small-color"         : "#2ECC71a6",
+                    "point-cluster-theme-1-small-color-div"     : "#34ECA1a6",
+                    "point-cluster-theme-1-small-border-color"  : "#2ECC71a6",
+                    "point-cluster-theme-1-medium-color"        : "#F1C40Fcc",
+                    "point-cluster-theme-1-medium-color-div"    : "#FFFB80cc",
+                    "point-cluster-theme-1-medium-border-color" : "#F1C40Fcc",
+                    "point-cluster-theme-1-large-color"         : "#E74C3Ccc",
+                    "point-cluster-theme-1-large-color-div"     : "#F74558cc",
+                    "point-cluster-theme-1-large-border-color"  : "#E74C3Ccc"
                 }
             `,
             data              : {},
