@@ -43,6 +43,17 @@
                             {{ getPopupData(marker, col) }}
                         </span>
                     </div>
+                    <div v-if="getFormColFormat">
+                        <span class="marker-pop-up-info-title">
+                            <b>Editar registro</b>
+                        </span>
+                        <br>
+                        <span class="marker-pop-up-info-content">
+                           <a href="#" onclick="return false;">
+                               <b-icon icon="pencil" @click="setForm(marker.id)"/>
+                           </a>
+                        </span>
+                    </div>
                 </div>
                 <div v-else class="marker-pop-up-single-info">Cargando...</div>
             </l-popup>
@@ -60,8 +71,28 @@ import {
     LPopup,
     LIcon,
 } from "vue2-leaflet";
+import { BIcon } from 'bootstrap-vue';
 
 export default {
+    props: {
+        info: Object,
+        map: Object,
+        data: Object,
+        config: Object,
+        col_lat: String,
+        col_lng: String,
+        entity_type_id: String,
+        base_url: String,
+        visible: Boolean,
+    },
+    components: {
+        LLayerGroup,
+        LCircleMarker,
+        LPopup,
+        LIcon,
+        LMarker,
+        BIcon
+    },
     data() {
         return {
             index: undefined,
@@ -75,13 +106,6 @@ export default {
             markers_data: {},
             clusters_markers: []
         };
-    },
-    components: {
-        LLayerGroup,
-        LCircleMarker,
-        LPopup,
-        LIcon,
-        LMarker,
     },
     props: {
         info: Object,
@@ -211,6 +235,13 @@ export default {
             .filter(d => d);
             return visible_columns;
         },
+        getFormColFormat() {
+            const getFormColFormat = this.info.columns.find((column) => {
+                return column.format = "FORM"
+            })
+
+            return getFormColFormat ? true : false;
+        }
     },
     created() {
         this.index = new Supercluster({
@@ -279,6 +310,21 @@ export default {
 
             this.clusters_markers = clusters_markers;
         },
+        setForm(markerId) {
+            const getFormColumn = this.info.columns.find((col) => {
+                return col.format === "FORM" && col.entity_type_id == this.entity_type_id && col.default_value;
+            });
+
+            if(getFormColumn && markerId) {
+                this.$emit("form", {
+                    type: "open_form",
+                    content: {
+                        form_id: getFormColumn.default_value,
+                        record_id: markerId
+                    }
+                });
+            }
+        }
     },
 };
 </script>
@@ -384,6 +430,7 @@ export default {
         border-width : var(--sh-map-marker-pop-up-border-width);
         border-style : var(--sh-map-marker-pop-up-border-style);
     }
+
 
     /* Temas para`puntos de fuentes alternas a la del mapa original  */
 
