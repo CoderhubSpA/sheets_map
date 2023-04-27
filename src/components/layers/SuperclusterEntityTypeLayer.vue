@@ -42,7 +42,8 @@ export default {
     data () {
         return {
             data: {},
-            info: {}
+            info: {},
+            refreshDataId: null
         };
     }, 
     computed: {
@@ -57,14 +58,20 @@ export default {
         },
     },
     mounted() {
-        console.log("SuperclusterEntityTypeLayer mounted");
         this.init();
+    },
+    destroyed() {
+        clearInterval(this.refreshDataId);
     },
     methods:{
         async init(){
             await this.requestInfo();
             await this.requestData();
             this.getClusterMarkers();
+
+            if (this.layer.sh_map_has_layer_interval_delay_seconds && this.layer.sh_map_has_layer_interval_delay_seconds > 0) {
+                this.startRefreshData(this.layer.sh_map_has_layer_interval_delay_seconds);
+            }
         },
         async requestInfo(){
 
@@ -97,6 +104,51 @@ export default {
         getClusterMarkers(){
             return this.$refs.supercluster_layer.getClusterMarkers();
         },
+        startRefreshData(seg) {
+            const setSeconds = seg * 1000;
+
+            this.refreshDataId = setInterval(this.requestData, setSeconds);
+        },
+        // stopRefreshData() {
+        //     clearInterval(this.refreshDataId);
+        //     this.refreshDataId = null;
+        // },
+        // refreshData(oldData, newData) {
+        //     //Se buscan nuevo puntos para agregarlos a la data existente
+        //     newData.forEach(function(newD) {
+        //         let findId = oldData.find(function(oldD) {
+        //             return oldD.id === newD.id;
+        //         });
+
+        //         if(!findId) {
+        //             oldData.push(newD);
+        //         }
+        //     });
+
+        //     return oldData.map(function(oldD) {
+        //         //Se busca si los puntos existentes siguen presente en la nueva data
+        //         let findId = newData.find(function(newD) {
+        //             return newD.id === oldD.id;
+        //         });
+
+        //         if(!findId) {
+        //             return;
+        //         }
+        //         // Se actualizan las coordenas de los puntos existentes desde la nueva data
+        //         newData.forEach(function(newD) {
+        //             if(oldD.id === newD.id) {
+        //                 if(oldD.lat !== newD.lat && oldD.lng !== newD.lng || oldD.lat === newD.lat && oldD.lng !== newD.lng || oldD.lat !== newD.lat && oldD.lng === newD.lng) {
+        //                     oldD.lat = newD.lat;
+        //                     oldD.lng = newD.lng;
+        //                 }
+        //             }
+        //         });
+
+        //         return oldD;
+        //     }).filter(function(f) {
+        //         return f !== undefined;
+        //     });
+        // },
     },
 }
 </script>
