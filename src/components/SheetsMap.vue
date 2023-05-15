@@ -1160,17 +1160,12 @@ export default {
                     this.col_lng = data.sh_map_column_longitude; 
                     this.col_lat = data.sh_map_column_latitude;
 
-                    //console.log("data.latitud_map_center, data.longitud_map_center", data.latitud_map_center, data.longitud_map_center)
-
                     if(this.getCoordsFromUrlParams()) {
-                        console.log("this.getCoordsFromUrlParams()", this.getCoordsFromUrlParams())
                         this.center = this.getCoordsFromUrlParams();
                     } else if(data.latitud_map_center && data.longitud_map_center) {
-                        console.log("data.latitud_map_center, data.longitud_map_center", data.latitud_map_center, data.longitud_map_center)
                         this.center = [data.latitud_map_center, data.longitud_map_center]
                     } else {
                         // Coordenadas para Santiago de Chile - Chile\
-                        console.log("this.center_default", this.center_default);
                         this.center = this.center_default;
                     }
 
