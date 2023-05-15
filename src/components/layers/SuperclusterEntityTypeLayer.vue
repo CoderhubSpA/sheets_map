@@ -43,7 +43,7 @@ export default {
         return {
             data: {},
             info: {},
-            refreshDataId: null
+            refresh_data_interval_id: null
         };
     }, 
     computed: {
@@ -61,7 +61,7 @@ export default {
         this.init();
     },
     destroyed() {
-        clearInterval(this.refreshDataId);
+        clearInterval(this.refresh_data_interval_id);
     },
     methods:{
         async init(){
@@ -107,48 +107,8 @@ export default {
         startRefreshData(seg) {
             const setSeconds = seg * 1000;
 
-            this.refreshDataId = setInterval(this.requestData, setSeconds);
-        },
-        // stopRefreshData() {
-        //     clearInterval(this.refreshDataId);
-        //     this.refreshDataId = null;
-        // },
-        // refreshData(oldData, newData) {
-        //     //Se buscan nuevo puntos para agregarlos a la data existente
-        //     newData.forEach(function(newD) {
-        //         let findId = oldData.find(function(oldD) {
-        //             return oldD.id === newD.id;
-        //         });
-
-        //         if(!findId) {
-        //             oldData.push(newD);
-        //         }
-        //     });
-
-        //     return oldData.map(function(oldD) {
-        //         //Se busca si los puntos existentes siguen presente en la nueva data
-        //         let findId = newData.find(function(newD) {
-        //             return newD.id === oldD.id;
-        //         });
-
-        //         if(!findId) {
-        //             return;
-        //         }
-        //         // Se actualizan las coordenas de los puntos existentes desde la nueva data
-        //         newData.forEach(function(newD) {
-        //             if(oldD.id === newD.id) {
-        //                 if(oldD.lat !== newD.lat && oldD.lng !== newD.lng || oldD.lat === newD.lat && oldD.lng !== newD.lng || oldD.lat !== newD.lat && oldD.lng === newD.lng) {
-        //                     oldD.lat = newD.lat;
-        //                     oldD.lng = newD.lng;
-        //                 }
-        //             }
-        //         });
-
-        //         return oldD;
-        //     }).filter(function(f) {
-        //         return f !== undefined;
-        //     });
-        // },
+            this.refresh_data_interval_id = setInterval(this.requestData, setSeconds);
+        }
     },
 }
 </script>
