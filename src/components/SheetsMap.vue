@@ -1157,16 +1157,18 @@ export default {
                 try {
                     all_data     = response.data.content;
                     data         = _.first(all_data.data);
-                    this.col_lng = data.sh_map_column_longitude;
+                    this.col_lng = data.sh_map_column_longitude; 
                     this.col_lat = data.sh_map_column_latitude;
 
-                    if (data.latitud_map_center && data.longitud_map_center) {
+                    if(this.getCoordsFromUrlParams()) {
+                        this.center = this.getCoordsFromUrlParams();
+                    } else if(data.latitud_map_center && data.longitud_map_center) {
                         this.center = [data.latitud_map_center, data.longitud_map_center]
                     } else {
-                        // Coordenadas para Santiago de Chile - Chile
+                        // Coordenadas para Santiago de Chile - Chile\
                         this.center = this.center_default;
                     }
-                    
+
                     this.zoom = (data.sh_map_zoom) ? data.sh_map_zoom : 7;
 
                 } catch (error) {
@@ -1584,6 +1586,35 @@ export default {
         getForm(form) {
             if(form) {
                 this.$emit("form", form);
+            }
+        },
+        validateCoords(lat, lng) {
+            if (lat < -90 || lat > 90) {
+                return false;
+            }
+
+            if (lng < -180 || lng > 180) {
+                return false;
+            }
+
+            return true;
+        },
+        getCoordsFromUrlParams() {
+            let params = new URLSearchParams(document.location.search);
+            let coords = params.get("center_map");// param value example: center_map=-33.472,-70.769
+
+            if(coords) {
+                coords = coords.split(",")
+
+                if (coords.length === 2 && this.validateCoords(coords[0], coords[1])) {
+                    coords = coords.map((coord) => parseFloat(coord));
+
+                    return coords;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
             }
         }
     }
