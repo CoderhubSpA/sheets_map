@@ -42,7 +42,8 @@ export default {
     data () {
         return {
             data: {},
-            info: {}
+            info: {},
+            refresh_data_interval_id: null
         };
     }, 
     computed: {
@@ -57,14 +58,20 @@ export default {
         },
     },
     mounted() {
-        console.log("SuperclusterEntityTypeLayer mounted");
         this.init();
+    },
+    destroyed() {
+        clearInterval(this.refresh_data_interval_id);
     },
     methods:{
         async init(){
             await this.requestInfo();
             await this.requestData();
             this.getClusterMarkers();
+
+            if (this.layer.sh_map_has_layer_interval_delay_seconds && this.layer.sh_map_has_layer_interval_delay_seconds > 0) {
+                this.startRefreshData(this.layer.sh_map_has_layer_interval_delay_seconds);
+            }
         },
         async requestInfo(){
 
@@ -97,6 +104,11 @@ export default {
         getClusterMarkers(){
             return this.$refs.supercluster_layer.getClusterMarkers();
         },
+        startRefreshData(seg) {
+            const setSeconds = seg * 1000;
+
+            this.refresh_data_interval_id = setInterval(this.requestData, setSeconds);
+        }
     },
 }
 </script>
