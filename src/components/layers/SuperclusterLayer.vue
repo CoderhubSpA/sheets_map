@@ -83,7 +83,7 @@ export default {
     props: {
         layer:{
             type: Object,
-            required: true
+            default: () => ({})
         },
         info: Object,
         map: Object,
