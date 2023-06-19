@@ -82,7 +82,10 @@
     </script>
       
     <style scoped>
-      .marker-pop-up-content{
+        .marker-pop-up{
+            min-width: 150px;
+        }
+        .marker-pop-up-content{
         max-height:350px;
         overflow-y: scroll;
         }
