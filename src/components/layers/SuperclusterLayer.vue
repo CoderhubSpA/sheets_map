@@ -18,63 +18,73 @@
                 </div>
             </l-icon>
         </l-marker>
+
+    <!-- validación en caso de que la capa no tenga imagen -->
+    <div v-if="layer.sh_map_has_layer_point_image == null">
+        <!-- marcador de tipo circulo cuando no exista imagen -->
         <l-circle-marker
-            ref="circlemarker"
             v-for="(marker, index) in markers"
+            ref="circlemarker"
             :key="'marker-' + index"
             :lat-lng="marker.lat_lng"
             :radius="3"
             v-on:click="getMarkerData(marker)"
-            color="#00642a"
-        >
-            <!-- https://leafletjs.com/reference.html#popup-->
-            <l-popup :options="popup_point_options" class="marker-pop-up">
-                <div v-if="marker.has_data" class="marker-pop-up-content">
-                    <div
-                        v-for="(col, key) in visible_columns"
-                        :key="'col-' + key"
-                        class="marker-pop-up-single-info"
-                    >
-                        <span class="marker-pop-up-info-title">
-                            <b>{{ col.name }}</b>
-                        </span>
-                        <br />
-                        <span class="marker-pop-up-info-content">
-                            {{ getPopupData(marker, col) }}
-                        </span>
-                    </div>
-                    <div v-if="getFormColFormat">
-                        <span class="marker-pop-up-info-title">
-                            <b>Editar registro</b>
-                        </span>
-                        <br>
-                        <span class="marker-pop-up-info-content">
-                           <a href="#" onclick="return false;">
-                               <b-icon icon="pencil" @click="setForm(marker.id)"/>
-                           </a>
-                        </span>
-                    </div>
-                </div>
-                <div v-else class="marker-pop-up-single-info">Cargando...</div>
-            </l-popup>
+            color="#00642a">
+        <!-- pop-up del marcador de círculo-->
+            <pop-up-marker
+                :marker="marker"
+                :visible_columns="visible_columns"
+                :info="info"
+                :entity_type_id="entity_type_id"
+            >
+            </pop-up-marker>
         </l-circle-marker>
+    </div>
+    <!-- si existe imagen genera un icono de marcador -->
+    <div v-else>
+        <l-marker
+            v-for="(icon, index) in markers"
+            ref="iconmarker"
+            :key="'icon-' + index"
+            :lat-lng="icon.lat_lng"
+            v-on:click="getMarkerData(icon)"
+        >
+            <l-icon 
+                :icon-size="18"
+                :icon-url="base_url + layer.sh_map_has_layer_point_image"
+            >
+            </l-icon>
+        <!-- pop-up del marcador de ícono-->
+            <pop-up-marker
+                :marker="icon"
+                :visible_columns="visible_columns"
+                :info="info"
+                :entity_type_id="entity_type_id"
+            >
+            </pop-up-marker>
+        </l-marker>
+    </div>
+  <!-- </div> -->
     </l-layer-group>
 </template>
 <script>
 import _ from "lodash";
 import Supercluster from "supercluster";
+import PopUpMarker from "../PopUpMarker.vue";
 import axios from "axios";
 import {
     LLayerGroup,
     LMarker,
     LCircleMarker,
-    LPopup,
     LIcon,
 } from "vue2-leaflet";
-import { BIcon } from 'bootstrap-vue';
 
 export default {
     props: {
+        layer:{
+            type: Object,
+            required: true
+        },
         info: Object,
         map: Object,
         data: Object,
@@ -89,10 +99,9 @@ export default {
     components: {
         LLayerGroup,
         LCircleMarker,
-        LPopup,
         LIcon,
         LMarker,
-        BIcon
+        PopUpMarker,
     },
     data() {
         return {
@@ -379,46 +388,6 @@ export default {
     .marker-cluster-large span {
         line-height: var(--sh-map-point-cluster-large-size);
     }
-
-    .marker-pop-up-content{
-        max-height:350px;
-        overflow-y: scroll;
-    }
-    .marker-pop-up-content::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    .marker-pop-up-content::-webkit-scrollbar-thumb {
-        background: var(--sh-map-marker-pop-up-srcoll-color);
-        border-radius: 4px;
-    }
-
-    .marker-pop-up-content::-webkit-scrollbar-thumb:hover {
-        background: var(--sh-map-marker-pop-up-srcoll-color-hover);
-    }
-
-    .marker-pop-up-content::-webkit-scrollbar-thumb:active {
-        background-color: var(--sh-map-marker-pop-up-srcoll-color-active);
-    }
-
-
-    .marker-pop-up-single-info{
-        font:  var(--sh-map-marker-pop-up-content-font);
-        color: var(--sh-map-marker-pop-up-content-color);
-    }
-    .marker-pop-up-info-title{
-        font:  var(--sh-map-marker-pop-up-title-font);
-        color: var(--sh-map-marker-pop-up-title-color);
-    }
-
-    .my-map >>> .leaflet-popup-content-wrapper,
-    .my-map >>> .leaflet-popup-tip{
-        background-color: var(--sh-map-marker-pop-up-background);
-        border-color : var(--sh-map-marker-pop-up-border-color);
-        border-width : var(--sh-map-marker-pop-up-border-width);
-        border-style : var(--sh-map-marker-pop-up-border-style);
-    }
-
 
     /* Temas para`puntos de fuentes alternas a la del mapa original  */
 

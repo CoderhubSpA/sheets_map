@@ -5,6 +5,7 @@
                 :visible="true"
                 :data="data"
                 :info="info"
+                :layer="layer"
                 :map="map"
                 :config="config"
                 :col_lat="col_lat"
