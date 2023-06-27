@@ -242,9 +242,15 @@ export default {
         }
     },
     created() {
+        let zoom = this.layer.sh_map_has_layer_clustering_zoom;
+
+        if(zoom<=0||zoom>17||zoom==null){
+            zoom=17
+        }
+
         this.index = new Supercluster({
             radius: 40, // clusterizar en un radio de (radio es relativo al zoom)
-            maxZoom: 17, // Maximo zoom a clusterizar
+            maxZoom: zoom, // Maximo zoom a clusterizar
         });
         this.index.load([]);
     },
