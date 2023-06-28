@@ -244,7 +244,9 @@ export default {
     created() {
         let zoom = this.layer.sh_map_has_layer_clustering_zoom;
 
-        if(zoom<=0||zoom>17||zoom==null||typeof zoom === 'string'){
+        parseInt(zoom);
+
+        if(zoom<=0||zoom>17||zoom==null||typeof zoom === 'string'||isNaN(zoom)){
             zoom=17
         }
 
