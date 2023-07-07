@@ -246,7 +246,7 @@ export default {
 
         zoom = parseInt(zoom);
 
-        if(zoom<=0||zoom>17||zoom==null||typeof zoom === 'string'||isNaN(zoom)){
+        if(zoom<=0||zoom>17||zoom==null||isNaN(zoom)){
             zoom=17
         }
 
