@@ -7,7 +7,10 @@
             <section v-for="(group, group_key) in grouped_layers"
                 :key="group_key"
             >
-                <h5>{{group_key}}</h5>
+                <div class="grouped-title">
+                    <h5 @click="layers_filter_by_group(group, group_key)">{{group_key}}</h5>
+                    <b-icon icon="filter-circle-fill" @click="layers_filter_by_group(group, group_key)"></b-icon>
+                </div>
                 <!-- Si no posee subgrupos -->
                 <div v-for="(subgroup, subgroup_key) in group"
                     :key="subgroup_key" class="subgroup-container"
@@ -16,7 +19,7 @@
                         v-if="subgroup_key == 'null'"
                         class="layer-group"
                     >
-                        <div 
+                        <div
                             v-for="option in subgroup"
                             :key="option.key"
                             @click="toggleLayer(option)"
@@ -28,7 +31,7 @@
                             <!-- Si existe mas de un subgrupo,
                                 significa que debe tener un estilo distinto al estandar 
                             -->
-                            <button v-if="Object.values(group).length > 1"
+                            <div v-if="Object.values(group).length > 1"
                                 class="layer-option grouped"
                             >
                                 <div class="layer-option-active-icon">
@@ -44,10 +47,10 @@
                                     </div>
                                     <span>{{ option.value }}</span>
                                 </div>
-                            </button>
+                            </div>
                             <!-- Si existe solo 1 subgrupo, debe tener un estilo
                             normal -->
-                            <button
+                            <div
                                 v-else
                                 class="layer-option"
                                 :style="{
@@ -55,12 +58,12 @@
                                 }"
                             >
                                 <div class="layer-option-active-icon">
-                                    <b-icon icon="dash-circle-fill" ></b-icon>
+                                    <b-icon icon="dash-circle-fill"></b-icon>
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
                                 </div>
-                            </button>
+                            </div>
                         </div>
                     </div>
                     <div v-else 
@@ -125,6 +128,7 @@ export default {
         return {
             active_layers: {},
             active_base_layers: '',
+            active_groups: {}
         };
     },
     computed: {
@@ -142,7 +146,8 @@ export default {
                         order: layer["sh_map_has_layer_order"],
                         // Si la capa está activa, se le asigna el valor true
                         active: (this.active_layers[layer.id] || layer.id == this.active_base_layers),
-                        enriched_data: layer["enriched_data"]
+                        enriched_data: layer["enriched_data"],
+                        layers_to_filter: layer["sh_map_has_layer_filter_layers"],
                     };
                 }
             ).sort(
@@ -161,6 +166,9 @@ export default {
                     grouped_layers[group_key] = _.groupBy(grouped_layers[group_key], 'subgroup')
                 }
                 )
+
+            grouped_layers.filter = false;
+
             return grouped_layers;
         },
         css_vars() {
@@ -201,6 +209,94 @@ export default {
             } else {
                 this.$set(this.active_layers, layer.key, !this.active_layers[layer.key])
             }
+
+            if(layer["layers_to_filter"]) {
+                this.layers_filter(layer, layer["layers_to_filter"]);
+            }
+
+            if(!this.active_layers[layer.key]) {
+                delete this.active_layers[layer.key];
+            }
+        },
+        layers_filter_by_group(group, groupKey) {
+
+            this.$set(this.active_groups, groupKey, !this.active_groups[groupKey])
+
+            let layers_to_filter = []
+
+            group.null.forEach((layer)=> {
+                if(layer["layers_to_filter"]) {
+
+                    const layers = JSON.parse(layer["layers_to_filter"]);
+
+                    layers.forEach((layer) => {
+                        layers_to_filter.push(layer)
+                    });
+                }
+
+                layers_to_filter.push(layer.key)
+
+                this.$set(this.active_layers, layer.key, !this.active_layers[layer.key])
+            });
+
+            if(layers_to_filter) {
+                this.layers_group_filter(groupKey, layers_to_filter);
+            }
+        },
+        layers_group_filter(group, layers_to_filter) {
+            if(this.active_groups[group]) {
+                for(const [key] of Object.entries(this.active_layers)) {
+                    if(key !== group) {
+                        this.$set(this.active_layers, key, false)
+                    }
+                }
+
+                layers_to_filter.forEach(ftl => {
+                    this.$set(this.active_layers, ftl, true);
+                });
+            }
+
+            if(!this.active_groups[group]) {
+                layers_to_filter.forEach(layerKey => {
+                    for (const [key] of Object.entries(this.active_layers)) {
+                        if(key !== layerKey && key !== group) {
+                            this.$set(this.active_layers, key, true)
+                        }
+                    }
+                    delete this.active_layers[layerKey];
+                });
+                delete this.active_layers[group];
+            }
+        },
+        layers_filter(layer, layers) {
+            const layers_to_filter = JSON.parse(layers);
+
+            if(this.active_layers[layer.key]) {
+                for(const [key] of Object.entries(this.active_layers)) {
+                    if(key !== layer.key) {
+                        this.$set(this.active_layers, key, false)
+                    }
+                }
+
+                layers_to_filter.forEach(ftl => {
+                    this.$set(this.active_layers, ftl, true);
+                });
+            }
+
+            if(!this.active_layers[layer.key]) {
+                layers_to_filter.forEach(layerKey => {
+                    for (const [key] of Object.entries(this.active_layers)) {
+                        if(key !== layerKey && key !== layer.key) {
+                            this.$set(this.active_layers, key, true)
+                        }
+                    }
+                    //this.$set(this.active_layers, layerKey, false);
+                    delete this.active_layers[layerKey];
+                });
+
+                //this.$set(this.active_layers, layer.key, false);
+                delete this.active_layers[layer.key];
+            }
         },
     },
 };
@@ -215,12 +311,26 @@ export default {
 }
 .layers-dropdown /deep/ {
     .layers-menu {
-        h5 {
-            font-size: 0.8rem;
-            color: var(--option-active-color);
-            margin-top: 30px;
-            margin-bottom: 5px;
-            text-align: left;
+        .grouped-title {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+
+            h5 {
+                cursor: pointer;
+                font-size: 0.8rem;
+                color: var(--option-active-color);
+                margin-top: 30px;
+                margin-bottom: 5px;
+                text-align: left;
+            }
+            svg {
+                cursor: pointer;
+                color: var(--option-active-color);
+                margin-top: 30px;
+                margin-bottom: 5px;
+                margin-right: 2px;
+            }
         }
         margin: 0;
         padding: 0 0 var(--global-radius) 0;
@@ -287,8 +397,8 @@ export default {
                         svg{
                             height: 16px;
                             width: 16px;
-                            margin-top: 3px;
-                            margin-right: 3px;
+                            margin-top: 2px;
+                            margin-right: 2px;
                         }
                     }
                     &.grouped {
