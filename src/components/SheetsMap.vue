@@ -102,7 +102,7 @@
 
                 <div v-if="operative_geojson_list.length > 0">
                     <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
-                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style" :options ="geojson_options"></l-geo-json>
+                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style" :options ="geojson_options" v-on:click="set_layer(operative_geojson)"></l-geo-json>
                     </div>
                     
                 </div>
@@ -1616,6 +1616,9 @@ export default {
             } else {
                 return false;
             }
+        },
+        set_layer(layer) {
+            this.$emit("set_layer", layer);
         }
     }
 }

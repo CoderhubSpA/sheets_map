@@ -8,8 +8,8 @@
                 :key="group_key"
             >
                 <div class="grouped-title">
-                    <h5 @click="layers_filter_by_group(group, group_key)">{{group_key}}</h5>
-                    <b-icon icon="filter-circle-fill" @click="layers_filter_by_group(group, group_key)"></b-icon>
+                    <h5 @click="get_layers_group(group, group_key)">{{group_key}}</h5>
+                    <b-icon icon="filter-circle-fill" @click="get_layers_group(group, group_key)"></b-icon>
                 </div>
                 <!-- Si no posee subgrupos -->
                 <div v-for="(subgroup, subgroup_key) in group"
@@ -123,6 +123,7 @@ export default {
         data: Object,
         layers: Object, // Todas las capas
         custom_styles: String,
+        layer_from_map: String,
     },
     data() {
         return {
@@ -134,6 +135,7 @@ export default {
     computed: {
         working_layers() {
             if (_.isEmpty(this.layers)) return [];
+
             return Object.values(this.layers).map(
                 (layer) => {
                     return {
@@ -165,9 +167,7 @@ export default {
                 (group_key) => {
                     grouped_layers[group_key] = _.groupBy(grouped_layers[group_key], 'subgroup')
                 }
-                )
-
-            grouped_layers.filter = false;
+            )
 
             return grouped_layers;
         },
@@ -200,104 +200,104 @@ export default {
             };
         },
     },
+    watch: {
+        layer_from_map(layerId) {
+            if(layerId) {
+                const layer = this.working_layers.find(layer => layer.key == layerId);
+                this.setLayerFromMap(layer);
+            }
+        }
+    },
     methods: {
         toggleLayer(layer) {
+            // If the layer is a base layer, toggle it on or off
             if (layer.type == "base") {
                 this.active_base_layers = (this.active_base_layers != layer.key)
                     ? layer.key
                     : '';
             } else {
+                // If the layer is not a base layer, toggle it in the active_layers object
                 this.$set(this.active_layers, layer.key, !this.active_layers[layer.key])
             }
 
-            if(layer["layers_to_filter"]) {
-                this.layers_filter(layer, layer["layers_to_filter"]);
-            }
-
+            // If the layer is not active, delete it from the active_layers object
             if(!this.active_layers[layer.key]) {
                 delete this.active_layers[layer.key];
             }
         },
-        layers_filter_by_group(group, groupKey) {
 
+        // This method toggles the state of a group of layers and filters the layers in the group
+        get_layers_group(group, groupKey) {
+            // Toggle the active state of the group
             this.$set(this.active_groups, groupKey, !this.active_groups[groupKey])
 
+            // Create an array to store all of the layers that need to be toggled
             let layers_to_filter = []
 
-            group.null.forEach((layer)=> {
-                if(layer["layers_to_filter"]) {
+            // Loop through each group
+            Object.keys(group).forEach(
+                (group_key) => {
+                    // Loop through each layer in the group
+                    group[group_key].forEach((layer)=> {
+                        // If the layer has a "layers_to_filter" property, add the layers to the array of layers to toggle
+                        if(layer["layers_to_filter"]) {
+                            const layers = JSON.parse(layer["layers_to_filter"]);
 
-                    const layers = JSON.parse(layer["layers_to_filter"]);
-
-                    layers.forEach((layer) => {
-                        layers_to_filter.push(layer)
+                            layers.forEach((layer) => {
+                                layers_to_filter.push(layer)
+                            });
+                        }
+                        // Add the layer to the array of layers to toggle
+                        layers_to_filter.push(layer.key)
                     });
                 }
+            );
 
-                layers_to_filter.push(layer.key)
-
-                this.$set(this.active_layers, layer.key, !this.active_layers[layer.key])
-            });
-
+            // If there are layers to toggle, toggle them
             if(layers_to_filter) {
-                this.layers_group_filter(groupKey, layers_to_filter);
+                this.filter_layers_group(groupKey, layers_to_filter);
             }
         },
-        layers_group_filter(group, layers_to_filter) {
+
+        // function to filter layers by group
+        filter_layers_group(group, layers_to_filter) {
+            // check if the group is active
             if(this.active_groups[group]) {
+                // if it is, turn off all other layers
                 for(const [key] of Object.entries(this.active_layers)) {
                     if(key !== group) {
                         this.$set(this.active_layers, key, false)
                     }
                 }
 
+                // then turn on the layers that are in the group
                 layers_to_filter.forEach(ftl => {
                     this.$set(this.active_layers, ftl, true);
                 });
             }
 
+            // if the group is not active
             if(!this.active_groups[group]) {
-                layers_to_filter.forEach(layerKey => {
-                    for (const [key] of Object.entries(this.active_layers)) {
-                        if(key !== layerKey && key !== group) {
-                            this.$set(this.active_layers, key, true)
-                        }
-                    }
-                    delete this.active_layers[layerKey];
-                });
-                delete this.active_layers[group];
-            }
-        },
-        layers_filter(layer, layers) {
-            const layers_to_filter = JSON.parse(layers);
-
-            if(this.active_layers[layer.key]) {
-                for(const [key] of Object.entries(this.active_layers)) {
-                    if(key !== layer.key) {
-                        this.$set(this.active_layers, key, false)
-                    }
+                // turn on all other layers
+                for (const [key] of Object.entries(this.active_layers)) {
+                    this.$set(this.active_layers, key, true)
                 }
-
-                layers_to_filter.forEach(ftl => {
-                    this.$set(this.active_layers, ftl, true);
-                });
-            }
-
-            if(!this.active_layers[layer.key]) {
-                layers_to_filter.forEach(layerKey => {
-                    for (const [key] of Object.entries(this.active_layers)) {
-                        if(key !== layerKey && key !== layer.key) {
-                            this.$set(this.active_layers, key, true)
-                        }
-                    }
-                    //this.$set(this.active_layers, layerKey, false);
-                    delete this.active_layers[layerKey];
-                });
-
-                //this.$set(this.active_layers, layer.key, false);
-                delete this.active_layers[layer.key];
+                // then delete the group
+                delete this.active_groups[group];
             }
         },
+
+        // This method is used to set the layer from the mapbox layer
+        setLayerFromMap(layer) {
+            // Get the grouped layers
+            let group = this.grouped_layers[layer.group];
+
+            // Check if the layer is active and the group exists
+            if(this.active_layers[layer.key] && group) {
+                // Get the layers inside the group
+                this.get_layers_group(group, layer.group);
+            }
+        }
     },
 };
 </script>
