@@ -265,7 +265,9 @@ export default {
             if(this.active_groups[group]) {
                 // if it is, turn off all other layers
                 for(const [key] of Object.entries(this.active_layers)) {
-                    if(key !== group) {
+                    let findLayerBaseType = this.working_layers.find(layer => layer.key == key);
+
+                    if(key !== group && findLayerBaseType.type !== "base") {
                         this.$set(this.active_layers, key, false)
                     }
                 }
