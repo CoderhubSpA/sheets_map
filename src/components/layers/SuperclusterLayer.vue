@@ -50,7 +50,7 @@
             v-on:click="getMarkerData(icon)"
         >
             <l-icon 
-                :icon-size="18"
+                :icon-size="[20, 20]"
                 :icon-url="base_url + layer.sh_map_has_layer_point_image"
             >
             </l-icon>

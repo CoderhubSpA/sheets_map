@@ -48,6 +48,7 @@
           info: Object,
           visible_columns: Array,
           entity_type_id: String,
+          popup_point_options: Object, 
         },
         methods: {
             getPopupData(marker,col){
