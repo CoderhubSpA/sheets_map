@@ -13,6 +13,7 @@
                 :entity_type_id="entity_type_id"
                 :base_url="base_url"
                 :theme="layer.sh_map_has_layer_custom_styles"
+                v-on:form="setForm"
                 ref="supercluster_layer"
             ></supercluster-layer>
     </div>
@@ -109,6 +110,9 @@ export default {
             const setSeconds = seg * 1000;
 
             this.refresh_data_interval_id = setInterval(this.requestData, setSeconds);
+        },
+        setForm(form) {
+            this.$emit("form", form);
         }
     },
 }

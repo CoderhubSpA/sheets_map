@@ -36,6 +36,7 @@
                 :visible_columns="visible_columns"
                 :info="info"
                 :entity_type_id="entity_type_id"
+                v-on:form="setForm"
             >
             </pop-up-marker>
         </l-circle-marker>
@@ -60,6 +61,7 @@
                 :visible_columns="visible_columns"
                 :info="info"
                 :entity_type_id="entity_type_id"
+                v-on:form="setForm"
             >
             </pop-up-marker>
         </l-marker>
@@ -295,7 +297,7 @@ export default {
                     console.error(error);
                 })
                 .finally(() => {
-                    console.log("done data");
+                    //
                 });
         },
         getPopupData(marker,col){
@@ -315,20 +317,8 @@ export default {
 
             this.clusters_markers = clusters_markers;
         },
-        setForm(markerId) {
-            const getFormColumn = this.info.columns.find((col) => {
-                return col.format === "FORM" && col.entity_type_id == this.entity_type_id && col.default_value;
-            });
-
-            if(getFormColumn && markerId) {
-                this.$emit("form", {
-                    type: "open_form",
-                    content: {
-                        form_id: getFormColumn.default_value,
-                        record_id: markerId
-                    }
-                });
-            }
+        setForm(form) {
+            this.$emit("form", form);
         }
     },
 };
