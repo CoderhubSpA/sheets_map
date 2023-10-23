@@ -50,17 +50,18 @@
           entity_type_id: String,
           popup_point_options: Object, 
         },
-        methods: {
-            getPopupData(marker,col){
-                return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
-            },
-    
+        computed: {
             getFormColFormat() {
                 const getFormColFormat = this.info.columns.find((column) => {
                     return column.format = "FORM"
                 })
     
                 return getFormColFormat ? true : false;
+            }
+        },
+        methods: {
+            getPopupData(marker,col){
+                return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
             },
             setForm(markerId) {
                 const getFormColumn = this.info.columns.find((col) => {

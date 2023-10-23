@@ -63,6 +63,7 @@
                     :map="map"
                     :config="config"
                     :css_vars="css_vars"
+                    v-on:form="setForm"
                     ref="supercluster_by_entity_type_layers"
                 ></supercluster-entity-type-layer>
                     <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
@@ -81,7 +82,7 @@
                     :base_url="base_url"
                     :theme="''"
                     ref="supercluster_layer"
-                    v-on:form="getForm"
+                    v-on:form="setForm"
                 ></supercluster-layer>
                 
                 <!-- 
@@ -1583,7 +1584,7 @@ export default {
             // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
             poweredByOpenStreetMap.insertBefore(poweredByCoderhubDiv, poweredByOpenStreetMap.firstChild);
         },
-        getForm(form) {
+        setForm(form) {
             if(form) {
                 this.$emit("form", form);
             }
