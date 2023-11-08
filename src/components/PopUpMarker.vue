@@ -64,15 +64,11 @@
                 return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
             },
             setForm(markerId) {
-                const getFormColumn = this.info.columns.find((col) => {
-                    return col.format === "FORM" && col.entity_type_id == this.entity_type_id && col.default_value;
-                });
-    
-                if(getFormColumn && markerId) {
+                if(this.info.entity_type.update_form_id || this.info.entity_type.create_form_id || this.info.entity_type.id && markerId) {
                     this.$emit("form", {
                         type: "open_form",
                         content: {
-                            form_id: getFormColumn.default_value,
+                            form_id: this.info.entity_type.update_form_id || this.info.entity_type.create_form_id || this.info.entity_type.id,
                             record_id: markerId
                         }
                     });
