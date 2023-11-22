@@ -58,7 +58,8 @@ export default {
         info                   : Object,
         style_variables        : Object,
         analytic_geojson_list  : Array,
-        operative_geojson_list : Array
+        operative_geojson_list : Array,
+        point_mode             : String
     },
     components: {
         LGeoJson,
@@ -166,8 +167,8 @@ export default {
                     this.polygon_arr_id_cont ++;
 
                     this.resetDraft();
-                }else{
-                    console.log("Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas");
+                } else {
+                    //Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas
                     this.resetDraft();
                 }
             }
@@ -182,6 +183,10 @@ export default {
                 // Tomamos las ultimas coordenadas seleccionadas
                 let lat = event.latlng.lat;
                 let lng = event.latlng.lng;
+
+                if(this.point_mode === 'form-point') {
+                    this.$emit('point', { lat: lat, lng: lng, mode: 'form-point'});
+                }
 
                 let coordinates = [lng, lat];
                 let polygon_structure;

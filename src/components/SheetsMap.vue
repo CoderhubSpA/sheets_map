@@ -35,6 +35,9 @@
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="openFormPoint()" title="Abrir un formulario haciendo click en el mapa">
+                        <b-icon icon="file-text"></b-icon>
+                    </b-button>
                 </section>
 
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
@@ -109,14 +112,15 @@
                 </div>
 
                 <!-- Polygon draft-->
-
                 <polygon-drafter
+                  ref="polygon_drafter"
                   :info="info"
                   :style_variables="style_variables"
                   :analytic_geojson_list="analytic_geojson_list"
                   :operative_geojson_list="operative_geojson_list"
-                  ref="polygon_drafter"
+                  :point_mode="point_mode"
                   v-on:apply-filter="polygonFilter"
+                  v-on:point="getPointMode"
                 ></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
@@ -228,6 +232,7 @@ export default {
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             color_point : 'yellow',
+            point_mode: '',
         };
     },
     computed:{
@@ -1620,6 +1625,53 @@ export default {
         },
         set_layer(layer) {
             this.$emit("set_layer", layer);
+        },
+        visible_columns() {
+            if(!this.info.columns) return [];
+            
+            let all_columns = this.info.columns;
+            let visible_columns = all_columns.filter( c => {
+                if (c.visible == 1) {
+                    return c;
+                }
+            })
+            .filter(d => d);
+
+            return visible_columns;
+        },
+        getPointMode(point) {
+            if (point.mode === 'form-point') {
+                this.openFormPoint(point);
+            }
+        },
+        openFormPoint(point = null) {
+            this.point_mode = 'form-point';
+
+            if (this.point_mode === 'form-point') {
+                this.polygonAction('delete');
+                this.polygonAction('draw');
+            }
+
+            if(point && point.mode === 'form-point') {
+                const latCol = this.info.columns.find( c => c.format === 'LATITUDE');
+                const lngCol = this.info.columns.find( c => c.format === 'LONGITUDE');
+
+                let params = {};
+                params[latCol.col_name] = point.lat;
+                params[lngCol.col_name] = point.lng;
+
+                this.$emit('form', {
+                    type: "open_form",
+                    content: {
+                        form_id: this.info.entity_type.create_form_id || this.info.entity_type.id,
+                        record_id: '',
+                        params: params
+                    }
+                });
+
+                this.point_mode = '';
+                this.polygonAction('delete');
+            }
         }
     }
 }
