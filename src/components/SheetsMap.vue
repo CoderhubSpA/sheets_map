@@ -3,7 +3,7 @@
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div ref="map_container" class="my-map-container" :class="{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}">
+        <div ref="map_container" class="my-map-container" :class="[{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}, {'drawing': point_mode == 'form-point'}]">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
@@ -35,9 +35,13 @@
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="openFormPoint()" title="Abrir un formulario haciendo click en el mapa">
-                        <b-icon icon="file-text"></b-icon>
-                    </b-button>
+                    <OpenFormPoint
+                        :info="info"
+                        :mapPoint="point"
+                        :styleVariables="style_variables"
+                        v-on:point-mode="pointMode"
+                        v-on:data-form="setForm"
+                    />
                 </section>
 
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
@@ -118,9 +122,7 @@
                   :style_variables="style_variables"
                   :analytic_geojson_list="analytic_geojson_list"
                   :operative_geojson_list="operative_geojson_list"
-                  :point_mode="point_mode"
                   v-on:apply-filter="polygonFilter"
-                  v-on:point="getPointMode"
                 ></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
@@ -155,6 +157,7 @@ import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
 import { BButton, BIcon } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
+import OpenFormPoint from './form/openFormPoint.vue';
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -176,7 +179,9 @@ export default {
         SearchBarProxy,
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
-        PolygonDrafter
+        PolygonDrafter,
+        OpenFormPoint
+
     },
     props: {
         // Propiedades de componentes
@@ -232,6 +237,7 @@ export default {
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             color_point : 'yellow',
+            point: null,
             point_mode: '',
         };
     },
@@ -1199,7 +1205,17 @@ export default {
             });
         },
         onMapClick(event){
-          this.$refs.polygon_drafter.addPolygon(event);
+            // Check the mode
+            if(this.point_mode === 'form-point') {
+                // Save the point
+                this.point = { lat: event.latlng.lat, lng: event.latlng.lng };
+                return;
+            } 
+            // Check the mode
+            if(this.point_mode === 'draw-polygon') {
+                // Add the point to the polygon drafter
+                this.$refs.polygon_drafter.addPolygon(event);
+            }
         },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
@@ -1531,19 +1547,25 @@ export default {
             return info;
         },
         // END HELPERS
+        // Polygon Action: draw or delete
         polygonAction(action) {
             switch (action) {
                 case 'draw': {
+                    // Set point mode to draw
+                    this.point_mode = 'draw-polygon';
+
+                    // Call the draw method on the polygon drafter
                     this.$refs.polygon_drafter.draw();
+
                     break;
                 }
                 case 'delete': {
+                    // Call the delete method on the polygon drafter
                     this.$refs.polygon_drafter.deletePolygon();
                     break;
 
                 }
             }
-
         },
         polygonFilter(bounds_filters) {
           this.bounds_filters = bounds_filters;  
@@ -1626,53 +1648,9 @@ export default {
         set_layer(layer) {
             this.$emit("set_layer", layer);
         },
-        visible_columns() {
-            if(!this.info.columns) return [];
-            
-            let all_columns = this.info.columns;
-            let visible_columns = all_columns.filter( c => {
-                if (c.visible == 1) {
-                    return c;
-                }
-            })
-            .filter(d => d);
-
-            return visible_columns;
+        pointMode(mode) {
+            this.point_mode = mode;
         },
-        getPointMode(point) {
-            if (point.mode === 'form-point') {
-                this.openFormPoint(point);
-            }
-        },
-        openFormPoint(point = null) {
-            this.point_mode = 'form-point';
-
-            if (this.point_mode === 'form-point') {
-                this.polygonAction('delete');
-                this.polygonAction('draw');
-            }
-
-            if(point && point.mode === 'form-point') {
-                const latCol = this.info.columns.find( c => c.format === 'LATITUDE');
-                const lngCol = this.info.columns.find( c => c.format === 'LONGITUDE');
-
-                let params = {};
-                params[latCol.col_name] = point.lat;
-                params[lngCol.col_name] = point.lng;
-
-                this.$emit('form', {
-                    type: "open_form",
-                    content: {
-                        form_id: this.info.entity_type.create_form_id || this.info.entity_type.id,
-                        record_id: '',
-                        params: params
-                    }
-                });
-
-                this.point_mode = '';
-                this.polygonAction('delete');
-            }
-        }
     }
 }
 </script>

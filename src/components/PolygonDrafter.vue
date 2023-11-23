@@ -58,8 +58,7 @@ export default {
         info                   : Object,
         style_variables        : Object,
         analytic_geojson_list  : Array,
-        operative_geojson_list : Array,
-        point_mode             : String
+        operative_geojson_list : Array
     },
     components: {
         LGeoJson,
@@ -183,10 +182,6 @@ export default {
                 // Tomamos las ultimas coordenadas seleccionadas
                 let lat = event.latlng.lat;
                 let lng = event.latlng.lng;
-
-                if(this.point_mode === 'form-point') {
-                    this.$emit('point', { lat: lat, lng: lng, mode: 'form-point'});
-                }
 
                 let coordinates = [lng, lat];
                 let polygon_structure;
