@@ -10,12 +10,15 @@
 
 <script>
 import { LGeoJson } from 'vue2-leaflet';
+import { BButton, BIcon } from 'bootstrap-vue';
 
 
 export default {
     name: 'OpenFormPoint',
     components: {
         LGeoJson,
+        BButton, 
+        BIcon
     },
     props: {
         info: {
@@ -73,7 +76,7 @@ export default {
                 // some permissions. First, we check if the user has the
                 // permission to create an entity, and if so, we set the
                 // createPermission property to true.
-                if (info) {
+                if (Object.keys(info).length > 0) {
                     const createPermission = this.info.entity_type_permission.find(p => p.create == '1');
                     if (createPermission) this.createPermission = true;
                 }
