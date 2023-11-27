@@ -1645,7 +1645,7 @@ export default {
                 return false;
             }
         },
-        set_layer(layer) {
+        setLayer(layer) {
             this.$emit("set_layer", layer);
         },
         setPointMode(mode) {
