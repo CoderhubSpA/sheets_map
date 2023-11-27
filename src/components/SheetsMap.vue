@@ -1627,7 +1627,7 @@ export default {
 
             return true;
         },
-        getCoordsFromUrlParams() {setPointMode
+        getCoordsFromUrlParams() {
             let params = new URLSearchParams(document.location.search);
             let coords = params.get("center_map");// param value example: center_map=-33.472,-70.769
 
