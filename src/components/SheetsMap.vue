@@ -39,7 +39,7 @@
                         :info="info"
                         :mapPoint="point"
                         :styleVariables="style_variables"
-                        v-on:point-mode="pointMode"
+                        v-on:point-mode="setPointMode"
                         v-on:data-form="setForm"
                     />
                 </section>
@@ -110,7 +110,7 @@
 
                 <div v-if="operative_geojson_list.length > 0">
                     <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
-                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style" :options ="geojson_options" v-on:click="set_layer(operative_geojson)"></l-geo-json>
+                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style" :options ="geojson_options" v-on:click="setLayer(operative_geojson)"></l-geo-json>
                     </div>
                     
                 </div>
@@ -1627,7 +1627,7 @@ export default {
 
             return true;
         },
-        getCoordsFromUrlParams() {
+        getCoordsFromUrlParams() {setPointMode
             let params = new URLSearchParams(document.location.search);
             let coords = params.get("center_map");// param value example: center_map=-33.472,-70.769
 
@@ -1648,7 +1648,7 @@ export default {
         set_layer(layer) {
             this.$emit("set_layer", layer);
         },
-        pointMode(mode) {
+        setPointMode(mode) {
             this.point_mode = mode;
         },
     }
