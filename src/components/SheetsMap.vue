@@ -3,7 +3,7 @@
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
-        <div ref="map_container" class="my-map-container" :class="{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}">
+        <div ref="map_container" class="my-map-container" :class="[{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}, {'drawing': point_mode == 'form-point'}]">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
@@ -35,6 +35,13 @@
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
+                    <OpenFormPoint
+                        :info="info"
+                        :mapPoint="point"
+                        :styleVariables="style_variables"
+                        v-on:point-mode="pointMode"
+                        v-on:data-form="setForm"
+                    />
                 </section>
 
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
@@ -109,13 +116,12 @@
                 </div>
 
                 <!-- Polygon draft-->
-
                 <polygon-drafter
+                  ref="polygon_drafter"
                   :info="info"
                   :style_variables="style_variables"
                   :analytic_geojson_list="analytic_geojson_list"
                   :operative_geojson_list="operative_geojson_list"
-                  ref="polygon_drafter"
                   v-on:apply-filter="polygonFilter"
                 ></polygon-drafter>
 
@@ -151,6 +157,7 @@ import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
 import { BButton, BIcon } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
+import OpenFormPoint from './form/openFormPoint.vue';
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -172,7 +179,9 @@ export default {
         SearchBarProxy,
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
-        PolygonDrafter
+        PolygonDrafter,
+        OpenFormPoint
+
     },
     props: {
         // Propiedades de componentes
@@ -228,6 +237,8 @@ export default {
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             color_point : 'yellow',
+            point: null,
+            point_mode: '',
         };
     },
     computed:{
@@ -1194,7 +1205,17 @@ export default {
             });
         },
         onMapClick(event){
-          this.$refs.polygon_drafter.addPolygon(event);
+            // Check the mode
+            if(this.point_mode === 'form-point') {
+                // Save the point
+                this.point = { lat: event.latlng.lat, lng: event.latlng.lng };
+                return;
+            } 
+            // Check the mode
+            if(this.point_mode === 'draw-polygon') {
+                // Add the point to the polygon drafter
+                this.$refs.polygon_drafter.addPolygon(event);
+            }
         },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
@@ -1526,19 +1547,25 @@ export default {
             return info;
         },
         // END HELPERS
+        // Polygon Action: draw or delete
         polygonAction(action) {
             switch (action) {
                 case 'draw': {
+                    // Set point mode to draw
+                    this.point_mode = 'draw-polygon';
+
+                    // Call the draw method on the polygon drafter
                     this.$refs.polygon_drafter.draw();
+
                     break;
                 }
                 case 'delete': {
+                    // Call the delete method on the polygon drafter
                     this.$refs.polygon_drafter.deletePolygon();
                     break;
 
                 }
             }
-
         },
         polygonFilter(bounds_filters) {
           this.bounds_filters = bounds_filters;  
@@ -1620,7 +1647,10 @@ export default {
         },
         set_layer(layer) {
             this.$emit("set_layer", layer);
-        }
+        },
+        pointMode(mode) {
+            this.point_mode = mode;
+        },
     }
 }
 </script>

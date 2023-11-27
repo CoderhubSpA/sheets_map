@@ -166,8 +166,8 @@ export default {
                     this.polygon_arr_id_cont ++;
 
                     this.resetDraft();
-                }else{
-                    console.log("Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas");
+                } else {
+                    //Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas
                     this.resetDraft();
                 }
             }
