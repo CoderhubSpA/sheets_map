@@ -39,6 +39,7 @@
                         :info="info"
                         :mapPoint="point"
                         :styleVariables="style_variables"
+                        :operativeGeojsonList="operative_geojson_list"
                         v-on:point-mode="setPointMode"
                         v-on:data-form="setForm"
                     />
