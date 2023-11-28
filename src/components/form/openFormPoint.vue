@@ -1,10 +1,18 @@
 <template>
-    <div v-if="createPermission">
-        <l-geo-json :geojson="point" :options-style="draft_style" v-if="point"></l-geo-json>
-
+    <div v-if="createPermission" >
         <b-button class="get-point-btn" @click.capture.stop="getPoint()" title="Abrir un formulario haciendo click en el mapa">
             <b-icon icon="file-text"></b-icon>
         </b-button>
+
+        <div v-if="pointStructure">
+            <l-geo-json :geojson="point" :options-style="draft_style"></l-geo-json>
+        </div>
+
+        <div v-if="operativeGeojsonList.length > 0 && searchingPoint">
+            <div v-for="operativeGeojson in operativeGeojsonList" :key="operativeGeojson.id">
+                <l-geo-json :geojson="operativeGeojson.geojson" :options-style="activeLayerDraftStyle"></l-geo-json>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -17,7 +25,7 @@ export default {
     name: 'OpenFormPoint',
     components: {
         LGeoJson,
-        BButton, 
+        BButton,
         BIcon
     },
     props: {
@@ -33,6 +41,10 @@ export default {
             type: Object,
             required: false,
         },
+        operativeGeojsonList: {
+            type: Array,
+            required: false,
+        },
     },
     data() {
         return {
@@ -44,7 +56,7 @@ export default {
                         "type": "Feature",
                         "properties": {},
                         "geometry": {
-                            "type": "Polygon",
+                            "type": "Point",
                             "coordinates": [
                                 []
                             ]
@@ -64,6 +76,14 @@ export default {
                 opacity: this.styleVariables.draft_opacity,
                 fillColor: this.styleVariables.draft_fill_color,
                 fillOpacity: this.styleVariables.draft_fill_opacity,
+            };
+
+            return style;
+        },
+        activeLayerDraftStyle() {
+            const style = {
+                opacity: 0,
+                fillOpacity : 0
             };
 
             return style;
@@ -108,7 +128,7 @@ export default {
             // If the user is no longer searching for a point, clear the point attribute
             // and emit the point-mode event with an empty string
             if (!this.searchingPoint) {
-                this.point = null;
+                this.point = this.pointStructure.features[0].geometry.coordinates = [];
 
                 this.$emit('point-mode', '');
             }
@@ -123,14 +143,11 @@ export default {
                 let coordinates = [lng, lat];
                 let pointStructure;
 
-                // If the point hasn't been created yet, create it
-                if (!this.point) {
-                    pointStructure = JSON.parse(JSON.stringify(this.pointStructure))
-                    pointStructure["features"][0]["geometry"]["type"] = "Point";
-                    pointStructure["features"][0]["geometry"]["coordinates"] = coordinates;
+                // Create a copy of the pointStructure object
+                pointStructure = JSON.parse(JSON.stringify(this.pointStructure))
+                pointStructure["features"][0]["geometry"]["coordinates"] = coordinates;
 
-                    this.point = pointStructure;
-                }
+                this.point = pointStructure;
 
                 // Send the data to the form
                 this.sendDataForm(point);
