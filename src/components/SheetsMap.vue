@@ -585,7 +585,7 @@ export default {
                 this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
             }
 
-            this.map.closePopup(); // Cerramos todos los popups al hacer zoom
+            this.map.closePopup(); // Cerramos todos los popups al hacer zoom https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
         },
         active_layers: {
           handler() {
@@ -1208,7 +1208,7 @@ export default {
                 ref.getClusterMarkers();
             });
 
-            this.map.closePopup(); // Cerramos todos los popups al mover el mapa
+            this.map.closePopup(); // Cerramos todos los popups al mover el mapa https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
         },
         onMapClick(event){
             // Check the mode
