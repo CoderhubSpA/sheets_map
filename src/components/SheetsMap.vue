@@ -581,8 +581,11 @@ export default {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
         zoom(newZoom){
-          if(this.analytic_cluster_initial_zoom !== undefined)
-            this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
+            if(this.analytic_cluster_initial_zoom !== undefined) {
+                this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
+            }
+
+            this.map.closePopup(); // Cerramos todos los popups al hacer zoom https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
         },
         active_layers: {
           handler() {
@@ -1204,6 +1207,8 @@ export default {
             this.$refs.supercluster_by_entity_type_layers?.forEach((ref) => {
                 ref.getClusterMarkers();
             });
+
+            this.map.closePopup(); // Cerramos todos los popups al mover el mapa https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
         },
         onMapClick(event){
             // Check the mode
