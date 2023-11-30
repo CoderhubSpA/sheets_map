@@ -201,7 +201,9 @@ export default {
         // SheetsMapTools
         config                : Object, // Todas las capas
         layers                : Object, // Todas las capas
-        working_layers        : Array
+        working_layers        : Array,
+        trigger_filter_function: Boolean
+
     },
     data () {
         return {
@@ -240,6 +242,7 @@ export default {
             color_point : 'yellow',
             point: null,
             point_mode: '',
+            is_trigger_filter_function: false,
         };
     },
     computed:{
@@ -599,7 +602,18 @@ export default {
           },
           deep: true
         },
+        trigger_filter_function(val) {
+            if(val) {
+                this.is_trigger_filter_function = true;
 
+                if(this.is_trigger_filter_function) {
+                    this.filter();
+
+                    this.is_trigger_filter_function = false;
+                }
+
+            }
+        },
     },
     created(){
         
