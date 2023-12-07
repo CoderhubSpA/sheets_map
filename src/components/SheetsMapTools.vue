@@ -247,45 +247,42 @@ export default {
                                 layers_to_filter.push(layer)
                             });
                         }
-                        // Add the layer to the array of layers to toggle
-                        layers_to_filter.push(layer.key)
                     });
                 }
             );
 
-            // If there are layers to toggle, toggle them
-            if(layers_to_filter) {
+            if(layers_to_filter.length > 0) {
                 this.filter_layers_group(groupKey, layers_to_filter);
             }
         },
 
         // function to filter layers by group
-        filter_layers_group(group, layers_to_filter) {
-            // check if the group is active
-            if(this.active_groups[group]) {
+        filter_layers_group(groupKey, layers_to_filter) {
+            // check if the groupKey is active
+            if(this.active_groups[groupKey]) {
                 // if it is, turn off all other layers
                 for(const [key] of Object.entries(this.active_layers)) {
                     let findLayerBaseType = this.working_layers.find(layer => layer.key == key);
 
-                    if(key !== group && findLayerBaseType.type !== "base") {
+                    if(key !== findLayerBaseType.key && findLayerBaseType.type !== "base") {
                         this.$set(this.active_layers, key, false)
                     }
                 }
 
-                // then turn on the layers that are in the group
+                // then turn on the layers that are in the groupKey
                 layers_to_filter.forEach(ftl => {
-                    this.$set(this.active_layers, ftl, true);
+                        this.$set(this.active_layers, ftl, false);
                 });
             }
 
-            // if the group is not active
-            if(!this.active_groups[group]) {
+            // if the groupKey is not active
+            if(!this.active_groups[groupKey]) {
                 // turn on all other layers
                 for (const [key] of Object.entries(this.active_layers)) {
                     this.$set(this.active_layers, key, true)
                 }
-                // then delete the group
-                delete this.active_groups[group];
+                // then delete the groupKey
+                delete this.active_groups[groupKey];
             }
         },
 
