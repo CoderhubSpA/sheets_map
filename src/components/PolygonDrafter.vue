@@ -129,23 +129,33 @@ export default {
                 });
             this.map.on('pm:create', (e) =>  {
                 console.log(e);
-                if(e.shape == "Circle"){
-                    console.log("you drew a circle c:")
-                }
-                // console.log(e.layer.getLatLng())
-                // console.log(e.layer.getRadius())
-                // console.log(L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON());
+                let polygon_id = "ID"+this.polygon_arr_id_cont;
                 const layer = e.layer;
-                layer._leaflet_id = 0; // Assign ID to the layer
-
-                // Get the GeoJSON of the created figure and add the ID
-                const geojson = layer.toGeoJSON();
-                geojson.properties.id = 0;
-
-                // You can now save this GeoJSON to your backend or local storage
-                console.log("Saved GeoJSON: ", geojson);
+                let geojson;
+                if(e.shape == "Circle"){
+                    geojson = L.PM.Utils.circleToPolygon(layer, 60).toGeoJSON();
+                } else {
+                    geojson = layer.toGeoJSON();
+                }
+                geojson.properties.id = polygon_id;
+                this.polygon_arr[polygon_id] = geojson;
+                this.polygon_arr_id_cont ++;
                 e.layer.options.pmIgnore = false;
+                console.log(this.polygon_arr);
                 L.PM.reInitLayer(e.layer);
+                e.layer.on('pm:update', (e) => {
+                    console.log(e);
+                });
+                e.layer.on('pm:remove', (e) => {
+                    console.log(e);
+                });
+                console.log(e.layer);
+            });
+            this.map.on("pm:globaleditmodetoggled", (e) => {
+                console.log(e);
+            });
+            this.map.on("pm:globaldragmodetoggled", (e) => {
+                console.log(e);
             });
         }
     },
