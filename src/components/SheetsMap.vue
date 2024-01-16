@@ -123,6 +123,7 @@
                   :style_variables="style_variables"
                   :analytic_geojson_list="analytic_geojson_list"
                   :operative_geojson_list="operative_geojson_list"
+                  :map="map"
                   v-on:apply-filter="polygonFilter"
                 ></polygon-drafter>
 
@@ -159,7 +160,8 @@ import { BButton, BIcon } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import OpenFormPoint from './form/openFormPoint.vue';
-
+import "@geoman-io/leaflet-geoman-free";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -1571,11 +1573,12 @@ export default {
         polygonAction(action) {
             switch (action) {
                 case 'draw': {
+                    this.map.pm.enableDraw('Polygon');
                     // Set point mode to draw
-                    this.point_mode = 'draw-polygon';
+                    // this.point_mode = 'draw-polygon';
 
-                    // Call the draw method on the polygon drafter
-                    this.$refs.polygon_drafter.draw();
+                    // // Call the draw method on the polygon drafter
+                    // this.$refs.polygon_drafter.draw();
 
                     break;
                 }

@@ -51,14 +51,15 @@ import {
     LGeoJson,
     LCircleMarker
 } from 'vue2-leaflet';
-
+import * as L from 'leaflet';
 export default {
     name: "PolygonDrafter",
     props: {
         info                   : Object,
         style_variables        : Object,
         analytic_geojson_list  : Array,
-        operative_geojson_list : Array
+        operative_geojson_list : Array,
+        map: Object,
     },
     components: {
         LGeoJson,
@@ -116,6 +117,36 @@ export default {
 
 
                 return style;
+        }
+    },
+    watch:{
+        map () {
+            L.PM.setOptIn(true);
+            this.map.pm.addControls({  
+                    position: 'topleft',  
+                    drawCircleMarker: false,
+                    rotateMode: false,
+                });
+            this.map.on('pm:create', (e) =>  {
+                console.log(e);
+                if(e.shape == "Circle"){
+                    console.log("you drew a circle c:")
+                }
+                // console.log(e.layer.getLatLng())
+                // console.log(e.layer.getRadius())
+                // console.log(L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON());
+                const layer = e.layer;
+                layer._leaflet_id = 0; // Assign ID to the layer
+
+                // Get the GeoJSON of the created figure and add the ID
+                const geojson = layer.toGeoJSON();
+                geojson.properties.id = 0;
+
+                // You can now save this GeoJSON to your backend or local storage
+                console.log("Saved GeoJSON: ", geojson);
+                e.layer.options.pmIgnore = false;
+                L.PM.reInitLayer(e.layer);
+            });
         }
     },
     methods:{
