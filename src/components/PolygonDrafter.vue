@@ -137,25 +137,42 @@ export default {
                 } else {
                     geojson = layer.toGeoJSON();
                 }
+                layer.properties = polygon_id;
                 geojson.properties.id = polygon_id;
-                this.polygon_arr[polygon_id] = geojson;
+                let polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
+                polygon_structure["features"][0] = geojson; 
+                this.polygon_arr[polygon_id] = polygon_structure;
                 this.polygon_arr_id_cont ++;
                 e.layer.options.pmIgnore = false;
-                console.log(this.polygon_arr);
                 L.PM.reInitLayer(e.layer);
                 e.layer.on('pm:update', (e) => {
                     console.log(e);
+                    let polygon_id = e.layer.properties;
+                    let geojson;
+                    if (e.shape == "Circle") {
+                        geojson = L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON();
+                    } else {
+                        geojson = e.layer.toGeoJSON();
+                    }
+                    geojson.properties.id = polygon_id;
+                    let polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
+                    polygon_structure["features"][0] = geojson; 
+                    this.polygon_arr[polygon_id] = polygon_structure;
+                    console.log(this.polygon_arr);
+                    this.polygonBounds();
+                    this.$emit('apply-filter', this.bounds_filters);
                 });
                 e.layer.on('pm:remove', (e) => {
                     console.log(e);
+                    let polygon_id = e.layer.properties;
+                    delete this.polygon_arr[polygon_id];
+                    console.log(this.polygon_arr);
+                    this.polygonBounds();
+                    this.$emit('apply-filter', this.bounds_filters);
                 });
                 console.log(e.layer);
-            });
-            this.map.on("pm:globaleditmodetoggled", (e) => {
-                console.log(e);
-            });
-            this.map.on("pm:globaldragmodetoggled", (e) => {
-                console.log(e);
+                this.polygonBounds();
+                this.$emit('apply-filter', this.bounds_filters);
             });
         }
     },
@@ -166,6 +183,7 @@ export default {
 
             for (const [key, geojson] of Object.entries(this.polygon_arr)) {
                 console.log(key);
+                console.log(geojson);
                 search.push(geojson.features[0].geometry.coordinates[0]);
             }
 
@@ -190,7 +208,7 @@ export default {
                 };
                 return bounds_filter;
             });
-
+            console.log(search)
             this.bounds_filters = bounds_filters;
 
         },
