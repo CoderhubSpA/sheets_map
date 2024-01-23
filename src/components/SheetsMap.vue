@@ -29,12 +29,12 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
+                    <!-- <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
                         <b-icon icon="eraser"></b-icon>
-                    </b-button>
+                    </b-button> -->
                     <OpenFormPoint
                         :info="info"
                         :mapPoint="point"
