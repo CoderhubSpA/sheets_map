@@ -10,6 +10,7 @@
     "build-library": "vue-cli-service build --target lib --name index ./src/main.js"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.15.0",
     "axios": "^0.27.2",
     "bootstrap": "^4.6.2",
     "bootstrap-icons": "^1.8.3",
