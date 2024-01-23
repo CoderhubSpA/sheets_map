@@ -10,7 +10,10 @@
                     <b>{{ col.name }}</b>
                 </span>
                 <br />
-                <span class="marker-pop-up-info-content">
+                <a v-if="col.format == 'URL'" :href="getPopupData(marker, col)" target="_blank" class="marker-pop-up-info-content">
+                    {{ getPopupData(marker, col) }}
+                </a>
+                <span v-else class="marker-pop-up-info-content">
                     {{ getPopupData(marker, col) }}
                 </span>
             </div>
