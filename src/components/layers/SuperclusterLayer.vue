@@ -97,6 +97,7 @@ export default {
         base_url: String,
         visible: Boolean,
         theme: String,
+        clusterize: Boolean,
     },
     components: {
         LLayerGroup,
@@ -243,7 +244,7 @@ export default {
             return getFormColFormat ? true : false;
         }
     },
-    created() {
+    created(clusterize) {
         let zoom = this.layer.sh_map_has_layer_clustering_zoom;
 
         zoom = parseInt(zoom);
@@ -253,7 +254,7 @@ export default {
         }
 
         this.index = new Supercluster({
-            radius: 40, // clusterizar en un radio de (radio es relativo al zoom)
+            radius: clusterize ? 40 : 0, // clusterizar en un radio de (radio es relativo al zoom)
             maxZoom: zoom, // Maximo zoom a clusterizar
         });
         this.index.load([]);
@@ -277,6 +278,9 @@ export default {
             );
 
             this.center = [markers_sum[0] / total, markers_sum[1] / total];
+        },
+        clusterize() {
+            this.getClusterMarkers();
         },
     },
     methods: {
