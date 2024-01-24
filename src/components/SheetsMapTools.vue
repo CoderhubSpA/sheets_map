@@ -96,6 +96,10 @@
                     <SheetsTooltip v-if="subgroup[0].enriched_data" :data="subgroup[0].enriched_data" :layerKey="subgroup[0].key" />
                 </div>
             </section>
+            <section>
+                <input type="checkbox" id="clusterize" v-model="clusterize"/>
+                <label for="clusterize">Clusterizar</label>
+            </section>
         </menu>
     </div>
 </template>
@@ -129,7 +133,8 @@ export default {
         return {
             active_layers: {},
             active_base_layers: '',
-            active_groups: {}
+            active_groups: {},
+            clusterize: true,
         };
     },
     computed: {
