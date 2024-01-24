@@ -280,7 +280,7 @@ export default {
             this.center = [markers_sum[0] / total, markers_sum[1] / total];
         },
         clusterize() {
-            this.getClusterMarkers();
+            this.created(this.clusterize)
         },
     },
     methods: {
