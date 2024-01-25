@@ -97,6 +97,9 @@
                 </div>
             </section>
         </menu>
+        <div class="my-2" v-if="Object.values(grouped_layers).length > 1">
+            <button class="btn btn-success btn-sm uncheck-layers" @click="uncheckLayers" data-toggle="tooltip" data-placement="right" title="Desmarca todas las capas seleccionadas">Desmarcar capas</button>
+        </div>
     </div>
 </template>
 <script>
@@ -296,6 +299,11 @@ export default {
                 // Get the layers inside the group
                 this.get_layers_group(group, layer.group);
             }
+        },
+        uncheckLayers() {
+            this.active_layers = {};
+            this.active_base_layers = '';
+            this.active_groups = {};
         }
     },
 };
@@ -541,7 +549,18 @@ export default {
             background-color: var(--scrollbar-color);
         }
     }
+.uncheck-layers{
+    padding: 0.3rem 0.5rem;
+    color: var(--button-text-color);
+    background-color: var(--button-color);
+    border: none;
+    border-radius: var(--global-radius);
+    font-size: 0.8rem;
+    cursor: pointer;
 
-   
+    &:hover{
+        background-color: var(--button-hover-color);
+    }
+}
 }
 </style>
