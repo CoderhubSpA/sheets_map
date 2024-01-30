@@ -96,13 +96,13 @@
                     <SheetsTooltip v-if="subgroup[0].enriched_data" :data="subgroup[0].enriched_data" :layerKey="subgroup[0].key" />
                 </div>
             </section>
-            <section>
-                <input type="checkbox" id="clusterize" v-model="clusterize"/>
-                <label for="clusterize">Clusterizar</label>
-            </section>
         </menu>
         <div class="my-2" v-if="Object.values(grouped_layers).length > 1">
             <button class="btn btn-success btn-sm uncheck-layers" @click="uncheckLayers" data-toggle="tooltip" data-placement="right" title="Desmarca todas las capas seleccionadas">Desmarcar capas</button>
+        </div>
+        <div style="display:flex; flex-direction:row; justify-content:center; margin-top: 2em">
+            <input type="checkbox" id="clusterize" v-model="clusterize"/>
+            <label style="margin-bottom: 0; margin-left: 8px; color:var(--option-active-color)" for="clusterize" >Clusterizar</label>
         </div>
     </div>
 </template>
@@ -214,7 +214,10 @@ export default {
                 const layer = this.working_layers.find(layer => layer.key == layerId);
                 this.setLayerFromMap(layer);
             }
-        }
+        },
+        clusterize(state) {
+            this.$emit('clusterize', state);
+        },
     },
     methods: {
         toggleLayer(layer) {
