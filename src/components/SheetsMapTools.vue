@@ -100,6 +100,10 @@
         <div class="my-2" v-if="Object.values(grouped_layers).length > 1">
             <button class="btn btn-success btn-sm uncheck-layers" @click="uncheckLayers" data-toggle="tooltip" data-placement="right" title="Desmarca todas las capas seleccionadas">Desmarcar capas</button>
         </div>
+        <div style="display:flex; flex-direction:row; justify-content:center; margin-top: 2em">
+            <input type="checkbox" id="clusterize" v-model="clusterize"/>
+            <label style="margin-bottom: 0; margin-left: 8px; color:var(--option-active-color)" for="clusterize" >Clusterizar</label>
+        </div>
     </div>
 </template>
 <script>
@@ -132,7 +136,8 @@ export default {
         return {
             active_layers: {},
             active_base_layers: '',
-            active_groups: {}
+            active_groups: {},
+            clusterize: true,
         };
     },
     computed: {
@@ -209,7 +214,10 @@ export default {
                 const layer = this.working_layers.find(layer => layer.key == layerId);
                 this.setLayerFromMap(layer);
             }
-        }
+        },
+        clusterize(state) {
+            this.$emit('clusterize', state);
+        },
     },
     methods: {
         toggleLayer(layer) {
