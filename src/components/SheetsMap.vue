@@ -29,12 +29,24 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <!-- <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('marker')" title="Traza libremente sobre el mapa" :pressed="buttons_pressed['marker']">
+                        <b-icon icon="geo"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('polyline')" title="Traza libremente sobre el mapa" :pressed="buttons_pressed['polyline']">
+                        <b-icon icon="slash-lg"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                        <b-icon icon="circle"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                        <b-icon icon="square"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
                         <b-icon icon="eraser"></b-icon>
-                    </b-button> -->
+                    </b-button>
                     <OpenFormPoint
                         :info="info"
                         :mapPoint="point"
@@ -247,6 +259,14 @@ export default {
             point: null,
             point_mode: '',
             is_trigger_filter_function: false,
+            buttons_pressed: {
+                marker: false,
+                polyline: false,
+                polygon: false,
+                circle: false,
+                rectangle: false,
+                delete: false
+            },
         };
     },
     computed:{
@@ -1574,19 +1594,48 @@ export default {
         // Polygon Action: draw or delete
         polygonAction(action) {
             switch (action) {
-                case 'draw': {
-                    this.map.pm.enableDraw('Polygon');
-                    // Set point mode to draw
-                    // this.point_mode = 'draw-polygon';
-
-                    // // Call the draw method on the polygon drafter
-                    // this.$refs.polygon_drafter.draw();
+                case 'marker': {
+                    if(this.buttons_pressed["marker"]){
+                        this.map.pm.disableDraw();
+                    } else {
+                        this.map.pm.enableDraw('Marker');
+                    }
+                    this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
 
                     break;
                 }
+                case'polyline': {
+                    if(this.buttons_pressed["polyline"]){
+                        this.map.pm.Draw.Line._finishShape();
+                        this.map.pm.disableDraw();
+                    } else {
+                        this.map.pm.enableDraw('Line');
+                    }
+                    this.buttons_pressed["polyline"] = !this.buttons_pressed["polyline"];
+
+                    break;
+                }
+                case 'polygon': {
+                    this.map.pm.enableDraw('Polygon');
+
+                    break;
+                }
+                case 'circle': {
+                    this.map.pm.enableDraw('Circle');
+
+                    break;
+                }
+                case 'rectangle': {
+                    this.map.pm.enableDraw('Rectangle');
+
+                    break;
+                }
+
                 case 'delete': {
                     // Call the delete method on the polygon drafter
-                    this.$refs.polygon_drafter.deletePolygon();
+                    // this.$refs.polygon_drafter.deletePolygon();
+                    this.map.pm.toggleGlobalRemovalMode();
+                    this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
                     break;
 
                 }

@@ -122,13 +122,6 @@ export default {
     watch:{
         map () {
             L.PM.setOptIn(true);
-            this.map.pm.addControls({  
-                    position: 'topleft',  
-                    drawCircleMarker: false,
-                    rotateMode: false,
-                    cutPolygon: false,
-                    drawText: false,
-                });
             this.map.on('pm:create', (e) =>  {
                 // Creamos el id, y tomamos la layer y el objeto geojson creado
                 let polygon_id = "ID"+this.polygon_arr_id_cont;
@@ -312,13 +305,3 @@ export default {
     }
 }
 </script>
-
-<style>
-.leaflet-pm-toolbar .leaflet-buttons-control-button {
-    background-color: var(--sh-map-zoom-button-background-color);
-}
-.leaflet-pm-toolbar .leaflet-buttons-control-button .control-icon {
-    filter: brightness(0) invert(1);
-}
-
-</style>
