@@ -73,7 +73,12 @@ export default {
             polygon_draft        : undefined,
             polygon_draft_length : 0,
             bounds_filters       : [],
-            draft_circle_coordinates : []
+            draft_circle_coordinates : [],
+            buttons_pressed: {
+                marker: false,
+                polyline: false,
+                delete: false
+            },
         };
     }, 
     computed: {
@@ -121,6 +126,7 @@ export default {
     },
     watch:{
         map () {
+            this.map.pm.setLang("es");
             L.PM.setOptIn(true);
             this.map.on('pm:create', (e) =>  {
                 // Creamos el id, y tomamos la layer y el objeto geojson creado
@@ -203,6 +209,54 @@ export default {
             this.bounds_filters = bounds_filters;
 
         },
+        beginDraw(shape){
+            this.map.pm.disableGlobalRemovalMode();
+            this.buttons_pressed['delete'] = false;
+            this.$emit('button-pressed', this.buttons_pressed);
+            switch (shape) {
+                case 'marker': {
+                    if(this.buttons_pressed["marker"]){
+                        this.map.pm.disableDraw();
+                    } else {
+                        this.map.pm.enableDraw('Marker');
+                    }
+                    this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
+                    this.$emit('button-pressed', this.buttons_pressed);
+                    break;
+                }
+                case'polyline': {
+                    if(this.buttons_pressed["polyline"]){
+                        this.map.pm.Draw.Line._finishShape();
+                        this.map.pm.disableDraw();
+                    } else {
+                        this.map.pm.enableDraw('Line');
+                    }
+                    this.buttons_pressed["polyline"] = !this.buttons_pressed["polyline"];
+                    this.$emit('button-pressed', this.buttons_pressed);
+                    break;
+                }
+                case 'polygon': {
+                    this.map.pm.enableDraw('Polygon');
+
+                    break;
+                }
+                case 'circle': {
+                    this.map.pm.enableDraw('Circle');
+
+                    break;
+                }
+                case 'rectangle': {
+                    this.map.pm.enableDraw('Rectangle');
+
+                    break;
+                }
+            }
+        },
+        toggleDelete(){
+            this.map.pm.toggleGlobalRemovalMode();
+            this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
+            this.$emit('button-pressed', this.buttons_pressed);   
+        }
         // draw(){
         //     this.drawing = (this.drawing == false);
         //     if (!this.drawing && this.polygon_draft) {

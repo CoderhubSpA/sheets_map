@@ -138,6 +138,7 @@
                   :operative_geojson_list="operative_geojson_list"
                   :map="map"
                   v-on:apply-filter="polygonFilter"
+                  v-on:button-pressed="setButtonsPressed"
                 ></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
@@ -262,9 +263,6 @@ export default {
             buttons_pressed: {
                 marker: false,
                 polyline: false,
-                polygon: false,
-                circle: false,
-                rectangle: false,
                 delete: false
             },
         };
@@ -1593,56 +1591,74 @@ export default {
         // END HELPERS
         // Polygon Action: draw or delete
         polygonAction(action) {
-            switch (action) {
-                case 'marker': {
-                    if(this.buttons_pressed["marker"]){
-                        this.map.pm.disableDraw();
-                    } else {
-                        this.map.pm.enableDraw('Marker');
-                    }
-                    this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
-
-                    break;
-                }
-                case'polyline': {
-                    if(this.buttons_pressed["polyline"]){
-                        this.map.pm.Draw.Line._finishShape();
-                        this.map.pm.disableDraw();
-                    } else {
-                        this.map.pm.enableDraw('Line');
-                    }
-                    this.buttons_pressed["polyline"] = !this.buttons_pressed["polyline"];
-
-                    break;
-                }
-                case 'polygon': {
-                    this.map.pm.enableDraw('Polygon');
-
-                    break;
-                }
-                case 'circle': {
-                    this.map.pm.enableDraw('Circle');
-
-                    break;
-                }
-                case 'rectangle': {
-                    this.map.pm.enableDraw('Rectangle');
-
-                    break;
-                }
-
-                case 'delete': {
-                    // Call the delete method on the polygon drafter
-                    // this.$refs.polygon_drafter.deletePolygon();
-                    this.map.pm.toggleGlobalRemovalMode();
-                    this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
-                    break;
-
-                }
+            if (action !== 'delete') {
+                this.$refs.polygon_drafter.beginDraw(action);
+            } else {
+                this.$refs.polygon_drafter.toggleDelete();
             }
+            // switch (action) {
+            //     case 'marker': {
+            //         disableGlobalRemovalMode();
+            //         this.buttons_pressed["delete"] = false;
+            //         if(this.buttons_pressed["marker"]){
+            //             this.map.pm.disableDraw();
+            //         } else {
+            //             this.map.pm.enableDraw('Marker');
+            //         }
+            //         this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
+
+            //         break;
+            //     }
+            //     case'polyline': {
+            //         disableGlobalRemovalMode();
+            //         this.buttons_pressed["delete"] = false;
+            //         if(this.buttons_pressed["polyline"]){
+            //             this.map.pm.Draw.Line._finishShape();
+            //             this.map.pm.disableDraw();
+            //         } else {
+            //             this.map.pm.enableDraw('Line');
+            //         }
+            //         this.buttons_pressed["polyline"] = !this.buttons_pressed["polyline"];
+
+            //         break;
+            //     }
+            //     case 'polygon': {
+            //         disableGlobalRemovalMode();
+            //         this.buttons_pressed["delete"] = false;
+            //         this.map.pm.enableDraw('Polygon');
+
+            //         break;
+            //     }
+            //     case 'circle': {
+            //         disableGlobalRemovalMode();
+            //         this.buttons_pressed["delete"] = false;
+            //         this.map.pm.enableDraw('Circle');
+
+            //         break;
+            //     }
+            //     case 'rectangle': {
+            //         disableGlobalRemovalMode();
+            //         this.buttons_pressed["delete"] = false;
+            //         this.map.pm.enableDraw('Rectangle');
+
+            //         break;
+            //     }
+
+            //     case 'delete': {
+            //         // Call the delete method on the polygon drafter
+            //         // this.$refs.polygon_drafter.deletePolygon();
+            //         this.map.pm.toggleGlobalRemovalMode();
+            //         this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
+            //         break;
+
+            //     }
+            // }
         },
         polygonFilter(bounds_filters) {
           this.bounds_filters = bounds_filters;  
+        },
+        setButtonsPressed(buttons_pressed) {
+            this.buttons_pressed = buttons_pressed;
         },
         poweredCoderhub() {
              // Getting Open Street Map attribution container
