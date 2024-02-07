@@ -96,14 +96,16 @@
                     <SheetsTooltip v-if="subgroup[0].enriched_data" :data="subgroup[0].enriched_data" :layerKey="subgroup[0].key" />
                 </div>
             </section>
+            <div class="layers-actions">
+                <div class="my-2" v-if="Object.values(grouped_layers).length > 1">
+                    <button class="btn btn-success btn-sm uncheck-layers" @click="uncheckLayers" data-toggle="tooltip" data-placement="right" title="Desmarca todas las capas seleccionadas">Desmarcar capas</button>
+                </div>
+                <div class="points-clustering-container">
+                    <input type="checkbox" id="clusterize" v-model="clusterize" class="points-clustering-input"/>
+                    <label class="points-clustering-text" for="clusterize" >Agrupar puntos</label>
+                </div>
+            </div>
         </menu>
-        <div class="my-2" v-if="Object.values(grouped_layers).length > 1">
-            <button class="btn btn-success btn-sm uncheck-layers" @click="uncheckLayers" data-toggle="tooltip" data-placement="right" title="Desmarca todas las capas seleccionadas">Desmarcar capas</button>
-        </div>
-        <div style="display:flex; flex-direction:row; justify-content:center; margin-top: 2em">
-            <input type="checkbox" id="clusterize" v-model="clusterize"/>
-            <label style="margin-bottom: 0; margin-left: 8px; color:var(--option-active-color)" for="clusterize" >Clusterizar</label>
-        </div>
     </div>
 </template>
 <script>
@@ -557,18 +559,99 @@ export default {
             background-color: var(--scrollbar-color);
         }
     }
-.uncheck-layers{
-    padding: 0.3rem 0.5rem;
-    color: var(--button-text-color);
-    background-color: var(--button-color);
-    border: none;
-    border-radius: var(--global-radius);
-    font-size: 0.8rem;
-    cursor: pointer;
+    .layers-actions {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        align-items: center;
+        margin-top: 1rem;
+        .uncheck-layers {
+            padding: 0.3rem 0.5rem;
+            color: var(--button-text-color);
+            background-color: var(--button-hover-color);
+            border: none;
+            border-radius: var(--global-radius);
+            font-size: 0.8rem;
+            cursor: pointer;
 
-    &:hover{
-        background-color: var(--button-hover-color);
+            &:hover{
+                background-color: var(--button-color);
+            }
+        }
+        .points-clustering-container {
+            display: flex;
+            align-items: center;
+
+            input[type=checkbox] {
+                cursor: default;
+            }
+
+            .points-clustering-input {
+                appearance: none;
+                background-color: var(--button-color);
+                border-radius: 72px;
+                border-style: none;
+                flex-shrink: 0;
+                height: 20px;
+                margin: 0;
+                position: relative;
+                width: 30px;
+
+                &:before{
+                    content: "";
+                    position: absolute;
+                    bottom: -6px;
+                    left: -6px;
+                    right: -6px;
+                    top: -6px;
+                }
+
+                &:after {
+                    content: "";
+                    width: 14px;
+                    height: 14px;
+                    position: absolute;
+                    left: 3px;
+                    top: 3px;
+                    background-color: #fff;
+                    border-radius: 50%;
+                    transition: all 100ms ease-out;
+                }
+
+                &:hover {
+                    background-color:  var(--button-color);
+                    transition-duration: 0s;
+                }
+
+                &:checked {
+                    background-color: var(--button-hover-color);
+                }
+
+                &:checked{
+                    &:after {
+                        background-color: #fff;
+                        left: 13px;
+                    }
+                }
+                &:checked{
+                    &:hover {
+                        background-color: var(--button-hover-color);
+                    }
+                }
+            }
+            .points-clustering-text {
+                margin-bottom: 0;
+                margin-left: 4px;
+                color: var(--option-active-color);
+                font-size: 0.6rem;
+            }
+
+            &:focus:not(.focus-visible) {
+                outline: 0;
+            }
+        }
+        
     }
-}
 }
 </style>
