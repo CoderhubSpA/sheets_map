@@ -139,7 +139,7 @@ export default {
             active_layers: {},
             active_base_layers: '',
             active_groups: {},
-            disabled_layers: {}
+            disabled_layers: {},
             clusterize: true,
         };
     },
