@@ -89,6 +89,7 @@
                     :entity_type_id="entity_type_id"
                     :base_url="base_url"
                     :theme="''"
+                    :clusterize="clusterize"
                     ref="supercluster_layer"
                     v-on:form="setForm"
                 ></supercluster-layer>
@@ -202,7 +203,8 @@ export default {
         config                : Object, // Todas las capas
         layers                : Object, // Todas las capas
         working_layers        : Array,
-        trigger_filter_function: Boolean
+        trigger_filter_function: Boolean,
+        clusterize: Boolean,
 
     },
     data () {
