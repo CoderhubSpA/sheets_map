@@ -361,7 +361,6 @@ export default {
                         Object.keys(this.active_layers).forEach((al) => {
                             if(l.key == al) {
                                 totalGroup--;
-                                totalSubgroup--;
                             }
                         });
                     });
