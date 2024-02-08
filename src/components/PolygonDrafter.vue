@@ -224,17 +224,6 @@ export default {
                     this.$emit('button-pressed', this.buttons_pressed);
                     break;
                 }
-                case'polyline': {
-                    if(this.buttons_pressed["polyline"]){
-                        this.map.pm.Draw.Line._finishShape();
-                        this.map.pm.disableDraw();
-                    } else {
-                        this.map.pm.enableDraw('Line');
-                    }
-                    this.buttons_pressed["polyline"] = !this.buttons_pressed["polyline"];
-                    this.$emit('button-pressed', this.buttons_pressed);
-                    break;
-                }
                 case 'polygon': {
                     this.map.pm.enableDraw('Polygon');
 

@@ -32,9 +32,6 @@
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('marker')" title="Traza libremente sobre el mapa" :pressed="buttons_pressed['marker']">
                         <b-icon icon="geo"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('polyline')" title="Traza libremente sobre el mapa" :pressed="buttons_pressed['polyline']">
-                        <b-icon icon="slash-lg"></b-icon>
-                    </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
