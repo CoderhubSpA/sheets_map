@@ -545,7 +545,7 @@ export default {
                     return feature.layer_id == l.id;
                 });
 
-                const color = (layer.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
+                const color = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
 
                 const style = {
                     color       : color,

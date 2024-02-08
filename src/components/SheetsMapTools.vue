@@ -392,37 +392,6 @@ export default {
                 totalGroup = this.totalSelectableGroups(group);
                 totalSubgroup = this.totalSelectableSubgroups(subgroup);
 
-                if(this.totalSelectableSubgroups(subgroup) > 0) {
-                    group[layer.subgroup].forEach((l) => {
-                        Object.keys(this.active_layers).forEach((al) => {
-                            if(l.key == al) {
-                                totalGroup--;
-                                totalSubgroup--;
-                            }
-                        });
-                    });
-                }
-
-                if(totalSubgroup == 0 && this.totalSelectableSubgroups(subgroup) > 0) {
-                    let layersNotSelected = group[layer.subgroup].filter((l) => {
-                        return !this.active_layers[l.key];
-                    });
-
-                    layersNotSelected.forEach((l) => {
-                        this.$set(this.disabled_layers, l.key, !this.disabled_layers[l.key])
-                    });
-                }
-
-                if(totalSubgroup >= 1 && this.totalSelectableSubgroups(subgroup) > 0) {
-                    group[layer.subgroup].forEach((l) => {
-                        Object.keys(this.disabled_layers).forEach((al) => {
-                            if(l.key === al) {
-                                delete this.disabled_layers[l.key];
-                            }
-                        });
-                    });
-                }
-
                 let countSelectedLayers = 0;
                 Object.values(group).forEach((group) => {
                     group.forEach((l) => {
@@ -453,6 +422,37 @@ export default {
 
                     disabledLayers.forEach((l) => {
                         delete this.disabled_layers[l];
+                    });
+                }
+
+                if(this.totalSelectableSubgroups(subgroup) > 0) {
+                    group[layer.subgroup].forEach((l) => {
+                        Object.keys(this.active_layers).forEach((al) => {
+                            if(l.key == al) {
+                                totalGroup--;
+                                totalSubgroup--;
+                            }
+                        });
+                    });
+                }
+
+                if(totalSubgroup == 0 && this.totalSelectableSubgroups(subgroup) > 0) {
+                    let layersNotSelected = group[layer.subgroup].filter((l) => {
+                        return !this.active_layers[l.key];
+                    });
+
+                    layersNotSelected.forEach((l) => {
+                        this.$set(this.disabled_layers, l.key, !this.disabled_layers[l.key])
+                    });
+                }
+
+                if(totalSubgroup >= 1 && this.totalSelectableSubgroups(subgroup) > 0) {
+                    group[layer.subgroup].forEach((l) => {
+                        Object.keys(this.disabled_layers).forEach((al) => {
+                            if(l.key === al) {
+                                delete this.disabled_layers[l.key];
+                            }
+                        });
                     });
                 }
 
