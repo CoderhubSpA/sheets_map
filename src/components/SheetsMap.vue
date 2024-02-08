@@ -676,7 +676,8 @@ export default {
             let geojson_bounds = this.getMapGeoJsonBounds();
 
             switch(layer.sh_map_has_layer_code){
-                case 'analytic_geojson' : {
+                case 'analytic_geojson' : 
+                case 'analytic_geojson_logarithmic' : {
                     // eslint-disable-next-line
                     const {is_empty,is_new_layer}= this.organizeLayers(layer, this.analytic_geojson_list);
 
@@ -761,7 +762,8 @@ export default {
         disableLayers(layer){
             
             switch(layer.sh_map_has_layer_code){
-                case 'analytic_geojson' : {
+                case 'analytic_geojson' : 
+                case 'analytic_geojson_logarithmic' : {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
                     this.analytic_geojson_list = this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
                     break;
@@ -914,9 +916,34 @@ export default {
                 //Conseguir lista de códigos de identificación
                 let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
 
+                //Y tomamos el id de referencia de la dimension sin el registro de identificacion de la metrica
                 layer.total_dimension_ref = data_map.find((dm, key) => {
                     if (key != key_code_dimension) return dm
                 });
+                //Si tenemos este tipo de capa entonces se ordenan los registros de menor a mayor según su dimensión
+                //y difinimos el mínimo y el máximo según la cantidad de registros que haya
+                if(layer.sh_map_has_layer_code != 'analytic_geojson_logarithmic'){
+                    data.sort(function (a, b) {
+                        const dim_index = data_map.indexOf(layer.total_dimension_ref);
+                            
+                        if (a[dim_index] > b[dim_index]) {
+                            return 1;
+                        }
+                        if (a[dim_index] < b[dim_index]) {
+                            return -1;
+                        }
+                        // a must be equal to b
+                        return 0;
+                    });
+
+                    data.map(function(d,k) {
+                        d.push(k);
+                        return d;
+                    });
+                    data_map.push('order');
+                    //Y tomamos la identificacion del ordenamiento por metrica 
+                    layer.total_dimension_ref = 'order';
+                }
 
                 const key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
                 const total_list = data.map(d => { return d[key_total_dimension]; });
