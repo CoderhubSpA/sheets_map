@@ -324,6 +324,8 @@ export default {
                 "analytic-geojson-large-border-color"   : custom_styles["analytic-geojson-large-border-color"]   || "#0074BD",
                 "analytic-geojson-opacity"              : custom_styles["analytic-geojson-opacity"]              || 0.6,
                 "analytic-geojson-border-opacity"       : custom_styles["analytic-geojson-border-opacity"]       || 1,
+                "analytic-geojson-border-weight"        : custom_styles["analytic-geojson-border-weight"]        || 5,
+                
                 // Analytic GeoJson Poits Style
                 "analytic-geojson-point-icon-size"    : custom_styles["analytic-geojson-point-icon-size"]    || 38,
                 "analytic-geojson-point-icon-anchor"  : custom_styles["analytic-geojson-point-icon-anchor"]  || 25,
@@ -523,11 +525,11 @@ export default {
                                                             max_total, 
                                                             metric_total);
 
-                // const border_opacity = this.style_variables["analytic-geojson-border-opacity"];
+                const border_weight = this.style_variables["analytic-geojson-border-weight"];
                 const opacity = this.style_variables["analytic-geojson-opacity"];
 
                 const style = {
-                    weight      : 5,
+                    weight      : border_weight,
                     color       : border_color,
                     opacity     : opacity,
                     fillOpacity : opacity,
@@ -936,7 +938,7 @@ export default {
                         return 0;
                     });
 
-                    data.map(function(d,k) {
+                    data.forEach(function(d,k) {
                         d.push(k);
                         return d;
                     });
