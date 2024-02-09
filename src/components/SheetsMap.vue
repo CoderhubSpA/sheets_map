@@ -924,7 +924,7 @@ export default {
                 });
                 //Si tenemos este tipo de capa entonces se ordenan los registros de menor a mayor según su dimensión
                 //y difinimos el mínimo y el máximo según la cantidad de registros que haya
-                if(layer.sh_map_has_layer_code != 'analytic_geojson_logarithmic'){
+                if(layer.sh_map_has_layer_code == 'analytic_geojson_logarithmic'){
                     data.sort(function (a, b) {
                         const dim_index = data_map.indexOf(layer.total_dimension_ref);
                             
