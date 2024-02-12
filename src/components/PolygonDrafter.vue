@@ -1,19 +1,5 @@
 <template>
     <div>
-        <!-- Polygon draft -->
-        <!-- <div v-if="polygon_draft ">
-            <l-geo-json :geojson="polygon_draft" :options-style="draft_style"></l-geo-json>
-        </div> -->
-        <!-- Polygon draft -->
-        
-        <!-- Polygon drawing-->
-        <!-- <div v-if="Object.keys(polygon_arr).length > 0">
-            <div v-for="(polygon, index) in polygon_arr" :key="index">
-                <l-geo-json :geojson="polygon"></l-geo-json>
-            </div>
-        </div> -->
-        <!-- Polygon drawing -->
-
         <!-- Circle drawing-->
         <l-circle-marker
             v-if="draft_circle_coordinates.length > 0"
@@ -99,20 +85,6 @@ export default {
             };
             return polygon_structure;
         },
-        // draft_style() {
-
-        //         const style = {
-        //             fillColor   : this.style_variables['polygon_draft_fill_color'],
-        //             weight      : this.style_variables['polygon_draft_weight'],
-        //             opacity     : this.style_variables['polygon_draft_opacity'],
-        //             color       : this.style_variables['polygon_draft_color'],
-        //             dashArray   : this.style_variables['polygon_draft_dash_array'],
-        //             fillOpacity : this.style_variables['polygon_draft_fill_opacity']
-        //         };
-
-
-        //         return style;
-        // },
         active_layer_draft_style() {
 
                 const style = {
@@ -205,7 +177,6 @@ export default {
                 };
                 return bounds_filter;
             });
-            console.log(search)
             this.bounds_filters = bounds_filters;
 
         },
@@ -246,105 +217,6 @@ export default {
             this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
             this.$emit('button-pressed', this.buttons_pressed);   
         }
-        // draw(){
-        //     this.drawing = (this.drawing == false);
-        //     if (!this.drawing && this.polygon_draft) {
-        //         if (this.polygon_draft_length > 2) {
-        //             let polygon_id = "ID"+this.polygon_arr_id_cont;
-
-        //             this.polygon_draft["features"][0]["properties"]["id"] = polygon_id;
-
-        //             this.polygon_arr[polygon_id] = this.polygon_draft;
-
-        //             this.polygon_arr_id_cont ++;
-
-        //             this.resetDraft();
-        //         } else {
-        //             //Esta funcionalidad esta hecha solo para poligonos, por favor completa la linea con algunas otras coordenadas
-        //             this.resetDraft();
-        //         }
-        //     }
-
-        //     this.polygonBounds();
-
-        //     if(!this.drawing) this.$emit('apply-filter', this.bounds_filters);
-
-        // },
-        // addPolygon(event){
-        //     if (this.drawing) {
-        //         // Tomamos las ultimas coordenadas seleccionadas
-        //         let lat = event.latlng.lat;
-        //         let lng = event.latlng.lng;
-
-        //         let coordinates = [lng, lat];
-        //         let polygon_structure;
-
-        //         if (!this.polygon_draft) {
-        //             // Si no existe ningun borrador del poligono tomamos su estructura base y generamos uno
-        //             polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
-        //             polygon_structure["features"][0]["geometry"]["type"]        = "Point";
-        //             polygon_structure["features"][0]["geometry"]["coordinates"] = coordinates;
-        //             this.polygon_draft = polygon_structure;
-        //             this.polygon_draft_length = 1;
-        //             this.draft_circle_coordinates = [lat, lng];
-
-        //         }else{
-        //             // Si existe calculamos su largo para saber si tiene mas de 3 puntos dentro de si
-                    
-        //             let length = this.polygon_draft_length;
-        //             //Si solo hemos agregado uno
-        //             if (length < 2) {
-        //                 let first_coordinate = this.polygon_draft["features"][0]["geometry"]["coordinates"];
-        //                 this.polygon_draft["features"][0]["geometry"]["type"]        = "LineString";
-        //                 this.polygon_draft["features"][0]["geometry"]["coordinates"] = [first_coordinate, coordinates];
-
-        //             }
-        //             // Si tiene dos puntas cambiamos su estado por ultima vez a poligono y agrandamos una vez mas el array de las coordenadas
-        //             else if (length == 2) {
-
-        //                 let all_coordinates  = JSON.parse(JSON.stringify(this.polygon_draft["features"][0]["geometry"]["coordinates"]));
-        //                 all_coordinates.push(coordinates);
-        //                 let first_coordinate = all_coordinates[0];
-                        
-        //                 this.polygon_draft["features"][0]["geometry"]["coordinates"]              = [all_coordinates];
-        //                 this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length+1] = first_coordinate;
-        //                 this.polygon_draft["features"][0]["geometry"]["type"]                     = "Polygon";
-
-        //             }else if (length > 2) {
-        //                 //Para los siguientes eliminamos la ultima coordenada y la volvemos a agregar despues de haber agregado la coordenada actual
-        //                 let first_coordinate = this.polygon_draft["features"][0]["geometry"]["coordinates"][0].pop();
-
-        //                 this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length]   = coordinates;
-        //                 this.polygon_draft["features"][0]["geometry"]["coordinates"][0][length+1] = first_coordinate;
-
-        //             }
-        //             this.polygon_draft_length ++;
-        //         }
-
-        //     }
-
-        // },
-        // deletePolygon(){
-        //     let polygon_ids  = Object.keys(this.polygon_arr);
-        //     let last_polygon = polygon_ids.pop();
-
-        //     delete this.polygon_arr[last_polygon];
-
-        //     if (this.polygon_arr == {}) {
-        //         this.bounds_filters = [];
-        //     }else{
-        //         this.polygonBounds()
-        //     }
-
-        //     this.resetDraft();
-
-        //     this.$emit('apply-filter', this.bounds_filters);
-        // },
-        // resetDraft(){
-        //     this.polygon_draft            = undefined;
-        //     this.polygon_draft_length     = 0;
-        //     this.draft_circle_coordinates = [];
-        // }
     }
 }
 </script>

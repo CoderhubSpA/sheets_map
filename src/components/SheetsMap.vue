@@ -1589,67 +1589,10 @@ export default {
         // Polygon Action: draw or delete
         polygonAction(action) {
             if (action !== 'delete') {
-                this.$refs.polygon_drafter.beginDraw(action);
+                this.$refs.polygon_drafter(action);
             } else {
                 this.$refs.polygon_drafter.toggleDelete();
             }
-            // switch (action) {
-            //     case 'marker': {
-            //         disableGlobalRemovalMode();
-            //         this.buttons_pressed["delete"] = false;
-            //         if(this.buttons_pressed["marker"]){
-            //             this.map.pm.disableDraw();
-            //         } else {
-            //             this.map.pm.enableDraw('Marker');
-            //         }
-            //         this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
-
-            //         break;
-            //     }
-            //     case'polyline': {
-            //         disableGlobalRemovalMode();
-            //         this.buttons_pressed["delete"] = false;
-            //         if(this.buttons_pressed["polyline"]){
-            //             this.map.pm.Draw.Line._finishShape();
-            //             this.map.pm.disableDraw();
-            //         } else {
-            //             this.map.pm.enableDraw('Line');
-            //         }
-            //         this.buttons_pressed["polyline"] = !this.buttons_pressed["polyline"];
-
-            //         break;
-            //     }
-            //     case 'polygon': {
-            //         disableGlobalRemovalMode();
-            //         this.buttons_pressed["delete"] = false;
-            //         this.map.pm.enableDraw('Polygon');
-
-            //         break;
-            //     }
-            //     case 'circle': {
-            //         disableGlobalRemovalMode();
-            //         this.buttons_pressed["delete"] = false;
-            //         this.map.pm.enableDraw('Circle');
-
-            //         break;
-            //     }
-            //     case 'rectangle': {
-            //         disableGlobalRemovalMode();
-            //         this.buttons_pressed["delete"] = false;
-            //         this.map.pm.enableDraw('Rectangle');
-
-            //         break;
-            //     }
-
-            //     case 'delete': {
-            //         // Call the delete method on the polygon drafter
-            //         // this.$refs.polygon_drafter.deletePolygon();
-            //         this.map.pm.toggleGlobalRemovalMode();
-            //         this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
-            //         break;
-
-            //     }
-            // }
         },
         polygonFilter(bounds_filters) {
           this.bounds_filters = bounds_filters;  
