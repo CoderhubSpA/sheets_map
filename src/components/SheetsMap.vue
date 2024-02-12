@@ -1287,7 +1287,7 @@ export default {
         },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
-                this.$refs.polygon_drafter.deletePolygon();
+                this.$refs.polygon_drafter.deleteAll();
                 //let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
@@ -1618,7 +1618,7 @@ export default {
         // Polygon Action: draw or delete
         polygonAction(action) {
             if (action !== 'delete') {
-                this.$refs.polygon_drafter(action);
+                this.$refs.polygon_drafter.beginDraw(action);
             } else {
                 this.$refs.polygon_drafter.toggleDelete();
             }

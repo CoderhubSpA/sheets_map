@@ -55,9 +55,8 @@ export default {
         return {
             drawing              : false,
             polygon_arr          : {}, 
-            polygon_arr_id_cont  : 0, 
-            polygon_draft        : undefined,
-            polygon_draft_length : 0,
+            polygon_arr_id_cont  : 0,
+            layers              : [],
             bounds_filters       : [],
             draft_circle_coordinates : [],
             buttons_pressed: {
@@ -113,7 +112,8 @@ export default {
                 polygon_structure["features"][0] = geojson; 
                 this.polygon_arr[polygon_id] = polygon_structure;
                 this.polygon_arr_id_cont ++;
-                
+                this.layers.push(layer);
+
                 //Configuramos la layer como editable mediante geoman
                 layer.options.pmIgnore = false;
                 L.PM.reInitLayer(layer);
@@ -216,7 +216,15 @@ export default {
             this.map.pm.toggleGlobalRemovalMode();
             this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
             this.$emit('button-pressed', this.buttons_pressed);   
-        }
+        },
+        deleteAll(){
+            for (const layer of this.layers) {
+                this.map.removeLayer(layer);
+            }
+            this.polygon_arr = {};
+            this.polygonBounds();
+            this.$emit('apply-filter', this.bounds_filters);
+        },
     }
 }
 </script>
