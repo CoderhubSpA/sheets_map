@@ -148,7 +148,7 @@ export default {
     },
     methods: {
         setupLayerEvents(layer) {
-            // No esta activada la funcion para actualizar dibujos (edit tool), borrar?
+            // No esta activada la funcion para actualizar dibujos (edit tool), se mantiene en caso de ser agregado
             layer.on('pm:update', (e) => {
                 let polygon_id = e.layer.properties;
                 let geojson = e.shape == "Circle" ? L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON() : e.layer.toGeoJSON();
@@ -191,6 +191,12 @@ export default {
                 return;
             }
 
+            let hasPolygonColumn = all_col.some(column => column.format === 'POLYGON');
+
+            if (!hasPolygonColumn) {
+                console.warn('No se encontro columna con formato "POLYGON" en la entidad');
+            }
+            
             let bounds_filters = all_col.filter(columns =>
                 columns.format == 'POLYGON'
             ).map((columns, key) => {
@@ -220,16 +226,17 @@ export default {
             this.buttons_pressed['delete'] = false;
             this.$emit('button-pressed', this.buttons_pressed);
             switch (shape) {
-                case 'marker': {
-                    if (this.buttons_pressed["marker"]) {
-                        this.map.pm.disableDraw();
-                    } else {
-                        this.map.pm.enableDraw('Marker');
-                    }
-                    this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
-                    this.$emit('button-pressed', this.buttons_pressed);
-                    break;
-                }
+                // caso para un marcador, para ser utilizado debe activarse el boton en SheetsMap
+                // case 'marker': {
+                //     if (this.buttons_pressed["marker"]) {
+                //         this.map.pm.disableDraw();
+                //     } else {
+                //         this.map.pm.enableDraw('Marker');
+                //     }
+                //     this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
+                //     this.$emit('button-pressed', this.buttons_pressed);
+                //     break;
+                // }
                 case 'polygon': {
                     this.map.pm.enableDraw('Polygon', this.draft_style);
 

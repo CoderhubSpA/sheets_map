@@ -154,7 +154,6 @@
         
 </template>
 <script>
-// import { PM } from 'leaflet';
 import L from 'leaflet';
 import _ from 'lodash';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
@@ -636,7 +635,6 @@ export default {
         },
     },
     created(){
-        // PM.setOptIn(true);
         // TO DO:
         // Colocar primera capa base encontrada
 
