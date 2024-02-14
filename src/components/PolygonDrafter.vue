@@ -20,9 +20,7 @@
             <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
                 <l-geo-json :geojson="operative_geojson.geojson" :options-style="active_layer_draft_style"></l-geo-json>
             </div>
-
         </div>
-
     </div>
 </template>
 <script>
@@ -57,6 +55,8 @@ export default {
                 polyline: false,
                 delete: false
             },
+            invisibleLayer: null,
+            popupcontents: {},
         };
     },
     computed: {
@@ -92,12 +92,6 @@ export default {
                     fillColor: this.style_variables['polygon_draft_fill_color'],
                     fillOpacity: this.style_variables['polygon_draft_fill_opacity']
                 },
-                // fillColor: this.style_variables['polygon_draft_fill_color'],
-                // weight: this.style_variables['polygon_draft_weight'],
-                // opacity: this.style_variables['polygon_draft_opacity'],
-                // color: this.style_variables['polygon_draft_color'],
-                // dashArray: this.style_variables['polygon_draft_dash_array'],
-                // fillOpacity: this.style_variables['polygon_draft_fill_opacity']
             };
 
             return style;
@@ -142,11 +136,19 @@ export default {
                 // Calculamos los bounds de los poligonos y los emitimos a sheets
                 this.polygonBounds();
                 this.$emit('apply-filter', this.bounds_filters);
+                this.drawing = false;
+                this.map.eachLayer((layer) => {
+                    if (this.popupcontents[layer._leaflet_id]) {
+                        layer.bindPopup(this.popupcontents[layer._leaflet_id]);
+                        delete this.popupcontents[layer._leaflet_id];
+                    }
+                });
             });
         }
     },
     methods: {
         setupLayerEvents(layer) {
+            // No esta activada la funcion para actualizar dibujos (edit tool), borrar?
             layer.on('pm:update', (e) => {
                 let polygon_id = e.layer.properties;
                 let geojson = e.shape == "Circle" ? L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON() : e.layer.toGeoJSON();
@@ -157,11 +159,18 @@ export default {
                 this.polygonBounds();
                 this.$emit('apply-filter', this.bounds_filters);
             });
+            // Evento para borrar poligonos
             layer.on('pm:remove', (e) => {
+                // Se toma el id del poligono a partir de la layer, y se borra del arreglo. En caso de que el arreglo quede 
+                // vacio se lanza el evento para recalcular los puntos en vista del mapa
                 let polygon_id = e.layer.properties;
                 delete this.polygon_arr[polygon_id];
-                this.polygonBounds();
-                this.$emit('apply-filter', this.bounds_filters);
+                if (Object.keys(this.polygon_arr).length == 0) {
+                    this.$emit('drawing-empty');
+                } else {
+                    this.polygonBounds();
+                    this.$emit('apply-filter', this.bounds_filters);
+                }
             });
         },
         polygonBounds() {
@@ -199,6 +208,14 @@ export default {
 
         },
         beginDraw(shape) {
+            //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
+            this.map.eachLayer((layer) => {
+                layer.closePopup();
+                this.popupcontents[layer._leaflet_id] = layer.getPopup();
+                layer.unbindPopup();
+            });
+            //activamos el valor de drawing, y desactivamos el modo de borrado, para empezar a dibujar
+            this.drawing = true;
             this.map.pm.disableGlobalRemovalMode();
             this.buttons_pressed['delete'] = false;
             this.$emit('button-pressed', this.buttons_pressed);
