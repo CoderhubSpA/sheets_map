@@ -29,10 +29,16 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('draw')" title="Traza libremente sobre el mapa">
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa">
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                        <b-icon icon="circle"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                        <b-icon icon="square"></b-icon>
+                    </b-button>
+                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
                     <OpenFormPoint
@@ -124,7 +130,10 @@
                   :style_variables="style_variables"
                   :analytic_geojson_list="analytic_geojson_list"
                   :operative_geojson_list="operative_geojson_list"
+                  :map="map"
                   v-on:apply-filter="polygonFilter"
+                  v-on:button-pressed="setButtonsPressed"
+                  v-on:drawing-empty="findBounds"
                 ></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
@@ -160,7 +169,8 @@ import { BButton, BIcon } from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import OpenFormPoint from './form/openFormPoint.vue';
-
+import "@geoman-io/leaflet-geoman-free";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -245,6 +255,11 @@ export default {
             point: null,
             point_mode: '',
             is_trigger_filter_function: false,
+            buttons_pressed: {
+                marker: false,
+                polyline: false,
+                delete: false
+            },
         };
     },
     computed:{
@@ -620,7 +635,6 @@ export default {
         },
     },
     created(){
-        
         // TO DO:
         // Colocar primera capa base encontrada
 
@@ -651,6 +665,7 @@ export default {
         ready(){
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
+            
             const resizeObserver = new ResizeObserver(() => {
                 this.map.invalidateSize(false);
             });
@@ -1270,7 +1285,7 @@ export default {
         },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
-                this.$refs.polygon_drafter.deletePolygon();
+                this.$refs.polygon_drafter.deleteAll();
                 //let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
@@ -1600,26 +1615,17 @@ export default {
         // END HELPERS
         // Polygon Action: draw or delete
         polygonAction(action) {
-            switch (action) {
-                case 'draw': {
-                    // Set point mode to draw
-                    this.point_mode = 'draw-polygon';
-
-                    // Call the draw method on the polygon drafter
-                    this.$refs.polygon_drafter.draw();
-
-                    break;
-                }
-                case 'delete': {
-                    // Call the delete method on the polygon drafter
-                    this.$refs.polygon_drafter.deletePolygon();
-                    break;
-
-                }
+            if (action !== 'delete') {
+                this.$refs.polygon_drafter.beginDraw(action);
+            } else {
+                this.$refs.polygon_drafter.toggleDelete();
             }
         },
         polygonFilter(bounds_filters) {
           this.bounds_filters = bounds_filters;  
+        },
+        setButtonsPressed(buttons_pressed) {
+            this.buttons_pressed = buttons_pressed;
         },
         poweredCoderhub() {
              // Getting Open Street Map attribution container
