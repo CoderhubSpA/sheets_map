@@ -29,9 +29,6 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('marker')" title="Traza libremente sobre el mapa" :pressed="buttons_pressed['marker']">
-                        <b-icon icon="geo"></b-icon>
-                    </b-button>
                     <b-button class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
@@ -136,6 +133,7 @@
                   :map="map"
                   v-on:apply-filter="polygonFilter"
                   v-on:button-pressed="setButtonsPressed"
+                  v-on:drawing-empty="findBounds"
                 ></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
@@ -564,7 +562,7 @@ export default {
                     return feature.layer_id == l.id;
                 });
 
-                const color = (layer.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
+                const color = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
 
                 const style = {
                     color       : color,
@@ -637,7 +635,6 @@ export default {
         },
     },
     created(){
-        
         // TO DO:
         // Colocar primera capa base encontrada
 
@@ -668,6 +665,7 @@ export default {
         ready(){
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
+            
             const resizeObserver = new ResizeObserver(() => {
                 this.map.invalidateSize(false);
             });
