@@ -172,11 +172,13 @@ export default {
                 //TODO: eliminar de layers
                 let polygon_id = e.layer.properties;
                 delete this.polygon_arr[polygon_id];
-                if (Object.keys(this.polygon_arr).length == 0) {
-                    this.$emit('drawing-empty');
-                } else {
-                    this.polygonBounds();
-                    this.$emit('apply-filter', this.bounds_filters);
+                if (this.draw_is_filter){
+                    if (Object.keys(this.polygon_arr).length == 0) {
+                        this.$emit('drawing-empty');
+                    } else {
+                        this.polygonBounds();
+                        this.$emit('apply-filter', this.bounds_filters);
+                    }
                 }
             });
         },
