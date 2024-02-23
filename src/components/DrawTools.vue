@@ -2,58 +2,25 @@
     <div class="container">
         <div class="grid">
             <b-button class="grid-item" title="Dibujar poligono" @click.capture.stop="beginDraw('polygon')"><b-icon icon="bounding-box"></b-icon></b-button>
-            <b-button class="grid-item" title="Dibujar circulo"><b-icon icon="circle"></b-icon></b-button>
-            <b-button class="grid-item" title="Dibujar cuadrado"><b-icon icon="square"></b-icon></b-button>
-            <b-button class="grid-item" title="Borrar dibujos"><b-icon icon="eraser"></b-icon></b-button>
+            <b-button class="grid-item" title="Dibujar circulo" @click.capture.stop="beginDraw('circle')"><b-icon icon="circle"></b-icon></b-button>
+            <b-button class="grid-item" title="Dibujar cuadrado" @click.capture.stop="beginDraw('rectangle')"><b-icon icon="square"></b-icon></b-button>
+            <b-button class="grid-item" title="Borrar dibujos" @click.capture.stop="toggleDelete()"><b-icon icon="eraser"></b-icon></b-button>
         </div>
     </div>
 </template>
 <script>
 import { BButton, BIcon } from 'bootstrap-vue'
-import * as L from 'leaflet';
 export default {
     components: {
         BButton,
         BIcon,
     },
     computed: {
-        draft_style() {
-            const style = {
-                templineStyle: {
-                    color: this.style_variables['polygon_draft_color'],
-                    weight: this.style_variables['polygon_draft_weight']
-                },
-                hintlineStyle: {
-                    color: this.style_variables['polygon_draft_color'],
-                    dashArray: this.style_variables['polygon_draft_dash_array']
-                },
-                pathOptions: {
-                    color: this.style_variables['polygon_draft_color'],
-                    fillColor: this.style_variables['polygon_draft_fill_color'],
-                    fillOpacity: this.style_variables['polygon_draft_fill_opacity']
-                },
-            };
-
-            return style;
-        },
     },
     props: { 
         map: Object
     },
-    watch: {
-        map: {
-            handler(newMap) {
-                console.log("mapa recibido");
-                this.initializeListeners(newMap);
-            },
-            immediate: true
-        },
-    },
     methods: {
-        initializeListeners(map){
-            map.pm.setLang("es");
-            L.PM.setOptIn(true);
-        },
         beginDraw(shape) {
             this.$emit('set_draw_is_filter', false);
             this.map.pm.disableGlobalRemovalMode();
@@ -75,6 +42,9 @@ export default {
                 }
             }
         },
+        toggleDelete(){
+            this.map.pm.toggleGlobalRemovalMode();
+        }
     }
 }
 </script>

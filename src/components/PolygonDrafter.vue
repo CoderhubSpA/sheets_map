@@ -149,7 +149,7 @@ export default {
                     }
                 });
             });
-        }
+        },
     },
     methods: {
         setupLayerEvents(layer) {
@@ -168,6 +168,8 @@ export default {
             layer.on('pm:remove', (e) => {
                 // Se toma el id del poligono a partir de la layer, y se borra del arreglo. En caso de que el arreglo quede 
                 // vacio se lanza el evento para recalcular los puntos en vista del mapa
+
+                //TODO: eliminar de layers
                 let polygon_id = e.layer.properties;
                 delete this.polygon_arr[polygon_id];
                 if (Object.keys(this.polygon_arr).length == 0) {
@@ -219,6 +221,7 @@ export default {
 
         },
         beginDraw(shape) {
+            //EMITO CAMBIO A TRUE
             // this.draw_is_filter = true;
             //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
             this.map.eachLayer((layer) => {
