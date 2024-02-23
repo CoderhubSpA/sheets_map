@@ -131,6 +131,7 @@
                   :analytic_geojson_list="analytic_geojson_list"
                   :operative_geojson_list="operative_geojson_list"
                   :map="map"
+                  :draw_is_filter="draw_is_filter"
                   v-on:apply-filter="polygonFilter"
                   v-on:button-pressed="setButtonsPressed"
                   v-on:drawing-empty="findBounds"
@@ -215,6 +216,7 @@ export default {
         working_layers        : Array,
         trigger_filter_function: Boolean,
         clusterize: Boolean,
+        draw_is_filter: Boolean,
 
     },
     data () {
@@ -355,9 +357,7 @@ export default {
                 "polygon_draft_circle_radius" : custom_styles["polygon_draft_circle_radius"] || 3,
                 
             };
-
         },
-
         analytic_cluster_options() {
           return {
             onEachFeature: function(feature, layer) {
@@ -633,6 +633,10 @@ export default {
 
             }
         },
+        map(newMap){
+            console.log('map_set', newMap);
+            this.$emit('map_set', newMap);
+        }
     },
     created(){
         // TO DO:

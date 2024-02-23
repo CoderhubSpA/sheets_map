@@ -37,6 +37,10 @@ export default {
         analytic_geojson_list: Array,
         operative_geojson_list: Array,
         map: Object,
+        draw_is_filter: {
+            type: Boolean,
+            default: true
+        }
     },
     components: {
         LGeoJson,
@@ -55,7 +59,6 @@ export default {
                 polyline: false,
                 delete: false
             },
-            invisibleLayer: null,
             popupcontents: {},
         };
     },
@@ -134,8 +137,10 @@ export default {
                 this.setupLayerEvents(layer);
 
                 // Calculamos los bounds de los poligonos y los emitimos a sheets
-                this.polygonBounds();
-                this.$emit('apply-filter', this.bounds_filters);
+                if (this.draw_is_filter) {
+                    this.polygonBounds();
+                    this.$emit('apply-filter', this.bounds_filters);
+                }
                 this.drawing = false;
                 this.map.eachLayer((layer) => {
                     if (this.popupcontents[layer._leaflet_id]) {
@@ -214,6 +219,7 @@ export default {
 
         },
         beginDraw(shape) {
+            // this.draw_is_filter = true;
             //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
             this.map.eachLayer((layer) => {
                 layer.closePopup();
@@ -264,8 +270,10 @@ export default {
                 this.map.removeLayer(layer);
             }
             this.polygon_arr = {};
-            this.polygonBounds();
-            this.$emit('apply-filter', this.bounds_filters);
+            if (this.draw_is_filter) {
+                this.polygonBounds();
+                this.$emit('apply-filter', this.bounds_filters);
+            }
         },
     }
 }
