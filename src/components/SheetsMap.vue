@@ -29,16 +29,16 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
                         <b-icon icon="circle"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
                         <b-icon icon="square"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
                     <OpenFormPoint
