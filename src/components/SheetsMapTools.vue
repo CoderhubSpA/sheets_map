@@ -22,11 +22,9 @@
                         <div
                             v-for="option in subgroup"
                             :key="option.key"
-                            @click="toggleLayer(option)"
+                            @click="toggleLayer(option, group)"
                             class="layer-option-wrapper"
-                            :class="{
-                                'active': option.active,
-                            }"
+                            :class="[{'active': option.active, 'disabled-layer': option.disabled }]"
                         >
                             <!-- Si existe mas de un subgrupo,
                                 significa que debe tener un estilo distinto al estandar 
@@ -83,11 +81,15 @@
                                 <li
                                     v-for="option in subgroup"
                                     :key="option.key"
-                                    @click="toggleLayer(option)"
+                                    @click="toggleLayer(option, group, subgroup)"
+                                    :class="[{'disabled-layer': option.disabled }]"
                                 >
                                     <input
                                         type="checkbox"
-                                        :checked="option.active">
+                                        :checked="option.active"
+                                        :id="option.key"
+                                        :disabled="option.disabled"
+                                        >
                                     <label >{{option.value}}</label>
                                 </li>
                             </ul>
@@ -139,6 +141,7 @@ export default {
             active_layers: {},
             active_base_layers: '',
             active_groups: {},
+            disabled_layers: {},
             clusterize: true,
         };
     },
@@ -160,6 +163,8 @@ export default {
                         active: (this.active_layers[layer.id] || layer.id == this.active_base_layers),
                         enriched_data: layer["enriched_data"],
                         layers_to_filter: layer["sh_map_has_layer_filter_layers"],
+                        group_subgroup_limit: layer["sh_map_has_layer_group_selection_limit"],
+                        disabled: (this.disabled_layers[layer.id])
                     };
                 }
             ).sort(
@@ -222,7 +227,7 @@ export default {
         },
     },
     methods: {
-        toggleLayer(layer) {
+        toggleLayer(layer, group, subgroup) {
             // If the layer is a base layer, toggle it on or off
             if (layer.type == "base") {
                 this.active_base_layers = (this.active_base_layers != layer.key)
@@ -237,6 +242,8 @@ export default {
             if(!this.active_layers[layer.key]) {
                 delete this.active_layers[layer.key];
             }
+
+            this.checkSelectedLayers(layer, group, subgroup);
         },
 
         // This method toggles the state of a group of layers and filters the layers in the group
@@ -314,6 +321,164 @@ export default {
             this.active_layers = {};
             this.active_base_layers = '';
             this.active_groups = {};
+            this.disabled_layers = {};
+        },
+        // This method is used to get the total of selectable layers in a group
+        totalSelectableGroups(group) {
+            let total = 0;
+
+            Object.keys(group).forEach(
+                (group_key) => {
+                    group[group_key].forEach((layer) => {
+                        if(layer.group_subgroup_limit) {
+                            total += layer.group_subgroup_limit;
+                        }
+                    });
+                }
+            );
+
+            return total;
+        },
+        // This method is used to get the total of selectable layers in a subgroup
+        totalSelectableSubgroups(subgroup) {
+            let total = 0;
+
+            subgroup.forEach((layer) => {
+                if(layer.group_subgroup_limit) {
+                    total += layer.group_subgroup_limit;
+                }
+            });
+
+            return total;
+        },
+        // This method is used to check the selected layers
+        checkSelectedLayers(layer, group, subgroup) {
+            let totalGroup = 0;
+            let totalSubgroup = 0;
+            // If the layer has not a subgroup, get the total of selectable layers in the group
+            if(group && !subgroup) {
+                totalGroup = this.totalSelectableGroups(group);
+                if(this.totalSelectableGroups(group) > 0) {
+                    group[layer.subgroup].forEach((l) => {
+                        Object.keys(this.active_layers).forEach((al) => {
+                            if(l.key == al) {
+                                totalGroup--;
+                            }
+                        });
+                    });
+                }
+
+                if(totalGroup == 0 && this.totalSelectableGroups(group) > 0) {
+                    let layersNotSelected = group[layer.subgroup].filter((l) => {
+                        return !this.active_layers[l.key];
+                    });
+                    
+                    layersNotSelected.forEach((l) => {
+                        this.$set(this.disabled_layers, l.key, !this.disabled_layers[l.key])
+                    });
+                }
+
+                if(totalGroup >= 1 && this.totalSelectableGroups(group) > 0) {
+                    group[layer.subgroup].forEach((l) => {
+                        Object.keys(this.disabled_layers).forEach((al) => {
+                            if(l.key === al) {
+                                delete this.disabled_layers[l.key];
+                            }
+                        });
+                    });
+                }
+            }
+            // If the layer has a subgroup, get the total of selectable layers in the subgroup
+            if(subgroup) {
+                totalGroup = this.totalSelectableGroups(group);
+                totalSubgroup = this.totalSelectableSubgroups(subgroup);
+
+                let countSelectedLayers = 0;
+                Object.values(group).forEach((group) => {
+                    group.forEach((l) => {
+                        Object.keys(this.active_layers).forEach((al) => {
+                            if(l.key == al) {
+                                countSelectedLayers++;
+                            }
+                        });
+                    });
+                });
+
+                if(countSelectedLayers < this.totalSelectableGroups(group)) {
+                    let layersToDisabled = []
+
+                    Object.values(group).forEach((group) => {
+                        let layersNotSelected = group.filter((l) => {
+                            return !this.active_layers[l.key];
+                        });
+
+                        layersNotSelected.forEach((l) => {
+                            layersToDisabled.push(l.key);
+                        });
+                    });
+
+                    let disabledLayers = layersToDisabled.filter((l) => {
+                        return this.disabled_layers[l];
+                    });
+
+                    disabledLayers.forEach((l) => {
+                        delete this.disabled_layers[l];
+                    });
+                }
+
+                if(this.totalSelectableSubgroups(subgroup) > 0) {
+                    group[layer.subgroup].forEach((l) => {
+                        Object.keys(this.active_layers).forEach((al) => {
+                            if(l.key == al) {
+                                totalGroup--;
+                                totalSubgroup--;
+                            }
+                        });
+                    });
+                }
+
+                if(totalSubgroup == 0 && this.totalSelectableSubgroups(subgroup) > 0) {
+                    let layersNotSelected = group[layer.subgroup].filter((l) => {
+                        return !this.active_layers[l.key];
+                    });
+
+                    layersNotSelected.forEach((l) => {
+                        this.$set(this.disabled_layers, l.key, !this.disabled_layers[l.key])
+                    });
+                }
+
+                if(totalSubgroup >= 1 && this.totalSelectableSubgroups(subgroup) > 0) {
+                    group[layer.subgroup].forEach((l) => {
+                        Object.keys(this.disabled_layers).forEach((al) => {
+                            if(l.key === al) {
+                                delete this.disabled_layers[l.key];
+                            }
+                        });
+                    });
+                }
+
+                if(countSelectedLayers == this.totalSelectableGroups(group)) {
+                    let layersToDisabled = []
+
+                    Object.values(group).forEach((group) => {
+                        let layersNotSelected = group.filter((l) => {
+                            return !this.active_layers[l.key];
+                        });
+
+                        layersNotSelected.forEach((l) => {
+                            layersToDisabled.push(l.key);
+                        });
+                    });
+
+                    let disabledLayers = layersToDisabled.filter((l) => {
+                        return !this.disabled_layers[l];
+                    });
+
+                    disabledLayers.forEach((l) => {
+                        this.$set(this.disabled_layers, l, !this.disabled_layers[l])
+                    });
+                }
+            }
         }
     },
 };
@@ -325,6 +490,11 @@ export default {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 4px;
+
+    .disabled-layer {
+        pointer-events: none;
+        opacity: 0.4; /* Optional: Add some visual cue that element is disabled */
+    }
 }
 .layers-dropdown /deep/ {
     .layers-menu {
