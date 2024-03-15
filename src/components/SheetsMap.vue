@@ -72,6 +72,7 @@
                     v-for="layer in supercluster_by_entity_type_layers"
                     :key="layer.id"
                     :cluster_key="layer.id"
+                    :classification_icon="classification_icon(layer.id)"
                     :layer="layer"
                     :base_url="base_url"
                     :map="map"
@@ -88,6 +89,7 @@
                     :visible="active_layers.some(layer => layer.sh_map_has_layer_code === 'supercluster')"
                     :data="data"
                     :info="info"
+                    :classification_icon="classification_icon()"
                     :map="map"
                     :config="config"
                     :col_lat="col_lat"
@@ -231,24 +233,25 @@ export default {
             circle                    : undefined,
             /*Layers*/
             /** Zoom del mapa al momento de carga analytic_cluster. */
-            analytic_cluster_initial_zoom: undefined,
-            should_hide_cluster_labels: false,
-            analytic_cluster          : undefined,
-            analytic_countour_map     : undefined,
-            analytic_geojson_list     : [],
-            analytic_geojson_features : [],
-            operative_geojson_list    : [],
+            analytic_cluster_initial_zoom : undefined,
+            should_hide_cluster_labels : false,
+            analytic_cluster           : undefined,
+            analytic_countour_map      : undefined,
+            analytic_geojson_list      : [],
+            analytic_geojson_features  : [],
+            operative_geojson_list     : [],
             operative_geojson_features : [],
-            base_google_map           : undefined,
-            base_map_guide            : undefined,
-            base_open_street_map      : undefined,
-            operative_geoserver_wms   : [],
-            bounds_filters            : [],
-            num_zoom                  : false,
-            bounds                    : [],
-            h3                        : require("h3-js"),
-            shouldShowSearchMarker    : false,
-            searchMarkerLatLng        : null,
+            base_google_map            : undefined,
+            base_map_guide             : undefined,
+            base_open_street_map       : undefined,
+            operative_geoserver_wms    : [],
+            bounds_filters             : [],
+            num_zoom                   : false,
+            bounds                     : [],
+            h3                         : require("h3-js"),
+            shouldShowSearchMarker     : false,
+            searchMarkerLatLng         : null,
+            classification_icon_column : false,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             color_point : 'yellow',
@@ -649,6 +652,30 @@ export default {
         this.poweredCoderhub();
     },
     methods:{
+        classification_icon(id = null){
+            let classification_icon = undefined;
+            let classification_icon_info;
+            if (!id) {
+                classification_icon_info = this.active_layers.filter(layer => layer.sh_map_has_layer_code === 'supercluster')[0]; 
+            } else{
+                classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
+            }
+
+            if(typeof classification_icon_info !== 'undefined' ){
+                classification_icon = {
+                    'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column,
+                    'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification,
+                    'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon
+
+                };
+                this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column;
+            }else{
+                this.classification_icon_column = false;
+
+            }
+
+            return classification_icon;
+        },
         zoomToLocation(latLng){
             this.searchMarkerLatLng = latLng;
             this.shouldShowSearchMarker = true;
@@ -1233,6 +1260,8 @@ export default {
                 try {
                     all_data     = response.data.content;
                     data         = _.first(all_data.data);
+                    console.log(response.data.content);
+                    console.log('data');
                     this.col_lng = data.sh_map_column_longitude; 
                     this.col_lat = data.sh_map_column_latitude;
 

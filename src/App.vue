@@ -67,16 +67,16 @@ export default {
             // IMPORTANTE: ELIMINAR EL "/" AL FINAL DE LA RUTA
             // MAL  -> http://sheetsmock.local/ 
             // BIEN -> http://sheetsmock.local
-            base_url: "http://sheetsmock.local",
+            base_url: "http://127.0.0.1:8000",
             //id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
             id: "99863740-4c01-11ed-b21a-f23c9240db0f",
             // - Tipo de entidad
             // GEOPYME:
             // entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
             // Demo-fiscalizacion:
-             entity_type_id: "77ab0d33-beab-11ed-b309-f23c9240db0f",
+            // entity_type_id: "77ab0d33-beab-11ed-b309-f23c9240db0f",
             // SAIT:
-            // entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
+             entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
             // LITIO SALARES:
             // entity_type_id: "b7b021a0-aabd-4843-80dd-b88f1b5c3789",
             // PROVIDENCIA:
@@ -85,9 +85,9 @@ export default {
             // GEOPYME:
             // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
             // Demo-fiscalizacion:
-             config_entity_id: "c55bd65a-fd69-46c3-8870-01a8ee166565",
+            // config_entity_id: "c55bd65a-fd69-46c3-8870-01a8ee166565",
             // SAIT:
-            // config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
+             config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
             // LITIO SALARES:
             // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
             // PROVIDENCIA:
@@ -176,7 +176,8 @@ export default {
             config_info       : {},
             layers_info       : {},
             working_layers    : [],
-            active_filters    : []
+            active_filters    : [],
+            classification_icon_column : undefined
         };
     },
     components: {
@@ -345,7 +346,14 @@ export default {
         },
         async requestData(){
             //data
-            let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=["${this.col_lng}","${this.col_lat}"]&page=1`;
+            let column_ids = `"${this.col_lng}","${this.col_lat}"`;
+            this.$watch("$refs.sheetsMap.classification_icon_column", (icon_column) => {
+                this.classification_icon_column = icon_column;
+            });
+            if (this.classification_icon_column != undefined) {
+                column_ids = `${column_ids},"${this.classification_icon_column}"`; 
+            }
+            let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=[${column_ids}]&page=1`;
 
             if(!_.isEmpty(this.active_filters)){
                 url += "&active_filters="+JSON.stringify(this.active_filters);
