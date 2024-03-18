@@ -137,7 +137,7 @@ export default {
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
-        justify-content: start;
+        justify-content: flex-start;
         width: 100%;
 
         .quick-layers-content-item {
