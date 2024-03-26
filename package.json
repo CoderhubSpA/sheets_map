@@ -1,6 +1,6 @@
 {
   "name": "@CoderhubSpA/sheets_map",
-  "version": "1.24.3",
+  "version": "1.30.0",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -10,6 +10,7 @@
     "build-library": "vue-cli-service build --target lib --name index ./src/main.js"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.15.0",
     "axios": "^0.27.2",
     "bootstrap": "^4.6.2",
     "bootstrap-icons": "^1.8.3",

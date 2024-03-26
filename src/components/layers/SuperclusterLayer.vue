@@ -97,6 +97,10 @@ export default {
         base_url: String,
         visible: Boolean,
         theme: String,
+        clusterize: {
+            type: Boolean,
+            default: true,
+        },
     },
     components: {
         LLayerGroup,
@@ -244,19 +248,7 @@ export default {
         }
     },
     created() {
-        let zoom = this.layer.sh_map_has_layer_clustering_zoom;
-
-        zoom = parseInt(zoom);
-
-        if(zoom<=0||zoom>17||zoom==null||isNaN(zoom)){
-            zoom=17
-        }
-
-        this.index = new Supercluster({
-            radius: 40, // clusterizar en un radio de (radio es relativo al zoom)
-            maxZoom: zoom, // Maximo zoom a clusterizar
-        });
-        this.index.load([]);
+        this.create_supercluster_index(this.clusterize);
     },
     watch: {
         geo_json() {
@@ -277,6 +269,11 @@ export default {
             );
 
             this.center = [markers_sum[0] / total, markers_sum[1] / total];
+        },
+        clusterize(newVal) {
+            this.create_supercluster_index(newVal);
+            this.index.load(this.geo_json.features);
+            this.getClusterMarkers();
         },
     },
     methods: {
@@ -319,6 +316,21 @@ export default {
         },
         setForm(form) {
             this.$emit("form", form);
+        },
+        create_supercluster_index(clusterize){
+            let zoom = this.layer.sh_map_has_layer_clustering_zoom;
+
+            zoom = parseInt(zoom);
+
+            if(zoom<=0||zoom>17||zoom==null||isNaN(zoom)){
+                zoom=17
+            }
+
+            this.index = new Supercluster({
+                radius:  clusterize ? 40 : 0, // clusterizar en un radio de (radio es relativo al zoom)
+                maxZoom: clusterize ? zoom : 0, // Maximo zoom a clusterizar
+            });
+            this.index.load([]);
         }
     },
 };
