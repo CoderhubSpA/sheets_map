@@ -50,6 +50,7 @@ export default {
         visible_columns: Array,
         entity_type_id: String,
         popup_point_options: Object,
+        base_url: String,
     },
     computed: {
         getFormColFormat() {
@@ -60,7 +61,7 @@ export default {
             return getFormColFormat ? true : false;
         },
         generateURL() {
-            return `http://sheets.local/sait/generateURL/${this.info.entity_type.id}/${this.marker.data["id"]}`;
+            return `${this.base_url}/sait/generateURL/${this.info.entity_type.id}/${this.marker.data["id"]}`;
         },
     },
     methods: {
