@@ -10,8 +10,8 @@
                     <b>{{ col.name }}</b>
                 </span>
                 <br />
-                <a v-if="col.format == 'URL'" :href="getPopupData(marker, col)" target="_blank" class="marker-pop-up-info-content">
-                    {{ getPopupData(marker, col) }}
+                <a v-if="col.format === 'URL[GENERATED]'" :href="generateURL" rel="noopener noreferrer" target="_blank" class="marker-pop-up-info-content">
+                    ver parte
                 </a>
                 <span v-else class="marker-pop-up-info-content">
                     {{ getPopupData(marker, col) }}
@@ -58,7 +58,10 @@ export default {
             });
 
             return getFormColFormat ? true : false;
-        }
+        },
+        generateURL() {
+            return `http://sheets.local/sait/generateURL/${this.info.entity_type.id}/${this.marker.data["id"]}`;
+        },
     },
     methods: {
         getPopupData(marker, col) {
