@@ -17,7 +17,7 @@
                     {{ getPopupData(marker, col) }}
                 </span>
             </div>
-            <div v-if="getFormColFormat">
+            <div v-if="getFormColFormat && updatePermission">
                 <span class="marker-pop-up-info-title">
                     <b>Editar registro</b>
                 </span>
@@ -51,6 +51,11 @@ export default {
         entity_type_id: String,
         popup_point_options: Object,
     },
+    data() {
+        return {
+            updatePermission: false,
+        };
+    },
     computed: {
         getFormColFormat() {
             const getFormColFormat = this.info.columns.find((column) => {
@@ -59,6 +64,22 @@ export default {
 
             return getFormColFormat ? true : false;
         }
+    },
+    watch: {
+         info: {
+            handler: function (info) {
+                // If the info object is not empty, this means that the user has
+                // some permissions. First, we check if the user has the
+                // permission to create an entity, and if so, we set the
+                // updatePermission property to true.
+                if (Object.keys(info).length > 0) {
+                    const updatePermission = this.info.entity_type_permission.find(p => p.update == '1');
+
+                    if (updatePermission) this.updatePermission = true;
+                }
+            },
+            deep: true,
+        },
     },
     methods: {
         getPopupData(marker, col) {
