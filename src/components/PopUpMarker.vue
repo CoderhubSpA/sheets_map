@@ -61,7 +61,7 @@ export default {
             return getFormColFormat ? true : false;
         },
         generateURL() {
-            return `${this.base_url}/sait/generateURL/${this.info.entity_type.id}/${this.marker.data["id"]}`;
+            return `${this.base_url}/sait/generateUrl/${this.info.entity_type.id}/${this.marker.data["id"]}`;
         },
     },
     methods: {
