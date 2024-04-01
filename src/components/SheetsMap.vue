@@ -29,16 +29,16 @@
                     <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
                         <b-icon icon="plus-lg"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
                         <b-icon icon="circle"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
                         <b-icon icon="square"></b-icon>
                     </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
                     <OpenFormPoint
@@ -50,6 +50,12 @@
                         v-on:data-form="setForm"
                     />
                 </section>
+
+                <QuickLayers
+                    :layers="working_layers"
+                    :custom_styles="custom_styles"
+                    v-on:set-layer="setLayer"
+                ></QuickLayers>
 
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
                 
@@ -172,6 +178,7 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 import OpenFormPoint from './form/openFormPoint.vue';
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import QuickLayers from './layers/QuickLayers.vue';
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -193,7 +200,8 @@ export default {
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
         PolygonDrafter,
-        OpenFormPoint
+        OpenFormPoint,
+        QuickLayers
 
     },
     props: {
@@ -1707,6 +1715,8 @@ export default {
             }
         },
         setLayer(layer) {
+            layer.timestamp = new Date().getTime();
+
             this.$emit("set_layer", layer);
         },
         setPointMode(mode) {
