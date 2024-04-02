@@ -160,6 +160,14 @@ export default {
                 const latCol = this.info.columns.find(c => c.format === 'LATITUDE');
                 const lngCol = this.info.columns.find(c => c.format === 'LONGITUDE');
 
+                if (!latCol || !lngCol) {
+                    console.error("No se encontraron las columnas de latitud y longitud. Debe crear las columnas en Sheets con formato 'LATITUDE' y 'LONGITUDE' para poder abrir formularios desde el mapa.");
+                    
+                    this.$emit('point-mode', '');
+
+                    return;
+                }
+
                 // create params object with lat and lng values
                 let params = {};
                 params[latCol.col_name] = point.lat;

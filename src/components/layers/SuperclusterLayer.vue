@@ -433,7 +433,7 @@ export default {
 
             this.index = new Supercluster({
                 radius:  clusterize ? 40 : 0, // clusterizar en un radio de (radio es relativo al zoom)
-                maxZoom: zoom, // Maximo zoom a clusterizar
+                maxZoom: clusterize ? zoom : 0, // Maximo zoom a clusterizar
             });
             this.index.load([]);
         }

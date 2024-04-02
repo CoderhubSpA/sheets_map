@@ -134,7 +134,7 @@ export default {
         data: Object,
         layers: Object, // Todas las capas
         custom_styles: String,
-        layer_from_map: String,
+        layer_from_map: Object,
     },
     data() {
         return {
@@ -164,7 +164,8 @@ export default {
                         enriched_data: layer["enriched_data"],
                         layers_to_filter: layer["sh_map_has_layer_filter_layers"],
                         group_subgroup_limit: layer["sh_map_has_layer_group_selection_limit"],
-                        disabled: (this.disabled_layers[layer.id])
+                        disabled: (this.disabled_layers[layer.id]),
+                        quickLayer: layer["sh_map_has_layer_quick_layer"],
                     };
                 }
             ).sort(
@@ -214,11 +215,14 @@ export default {
                 "--tooltip-text-color": custom_styles["tooltip-text-color"] || "white",
             };
         },
-    },
+    }, 
     watch: {
-        layer_from_map(layerId) {
-            if(layerId) {
-                const layer = this.working_layers.find(layer => layer.key == layerId);
+        layer_from_map(layer, oldLayer) {
+            if(layer && oldLayer && layer.timestamp !== oldLayer.timestamp) {
+                this.setLayerFromMap(layer);
+            }
+
+            if(layer && !oldLayer) {
                 this.setLayerFromMap(layer);
             }
         },
@@ -316,6 +320,8 @@ export default {
                 // Get the layers inside the group
                 this.get_layers_group(group, layer.group);
             }
+            
+            this.toggleLayer(layer);
         },
         uncheckLayers() {
             this.active_layers = {};

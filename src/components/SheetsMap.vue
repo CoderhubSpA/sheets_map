@@ -51,6 +51,12 @@
                     />
                 </section>
 
+                <QuickLayers
+                    :layers="working_layers"
+                    :custom_styles="custom_styles"
+                    v-on:set-layer="setLayer"
+                ></QuickLayers>
+
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
@@ -173,6 +179,7 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 import OpenFormPoint from './form/openFormPoint.vue';
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import QuickLayers from './layers/QuickLayers.vue';
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -194,7 +201,8 @@ export default {
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
         PolygonDrafter,
-        OpenFormPoint
+        OpenFormPoint,
+        QuickLayers
 
     },
     props: {
@@ -216,7 +224,10 @@ export default {
         layers                : Object, // Todas las capas
         working_layers        : Array,
         trigger_filter_function: Boolean,
-        clusterize: Boolean,
+        clusterize: {
+            type: Boolean,
+            default: true,
+        },
 
     },
     data () {
@@ -1736,6 +1747,8 @@ export default {
             }
         },
         setLayer(layer) {
+            layer.timestamp = new Date().getTime();
+
             this.$emit("set_layer", layer);
         },
         setPointMode(mode) {
