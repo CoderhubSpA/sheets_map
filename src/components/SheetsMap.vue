@@ -53,7 +53,7 @@
 
                 <QuickLayers
                     :layers="working_layers"
-                    :custom_styles="custom_styles"
+                    :css_vars="css_vars"
                     v-on:set-layer="setLayer"
                 ></QuickLayers>
 
