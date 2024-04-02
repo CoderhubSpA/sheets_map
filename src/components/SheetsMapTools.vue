@@ -40,7 +40,7 @@
                                         <img
                                             v-if="option.image"
                                             :src="`${base_url}${option.image}`"
-                                            alt=""
+                                            :alt="option.value"
                                         />
                                     </div>
                                     <span>{{ option.value }}</span>
@@ -60,6 +60,12 @@
                                 :data-color="option.color"
                                 :data-text-color="option.text_color"
                             >
+                                <div class="hidden-by-default layer-option-image">
+                                    <img
+                                        v-if="option.image"
+                                        :src="`${base_url}${option.image}`"
+                                    />
+                                </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
                                 </div>
@@ -77,11 +83,17 @@
                             <legend 
                                 @click="e => e.currentTarget.parentNode.classList.toggle('collapsed')"
                                 
-                                :data-icon="subgroups_first_layer[subgroup_key].icon"
-                                :data-image="subgroups_first_layer[subgroup_key].image"
-                                :data-color="subgroups_first_layer[subgroup_key].color"
-                                :data-text-color="subgroups_first_layer[subgroup_key].text_color"
+                                :data-icon="subgroups_first_layer[subgroup_key]?.icon"
+                                :data-image="subgroups_first_layer[subgroup_key]?.image"
+                                :data-color="subgroups_first_layer[subgroup_key]?.color"
+                                :data-text-color="subgroups_first_layer[subgroup_key]?.text_color"
                             >
+                                <div class="hidden-by-default layer-subgroup-image">
+                                    <img
+                                        v-if="subgroups_first_layer[subgroup_key]?.image"
+                                        :src="`${base_url}${subgroups_first_layer[subgroup_key]?.image}`"
+                                    />
+                                </div>
                                 <span>{{subgroup_key}}</span>
                                 <b-icon
                                     icon="chevron-up"
@@ -211,7 +223,7 @@ export default {
 
             Object.values(this.grouped_layers).forEach((group) => {
                 Object.keys(group).forEach((subgroup_key) => {
-                    subgroup_first_layer[subgroup_key] = Object.values(group[subgroup_key]).find( v => v.icon)
+                    subgroup_first_layer[subgroup_key] = Object.values(group[subgroup_key]).find( v => v.image)
                         || Object.values(group[subgroup_key]).find( v => v.color)
                         || Object.values(group[subgroup_key]).find( v => v)
                 });
@@ -224,7 +236,7 @@ export default {
 
             Object.keys(this.grouped_layers).forEach((group_key) => {
                 try{
-                    const first_subgroup = Object.values(this.grouped_layers[group_key])?.find( v => v.icon)
+                    const first_subgroup = Object.values(this.grouped_layers[group_key])?.find( v => v.image)
                         || Object.values(this.grouped_layers[group_key]).find( v => v.color)
                         || Object.values(this.grouped_layers[group_key])?.find( v => v)
                     const first_layer = Object.values(first_subgroup)?.find( v => v);
@@ -540,6 +552,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
+
+// En ocasiones ciertos elementos existen pero estan ocultos
+// Estos pueden ser activados luego por alguna plantilla del orquestador de componentes
+.hidden-by-default{
+    display: none;   
+}
+
 .subgroup-container {
     display: flex;
     justify-content: space-between;
@@ -877,6 +896,13 @@ export default {
             }
         }
         
+    }
+    .layer-option-image,
+    .layer-subgroup-image{
+        img{
+            width: 24px;
+            height: auto;
+        }
     }
 }
 </style>
