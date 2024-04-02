@@ -68,12 +68,54 @@ export default {
             // IMPORTANTE: ELIMINAR EL "/" AL FINAL DE LA RUTA
             // MAL  -> http://sheetsmock.local/ 
             // BIEN -> http://sheetsmock.local
-            base_url: "",
+            /*base_url: "",
             id: "",
+            // - Tipo de entidad
             entity_type_id: "",
+            // - Registro de configuracion
             config_entity_id: "",
+            // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
+            // Endpoint de configuracion
             endpoint_config: "/entity/data/",
+            // configuracion component sheets map tools 
+            default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
+            map_tools_custom_styles:`
+                {
+                    "radius-multiplier"                 : "8px"
+                    "link-color"                        : "red",
+                }
+            `,*/
+            base_url: "http://127.0.0.1:8000",
+            //id: "f2ad4ea7-4efd-4c8a-a449-26d5766e3e81",
+            id: "99863740-4c01-11ed-b21a-f23c9240db0f",
+            // - Tipo de entidad
+            // GEOPYME:
+            // entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
+            // Demo-fiscalizacion:
+            // entity_type_id: "77ab0d33-beab-11ed-b309-f23c9240db0f",
+            // SAIT:
+             entity_type_id: "de59f145-a291-4474-91da-7e3ec3744f4f",
+            // LITIO SALARES:
+            // entity_type_id: "b7b021a0-aabd-4843-80dd-b88f1b5c3789",
+            // PROVIDENCIA:
+            // entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
+            // - Registro de configuracion
+            // GEOPYME:
+            // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // Demo-fiscalizacion:
+            // config_entity_id: "c55bd65a-fd69-46c3-8870-01a8ee166565",
+            // SAIT:
+             config_entity_id: "bbad9606-cbdd-4afa-a6f1-873a47922d62",
+            // LITIO SALARES:
+            // config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // PROVIDENCIA:
+            // config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
+            // Tipo de entidad de configuracion
+            config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
+            // Endpoint de configuracion
+            endpoint_config: "/entity/data/",
+            // configuracion component sheets map tools 
             default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
             map_tools_custom_styles:`
                 {
@@ -326,10 +368,11 @@ export default {
             //data
             let column_ids = `"${this.col_lng}","${this.col_lat}"`;
             this.$watch("$refs.sheetsMap.classification_icon_column", (icon_column) => {
-                this.classification_icon_column = icon_column;
+                this.classification_icon_column = `,"${icon_column}"`;
             });
+
             if (this.classification_icon_column != undefined) {
-                column_ids = `${column_ids},"${this.classification_icon_column}"`; 
+                column_ids = `${column_ids}${this.classification_icon_column}`; 
             }
             let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=[${column_ids}]&page=1`;
 

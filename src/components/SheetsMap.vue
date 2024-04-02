@@ -674,21 +674,18 @@ export default {
 
             if(typeof classification_icon_info !== 'undefined' ){
                 classification_icon = {
-                    'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column,
-                    'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification,
-                    'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon
+                    'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column_id,
+                    'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification_id,
+                    'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon_id
 
                 };
-                this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column;
-                console.log(classification_icon_info.sh_map_has_layer_classification_column);
+                this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column_id;
 
             }else{
                 this.classification_icon_column = false;
 
             }
 
-                console.log(this.classification_icon_column);
-                console.log(classification_icon_info);
             return classification_icon;
         },
         zoomToLocation(latLng){
@@ -1275,8 +1272,7 @@ export default {
                 try {
                     all_data     = response.data.content;
                     data         = _.first(all_data.data);
-                    console.log(response.data.content);
-                    console.log('data');
+                    
                     this.col_lng = data.sh_map_column_longitude; 
                     this.col_lat = data.sh_map_column_latitude;
 

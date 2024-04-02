@@ -186,8 +186,6 @@ export default {
             geo_json.features = this.data.data
                 .map((d) => {
                     try {
-                        //console.log(d);
-                        //console.log(this.classification_icon.classification_column);
                         let lat = d[this.col_lat];
                         let lng = d[this.col_lng];
                         let type;
@@ -335,9 +333,10 @@ export default {
             this.getClusterMarkers();
         },
         async classification_icon() {
-            if (this.classification_icon_content === undefined && this.classification_icon != undefined && this.classification_icon_content) {
-                console.log(this.classification_icon.source_icon_classification);
-                console.log(this.classification_icon);
+            if (this.classification_icon_content === undefined && 
+                this.classification_icon != undefined && 
+                this.classification_icon.source_icon_classification != null) {
+
                 let icon_info = await this.requestData(this.classification_icon.source_icon_classification,this.classification_icon.column_icon);
                 
                 let column_icon_id = this.classification_icon.column_icon;
@@ -347,6 +346,7 @@ export default {
                 });
                 this.classification_icon_content = classification_data;
             }
+
         },
     },
     methods: {
@@ -356,14 +356,15 @@ export default {
 
             if (entity_type_id == null) {
                console.info('Id de entidad nulo'); 
+               return [];
             }
-
-            return axios.get(url).then((response) => {
+            return  axios.get(url).then((response) => {
                 return response.data.content;
             })
             .catch((error) => {
                 console.error(error);
             })
+
         },
         classification_icon_path(point){
             if (this.classification_icon_content) {
@@ -372,13 +373,10 @@ export default {
                 });
 
                 if (relevant_icon && relevant_icon.length > 0) {
-                    console.log( _.first(relevant_icon).icon_url);
-            console.log(_.first(relevant_icon).icon_url);
                     return _.first(relevant_icon).icon_url;
                 }
 
             }
-            console.log('a');
             return null;
 
         },
