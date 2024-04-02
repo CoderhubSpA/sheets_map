@@ -55,7 +55,7 @@
                 :radius="3"
                 v-on:click="getMarkerData(marker)"
                 color="#00642a"
-                v-if="classification_icon_path(marker) != null">
+                v-if="classification_icon_path(marker) == null || classification_icon_path(marker) == undefined">
             <!-- pop-up del marcador de círculo-->
                 <pop-up-marker
                     :marker="marker"
@@ -335,7 +335,9 @@ export default {
             this.getClusterMarkers();
         },
         async classification_icon() {
-            if (this.classification_icon_content === undefined && this.classification_icon != undefined) {
+            if (this.classification_icon_content === undefined && this.classification_icon != undefined && this.classification_icon_content) {
+                console.log(this.classification_icon.source_icon_classification);
+                console.log(this.classification_icon);
                 let icon_info = await this.requestData(this.classification_icon.source_icon_classification,this.classification_icon.column_icon);
                 
                 let column_icon_id = this.classification_icon.column_icon;
@@ -352,6 +354,10 @@ export default {
             //data
             const url = `${this.base_url}/entity/data/${entity_type_id}?column_ids=["${column_ids}"]&page=1`;
 
+            if (entity_type_id == null) {
+               console.info('Id de entidad nulo'); 
+            }
+
             return axios.get(url).then((response) => {
                 return response.data.content;
             })
@@ -360,15 +366,19 @@ export default {
             })
         },
         classification_icon_path(point){
-            let relevant_icon = this.classification_icon_content.filter((icon)=>{
-                return icon.id == point.type;
-            });
+            if (this.classification_icon_content) {
+                let relevant_icon = this.classification_icon_content.filter((icon)=>{
+                    return icon.id == point.type;
+                });
 
-            if (relevant_icon && relevant_icon.length > 0) {
-                console.log( _.first(relevant_icon).icon_url);
-                return _.first(relevant_icon).icon_url;
+                if (relevant_icon && relevant_icon.length > 0) {
+                    console.log( _.first(relevant_icon).icon_url);
+            console.log(_.first(relevant_icon).icon_url);
+                    return _.first(relevant_icon).icon_url;
+                }
+
             }
-
+            console.log('a');
             return null;
 
         },

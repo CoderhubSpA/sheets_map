@@ -669,11 +669,15 @@ export default {
 
                 };
                 this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column;
+                console.log(classification_icon_info.sh_map_has_layer_classification_column);
+
             }else{
                 this.classification_icon_column = false;
 
             }
 
+                console.log(this.classification_icon_column);
+                console.log(classification_icon_info);
             return classification_icon;
         },
         zoomToLocation(latLng){
