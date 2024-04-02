@@ -54,6 +54,11 @@
                                 :style="{
                                     backgroundImage: `url(${base_url}${option.image})`,
                                 }"
+                                
+                                :data-icon="option.icon"
+                                :data-image="option.image"
+                                :data-color="option.color"
+                                :data-text-color="option.text_color"
                             >
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
@@ -65,12 +70,18 @@
                         </div>
                     </div>
                     <div v-else 
-                        class="layer-subgroup"
-                    >
+                        class="layer-subgroup" >
                         <!-- Para las capas subagrupadas
                         Se representan desde elementos colapsables -->
                         <fieldset class="collapsed">
-                            <legend  @click="e => e.currentTarget.parentNode.classList.toggle('collapsed')">
+                            <legend 
+                                @click="e => e.currentTarget.parentNode.classList.toggle('collapsed')"
+                                
+                                :data-icon="subgroups_first_layer[subgroup_key].icon"
+                                :data-image="subgroups_first_layer[subgroup_key].image"
+                                :data-color="subgroups_first_layer[subgroup_key].color"
+                                :data-text-color="subgroups_first_layer[subgroup_key].text_color"
+                            >
                                 <span>{{subgroup_key}}</span>
                                 <b-icon
                                     icon="chevron-up"
@@ -89,6 +100,11 @@
                                         :checked="option.active"
                                         :id="option.key"
                                         :disabled="option.disabled"
+                                        
+                                        :data-icon="option.icon"
+                                        :data-image="option.image"
+                                        :data-color="option.color"
+                                        :data-text-color="option.text_color"
                                         >
                                     <label >{{option.value}}</label>
                                 </li>
@@ -166,6 +182,9 @@ export default {
                         group_subgroup_limit: layer["sh_map_has_layer_group_selection_limit"],
                         disabled: (this.disabled_layers[layer.id]),
                         quickLayer: layer["sh_map_has_layer_quick_layer"],
+                        color: layer['sh_map_has_layer_color'],
+                        text_color: layer['sh_map_has_layer_text_color'],
+                        icon: layer['sh_map_has_layer_point_image']
                     };
                 }
             ).sort(
@@ -186,6 +205,36 @@ export default {
             )
 
             return grouped_layers;
+        },
+        subgroups_first_layer() {
+            let subgroup_first_layer = {};
+
+            Object.values(this.grouped_layers).forEach((group) => {
+                Object.keys(group).forEach((subgroup_key) => {
+                    subgroup_first_layer[subgroup_key] = Object.values(group[subgroup_key]).find( v => v.icon)
+                        || Object.values(group[subgroup_key]).find( v => v.color)
+                        || Object.values(group[subgroup_key]).find( v => v)
+                });
+            });
+            
+            return subgroup_first_layer;
+        },
+        groups_first_layer() {
+            let group_first_layer = {};
+
+            Object.keys(this.grouped_layers).forEach((group_key) => {
+                try{
+                    const first_subgroup = Object.values(this.grouped_layers[group_key])?.find( v => v.icon)
+                        || Object.values(this.grouped_layers[group_key]).find( v => v.color)
+                        || Object.values(this.grouped_layers[group_key])?.find( v => v)
+                    const first_layer = Object.values(first_subgroup)?.find( v => v);
+                    group_first_layer[group_key] = first_layer;
+                } catch (e) {
+                    // do nothing 
+                }
+            });
+
+            return group_first_layer;
         },
         css_vars() {
             let custom_styles;
