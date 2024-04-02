@@ -222,7 +222,10 @@ export default {
         layers                : Object, // Todas las capas
         working_layers        : Array,
         trigger_filter_function: Boolean,
-        clusterize: Boolean,
+        clusterize: {
+            type: Boolean,
+            default: true,
+        },
 
     },
     data () {
