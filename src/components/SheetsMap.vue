@@ -156,15 +156,48 @@
                 />
 
                 <l-control position="topright" >
-                    <div style="background:white"
-                                    :visible="active_layers.length > 0" >
-                        <div style="background:white;margin-top: 8px;margin-left: 8px;margin-right: 8px" v-for="layer in active_layers" :key="layer.id">
-                            <i style="background:red;
-                                    width: 18px;
-                                    height: 18px;
-                                    float: left;
-                                    margin-right: 8px;
-                                    opacity: 0.7;"></i> {{layer.name}}
+                    <div class="legend-container" :visible="active_layers.length > 0" >
+                        <div v-for="layer in active_layers" :key="layer.id">
+                            <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
+                                <img class="legend-icon"
+                                    v-if="layer.sh_map_has_layer_point_image"
+                                    :src="base_url + layer.sh_map_has_layer_point_image"
+                                />
+                                <i v-else class="legend-icon-color" :style="legendIconControl(layer)"></i> 
+                                {{layer.name}}
+                            </div>
+                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
+                                <div class="legend-title">
+                                    {{layer.name}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="legendIconControl(layer,'small')"></div> 
+                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="legendIconControl(layer,'medium')"></div> 
+                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="legendIconControl(layer,'large')"></div> 
+                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                            </div>
+                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'analytic'">
+                                <div class="legend-title">
+                                    {{layer.name}}
+                                </div>
+                                    <div class="legend-sublavel">
+                                        <i class="legend-icon-color"></i> 
+                                        Region
+                                    </div>
+                                <div v-for="analityc_layer in analyticInfoForLegend(layer.id)" :key="analityc_layer.id">
+                                    <div class="legend-sublavel">
+                                        <i class="legend-icon-color"></i> 
+                                        Region
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </l-control>
@@ -1244,7 +1277,44 @@ export default {
             }
             return h;
         },
+        legendIconControl(layer, size = null){
+            let theme;
+            let style_raw = {};
+            let layer_type = layer.sh_map_has_layer_type;
 
+            switch (layer_type) {
+                case 'supercluster':{
+                    theme = layer.sh_map_has_layer_custom_styles;
+
+                    style_raw['background']    = this.css_vars[`--sh-map-point-cluster-${theme}${size}-color`];
+                    style_raw['border-color']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-color`];
+                    style_raw['border-style']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-style`];
+                    style_raw['border-width']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-width`]; 
+                    style_raw['border-radius'] = '50%';  
+
+                    break;
+                }
+                case 'analityc':{
+                    console.log(this.analytic_cluster_style());
+
+                    style_raw['background'] = 'red';
+
+                    break;
+                }
+                default:
+                    style_raw['background'] = layer.sh_map_has_layer_color;
+                    break;
+            }
+
+            return style_raw;
+        },
+        analyticInfoForLegend(id){
+            let current_layer = this.analytic_geojson_list.filter(layer=> layer.id);
+            if (current_layer.length > 0) {
+                
+            }
+            return [];
+        },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
@@ -1804,5 +1874,42 @@ export default {
     /* This line deletes additional padding-right of coderhub powered container after delete UKR flag */
     .my-map >>> .leaflet-right > .leaflet-control:first-child {
         padding-right: 0px;
+    }
+    .legend-container{
+        background:white;
+        padding-top: 8px;
+    }
+    .legend-lavel{
+        margin-left: 8px;
+        padding-bottom: 8px;
+        margin-right: 8px
+    }
+    .legend-title{
+        margin-left: 4px;
+        padding-bottom: 2px;
+    }
+    .legend-sublavel{
+        margin-left: 8px;
+        padding-bottom: 2px;
+        margin-right: 8px
+    }
+    .legend-icon{
+        width: 20px;
+        height: 20px;
+        float: left;
+        margin-right: 8px;
+        opacity: 1;
+    }
+    .legend-icon-color{
+        background:red;
+        width: 18px;
+        height: 18px;
+        float: left;
+        margin-right: 8px;
+        opacity: 0.7;
+    }
+    .legend-sublavel-container{
+        background:white;
+        padding-bottom: 6px;
     }
 </style>
