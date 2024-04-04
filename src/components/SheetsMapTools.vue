@@ -463,7 +463,7 @@ export default {
                     });
                 }
 
-                if(countSelectedLayers == this.totalSelectableGroups(group)) {
+                if(this.totalSelectableGroups(group) > 0 && countSelectedLayers == this.totalSelectableGroups(group)) {
                     let layersToDisabled = []
 
                     Object.values(group).forEach((group) => {
