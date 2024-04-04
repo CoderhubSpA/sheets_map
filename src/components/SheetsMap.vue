@@ -168,7 +168,7 @@
                             </div>
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
                                 <div class="legend-title">
-                                    {{layer.name}}
+                                    <b>{{layer.name}}</b>
                                 </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="legendIconControl(layer,'small')"></div> 
@@ -185,18 +185,16 @@
                             </div>
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'analytic'">
                                 <div class="legend-title">
-                                    {{layer.name}}
+                                    <b>{{layer.name}}</b>
                                 </div>
                                     <div class="legend-sublavel">
-                                        <i class="legend-icon-color"></i> 
-                                        Region
+                                        <i class="legend-icon-color" :style="analyticLegendIconControl('large')"></i> 
+                                        Mayor concentración
                                     </div>
-                                <div v-for="analityc_layer in analyticInfoForLegend(layer.id)" :key="analityc_layer.id">
                                     <div class="legend-sublavel">
-                                        <i class="legend-icon-color"></i> 
-                                        Region
+                                        <i class="legend-icon-color" :style="analyticLegendIconControl('small')"></i> 
+                                        Menor concentración
                                     </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -296,6 +294,7 @@ export default {
             analytic_countour_map     : undefined,
             analytic_geojson_list     : [],
             analytic_geojson_features : [],
+            analytic_geojson_legend   : [],
             operative_geojson_list    : [],
             operative_geojson_features : [],
             base_google_map           : undefined,
@@ -1308,12 +1307,8 @@ export default {
 
             return style_raw;
         },
-        analyticInfoForLegend(id){
-            let current_layer = this.analytic_geojson_list.filter(layer=> layer.id);
-            if (current_layer.length > 0) {
-                
-            }
-            return [];
+        analyticLegendIconControl(size){
+            return {background :this.style_variables["analytic-geojson-"+size+"-color"]};
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -1752,7 +1747,7 @@ export default {
             // Creating separator
             const poweredByCoderhubSpanSeparator = document.createElement('span');
             poweredByCoderhubSpanSeparator.ariaHidden = "true";
-            poweredByCoderhubSpanSeparator.innerHTML = "|";
+            poweredByCoderhubSpanSeparator.innerHTML = "";
             // Adding Coderhub logo
             poweredByCoderhubDiv.appendChild(poweredByCoderhubImg);
             //Add additional text
@@ -1912,4 +1907,9 @@ export default {
         background:white;
         padding-bottom: 6px;
     }
+    /*
+    :deep(.leaflet-control-container) .leaflet-bottom{
+        flex-flow: column;
+    }
+    */
 </style>
