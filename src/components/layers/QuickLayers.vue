@@ -36,8 +36,8 @@ export default {
             type: Array,
             required: true,
         },
-        customStyles: {
-            type: String,
+        css_vars: {
+            type: Object,
             required: false,
         },
     },
@@ -55,49 +55,6 @@ export default {
         },
         countQuickLayer() {
             return this.quickLayer.length;
-        },
-        css_vars() {
-            let customStyles;
-
-            try {
-                customStyles = JSON.parse(this.customStyles);
-            } catch (e) {
-                customStyles = {};
-            }
-
-            return {
-                "--global-radius": customStyles["global-radius"] || "8px",
-                "--subgroup-accordion-color":
-                    customStyles["subgroup-accordion-color"] || "#044617",
-                "--subgroup-accordion-active-color":
-                    customStyles["subgroup-accordion-active-color"] ||
-                    "#46845C",
-                "--subgroup-accordion-text-color":
-                    customStyles["subgroup-accordion-text-color"] || "#FFFFFF",
-                "--subgroup-checkbox-background":
-                    customStyles["subgroup-checkbox-background"] ||
-                    "transparent",
-                "--subgroup-checkbox-border-color":
-                    customStyles["subgroup-checkbox-border-color"] ||
-                    "#f7f7f7t",
-                "--subgroup-checkbox-border-radius":
-                    customStyles["subgroup-checkbox-border-radius"] || "8px",
-                "--option-color": customStyles["option-color"] || "#001D09",
-                "--option-active-color":
-                    customStyles["option-active-color"] || "#7EF0A6",
-                "--scrollbar-color":
-                    customStyles["scrollbar-color"] || "#7EF0A6",
-                "--scrollbar-color-hover":
-                    customStyles["scrollbar-color-hover"] || "#17935BA7",
-                "--button-color": customStyles["button-color"] || "#6a6a6a22",
-                "--button-hover-color":
-                    customStyles["button-hover-color"] || "#044617",
-                "--button-text-color":
-                    customStyles["button-text-color"] || "#FFFFFF",
-                "--link-color": customStyles["link-color"] || "#7EF0A6",
-                "--tooltip-text-color":
-                    customStyles["tooltip-text-color"] || "white",
-            };
         },
     },
     methods: {
@@ -162,7 +119,8 @@ export default {
 
                 .quick-layer-input {
                     appearance: none;
-                    background-color: var(--button-color);
+                    transition: background-color 400ms ease-out;
+                    background-color: #e0e0e0;
                     border-radius: 72px;
                     border-style: none;
                     flex-shrink: 0;
@@ -193,12 +151,12 @@ export default {
                     }
 
                     &:hover {
-                        background-color: var(--button-color);
+                        background-color: #9e9e9e;
                         transition-duration: 0s;
                     }
 
                     &:checked {
-                        background-color: var(--button-hover-color);
+                        background-color: var(--sh-map-marker-pop-up-title-color);
                     }
 
                     &:checked {
@@ -209,7 +167,7 @@ export default {
                     }
                     &:checked {
                         &:hover {
-                            background-color: var(--button-hover-color);
+                            background-color: var(--sh-map-marker-pop-up-title-color)
                         }
                     }
                 }
@@ -222,7 +180,7 @@ export default {
                     font-size: 1rem;
 
                     &.active {
-                        color: var(--button-hover-color);
+                        color: var(--sh-map-marker-pop-up-title-color);
                     }
                 }
 
