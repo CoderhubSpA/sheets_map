@@ -142,7 +142,7 @@
                   v-on:drawing-empty="findBounds"
                 ></polygon-drafter>
 
-                <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
+                <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
                 <l-wms-tile-layer
                     v-for="layer in (operative_geoserver_wms || [])"
                     :key="layer.id"
@@ -154,6 +154,20 @@
                     layer-type="base"
                     service="WMS"
                 />
+
+                <l-control position="topright" >
+                    <div style="background:white"
+                                    :visible="active_layers.length > 0" >
+                        <div style="background:white;margin-top: 8px;margin-left: 8px;margin-right: 8px" v-for="layer in active_layers" :key="layer.id">
+                            <i style="background:red;
+                                    width: 18px;
+                                    height: 18px;
+                                    float: left;
+                                    margin-right: 8px;
+                                    opacity: 0.7;"></i> {{layer.name}}
+                        </div>
+                    </div>
+                </l-control>
             </l-map>
         </div>
     </div>
@@ -162,7 +176,7 @@
 <script>
 import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
+import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
@@ -200,7 +214,8 @@ export default {
         SuperclusterEntityTypeLayer,
         PolygonDrafter,
         OpenFormPoint,
-        QuickLayers
+        QuickLayers,
+        LControl
 
     },
     props: {
