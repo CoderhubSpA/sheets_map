@@ -54,7 +54,6 @@
                                 :style="{
                                     backgroundImage: `url(${base_url}${option.image})`,
                                 }"
-                                
                                 :data-icon="option.icon"
                                 :data-image="option.image"
                                 :data-color="option.color"
@@ -112,13 +111,13 @@
                                         :checked="option.active"
                                         :id="option.key"
                                         :disabled="option.disabled"
-                                        
+                                    >
+                                    <label
                                         :data-icon="option.icon"
                                         :data-image="option.image"
                                         :data-color="option.color"
                                         :data-text-color="option.text_color"
-                                        >
-                                    <label >{{option.value}}</label>
+                                     >{{option.value}}</label>
                                 </li>
                             </ul>
                         </fieldset>
@@ -163,6 +162,10 @@ export default {
         layers: Object, // Todas las capas
         custom_styles: String,
         layer_from_map: Object,
+        theme:{
+            type: String,
+            optional: true
+        }
     },
     data() {
         return {
