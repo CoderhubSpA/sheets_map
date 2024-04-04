@@ -642,7 +642,6 @@ export default {
             }
         },
         map(newMap){
-            console.log('map_set', newMap);
             this.$emit('map_set', newMap);
         }
     },
@@ -1237,7 +1236,6 @@ export default {
         getMapConfiguration(){
             //data
             const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
-
             let all_data;
             let data;
             axios.get(url)
