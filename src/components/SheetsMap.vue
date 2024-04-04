@@ -155,8 +155,8 @@
                     service="WMS"
                 />
 
-                <l-control position="topright" >
-                    <div class="legend-container" :visible="active_layers.length > 0" >
+                <l-control position="bottomright" v-if="active_layers.length > 0">
+                    <div class="legend-container"  >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
                                 <img class="legend-icon"
@@ -1907,9 +1907,7 @@ export default {
         background:white;
         padding-bottom: 6px;
     }
-    /*
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
     }
-    */
 </style>
