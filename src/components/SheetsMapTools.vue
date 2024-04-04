@@ -196,10 +196,10 @@ export default {
                         layers_to_filter: layer["sh_map_has_layer_filter_layers"],
                         group_subgroup_limit: layer["sh_map_has_layer_group_selection_limit"],
                         disabled: (this.disabled_layers[layer.id]),
-                        quickLayer: layer["sh_map_has_layer_quick_layer"],
                         color: layer['sh_map_has_layer_color'],
                         text_color: layer['sh_map_has_layer_text_color'],
-                        icon: layer['sh_map_has_layer_point_image']
+                        icon: layer['sh_map_has_layer_point_image'],
+                        quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
                     };
                 }
             ).sort(
@@ -216,6 +216,38 @@ export default {
             Object.keys(grouped_layers).forEach(
                 (group_key) => {
                     grouped_layers[group_key] = _.groupBy(grouped_layers[group_key], 'subgroup')
+                }
+            )
+
+            // only show layers with quickLayer attribute set to 0
+            Object.keys(grouped_layers).forEach(
+                (group_key) => {
+                    Object.keys(grouped_layers[group_key]).forEach(
+                        (subgroup_key) => {
+                            grouped_layers[group_key][subgroup_key] = grouped_layers[group_key][subgroup_key].filter(
+                                (layer) => layer.quickLayer == 0
+                            );
+                        }
+                    )
+                }
+            )
+
+            // count the number of layers with quickLayer attribute set to 1, if all layers have quickLayer attribute set to 1, remove the group
+            Object.keys(grouped_layers).forEach(
+                (group_key) => {
+                    let count = 0;
+
+                    Object.keys(grouped_layers[group_key]).forEach(
+                        (subgroup_key) => {
+                            count += grouped_layers[group_key][subgroup_key].filter(
+                                (layer) => layer.quickLayer == 1
+                            ).length;
+                        }
+                    )
+
+                    if (count == Object.values(grouped_layers[group_key]).flat().length) {
+                        delete grouped_layers[group_key];
+                    }
                 }
             )
 
@@ -527,7 +559,7 @@ export default {
                     });
                 }
 
-                if(countSelectedLayers == this.totalSelectableGroups(group)) {
+                if(this.totalSelectableGroups(group) > 0 && countSelectedLayers == this.totalSelectableGroups(group)) {
                     let layersToDisabled = []
 
                     Object.values(group).forEach((group) => {
