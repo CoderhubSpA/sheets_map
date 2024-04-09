@@ -183,18 +183,36 @@
                                     >{{config.sh_map_large_cluster_size_starts_at}}
                                 </div>
                             </div>
-                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'analytic'">
+                            <div class="legend-sublavel-container" 
+                                v-else-if="layer.sh_map_has_layer_type == 'analytic' && 
+                                           layer.sh_map_has_layer_code != 'analytic_cluster'">
+                                <div class="legend-sublavel">
+
+                                    <b>{{layer.name}}</b>
+                                    <table>
+                                        <tr>
+                                            <td><div class="legend-icon-color" :style="analyticLegendIconControl(layer)"></div></td>
+                                            <td>Mayor concentración <br> Menor concentración</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_code == 'analytic_cluster'">
                                 <div class="legend-title">
                                     <b>{{layer.name}}</b>
                                 </div>
-                                    <div class="legend-sublavel">
-                                        <i class="legend-icon-color" :style="analyticLegendIconControl('large')"></i> 
-                                        Mayor concentración
-                                    </div>
-                                    <div class="legend-sublavel">
-                                        <i class="legend-icon-color" :style="analyticLegendIconControl('small')"></i> 
-                                        Menor concentración
-                                    </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
+                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'medium')"></div> 
+                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'large')"></div> 
+                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1307,8 +1325,34 @@ export default {
 
             return style_raw;
         },
-        analyticLegendIconControl(size){
-            return {background :this.style_variables["analytic-geojson-"+size+"-color"]};
+        analyticLegendIconControl(layer,size){
+            switch (layer.sh_map_has_layer_code) {
+                case 'analytic_geojson_logarithmic':
+                case 'analytic_geojson':{
+                    let small = this.style_variables["analytic-geojson-small-color"];
+                    let large = this.style_variables["analytic-geojson-large-color"];
+
+                    return{background: "linear-gradient(to bottom, "+large+", "+small+")",height: '36px'};
+                }
+                case 'analytic_countour_map':{
+                    let small   = '#9cadc5';
+                    let medium  = '#6ef363';
+                    let large   = '#F7F74F';
+                    let biggest = '#F5402A';
+
+                    return{background: "linear-gradient(to bottom, "+biggest+", "+large+", "+medium+", "+small+")",height: '36px'};
+                }
+                case 'analytic_cluster':{
+                    let style = {};
+                    style['background'] = this.style_variables["hexagonal-cluster-"+size+"-border-color"];
+                    style['clip-path']  = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+                    return style;
+                }
+                default:
+                    console.log(layer.sh_map_has_layer_color, 'Sin formato de leyenda definidox');
+                    break;
+            }
+
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
