@@ -172,7 +172,7 @@ export default {
             layers_info       : {},
             working_layers    : [],
             active_filters    : [],
-            theme             : 'horizontal-form-map',
+            theme             : 'sait',
             layer_from_map          : null,
         };
     },

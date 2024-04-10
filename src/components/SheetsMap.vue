@@ -155,8 +155,8 @@
                     service="WMS"
                 />
 
-                <l-control  position="bottomright" :style="theme_style" v-if="active_layers.length > 0">
-                    <div class="legend-container"  >
+                <l-control  position="bottomright" v-if="active_layers.length > 0">
+                    <div :class="theme_style"  >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
                                 <img class="legend-icon"
@@ -424,9 +424,10 @@ export default {
             return style;
         },
         theme_style(){
-            let style;
+            let style = 'legend-container';
+            //Si se agrega una nueva plantilla hay que actualizar esta linea
             if (this.theme != 'horizontal-form-map') {
-                style ="margin-right: 80px;";
+                style = style+" bar-margin";
             }
             return style;
         },
@@ -1932,5 +1933,8 @@ export default {
     }
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
+    }
+    .bar-margin{
+        margin-right: 80px;
     }
 </style>
