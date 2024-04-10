@@ -17,7 +17,7 @@
                 :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
                 :options="{ zoomControl: false, trackResize: false }">
 
-                <section class="custom-controls">
+                <div :class="btn_style">
                     <search-bar-proxy
                         v-if="config.sh_map_search_component && config.sh_map_search_component_config"
                         :componentName="config.sh_map_search_component"
@@ -49,7 +49,7 @@
                         v-on:point-mode="setPointMode"
                         v-on:data-form="setForm"
                     />
-                </section>
+                </div>
 
                 <QuickLayers
                     :layers="working_layers"
@@ -155,7 +155,7 @@
                     service="WMS"
                 />
 
-                <l-control position="bottomright" v-if="active_layers.length > 0">
+                <l-control  position="bottomright" :style="theme_style" v-if="active_layers.length > 0">
                     <div class="legend-container"  >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
@@ -263,6 +263,7 @@ export default {
         active_filters        : Array,
         info                  : Object,
         data                  : Object,
+        theme                 : String,
         // SheetsMapTools
         config                : Object, // Todas las capas
         layers                : Object, // Todas las capas
@@ -414,6 +415,20 @@ export default {
                 
             };
 
+        },
+        btn_style(){
+            let style = 'custom-controls';
+            if (this.theme == 'horizontal-form-map') {
+                style = style+" horizontal-form-map-btn";
+            }
+            return style;
+        },
+        theme_style(){
+            let style;
+            if (this.theme != 'horizontal-form-map') {
+                style ="margin-right: 80px;";
+            }
+            return style;
         },
 
         analytic_cluster_options() {
@@ -1845,6 +1860,14 @@ export default {
         gap: 8px;
         margin-top: 24px;
     }
+
+    .horizontal-form-map-btn {
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-end; 
+        padding-right: 8px;
+    }
+
 
     .custom-controls .zoom-btn {
         background-color: var(--sh-map-zoom-button-background-color);
