@@ -417,19 +417,19 @@ export default {
 
         },
         btn_style(){
-            let style = 'custom-controls';
+            let class_name = 'custom-controls';
             if (this.theme == 'horizontal-form-map') {
-                style = style+" horizontal-form-map-btn";
+                class_name = class_name+" horizontal-form-map-btn";
             }
-            return style;
+            return class_name;
         },
         theme_style(){
-            let style = 'legend-container';
+            let class_name = 'legend-container';
             //Si se agrega una nueva plantilla hay que actualizar esta linea
             if (this.theme != 'horizontal-form-map') {
-                style = style+" bar-margin";
+                class_name = class_name+" bar-margin";
             }
-            return style;
+            return class_name;
         },
 
         analytic_cluster_options() {
