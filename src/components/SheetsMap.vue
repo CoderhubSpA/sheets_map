@@ -663,11 +663,12 @@ export default {
                     return feature.layer_id == l.id;
                 });
 
-                const color = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
+                const color      = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
+                const fill_color = (layer?.sh_map_has_layer_text_color) ? layer.sh_map_has_layer_text_color : color;
 
                 const style = {
                     color       : color,
-                    fillColor   : color
+                    fillColor   : fill_color
                 };
 
 
