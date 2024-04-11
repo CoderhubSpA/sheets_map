@@ -71,10 +71,15 @@ export default {
             // BIEN -> http://sheetsmock.local
             base_url: "http://127.0.0.1:8000",
             id: "",
-            entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
-            config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
+            // - Tipo de entidad
+            entity_type_id: "",
+            // - Registro de configuracion
+            config_entity_id: "",
+            // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
+            // Endpoint de configuracion
             endpoint_config: "/entity/data/",
+            // configuracion component sheets map tools 
             default_info :"bd478f21-43d8-4380-bad8-ecce651b9ba7",
             map_tools_custom_styles:`
                 {
@@ -173,6 +178,7 @@ export default {
             working_layers    : [],
             active_filters    : [],
             theme             : 'sait',
+            classification_icon_column : undefined,
             layer_from_map          : null,
         };
     },
@@ -342,7 +348,15 @@ export default {
         },
         async requestData(){
             //data
-            let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=["${this.col_lng}","${this.col_lat}"]&page=1`;
+            let column_ids = `"${this.col_lng}","${this.col_lat}"`;
+            this.$watch("$refs.sheetsMap.classification_icon_column", (icon_column) => {
+                this.classification_icon_column = `,"${icon_column}"`;
+            });
+
+            if (this.classification_icon_column != undefined) {
+                column_ids = `${column_ids}${this.classification_icon_column}`; 
+            }
+            let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=[${column_ids}]&page=1`;
 
             if(!_.isEmpty(this.active_filters)){
                 url += "&active_filters="+JSON.stringify(this.active_filters);

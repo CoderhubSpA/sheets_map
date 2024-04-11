@@ -78,6 +78,7 @@
                     v-for="layer in supercluster_by_entity_type_layers"
                     :key="layer.id"
                     :cluster_key="layer.id"
+                    :classification_icon="classification_icon(layer.id)"
                     :layer="layer"
                     :base_url="base_url"
                     :map="map"
@@ -94,6 +95,7 @@
                     :visible="active_layers.some(layer => layer.sh_map_has_layer_code === 'supercluster')"
                     :data="data"
                     :info="info"
+                    :classification_icon="classification_icon()"
                     :map="map"
                     :config="config"
                     :col_lat="col_lat"
@@ -183,18 +185,36 @@
                                     >{{config.sh_map_large_cluster_size_starts_at}}
                                 </div>
                             </div>
-                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'analytic'">
+                            <div class="legend-sublavel-container" 
+                                v-else-if="layer.sh_map_has_layer_type == 'analytic' && 
+                                           layer.sh_map_has_layer_code != 'analytic_cluster'">
+                                <div class="legend-sublavel">
+
+                                    <b>{{layer.name}}</b>
+                                    <table>
+                                        <tr>
+                                            <td><div class="legend-icon-color" :style="analyticLegendIconControl(layer)"></div></td>
+                                            <td>Mayor concentración <br> Menor concentración</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_code == 'analytic_cluster'">
                                 <div class="legend-title">
                                     <b>{{layer.name}}</b>
                                 </div>
-                                    <div class="legend-sublavel">
-                                        <i class="legend-icon-color" :style="analyticLegendIconControl('large')"></i> 
-                                        Mayor concentración
-                                    </div>
-                                    <div class="legend-sublavel">
-                                        <i class="legend-icon-color" :style="analyticLegendIconControl('small')"></i> 
-                                        Menor concentración
-                                    </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
+                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'medium')"></div> 
+                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'large')"></div> 
+                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -289,25 +309,26 @@ export default {
             circle                    : undefined,
             /*Layers*/
             /** Zoom del mapa al momento de carga analytic_cluster. */
-            analytic_cluster_initial_zoom: undefined,
-            should_hide_cluster_labels: false,
-            analytic_cluster          : undefined,
-            analytic_countour_map     : undefined,
-            analytic_geojson_list     : [],
-            analytic_geojson_features : [],
-            analytic_geojson_legend   : [],
-            operative_geojson_list    : [],
+            analytic_cluster_initial_zoom : undefined,
+            should_hide_cluster_labels : false,
+            analytic_cluster           : undefined,
+            analytic_countour_map      : undefined,
+            analytic_geojson_list      : [],
+            analytic_geojson_features  : [],
+            analytic_geojson_legend    : [],
+            operative_geojson_list     : [],
             operative_geojson_features : [],
-            base_google_map           : undefined,
-            base_map_guide            : undefined,
-            base_open_street_map      : undefined,
-            operative_geoserver_wms   : [],
-            bounds_filters            : [],
-            num_zoom                  : false,
-            bounds                    : [],
-            h3                        : require("h3-js"),
-            shouldShowSearchMarker    : false,
-            searchMarkerLatLng        : null,
+            base_google_map            : undefined,
+            base_map_guide             : undefined,
+            base_open_street_map       : undefined,
+            operative_geoserver_wms    : [],
+            bounds_filters             : [],
+            num_zoom                   : false,
+            bounds                     : [],
+            h3                         : require("h3-js"),
+            shouldShowSearchMarker     : false,
+            searchMarkerLatLng         : null,
+            classification_icon_column : false,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             color_point : 'yellow',
@@ -723,6 +744,33 @@ export default {
         this.poweredCoderhub();
     },
     methods:{
+        classification_icon(id = null){
+            let classification_icon = undefined;
+            let classification_icon_info;
+            if (!id) {
+                // Se usa para el caso de supercluster en local,
+                // cuando se integre con Sheets, este caso se aborda en el orquestador
+                classification_icon_info = this.active_layers.filter(layer => layer.sh_map_has_layer_code === 'supercluster')[0]; 
+            } else{
+                classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
+            }
+
+            if(typeof classification_icon_info !== 'undefined' ){
+                classification_icon = {
+                    'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column_id,
+                    'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification_id,
+                    'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon_id
+
+                };
+                this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column_id;
+
+            }else{
+                this.classification_icon_column = false;
+
+            }
+
+            return classification_icon;
+        },
         zoomToLocation(latLng){
             this.searchMarkerLatLng = latLng;
             this.shouldShowSearchMarker = true;
@@ -1323,8 +1371,34 @@ export default {
 
             return style_raw;
         },
-        analyticLegendIconControl(size){
-            return {background :this.style_variables["analytic-geojson-"+size+"-color"]};
+        analyticLegendIconControl(layer,size){
+            switch (layer.sh_map_has_layer_code) {
+                case 'analytic_geojson_logarithmic':
+                case 'analytic_geojson':{
+                    let small = this.style_variables["analytic-geojson-small-color"];
+                    let large = this.style_variables["analytic-geojson-large-color"];
+
+                    return{background: "linear-gradient(to bottom, "+large+", "+small+")",height: '36px'};
+                }
+                case 'analytic_countour_map':{
+                    let small   = '#9cadc5';
+                    let medium  = '#6ef363';
+                    let large   = '#F7F74F';
+                    let biggest = '#F5402A';
+
+                    return{background: "linear-gradient(to bottom, "+biggest+", "+large+", "+medium+", "+small+")",height: '36px'};
+                }
+                case 'analytic_cluster':{
+                    let style = {};
+                    style['background'] = this.style_variables["hexagonal-cluster-"+size+"-border-color"];
+                    style['clip-path']  = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+                    return style;
+                }
+                default:
+                    console.log(layer.sh_map_has_layer_color, 'Sin formato de leyenda definidox');
+                    break;
+            }
+
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -1340,6 +1414,7 @@ export default {
                 try {
                     all_data     = response.data.content;
                     data         = _.first(all_data.data);
+                    
                     this.col_lng = data.sh_map_column_longitude; 
                     this.col_lat = data.sh_map_column_latitude;
 
