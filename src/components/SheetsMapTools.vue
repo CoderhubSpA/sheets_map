@@ -40,7 +40,7 @@
                                         <img
                                             v-if="option.image"
                                             :src="`${base_url}${option.image}`"
-                                            alt=""
+                                            :alt="option.value"
                                         />
                                     </div>
                                     <span>{{ option.value }}</span>
@@ -54,7 +54,17 @@
                                 :style="{
                                     backgroundImage: `url(${base_url}${option.image})`,
                                 }"
+                                :data-icon="option.icon"
+                                :data-image="option.image"
+                                :data-color="option.color"
+                                :data-text-color="option.text_color"
                             >
+                                <div class="hidden-by-default layer-option-image">
+                                    <img
+                                        v-if="option.image"
+                                        :src="`${base_url}${option.image}`"
+                                    />
+                                </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
                                 </div>
@@ -65,12 +75,24 @@
                         </div>
                     </div>
                     <div v-else 
-                        class="layer-subgroup"
-                    >
+                        class="layer-subgroup" >
                         <!-- Para las capas subagrupadas
                         Se representan desde elementos colapsables -->
                         <fieldset class="collapsed">
-                            <legend  @click="e => e.currentTarget.parentNode.classList.toggle('collapsed')">
+                            <legend 
+                                @click="e => e.currentTarget.parentNode.classList.toggle('collapsed')"
+                                
+                                :data-icon="subgroups_first_layer[subgroup_key]?.icon"
+                                :data-image="subgroups_first_layer[subgroup_key]?.image"
+                                :data-color="subgroups_first_layer[subgroup_key]?.color"
+                                :data-text-color="subgroups_first_layer[subgroup_key]?.text_color"
+                            >
+                                <div class="hidden-by-default layer-subgroup-image">
+                                    <img
+                                        v-if="subgroups_first_layer[subgroup_key]?.image"
+                                        :src="`${base_url}${subgroups_first_layer[subgroup_key]?.image}`"
+                                    />
+                                </div>
                                 <span>{{subgroup_key}}</span>
                                 <b-icon
                                     icon="chevron-up"
@@ -89,8 +111,13 @@
                                         :checked="option.active"
                                         :id="option.key"
                                         :disabled="option.disabled"
-                                        >
-                                    <label >{{option.value}}</label>
+                                    >
+                                    <label
+                                        :data-icon="option.icon"
+                                        :data-image="option.image"
+                                        :data-color="option.color"
+                                        :data-text-color="option.text_color"
+                                     >{{option.value}}</label>
                                 </li>
                             </ul>
                         </fieldset>
@@ -135,6 +162,10 @@ export default {
         layers: Object, // Todas las capas
         custom_styles: String,
         layer_from_map: Object,
+        theme:{
+            type: String,
+            optional: true
+        }
     },
     data() {
         return {
@@ -165,7 +196,10 @@ export default {
                         layers_to_filter: layer["sh_map_has_layer_filter_layers"],
                         group_subgroup_limit: layer["sh_map_has_layer_group_selection_limit"],
                         disabled: (this.disabled_layers[layer.id]),
-                        quickLayer: layer["sh_map_has_layer_quick_layer"],
+                        color: layer['sh_map_has_layer_color'],
+                        text_color: layer['sh_map_has_layer_text_color'],
+                        icon: layer['sh_map_has_layer_point_image'],
+                        quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
                     };
                 }
             ).sort(
@@ -185,7 +219,69 @@ export default {
                 }
             )
 
+            // only show layers with quickLayer attribute set to 0
+            Object.keys(grouped_layers).forEach(
+                (group_key) => {
+                    Object.keys(grouped_layers[group_key]).forEach(
+                        (subgroup_key) => {
+                            grouped_layers[group_key][subgroup_key] = grouped_layers[group_key][subgroup_key].filter(
+                                (layer) => layer.quickLayer == 0
+                            );
+                        }
+                    )
+                }
+            )
+
+            // count the number of layers with quickLayer attribute set to 1, if all layers have quickLayer attribute set to 1, remove the group
+            Object.keys(grouped_layers).forEach(
+                (group_key) => {
+                    let count = 0;
+
+                    Object.keys(grouped_layers[group_key]).forEach(
+                        (subgroup_key) => {
+                            count += grouped_layers[group_key][subgroup_key].filter(
+                                (layer) => layer.quickLayer == 1
+                            ).length;
+                        }
+                    )
+
+                    if (count == Object.values(grouped_layers[group_key]).flat().length) {
+                        delete grouped_layers[group_key];
+                    }
+                }
+            )
+
             return grouped_layers;
+        },
+        subgroups_first_layer() {
+            let subgroup_first_layer = {};
+
+            Object.values(this.grouped_layers).forEach((group) => {
+                Object.keys(group).forEach((subgroup_key) => {
+                    subgroup_first_layer[subgroup_key] = Object.values(group[subgroup_key]).find( v => v.image)
+                        || Object.values(group[subgroup_key]).find( v => v.color)
+                        || Object.values(group[subgroup_key]).find( v => v)
+                });
+            });
+            
+            return subgroup_first_layer;
+        },
+        groups_first_layer() {
+            let group_first_layer = {};
+
+            Object.keys(this.grouped_layers).forEach((group_key) => {
+                try{
+                    const first_subgroup = Object.values(this.grouped_layers[group_key])?.find( v => v.image)
+                        || Object.values(this.grouped_layers[group_key]).find( v => v.color)
+                        || Object.values(this.grouped_layers[group_key])?.find( v => v)
+                    const first_layer = Object.values(first_subgroup)?.find( v => v);
+                    group_first_layer[group_key] = first_layer;
+                } catch (e) {
+                    // do nothing 
+                }
+            });
+
+            return group_first_layer;
         },
         css_vars() {
             let custom_styles;
@@ -463,7 +559,7 @@ export default {
                     });
                 }
 
-                if(countSelectedLayers == this.totalSelectableGroups(group)) {
+                if(this.totalSelectableGroups(group) > 0 && countSelectedLayers == this.totalSelectableGroups(group)) {
                     let layersToDisabled = []
 
                     Object.values(group).forEach((group) => {
@@ -491,6 +587,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
+
+// En ocasiones ciertos elementos existen pero estan ocultos
+// Estos pueden ser activados luego por alguna plantilla del orquestador de componentes
+.hidden-by-default{
+    display: none;   
+}
+
 .subgroup-container {
     display: flex;
     justify-content: space-between;
@@ -828,6 +931,13 @@ export default {
             }
         }
         
+    }
+    .layer-option-image,
+    .layer-subgroup-image{
+        img{
+            width: 24px;
+            height: auto;
+        }
     }
 }
 </style>

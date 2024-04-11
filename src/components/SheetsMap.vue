@@ -53,7 +53,7 @@
 
                 <QuickLayers
                     :layers="working_layers"
-                    :custom_styles="custom_styles"
+                    :css_vars="css_vars"
                     v-on:set-layer="setLayer"
                 ></QuickLayers>
 
@@ -144,7 +144,7 @@
                   v-on:drawing-empty="findBounds"
                 ></polygon-drafter>
 
-                <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas -->
+                <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
                 <l-wms-tile-layer
                     v-for="layer in (operative_geoserver_wms || [])"
                     :key="layer.id"
@@ -156,6 +156,69 @@
                     layer-type="base"
                     service="WMS"
                 />
+
+                <l-control position="bottomright" v-if="active_layers.length > 0">
+                    <div class="legend-container"  >
+                        <div v-for="layer in active_layers" :key="layer.id">
+                            <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
+                                <img class="legend-icon"
+                                    v-if="layer.sh_map_has_layer_point_image"
+                                    :src="base_url + layer.sh_map_has_layer_point_image"
+                                />
+                                <i v-else class="legend-icon-color" :style="legendIconControl(layer)"></i> 
+                                {{layer.name}}
+                            </div>
+                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
+                                <div class="legend-title">
+                                    <b>{{layer.name}}</b>
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="legendIconControl(layer,'small')"></div> 
+                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="legendIconControl(layer,'medium')"></div> 
+                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="legendIconControl(layer,'large')"></div> 
+                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                            </div>
+                            <div class="legend-sublavel-container" 
+                                v-else-if="layer.sh_map_has_layer_type == 'analytic' && 
+                                           layer.sh_map_has_layer_code != 'analytic_cluster'">
+                                <div class="legend-sublavel">
+
+                                    <b>{{layer.name}}</b>
+                                    <table>
+                                        <tr>
+                                            <td><div class="legend-icon-color" :style="analyticLegendIconControl(layer)"></div></td>
+                                            <td>Mayor concentración <br> Menor concentración</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_code == 'analytic_cluster'">
+                                <div class="legend-title">
+                                    <b>{{layer.name}}</b>
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
+                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'medium')"></div> 
+                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                                <div class="legend-sublavel">
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'large')"></div> 
+                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </l-control>
             </l-map>
         </div>
     </div>
@@ -164,7 +227,7 @@
 <script>
 import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer } from 'vue2-leaflet';
+import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
@@ -202,7 +265,8 @@ export default {
         SuperclusterEntityTypeLayer,
         PolygonDrafter,
         OpenFormPoint,
-        QuickLayers
+        QuickLayers,
+        LControl
 
     },
     props: {
@@ -250,6 +314,7 @@ export default {
             analytic_countour_map      : undefined,
             analytic_geojson_list      : [],
             analytic_geojson_features  : [],
+            analytic_geojson_legend    : [],
             operative_geojson_list     : [],
             operative_geojson_features : [],
             base_google_map            : undefined,
@@ -1257,7 +1322,66 @@ export default {
             }
             return h;
         },
+        legendIconControl(layer, size = null){
+            let theme;
+            let style_raw = {};
+            let layer_type = layer.sh_map_has_layer_type;
 
+            switch (layer_type) {
+                case 'supercluster':{
+                    theme = layer.sh_map_has_layer_custom_styles;
+
+                    style_raw['background']    = this.css_vars[`--sh-map-point-cluster-${theme}${size}-color`];
+                    style_raw['border-color']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-color`];
+                    style_raw['border-style']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-style`];
+                    style_raw['border-width']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-width`]; 
+                    style_raw['border-radius'] = '50%';  
+
+                    break;
+                }
+                case 'analityc':{
+                    console.log(this.analytic_cluster_style());
+
+                    style_raw['background'] = 'red';
+
+                    break;
+                }
+                default:
+                    style_raw['background'] = layer.sh_map_has_layer_color;
+                    break;
+            }
+
+            return style_raw;
+        },
+        analyticLegendIconControl(layer,size){
+            switch (layer.sh_map_has_layer_code) {
+                case 'analytic_geojson_logarithmic':
+                case 'analytic_geojson':{
+                    let small = this.style_variables["analytic-geojson-small-color"];
+                    let large = this.style_variables["analytic-geojson-large-color"];
+
+                    return{background: "linear-gradient(to bottom, "+large+", "+small+")",height: '36px'};
+                }
+                case 'analytic_countour_map':{
+                    let small   = '#9cadc5';
+                    let medium  = '#6ef363';
+                    let large   = '#F7F74F';
+                    let biggest = '#F5402A';
+
+                    return{background: "linear-gradient(to bottom, "+biggest+", "+large+", "+medium+", "+small+")",height: '36px'};
+                }
+                case 'analytic_cluster':{
+                    let style = {};
+                    style['background'] = this.style_variables["hexagonal-cluster-"+size+"-border-color"];
+                    style['clip-path']  = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+                    return style;
+                }
+                default:
+                    console.log(layer.sh_map_has_layer_color, 'Sin formato de leyenda definidox');
+                    break;
+            }
+
+        },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         },
@@ -1696,7 +1820,7 @@ export default {
             // Creating separator
             const poweredByCoderhubSpanSeparator = document.createElement('span');
             poweredByCoderhubSpanSeparator.ariaHidden = "true";
-            poweredByCoderhubSpanSeparator.innerHTML = "|";
+            poweredByCoderhubSpanSeparator.innerHTML = "";
             // Adding Coderhub logo
             poweredByCoderhubDiv.appendChild(poweredByCoderhubImg);
             //Add additional text
@@ -1818,5 +1942,45 @@ export default {
     /* This line deletes additional padding-right of coderhub powered container after delete UKR flag */
     .my-map >>> .leaflet-right > .leaflet-control:first-child {
         padding-right: 0px;
+    }
+    .legend-container{
+        background:white;
+        padding-top: 8px;
+    }
+    .legend-lavel{
+        margin-left: 8px;
+        padding-bottom: 8px;
+        margin-right: 8px
+    }
+    .legend-title{
+        margin-left: 4px;
+        padding-bottom: 2px;
+    }
+    .legend-sublavel{
+        margin-left: 8px;
+        padding-bottom: 2px;
+        margin-right: 8px
+    }
+    .legend-icon{
+        width: 20px;
+        height: 20px;
+        float: left;
+        margin-right: 8px;
+        opacity: 1;
+    }
+    .legend-icon-color{
+        background:red;
+        width: 18px;
+        height: 18px;
+        float: left;
+        margin-right: 8px;
+        opacity: 0.7;
+    }
+    .legend-sublavel-container{
+        background:white;
+        padding-bottom: 6px;
+    }
+    :deep(.leaflet-control-container) .leaflet-bottom{
+        flex-flow: column;
     }
 </style>
