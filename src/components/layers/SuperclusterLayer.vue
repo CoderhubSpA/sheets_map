@@ -19,8 +19,57 @@
             </l-icon>
         </l-marker>
 
+    <!-- si existe imagen genera un icono de marcador -->
+    <div  v-if="classification_icon != undefined">
+        <div v-for="(icon, index) in markers" :key="'icon-div-' + index">
+            <l-marker
+                ref="iconmarker"
+                :key="'icon-' + index"
+                :lat-lng="icon.lat_lng"
+                v-on:click="getMarkerData(icon)"
+                v-if="classification_icon_path(icon) != null"
+            >
+                <l-icon 
+                    :icon-size="[20, 20]"
+                    :icon-url="classification_icon_path(icon)"
+                >
+                </l-icon>
+            <!-- pop-up del marcador de ícono-->
+                <pop-up-marker
+                    :marker="icon"
+                    :visible_columns="visible_columns"
+                    :info="info"
+                    :entity_type_id="entity_type_id"
+                    v-on:form="setForm"
+                >
+                </pop-up-marker>
+            </l-marker>
+        </div>
+
+        <div v-for="(marker, index) in markers" :key="'marker-div-' + index">
+            <!-- marcador de tipo circulo cuando no exista imagen -->
+            <l-circle-marker
+                ref="circlemarker"
+                :key="'marker-' + index"
+                :lat-lng="marker.lat_lng"
+                :radius="3"
+                v-on:click="getMarkerData(marker)"
+                color="#00642a"
+                v-if="classification_icon_path(marker) == null || classification_icon_path(marker) == undefined">
+            <!-- pop-up del marcador de círculo-->
+                <pop-up-marker
+                    :marker="marker"
+                    :visible_columns="visible_columns"
+                    :info="info"
+                    :entity_type_id="entity_type_id"
+                    v-on:form="setForm"
+                >
+                </pop-up-marker>
+            </l-circle-marker>
+        </div>
+    </div>
     <!-- validación en caso de que la capa no tenga imagen -->
-    <div v-if="layer.sh_map_has_layer_point_image == null">
+    <div v-else-if="layer.sh_map_has_layer_point_image == null">
         <!-- marcador de tipo circulo cuando no exista imagen -->
         <l-circle-marker
             v-for="(marker, index) in markers"
@@ -97,6 +146,7 @@ export default {
         base_url: String,
         visible: Boolean,
         theme: String,
+        classification_icon : Object,
         clusterize: {
             type: Boolean,
             default: true,
@@ -120,6 +170,7 @@ export default {
                 className: 'popupCustom'
             },
             markers_data: {},
+            classification_icon_content: undefined,
             clusters_markers: []
         };
     },
@@ -137,6 +188,10 @@ export default {
                     try {
                         let lat = d[this.col_lat];
                         let lng = d[this.col_lng];
+                        let type;
+                        if (this.classification_icon!= undefined && this.classification_icon.classification_column != undefined) {
+                            type = d[this.classification_icon.classification_column];
+                        }
 
                         lat =
                             typeof lat == "string"
@@ -155,6 +210,7 @@ export default {
                             type: "Feature",
                             properties: {
                                 id: d.id,
+                                type: type
                             },
                             geometry: {
                                 type: "Point",
@@ -212,6 +268,7 @@ export default {
                                 d.geometry.coordinates[0],
                             ],
                             id: d.properties.id,
+                            type: d.properties.type,
                             data: this.markers_data[d.properties.id] || {},
                             has_data: !_.isEmpty(
                                 this.markers_data[d.properties.id]
@@ -275,8 +332,54 @@ export default {
             this.index.load(this.geo_json.features);
             this.getClusterMarkers();
         },
+        async classification_icon() {
+            if (this.classification_icon_content === undefined && 
+                this.classification_icon != undefined && 
+                this.classification_icon.source_icon_classification != null) {
+
+                let icon_info = await this.requestData(this.classification_icon.source_icon_classification,this.classification_icon.column_icon);
+                
+                let column_icon_id = this.classification_icon.column_icon;
+                let classification_data = icon_info.data.map((classification) => {
+                    classification['icon_url'] = this.base_url + '/document/' + classification[column_icon_id];
+                    return classification;
+                });
+                this.classification_icon_content = classification_data;
+            }
+
+        },
     },
     methods: {
+        async requestData(entity_type_id,column_ids){
+            //data
+            const url = `${this.base_url}/entity/data/${entity_type_id}?column_ids=["${column_ids}"]&page=1`;
+
+            if (entity_type_id == null) {
+               console.info('Id de entidad nulo'); 
+               return [];
+            }
+            return  axios.get(url).then((response) => {
+                return response.data.content;
+            })
+            .catch((error) => {
+                console.error(error);
+            })
+
+        },
+        classification_icon_path(point){
+            if (this.classification_icon_content) {
+                let relevant_icon = this.classification_icon_content.filter((icon)=>{
+                    return icon.id == point.type;
+                });
+
+                if (relevant_icon && relevant_icon.length > 0) {
+                    return _.first(relevant_icon).icon_url;
+                }
+
+            }
+            return null;
+
+        },
         getMarkerData(marker) {
             const url = `${this.base_url}/entity/data/${this.entity_type_id}/${marker.id}?page=1`;
             axios

@@ -13,6 +13,7 @@
                 :entity_type_id="entity_type_id"
                 :base_url="base_url"
                 :theme="layer.sh_map_has_layer_custom_styles"
+                :classification_icon="classification_icon"
                 v-on:form="setForm"
                 ref="supercluster_layer"
             ></supercluster-layer>
@@ -37,6 +38,7 @@ export default {
         css_vars : Object,
         config   : Object,
         map      : Object,
+        classification_icon : Object
     },
     components: {
         SuperclusterLayer

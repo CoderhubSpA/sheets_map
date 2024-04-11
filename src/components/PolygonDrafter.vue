@@ -5,7 +5,7 @@
             :radius="style_variables['polygon_draft_circle_radius']" :color="style_variables['polygon_draft_fill_color']"
             :fillColor="style_variables['polygon_draft_fill_color']" :fillOpacity="1"
             className="polygon_draft_circle_marker" title="Terminar poligono" v-on:click="draw()" />
-        <!-- Circle drawing-->í
+        <!-- Circle drawing-->
         <div v-if="analytic_geojson_list.length > 0 && drawing">
             <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
                 <l-geo-json :geojson="analytic_geojson.geojson" :options-style="active_layer_draft_style"></l-geo-json>
