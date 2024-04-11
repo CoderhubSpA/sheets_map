@@ -439,7 +439,7 @@ export default {
         },
         btn_style(){
             let class_name = 'custom-controls';
-            if (this.theme == 'horizontal-form-map') {
+            if (this.theme == 'horizontal_form_map') {
                 class_name = class_name+" horizontal-form-map-btn";
             }
             return class_name;
@@ -447,7 +447,7 @@ export default {
         theme_style(){
             let class_name = 'legend-container';
             //Si se agrega una nueva plantilla hay que actualizar esta linea
-            if (this.theme != 'horizontal-form-map') {
+            if (this.theme != 'horizontal_form_map') {
                 class_name = class_name+" bar-margin";
             }
             return class_name;
