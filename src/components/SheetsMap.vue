@@ -170,6 +170,10 @@
                             </div>
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
                                 <div class="legend-title">
+                                    <img class="legend-icon"
+                                    v-if="layer.sh_map_has_layer_point_image"
+                                    :src="base_url + layer.sh_map_has_layer_point_image"
+                                    />
                                     <b>{{layer.name}}</b>
                                 </div>
                                 <div class="legend-sublavel">
