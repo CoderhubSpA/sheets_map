@@ -17,18 +17,20 @@
                 :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
                 :options="{ zoomControl: false, trackResize: false }">
 
-                <section class="custom-controls">
+                <div :class="btn_style">
                     <search-bar-proxy
                         v-if="config.sh_map_search_component && config.sh_map_search_component_config"
                         :componentName="config.sh_map_search_component"
                         :config="JSON.parse(config.sh_map_search_component_config)"
                         @change-location="zoomToLocation" />
-                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
-                        <b-icon icon="dash-lg"></b-icon>
-                    </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
-                        <b-icon icon="plus-lg"></b-icon>
-                    </b-button>
+                    <div class="zoom-wrapper">
+                        <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
+                            <b-icon icon="dash-lg"></b-icon>
+                        </b-button>
+                        <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
+                            <b-icon icon="plus-lg"></b-icon>
+                        </b-button>
+                    </div>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
@@ -49,7 +51,7 @@
                         v-on:point-mode="setPointMode"
                         v-on:data-form="setForm"
                     />
-                </section>
+                </div>
 
                 <QuickLayers
                     :layers="working_layers"
@@ -157,8 +159,8 @@
                     service="WMS"
                 />
 
-                <l-control position="bottomright" v-if="active_layers.length > 0">
-                    <div class="legend-container"  >
+                <l-control  position="bottomright" v-if="active_layers.length > 0">
+                    <div :class="theme_style"  >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
                                 <img class="legend-icon"
@@ -170,6 +172,10 @@
                             </div>
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
                                 <div class="legend-title">
+                                    <img class="legend-icon"
+                                    v-if="layer.sh_map_has_layer_point_image"
+                                    :src="base_url + layer.sh_map_has_layer_point_image"
+                                    />
                                     <b>{{layer.name}}</b>
                                 </div>
                                 <div class="legend-sublavel">
@@ -283,6 +289,7 @@ export default {
         active_filters        : Array,
         info                  : Object,
         data                  : Object,
+        theme                 : String,
         // SheetsMapTools
         config                : Object, // Todas las capas
         layers                : Object, // Todas las capas
@@ -435,6 +442,21 @@ export default {
                 
             };
 
+        },
+        btn_style(){
+            let class_name = 'custom-controls';
+            if (this.theme == 'horizontal_form_map') {
+                class_name = class_name+" horizontal-form-map-btn";
+            }
+            return class_name;
+        },
+        theme_style(){
+            let class_name = 'legend-container';
+            //Si se agrega una nueva plantilla hay que actualizar esta linea
+            if (this.theme != 'horizontal_form_map') {
+                class_name = class_name+" bar-margin";
+            }
+            return class_name;
         },
 
         analytic_cluster_options() {
@@ -1920,6 +1942,24 @@ export default {
         gap: 8px;
         margin-top: 24px;
     }
+    
+    .zoom-wrapper {
+        display: flex;
+        gap: 8px;
+    }
+
+    .horizontal-form-map-btn {
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-end; 
+        padding-right: 8px;
+    }
+    .horizontal-form-map-btn .zoom-wrapper{
+        display: flex;
+        flex-direction: column;
+        flex-direction: column-reverse;
+    }
+
 
     .custom-controls .zoom-btn {
         background-color: var(--sh-map-zoom-button-background-color);
@@ -1984,5 +2024,8 @@ export default {
     }
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
+    }
+    .bar-margin{
+        margin-right: 80px;
     }
 </style>

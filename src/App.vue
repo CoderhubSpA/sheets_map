@@ -36,6 +36,7 @@
         :active_filters="active_filters"
         :data="data"
         :info="info"
+        :theme="theme"
         :config="config"
         :layers="layers"
         :working_layers="working_layers"
@@ -176,6 +177,7 @@ export default {
             layers_info       : {},
             working_layers    : [],
             active_filters    : [],
+            theme             : 'sait',
             classification_icon_column : undefined,
             layer_from_map          : null,
         };
