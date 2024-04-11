@@ -23,12 +23,14 @@
                         :componentName="config.sh_map_search_component"
                         :config="JSON.parse(config.sh_map_search_component_config)"
                         @change-location="zoomToLocation" />
-                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
-                        <b-icon icon="dash-lg"></b-icon>
-                    </b-button>
-                    <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
-                        <b-icon icon="plus-lg"></b-icon>
-                    </b-button>
+                    <div class="zoom-wrapper">
+                        <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
+                            <b-icon icon="dash-lg"></b-icon>
+                        </b-button>
+                        <b-button class="zoom-btn" @click.capture.stop="zoomMap('in')" title="Acercar">
+                            <b-icon icon="plus-lg"></b-icon>
+                        </b-button>
+                    </div>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
@@ -1940,12 +1942,22 @@ export default {
         gap: 8px;
         margin-top: 24px;
     }
+    
+    .zoom-wrapper {
+        display: flex;
+        gap: 8px;
+    }
 
     .horizontal-form-map-btn {
         flex-direction: column;
         justify-content: flex-end;
         align-items: flex-end; 
         padding-right: 8px;
+    }
+    .horizontal-form-map-btn .zoom-wrapper{
+        display: flex;
+        flex-direction: column;
+        flex-direction: column-reverse;
     }
 
 
