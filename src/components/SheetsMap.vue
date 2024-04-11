@@ -732,6 +732,8 @@ export default {
             let classification_icon = undefined;
             let classification_icon_info;
             if (!id) {
+                // Se usa para el caso de supercluster en local,
+                // cuando se integre con Sheets, este caso se aborda en el orquestador
                 classification_icon_info = this.active_layers.filter(layer => layer.sh_map_has_layer_code === 'supercluster')[0]; 
             } else{
                 classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
