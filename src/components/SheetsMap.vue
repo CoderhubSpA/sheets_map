@@ -1365,9 +1365,7 @@ export default {
                     break;
                 }
                 case 'analityc':{
-                    console.log(this.analytic_cluster_style());
-
-                    style_raw['background'] = 'red';
+                    style_raw['background'] = '#0074BD';
 
                     break;
                 }
@@ -2012,7 +2010,7 @@ export default {
         opacity: 1;
     }
     .legend-icon-color{
-        background:red;
+        background:#0074BD;
         width: 18px;
         height: 18px;
         float: left;
