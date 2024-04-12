@@ -1354,7 +1354,7 @@ export default {
 
             switch (layer_type) {
                 case 'supercluster':{
-                    theme = layer.sh_map_has_layer_custom_styles;
+                    theme = (layer.sh_map_has_layer_custom_styles) ? layer.sh_map_has_layer_custom_styles : '';
 
                     style_raw['background']    = this.css_vars[`--sh-map-point-cluster-${theme}${size}-color`];
                     style_raw['border-color']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-color`];
