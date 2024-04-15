@@ -193,9 +193,10 @@ export default {
 
     @media screen and (max-width: 768px){
         width: 80%;
-        top: 8%;
+        top: 0;
         left: 7%;
         overflow-y: visible;
+        height: auto;
     }
 }
 </style>
