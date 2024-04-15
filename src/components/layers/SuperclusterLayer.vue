@@ -85,6 +85,7 @@
                 :visible_columns="visible_columns"
                 :info="info"
                 :entity_type_id="entity_type_id"
+                :base_url="base_url"
                 v-on:form="setForm"
             >
             </pop-up-marker>
@@ -110,6 +111,7 @@
                 :visible_columns="visible_columns"
                 :info="info"
                 :entity_type_id="entity_type_id"
+                :base_url="base_url"
                 v-on:form="setForm"
             >
             </pop-up-marker>
