@@ -159,7 +159,7 @@
                     service="WMS"
                 />
 
-                <l-control  position="bottomright" v-if="active_layers.length > 0">
+                <l-control  position="bottomright" v-if="active_layers.length > 0 && show_legend">
                     <div :class="theme_style"  >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
@@ -457,6 +457,9 @@ export default {
                 class_name = class_name+" bar-margin";
             }
             return class_name;
+        },
+        show_legend(){
+            return (this.config.sh_map_show_legend == 1) ? true : false;
         },
 
         analytic_cluster_options() {
