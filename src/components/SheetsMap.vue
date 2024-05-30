@@ -225,6 +225,12 @@
                         </div>
                     </div>
                 </l-control>
+                <l-control  position="bottomleft">
+                    <b-button style="font-size: 9px">
+                        <b-icon icon="arrow-left-right"></b-icon>
+                    </b-button> {{center_parse}} 
+                </l-control>
+                <l-control-scale position="bottomleft"  :imperial="false" :metric="true"></l-control-scale>
             </l-map>
         </div>
     </div>
@@ -233,7 +239,7 @@
 <script>
 import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl } from 'vue2-leaflet';
+import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
@@ -272,7 +278,8 @@ export default {
         PolygonDrafter,
         OpenFormPoint,
         QuickLayers,
-        LControl
+        LControl,
+        LControlScale
 
     },
     props: {
@@ -309,6 +316,7 @@ export default {
             zoom                      : 7,
             center_default            : [-33.472 , -70.769],
             center                    : undefined,
+            center_parse              : '',
             col_lat                   : undefined,
             col_lng                   : undefined,
             map                       : undefined,
@@ -738,6 +746,11 @@ export default {
 
             }
         },
+        center(){
+            this.center_parse = this.center['lat'] + ", " + this.center['lng'];
+            console.log(this.center);
+            console.log(this.center_parse);
+        }
     },
     created(){
         // TO DO:
