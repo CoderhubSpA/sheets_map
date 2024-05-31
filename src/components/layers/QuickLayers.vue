@@ -69,7 +69,7 @@ export default {
 
 <style lang="scss">
 .quick-layers {
-    position: absolute;
+    position: relative;
     top: -0.1%;
     width: 420px;
     height: 66px;

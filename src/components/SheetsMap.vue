@@ -3,6 +3,19 @@
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
+        <div class="search-and-quick-layer-container">
+                <search-bar-proxy
+                v-if="config.sh_map_search_component && config.sh_map_search_component_config"
+                :componentName="config.sh_map_search_component"
+                :config="JSON.parse(config.sh_map_search_component_config)"
+                @change-location="zoomToLocation"
+            />
+            <QuickLayers
+                :layers="working_layers"
+                :css_vars="css_vars"
+                v-on:set-layer="setLayer"
+            ></QuickLayers>
+        </div>
         <div ref="map_container" class="my-map-container" :class="[{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}, {'drawing': point_mode == 'form-point'}]">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
@@ -18,11 +31,6 @@
                 :options="{ zoomControl: false, trackResize: false }">
 
                 <div :class="btn_style">
-                    <search-bar-proxy
-                        v-if="config.sh_map_search_component && config.sh_map_search_component_config"
-                        :componentName="config.sh_map_search_component"
-                        :config="JSON.parse(config.sh_map_search_component_config)"
-                        @change-location="zoomToLocation" />
                     <div class="zoom-wrapper">
                         <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
                             <b-icon icon="dash-lg"></b-icon>
@@ -52,13 +60,6 @@
                         v-on:data-form="setForm"
                     />
                 </div>
-
-                <QuickLayers
-                    :layers="working_layers"
-                    :css_vars="css_vars"
-                    v-on:set-layer="setLayer"
-                ></QuickLayers>
-
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
@@ -273,7 +274,6 @@ export default {
         OpenFormPoint,
         QuickLayers,
         LControl
-
     },
     props: {
         // Propiedades de componentes
@@ -784,7 +784,7 @@ export default {
         zoomToLocation(latLng){
             this.searchMarkerLatLng = latLng;
             this.shouldShowSearchMarker = true;
-            this.map.flyTo(latLng, 16);
+            this.map.flyTo(latLng, 12);
         },
         zoomMap(zoom){
             if(zoom === "out") this.zoom--;
@@ -2029,5 +2029,15 @@ export default {
     }
     .bar-margin{
         margin-right: 80px;
+    }
+    .search-and-quick-layer-container {
+        position: absolute;
+        width: 40%;
+        height: 60px !important;
+        top: 7%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
     }
 </style>
