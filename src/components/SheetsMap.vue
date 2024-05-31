@@ -1922,7 +1922,7 @@ export default {
             // Calcular el huso UTM en función de la longitud
             const zoneNumber = Math.floor((this.center[lng] + 180) / 6) + 1;
             // Usar husos específicos para Chile si la latitud está dentro de los límites del país
-            const specificZone = this.center[lng] < -72 ? 19 : (this.center[lng] < -78 ? 18 : zoneNumber);
+            const specificZone = (this.center[lng] > -78 || this.center[lng] < -66) ? zoneNumber : (this.center[lng] > -72 ? 19 : 18);
             // Proyección UTM que corresponde al huso calculado y al hemisferio
             const utmProjection = `EPSG:327${specificZone}`; // 327 es para el hemisferio sur
 
