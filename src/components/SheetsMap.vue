@@ -225,6 +225,12 @@
                         </div>
                     </div>
                 </l-control>
+                <l-control class="coordinate-format" position="bottomleft">
+                    <b-button class="btn-coordinate-format" @click.capture.stop="changeCoordinateFormat()">
+                        <b-icon icon="arrow-left-right"></b-icon>
+                    </b-button> {{center_parsed}} 
+                </l-control>
+                <l-control-scale class="scale" position="bottomleft"  :imperial="false" :metric="true"></l-control-scale>
             </l-map>
         </div>
     </div>
@@ -233,7 +239,8 @@
 <script>
 import L from 'leaflet';
 import _ from 'lodash';
-import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl } from 'vue2-leaflet';
+import proj4 from 'proj4';
+import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
@@ -272,7 +279,8 @@ export default {
         PolygonDrafter,
         OpenFormPoint,
         QuickLayers,
-        LControl
+        LControl,
+        LControlScale
 
     },
     props: {
@@ -309,6 +317,8 @@ export default {
             zoom                      : 7,
             center_default            : [-33.472 , -70.769],
             center                    : undefined,
+            center_parsed             : '',
+            center_format             : 'latlng',
             col_lat                   : undefined,
             col_lng                   : undefined,
             map                       : undefined,
@@ -738,6 +748,9 @@ export default {
 
             }
         },
+        center(){
+            this.centerParsed();
+        }
     },
     created(){
         // TO DO:
@@ -1900,6 +1913,41 @@ export default {
         setPointMode(mode) {
             this.point_mode = mode;
         },
+        convertToUTM() {
+            let keys = Object.keys(this.center);
+
+            let lat = (keys.includes("lat")) ? 'lat' : 1;
+            let lng = (keys.includes("lng")) ? 'lng' : 0;
+            
+            // Calcular el huso UTM en función de la longitud
+            const zoneNumber = Math.floor((this.center[lng] + 180) / 6) + 1;
+            // Usar husos específicos para Chile si la latitud está dentro de los límites del país
+            const specificZone = this.center[lng] < -72 ? 19 : (this.center[lng] < -78 ? 18 : zoneNumber);
+            // Proyección UTM que corresponde al huso calculado y al hemisferio
+            const utmProjection = `EPSG:327${specificZone}`; // 327 es para el hemisferio sur
+
+            // Definir las proyecciones UTM manualmente si no están definidas en Proj4js
+            if (!proj4.defs[`EPSG:327${specificZone}`]) {
+                proj4.defs(`EPSG:327${specificZone}`, `+proj=utm +zone=${specificZone} +south +datum=WGS84 +units=m +no_defs`);
+            }
+                
+            // Convertir coordenadas latitud/longitud a UTM usando proj4
+            const utmCoordinates = proj4(proj4.WGS84, utmProjection, [this.center[lng], this.center[lat]]);
+            
+            // Determinar la dirección (Norte o Sur) - siempre Sur en Chile continental
+            const northSouth = 'S';
+            // Determinar la dirección (Este u Oeste)
+            const eastWest = this.center[lng] >= 0 ? 'E' : 'O';
+            // Formatear las coordenadas UTM con el huso, la letra y las coordenadas Este (E) y Norte (N)
+            return `UTM: ${utmCoordinates[0].toFixed(2)}'${northSouth}, ${utmCoordinates[1].toFixed(2)}'${eastWest} - Huso: ${specificZone}${northSouth}`;
+        },
+        changeCoordinateFormat(){
+            this.center_format = (this.center_format == 'latlng') ? 'UTM' : 'latlng';
+            this.centerParsed();
+        },
+        centerParsed(){
+            this.center_parsed = (this.center_format == 'latlng') ? this.center['lat'] + ", " + this.center['lng'] : this.convertToUTM();
+        }
     }
 }
 </script>
@@ -2029,5 +2077,8 @@ export default {
     }
     .bar-margin{
         margin-right: 80px;
+    }
+    .btn-coordinate-format{
+        font-size: 9px;
     }
 </style>
