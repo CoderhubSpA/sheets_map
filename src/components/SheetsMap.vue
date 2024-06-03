@@ -4,7 +4,7 @@
             Ver esta zona
         </button>
         <div class="search-and-quick-layer-container">
-                <search-bar-proxy
+            <search-bar-proxy
                 v-if="config.sh_map_search_component && config.sh_map_search_component_config"
                 :componentName="config.sh_map_search_component"
                 :config="JSON.parse(config.sh_map_search_component_config)"

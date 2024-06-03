@@ -125,7 +125,7 @@ export default {
             };
             const headers = {
                 "Content-Type": "application/json",
-                "X-Goog-Api-Key": this.config.apiKey,
+                "X-Goog-Api-Key": this.config.google_maps_api_key,
                 "X-Goog-FieldMask": "places.formattedAddress"
             };
 
@@ -154,7 +154,7 @@ export default {
                 return;
             }
 
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?&key=${this.config.apiKey}&address=${search}`;
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?&key=${this.config.google_maps_api_key}&address=${search}`;
 
             axios
                 .get(url)
