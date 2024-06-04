@@ -105,7 +105,6 @@
                     :entity_type_id="entity_type_id"
                     :base_url="base_url"
                     :theme="''"
-                    :layer="{fakeattr:'nones'}"
                     :clusterize="clusterize"
                     ref="supercluster_layer"
                     v-on:form="setForm"
