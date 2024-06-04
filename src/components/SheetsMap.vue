@@ -768,8 +768,9 @@ export default {
     },
     methods:{
         classification_icon(id = null){
-            let classification_icon = undefined;
+            let classification_icon;
             let classification_icon_info;
+            let need_classification = false;
             if (!id) {
                 // Se usa para el caso de supercluster en local,
                 // cuando se integre con Sheets, este caso se aborda en el orquestador
@@ -777,18 +778,22 @@ export default {
             } else{
                 classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
             }
-
-            if(typeof classification_icon_info !== 'undefined' ){
+            if (typeof classification_icon_info !== 'undefined') {
                 classification_icon = {
                     'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column_id,
                     'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification_id,
                     'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon_id
 
                 };
+                need_classification = (!Object.values(classification_icon).includes(undefined)) ? true : false ;
+            }
+
+            if(need_classification ){
                 this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column_id;
 
             }else{
                 this.classification_icon_column = false;
+                classification_icon = undefined;
 
             }
 
