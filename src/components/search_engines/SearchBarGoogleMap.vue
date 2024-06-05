@@ -193,10 +193,6 @@ $selected-background-color: #e4e4e4;
     background-color: $background-color;
     border-radius: $border-radius;
 
-    // .search-input-group {
-    //     border: solid 1px $text-color;
-    //     border-radius: $border-radius;
-    // }
     &.has-suggestions {
         border-radius: $border-radius $border-radius 0 0 !important;
     }
