@@ -67,6 +67,12 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
+                                    <div class="layers-setting">
+                                        <b-icon icon="gear-fill" class="layers-setting-btn"></b-icon>
+                                        <div class="layers-setting-content">
+                                            <span @click="download_layer(option.download_url)">Descargar capa <b-icon icon="download"></b-icon></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
@@ -200,6 +206,7 @@ export default {
                         text_color: layer['sh_map_has_layer_text_color'],
                         icon: layer['sh_map_has_layer_point_image'],
                         quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
+                        download_url: this.base_url + layer["sh_map_has_layer_image"],
                     };
                 }
             ).sort(
@@ -581,7 +588,10 @@ export default {
                     });
                 }
             }
-        }
+        },
+        download_layer(url) {
+            console.log(url);
+        },
     },
 };
 </script>
@@ -642,6 +652,7 @@ export default {
             flex-wrap: wrap;
             justify-content: space-between;
             .layer-option-wrapper {
+                position: relative;
                 flex: 1;
                 padding: 0 2px;
                 margin-top: 0.5rem;
@@ -650,11 +661,11 @@ export default {
                     background-color: transparent;
                 }
                 .layer-option {
+                    position: relative;
                     background-size: cover;
                     background-position: center;
                     background-repeat: no-repeat;
-                    border-radius: var(--global-radius);
-                    overflow: hidden;
+                    border-radius: 4px;
                     height: 72px;
                     background-color: transparent;
                     border: none;
@@ -676,6 +687,7 @@ export default {
                         font-size: 0.75rem;
                         transition: all 0.4s ease;
                         box-sizing: border-box;
+                        border-radius: 3px;
                         span {
                             max-width: 100%;
                             white-space: pre-wrap;
@@ -695,6 +707,48 @@ export default {
                             width: 16px;
                             margin-top: 2px;
                             margin-right: 2px;
+                        }
+                    }
+                    .layers-setting {
+                        position: relative;
+                        display: inline-block;
+
+                        .layers-setting-btn {
+                            background-color: inherit;
+                            color: var(--option-active-color);
+                            font-size: 16px;
+                            border: none;
+                        }
+
+                        .layers-setting-content {
+                            display: none;
+                            position: absolute;
+                            top: 20px;
+                            left: -144px;
+                            z-index: 1;
+                            min-width: 160px;
+                            border-radius: 4px;
+                            background-color: #f1f1f1;
+                            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+
+                            span {
+                                display: block;
+                                padding: 4px;
+                                color: var(--button-text-color);
+                                border-radius: 4px;
+                                font-size: 12px;
+                                text-decoration: none;
+
+                                &:hover {
+                                    background-color: #ddd;
+                                }
+                            }
+                        }
+
+                        &:hover {
+                            .layers-setting-content {
+                                display: block;
+                            }
                         }
                     }
                     &.grouped {
