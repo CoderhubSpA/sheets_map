@@ -159,9 +159,11 @@ export default {
             axios
                 .get(url)
                 .then((response) => {
-                    this.sendSearchResults(
-                        response.data.results[0].geometry.location
-                    );
+                    if (response.data && response.data.results.length > 0) {
+                        this.sendSearchResults(
+                            response.data.results[0].geometry.location
+                        );
+                    }
                 })
                 .catch((error) => {
                     console.error("SearchBarGoogleMap error:", error);
