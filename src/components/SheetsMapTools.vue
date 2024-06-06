@@ -67,10 +67,10 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
-                                    <div class="layers-setting">
+                                    <div v-if="option.download_url" class="layers-setting">
                                         <b-icon icon="gear-fill" class="layers-setting-btn"></b-icon>
                                         <div class="layers-setting-content">
-                                            <span @click="download_layer(option.download_url)">Descargar capa <b-icon icon="download"></b-icon></span>
+                                            <span @click="download_layer(option.download_url, option.value)">Descargar capa <b-icon icon="cloud-arrow-down-fill"></b-icon></span>
                                         </div>
                                     </div>
                                 </div>
@@ -147,6 +147,7 @@
 import _ from "lodash";
 import { BIcon } from 'bootstrap-vue';
 import SheetsTooltip from "./SheetsTooltip.vue";
+import axios from 'axios';
 
 export default {
     components: {
@@ -206,7 +207,7 @@ export default {
                         text_color: layer['sh_map_has_layer_text_color'],
                         icon: layer['sh_map_has_layer_point_image'],
                         quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
-                        download_url: this.base_url + layer["sh_map_has_layer_image"],
+                        download_url: layer["sh_map_has_layer_type_download_url"],
                     };
                 }
             ).sort(
@@ -589,9 +590,42 @@ export default {
                 }
             }
         },
-        download_layer(url) {
-            console.log(url);
+        download_layer(url, layer_name) {
+            axios.get(url).then((response) => {
+                let fileType = response.headers['content-type'].split(';')[0];
+
+                if(response.data && fileType) {
+                    this.createDownloadFile(response.data, fileType, layer_name, url);
+                } else {
+                    throw new Error('No se obtuvo el archivo de descarga o no se pudo determinar el tipo de archivo');
+                }
+            }).catch((error) => {
+                console.error("Download Layer error: " + error);
+            });
         },
+        createDownloadFile(data, type, name, origen_url) {
+            let blob = null;
+            let url = '';
+            let a = null;
+
+            if(type === 'application/json' || type === 'text/plain') {
+                blob = new Blob([JSON.stringify(data)], { type: type });
+                url = window.URL.createObjectURL(blob);
+                a = document.createElement('a');
+            } else {
+                url = origen_url;
+
+                a = document.createElement('a');
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+            }
+
+            a.href = url;
+            a.download = name ? name : 'layer';
+            a.click();
+
+            window.URL.revokeObjectURL(url);
+        }
     },
 };
 </script>
@@ -705,8 +739,8 @@ export default {
                         svg{
                             height: 16px;
                             width: 16px;
-                            margin-top: 2px;
-                            margin-right: 2px;
+                            margin-top: 4px;
+                            margin-right: 4px;
                         }
                     }
                     .layers-setting {
@@ -714,7 +748,6 @@ export default {
                         display: inline-block;
 
                         .layers-setting-btn {
-                            background-color: inherit;
                             color: var(--option-active-color);
                             font-size: 16px;
                             border: none;
@@ -723,24 +756,24 @@ export default {
                         .layers-setting-content {
                             display: none;
                             position: absolute;
-                            top: 20px;
+                            top: 21px;
                             left: -144px;
                             z-index: 1;
                             min-width: 160px;
                             border-radius: 4px;
-                            background-color: #f1f1f1;
+                            background-color: var(--option-active-color);
                             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
 
                             span {
                                 display: block;
                                 padding: 4px;
-                                color: var(--button-text-color);
+                                color: #fff;
                                 border-radius: 4px;
                                 font-size: 12px;
                                 text-decoration: none;
 
                                 &:hover {
-                                    background-color: #ddd;
+                                    background-color: var(--option-active-color)
                                 }
                             }
                         }
