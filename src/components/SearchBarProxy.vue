@@ -8,11 +8,13 @@
 
 <script>
 import CarabinerosAddressesSearchBar from "./CarabinerosAddressesSearchBar.vue";
+import SearchBarGoogleMap from './search_engines/SearchBarGoogleMap.vue';
 
 export default {
   name: "SearchBarProxy",
   components: {
     CarabinerosAddressesSearchBar,
+    SearchBarGoogleMap
   },
   props: {
     componentName: String,
