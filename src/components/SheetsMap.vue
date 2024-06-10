@@ -2094,7 +2094,7 @@ export default {
         flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
-        
+    }
     .btn-coordinate-format{
         font-size: 9px;
     }
