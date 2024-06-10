@@ -70,7 +70,7 @@ export default {
 <style lang="scss">
 .quick-layers {
     position: relative;
-    width: 420px;
+    width: 374px;
     height: 66px;
     z-index: 999;
     overflow: hidden;
