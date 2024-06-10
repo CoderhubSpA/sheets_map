@@ -592,7 +592,8 @@ export default {
         },
         download_layer(url, layer_name) {
             axios.get(url).then((response) => {
-                let fileType = _.split(response.headers['content-type'], ';', 1)[0];
+                let fileType = _.split(response.headers['content-type'], ';', 1);
+                fileType = _.head(fileType);
 
                 if(response.data && fileType) {
                     this.createDownloadFile(response.data, fileType, layer_name, url);
