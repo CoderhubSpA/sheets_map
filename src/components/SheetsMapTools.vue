@@ -67,6 +67,12 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
+                                    <div v-if="option.download_url" class="layers-setting">
+                                        <b-icon icon="gear-fill" class="layers-setting-btn"></b-icon>
+                                        <div class="layers-setting-content">
+                                            <span @click="download_layer(option.download_url, option.value)">Descargar capa <b-icon icon="cloud-arrow-down-fill"></b-icon></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
@@ -141,6 +147,7 @@
 import _ from "lodash";
 import { BIcon } from 'bootstrap-vue';
 import SheetsTooltip from "./SheetsTooltip.vue";
+import axios from 'axios';
 
 export default {
     components: {
@@ -200,6 +207,7 @@ export default {
                         text_color: layer['sh_map_has_layer_text_color'],
                         icon: layer['sh_map_has_layer_point_image'],
                         quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
+                        download_url: layer["sh_map_has_layer_type_download_url"],
                     };
                 }
             ).sort(
@@ -581,6 +589,43 @@ export default {
                     });
                 }
             }
+        },
+        download_layer(url, layer_name) {
+            axios.get(url).then((response) => {
+                let fileType = _.split(response.headers['content-type'], ';', 1);
+                fileType = _.head(fileType);
+
+                if(response.data && fileType) {
+                    this.createDownloadFile(response.data, fileType, layer_name, url);
+                } else {
+                    throw new Error('No se obtuvo el archivo de descarga o no se pudo determinar el tipo de archivo');
+                }
+            }).catch((error) => {
+                console.error("Download Layer error: " + error);
+            });
+        },
+        createDownloadFile(data, type, name, origen_url) {
+            let blob = null;
+            let url = '';
+            let a = null;
+
+            if(type === 'application/json' || type === 'text/plain') {
+                blob = new Blob([JSON.stringify(data)], { type: type });
+                url = window.URL.createObjectURL(blob);
+                a = document.createElement('a');
+            } else {
+                url = origen_url;
+
+                a = document.createElement('a');
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+            }
+
+            a.href = url;
+            a.download = name ? name : 'layer';
+            a.click();
+
+            window.URL.revokeObjectURL(url);
         }
     },
 };
@@ -642,6 +687,7 @@ export default {
             flex-wrap: wrap;
             justify-content: space-between;
             .layer-option-wrapper {
+                position: relative;
                 flex: 1;
                 padding: 0 2px;
                 margin-top: 0.5rem;
@@ -650,11 +696,11 @@ export default {
                     background-color: transparent;
                 }
                 .layer-option {
+                    position: relative;
                     background-size: cover;
                     background-position: center;
                     background-repeat: no-repeat;
-                    border-radius: var(--global-radius);
-                    overflow: hidden;
+                    border-radius: 4px;
                     height: 72px;
                     background-color: transparent;
                     border: none;
@@ -676,6 +722,7 @@ export default {
                         font-size: 0.75rem;
                         transition: all 0.4s ease;
                         box-sizing: border-box;
+                        border-radius: 3px;
                         span {
                             max-width: 100%;
                             white-space: pre-wrap;
@@ -693,8 +740,49 @@ export default {
                         svg{
                             height: 16px;
                             width: 16px;
-                            margin-top: 2px;
-                            margin-right: 2px;
+                            margin-top: 4px;
+                            margin-right: 4px;
+                        }
+                    }
+                    .layers-setting {
+                        position: relative;
+                        display: inline-block;
+
+                        .layers-setting-btn {
+                            color: var(--option-active-color);
+                            font-size: 16px;
+                            border: none;
+                        }
+
+                        .layers-setting-content {
+                            display: none;
+                            position: absolute;
+                            top: 21px;
+                            left: -144px;
+                            z-index: 1;
+                            min-width: 160px;
+                            border-radius: 4px;
+                            background-color: var(--option-active-color);
+                            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+
+                            span {
+                                display: block;
+                                padding: 4px;
+                                color: #fff;
+                                border-radius: 4px;
+                                font-size: 12px;
+                                text-decoration: none;
+
+                                &:hover {
+                                    background-color: var(--option-active-color)
+                                }
+                            }
+                        }
+
+                        &:hover {
+                            .layers-setting-content {
+                                display: block;
+                            }
                         }
                     }
                     &.grouped {
