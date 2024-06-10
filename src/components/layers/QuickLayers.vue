@@ -70,11 +70,8 @@ export default {
 <style lang="scss">
 .quick-layers {
     position: relative;
-    top: -0.1%;
-    width: 420px;
+    width: 374px;
     height: 66px;
-    margin: 10px;
-    padding: 10px;
     z-index: 999;
     overflow: hidden;
     border-radius: 5px;
@@ -88,6 +85,10 @@ export default {
         overflow-y: scroll;
         background-color: transparent;
         box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+
+        .quick-layers-content {
+            height: 80px !important;
+        }
     }
 
     .quick-layers-content {
@@ -98,15 +99,13 @@ export default {
         width: 100%;
 
         .quick-layers-content-item {
-            height: 52px;
             overflow-y: hidden;
-            margin: 0px 4px;
+            margin: 0 4px 4px 0;
 
             .quick-layer-item {
                 display: flex;
                 align-items: center;
-                margin: 4px 0px 8px 0px;
-                padding: 8px;
+                padding: 6px;
                 overflow-x: hidden;
                 background-color: #fff;
                 border-radius: 8px;
