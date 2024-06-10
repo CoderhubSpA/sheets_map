@@ -185,10 +185,9 @@ $selected-background-color: #e4e4e4;
 
 .search-bar-google-map {
     position: relative;
-    top: -3.5%;
     width: Min(100%, 320px);
     height: 38px !important;
-    margin: 0 0 0 24px;
+    margin: 0 0 10px 0;
     z-index: 1000;
     background-color: $background-color;
     border-radius: $border-radius;

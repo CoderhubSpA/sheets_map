@@ -2033,8 +2033,9 @@ export default {
     .search-and-quick-layer-container {
         position: absolute;
         width: 40%;
-        height: 60px !important;
-        top: 7%;
+        height: auto !important;
+        margin-top: 24px;
+        padding: 0 20px;
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
