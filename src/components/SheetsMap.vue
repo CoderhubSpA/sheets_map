@@ -160,8 +160,8 @@
                     service="WMS"
                 />
 
-                <l-control  position="bottomright" v-if="active_layers.length > 0 && show_legend">
-                    <div :class="theme_style"  >
+                <l-control class="sheets-map-legend" position="bottomright" v-if="active_layers.length > 0 && show_legend">
+                    <div class="legend-container" >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
                                 <img class="legend-icon"
@@ -457,14 +457,6 @@ export default {
             let class_name = 'custom-controls';
             if (this.theme == 'horizontal_form_map') {
                 class_name = class_name+" horizontal-form-map-btn";
-            }
-            return class_name;
-        },
-        theme_style(){
-            let class_name = 'legend-container';
-            //Si se agrega una nueva plantilla hay que actualizar esta linea
-            if (this.theme != 'horizontal_form_map') {
-                class_name = class_name+" bar-margin";
             }
             return class_name;
         },
@@ -1838,7 +1830,6 @@ export default {
         poweredCoderhub() {
              // Getting Open Street Map attribution container
             const poweredByOpenStreetMap = document.querySelector('.leaflet-bottom.leaflet-right');
-            poweredByOpenStreetMap.style.display = "flex";
             // Creating Coderhub powered by container
             const poweredByCoderhubDiv = document.createElement('div');
             poweredByCoderhubDiv.classList.add("leaflet-control-attribution");
@@ -2080,8 +2071,12 @@ export default {
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
     }
-    .bar-margin{
-        margin-right: 80px;
+    :deep(.leaflet-control-container) .leaflet-bottom.leaflet-right{
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+    }
+    :deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend{
+        grid-column: 2;
     }
     
     .search-and-quick-layer-container {
