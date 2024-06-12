@@ -2093,7 +2093,7 @@ export default {
         justify-content: space-between;
         align-items: center;
         flex-direction: column;
-        align-items: start;
+        align-items: flex-start;
     }
     .btn-coordinate-format{
         font-size: 9px;
