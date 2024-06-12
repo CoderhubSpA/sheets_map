@@ -66,12 +66,15 @@
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
                 <l-tile-layer v-if="base_open_street_map"
                     :url="base_open_street_map.sh_map_has_layer_url"
+                    :attribution="'&copy; ' + base_open_street_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
                     ></l-tile-layer>
                 <l-tile-layer v-else-if="base_google_map"
                     :url="base_google_map.sh_map_has_layer_url"
+                    :attribution="'&copy; ' + base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
                     ></l-tile-layer>
                 <l-tile-layer v-else-if="base_map_guide"
                     :url="base_map_guide.sh_map_has_layer_url"
+                    :attribution="'&copy; ' + base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
                     ></l-tile-layer>
                 <l-tile-layer v-else :url="default_base_layer"
                     :attribution="default_attribution"
