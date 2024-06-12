@@ -2087,11 +2087,13 @@ export default {
         width: 40%;
         height: auto !important;
         margin-top: 24px;
-        padding: 0 20px;
+        padding: 0 10px;
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
+        flex-direction: column;
+        align-items: start;
     }
     .btn-coordinate-format{
         font-size: 9px;
