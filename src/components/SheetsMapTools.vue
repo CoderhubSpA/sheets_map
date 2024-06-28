@@ -67,12 +67,7 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
-                                    <div v-if="option.download_url" class="layers-setting">
-                                        <b-icon icon="gear-fill" class="layers-setting-btn"></b-icon>
-                                        <div class="layers-setting-content">
-                                            <span @click="download_layer(option.download_url, option.value)">Descargar capa <b-icon icon="cloud-arrow-down-fill"></b-icon></span>
-                                        </div>
-                                    </div>
+                                    <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click="download_layer(option.download_url, option.value)"></b-icon>
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
@@ -112,18 +107,25 @@
                                     @click="toggleLayer(option, group, subgroup)"
                                     :class="[{'disabled-layer': option.disabled }]"
                                 >
-                                    <input
-                                        type="checkbox"
-                                        :checked="option.active"
-                                        :id="option.key"
-                                        :disabled="option.disabled"
-                                    >
-                                    <label
-                                        :data-icon="option.icon"
-                                        :data-image="option.image"
-                                        :data-color="option.color"
-                                        :data-text-color="option.text_color"
-                                     >{{option.value}}</label>
+                                    <div class="layers-setting-in-group">
+                                        <div>
+                                            <input
+                                                type="checkbox"
+                                                :checked="option.active"
+                                                :id="option.key"
+                                                :disabled="option.disabled"
+                                            >
+                                            <label
+                                                :data-icon="option.icon"
+                                                :data-image="option.image"
+                                                :data-color="option.color"
+                                                :data-text-color="option.text_color"
+                                             >{{option.value}}</label>
+                                        </div>
+                                         <div>
+                                             <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value)"></b-icon>
+                                         </div>
+                                    </div>
                                 </li>
                             </ul>
                         </fieldset>
@@ -744,47 +746,6 @@ export default {
                             margin-right: 4px;
                         }
                     }
-                    .layers-setting {
-                        position: relative;
-                        display: inline-block;
-
-                        .layers-setting-btn {
-                            color: var(--option-active-color);
-                            font-size: 16px;
-                            border: none;
-                        }
-
-                        .layers-setting-content {
-                            display: none;
-                            position: absolute;
-                            top: 21px;
-                            left: -144px;
-                            z-index: 1;
-                            min-width: 160px;
-                            border-radius: 4px;
-                            background-color: var(--option-active-color);
-                            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-
-                            span {
-                                display: block;
-                                padding: 4px;
-                                color: #fff;
-                                border-radius: 4px;
-                                font-size: 12px;
-                                text-decoration: none;
-
-                                &:hover {
-                                    background-color: var(--option-active-color)
-                                }
-                            }
-                        }
-
-                        &:hover {
-                            .layers-setting-content {
-                                display: block;
-                            }
-                        }
-                    }
                     &.grouped {
                         background-color: var(--option-color);
                         .layer-option-body {
@@ -892,6 +853,13 @@ export default {
                         [type="checkbox"]:checked + label::before {
                             background-color: var(--option-active-color);
                             border-color: var(--option-active-color)
+                        }
+
+                        .layers-setting-in-group {
+                            display: flex;
+                            flex-direction: row;
+                            justify-content: space-between;
+                            align-items: center;
                         }
                     }
                 }
