@@ -1173,7 +1173,11 @@ export default {
                 this.operative_geojson_list.push(geojson);
         },
         requestGeoJson(layer, feature_container){
-            return axios.get(layer.sh_map_has_layer_url)
+            // Revisar si la ruta es de un documento o una url completa
+            let url = (layer.sh_map_has_layer_url && layer.sh_map_has_layer_url.startsWith('/document/')) 
+                    ? this.base_url + layer.sh_map_has_layer_url : layer.sh_map_has_layer_url;
+            
+            return axios.get(url)
                 .then((response) => {
                     let raw_data;
                     if (typeof response.data === 'object' && response.data !== null) {
