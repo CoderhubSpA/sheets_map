@@ -706,7 +706,15 @@ export default {
         supercluster_by_entity_type_layers(){
             if(_.isEmpty(this.active_layers)) return [];
             return this.active_layers.filter( l => l.sh_map_has_layer_code == 'supercluster_by_entity_type');
-        }
+        },
+        // Si una capa geojson tiene activa la variable sh_map_has_layer_type_enable_filter
+        // entonces se reemplazas los limites del mapa por los limites de dichas capas
+        layer_boundaries(){
+            const operative_coordinates = this.sumCoordinates(this.operative_geojson_list);
+            const analytic_coordinates  = this.sumCoordinates(this.analytic_geojson_list);
+            
+            return operative_coordinates.concat(analytic_coordinates);
+        },
     },
     watch:{
         analytic_cluster() {
@@ -1255,6 +1263,7 @@ export default {
 
         },
         formatFilter(){
+            console.log(this.active_filters);
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
             }
@@ -1492,29 +1501,49 @@ export default {
         },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
-                this.$refs.polygon_drafter.deleteAll();
-                //let h        = this.map.getZoom();
-                let bounds   = this.map.getBounds();
                 let all_col  = this.info.columns;
 
-                let bounds_filters = all_col.filter(columns=>
-                    columns.id == this.col_lat || columns.id == this.col_lng
-                ).map((columns,key)=>{
-                    let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
-                    let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
-                    let bounds_filter = {
-                        "column": columns,
-                        "id": "external-filter-"+columns.id,
-                        "order": key+1,
-                        "search": {
-                            "start": start,
-                            "end": end
-                        },
-                        "type": "BETWEEN"
-                    };
-                    return bounds_filter;
-                });
-                this.bounds_filters = bounds_filters;
+                if(this.layer_boundaries.length < 1){
+
+                    this.$refs.polygon_drafter.deleteAll();
+                    //let h        = this.map.getZoom();
+                    let bounds   = this.map.getBounds();
+
+                    let bounds_filters = all_col.filter(columns=>
+                        columns.id == this.col_lat || columns.id == this.col_lng
+                    ).map((columns,key)=>{
+                        let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
+                        let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
+                        let bounds_filter = {
+                            "column": columns,
+                            "id": "external-filter-"+columns.id,
+                            "order": key+1,
+                            "search": {
+                                "start": start,
+                                "end": end
+                            },
+                            "type": "BETWEEN"
+                        };
+                        return bounds_filter;
+                    });
+                    this.bounds_filters = bounds_filters;
+                }else{
+                    let search = [this.layer_boundaries];
+                    let bounds_filters = all_col.filter(columns =>
+                        columns.format == 'POLYGON'
+                    ).map((columns, key) => {
+
+                        let bounds_filter = {
+                            "column": columns,
+                            "id": "external-filter-" + columns.id,
+                            "order": key + 1,
+                            "search": search,
+                            "type": "POLYGON"
+                        };
+                        return bounds_filter;
+                    });
+                    this.bounds_filters = bounds_filters;
+                }
             }
             this.should_skip_bounds_filter = false;
         },
@@ -1950,7 +1979,42 @@ export default {
         },
         centerParsed(){
             this.center_parsed = (this.center_format == 'latlng') ? this.center['lat'] + ", " + this.center['lng'] : this.convertToUTM();
-        }
+        },
+        sumCoordinates(layer_list) {
+            let coordinates = layer_list.map(operative => {
+                //Filtramos todas las capas MultiPolygon y las convertimos a Polygon
+                let not_multipolygon = operative.geojson.features.filter(polygon =>{
+                    if(polygon.geometry.type == "MultiPolygon"){
+                        return polygon;
+                    }
+                }).map(polygon => {
+                    let new_polygon = polygon.geometry.coordinates.map(coordinate =>{
+                        return { "type": "Polygon", "coordinates": coordinate };
+                    })
+                    return _.first(new_polygon);
+                });
+                // filtramos todas las originalmente Polygon y tomamos solo su geometria
+                let polygon = operative.geojson.features.filter(polygon =>{
+                    if(polygon.geometry.type == "Polygon"){
+                        return polygon;
+                    }
+                }).map(polygon => {
+                    return polygon.geometry;
+                });
+                //Concatenamos ambos arreglos
+                const geometry = not_multipolygon.concat(polygon);
+                return geometry;
+            }).map(geometry => {
+                //Tomamos el primer elemento de todas sus coordenadas
+                return geometry.map(geo => 
+                     _.first(geo.coordinates).map( coord => { return [coord[0], coord[1]]})
+                );
+            });
+            //Juntamos los polygon con los expolygon
+            coordinates = coordinates.reduce((acc, curr) => [...acc, ..._.first(curr)], []);
+
+            return coordinates;
+        },
     }
 }
 </script>
