@@ -710,8 +710,11 @@ export default {
         // Si una capa geojson tiene activa la variable sh_map_has_layer_type_enable_filter
         // entonces se reemplazas los limites del mapa por los limites de dichas capas
         layer_boundaries(){
-            const operative_coordinates = this.sumCoordinates(this.operative_geojson_list);
-            const analytic_coordinates  = this.sumCoordinates(this.analytic_geojson_list);
+            const enable_filter_operative_list = this.enableFilterList(this.operative_geojson_list);
+            const enable_filter_analytic_list  = this.enableFilterList(this.analytic_geojson_list);
+
+            const operative_coordinates = this.sumCoordinates(enable_filter_operative_list);
+            const analytic_coordinates  = this.sumCoordinates(enable_filter_analytic_list);
             
             return operative_coordinates.concat(analytic_coordinates);
         },
@@ -2024,6 +2027,16 @@ export default {
 
             return coordinates;
         },
+        enableFilterList(geojson_list){
+            let layers = this.active_layers;
+            return geojson_list.filter(geojson =>{
+                let layer = layers.filter(ly => geojson.layer_id == ly.id);
+
+                if(layer && _.first(layer).sh_map_has_layer_type_enable_filter){
+                    return geojson;
+                }
+            });
+        }
     }
 }
 </script>
