@@ -1542,10 +1542,10 @@ export default {
                         };
                         return bounds_filter;
                     });
-                    console.log(layer_boundaries);
+
                     bounds_filters = bounds_filters.concat(layer_boundaries);
                 }
-                console.log(bounds_filters);
+                
                 this.bounds_filters = bounds_filters;
             }
             this.should_skip_bounds_filter = false;
@@ -1984,7 +1984,7 @@ export default {
             this.center_parsed = (this.center_format == 'latlng') ? this.center['lat'] + ", " + this.center['lng'] : this.convertToUTM();
         },
         sumCoordinates(layer_list) {
-            let coordinates = layer_list.map(operative => {
+            let coordinates_raw = layer_list.map(operative => {
                 //Filtramos todas las capas MultiPolygon y las convertimos a Polygon
                 let not_multipolygon = operative.geojson.features.filter(polygon =>{
                     if(polygon.geometry.type == "MultiPolygon"){
@@ -2013,8 +2013,14 @@ export default {
                      _.first(geo.coordinates).map( coord => { return [coord[0], coord[1]]})
                 );
             });
+
             //Juntamos los polygon con los expolygon
-            coordinates = coordinates.reduce((acc, curr) => [...acc, ..._.first(curr)], []);
+            let coordinates = coordinates_raw.reduce((polygons, polygon) => {
+                let poly = polygon.reduce((coords, coord) => {
+                    return coords.concat(coord);
+                }, []);
+                return polygons.concat(poly);
+            }, []);
 
             return coordinates;
         },

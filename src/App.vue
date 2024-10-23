@@ -359,18 +359,21 @@ export default {
             }
             let url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=[${column_ids}]&page=1`;
 
+            let body = {};
+
             if(!_.isEmpty(this.active_filters)){
-                url += "&active_filters="+JSON.stringify(this.active_filters);
+                body["active_filters"] = JSON.stringify(this.active_filters);
             }
 
             axios
-            .get(url)
+            .post(url, body)
             .then((response) => {
                 this.data = response.data.content;
             })
             .catch((error) => {
                 console.error(error);
-            })
+            });
+
         },
         async requestConfig(){
 
