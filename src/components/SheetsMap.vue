@@ -1503,47 +1503,50 @@ export default {
             if (!this.should_skip_bounds_filter) {
                 let all_col  = this.info.columns;
 
-                if(this.layer_boundaries.length < 1){
+                this.$refs.polygon_drafter.deleteAll();
+                //let h        = this.map.getZoom();
+                let bounds   = this.map.getBounds();
+                let count = 0;
 
-                    this.$refs.polygon_drafter.deleteAll();
-                    //let h        = this.map.getZoom();
-                    let bounds   = this.map.getBounds();
+                let bounds_filters = all_col.filter(columns=>
+                    columns.id == this.col_lat || columns.id == this.col_lng
+                ).map((columns,key)=>{
+                    let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
+                    let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
+                    let bounds_filter = {
+                        "column": columns,
+                        "id": "external-filter-"+columns.id,
+                        "order": key+1,
+                        "search": {
+                            "start": start,
+                            "end": end
+                        },
+                        "type": "BETWEEN"
+                    };
+                    count = key;
+                    return bounds_filter;
+                });
 
-                    let bounds_filters = all_col.filter(columns=>
-                        columns.id == this.col_lat || columns.id == this.col_lng
-                    ).map((columns,key)=>{
-                        let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
-                        let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
-                        let bounds_filter = {
-                            "column": columns,
-                            "id": "external-filter-"+columns.id,
-                            "order": key+1,
-                            "search": {
-                                "start": start,
-                                "end": end
-                            },
-                            "type": "BETWEEN"
-                        };
-                        return bounds_filter;
-                    });
-                    this.bounds_filters = bounds_filters;
-                }else{
+                if(this.layer_boundaries.length > 0){
                     let search = [this.layer_boundaries];
-                    let bounds_filters = all_col.filter(columns =>
+                    let layer_boundaries = all_col.filter(columns =>
                         columns.format == 'POLYGON'
                     ).map((columns, key) => {
 
                         let bounds_filter = {
                             "column": columns,
                             "id": "external-filter-" + columns.id,
-                            "order": key + 1,
+                            "order": count + key + 1,
                             "search": search,
                             "type": "POLYGON"
                         };
                         return bounds_filter;
                     });
-                    this.bounds_filters = bounds_filters;
+                    console.log(layer_boundaries);
+                    bounds_filters = bounds_filters.concat(layer_boundaries);
                 }
+                console.log(bounds_filters);
+                this.bounds_filters = bounds_filters;
             }
             this.should_skip_bounds_filter = false;
         },

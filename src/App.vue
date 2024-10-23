@@ -71,11 +71,11 @@ export default {
             // BIEN -> http://sheetsmock.local
             base_url: "http://127.0.0.1:8000",
             // 
-            id: "",
+            id: "99863740-4c01-11ed-b21a-f23c9240db0f",
             // - Id del tipo de entidad
-            entity_type_id: "",
+            entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
             // - Registro de configuracion (ID del mapa)
-            config_entity_id: "",
+            config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
             // Tipo de entidad de configuracion
             config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
             // Endpoint de configuracion
