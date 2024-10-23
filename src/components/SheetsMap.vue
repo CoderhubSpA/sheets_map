@@ -706,7 +706,18 @@ export default {
         supercluster_by_entity_type_layers(){
             if(_.isEmpty(this.active_layers)) return [];
             return this.active_layers.filter( l => l.sh_map_has_layer_code == 'supercluster_by_entity_type');
-        }
+        },
+        // Si una capa geojson tiene activa la variable sh_map_has_layer_type_enable_filter
+        // entonces se reemplazas los limites del mapa por los limites de dichas capas
+        layer_boundaries(){
+            const enable_filter_operative_list = this.enableFilterList(this.operative_geojson_list);
+            const enable_filter_analytic_list  = this.enableFilterList(this.analytic_geojson_list);
+
+            const operative_coordinates = this.sumCoordinates(enable_filter_operative_list);
+            const analytic_coordinates  = this.sumCoordinates(enable_filter_analytic_list);
+            
+            return operative_coordinates.concat(analytic_coordinates);
+        },
     },
     watch:{
         analytic_cluster() {
@@ -1173,7 +1184,11 @@ export default {
                 this.operative_geojson_list.push(geojson);
         },
         requestGeoJson(layer, feature_container){
-            return axios.get(layer.sh_map_has_layer_url)
+            // Revisar si la ruta es de un documento o una url completa
+            let url = (layer.sh_map_has_layer_url && layer.sh_map_has_layer_url.startsWith('/document/')) 
+                    ? this.base_url + layer.sh_map_has_layer_url : layer.sh_map_has_layer_url;
+            
+            return axios.get(url)
                 .then((response) => {
                     let raw_data;
                     if (typeof response.data === 'object' && response.data !== null) {
@@ -1251,6 +1266,7 @@ export default {
 
         },
         formatFilter(){
+            console.log(this.active_filters);
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
             }
@@ -1488,10 +1504,12 @@ export default {
         },
         findBounds(){
             if (!this.should_skip_bounds_filter) {
+                let all_col  = this.info.columns;
+
                 this.$refs.polygon_drafter.deleteAll();
                 //let h        = this.map.getZoom();
                 let bounds   = this.map.getBounds();
-                let all_col  = this.info.columns;
+                let count = 0;
 
                 let bounds_filters = all_col.filter(columns=>
                     columns.id == this.col_lat || columns.id == this.col_lng
@@ -1508,8 +1526,29 @@ export default {
                         },
                         "type": "BETWEEN"
                     };
+                    count = key;
                     return bounds_filter;
                 });
+
+                if(this.layer_boundaries.length > 0){
+                    let search = [this.layer_boundaries];
+                    let layer_boundaries = all_col.filter(columns =>
+                        columns.format == 'POLYGON'
+                    ).map((columns, key) => {
+
+                        let bounds_filter = {
+                            "column": columns,
+                            "id": "external-filter-" + columns.id,
+                            "order": count + key + 1,
+                            "search": search,
+                            "type": "POLYGON"
+                        };
+                        return bounds_filter;
+                    });
+
+                    bounds_filters = bounds_filters.concat(layer_boundaries);
+                }
+                
                 this.bounds_filters = bounds_filters;
             }
             this.should_skip_bounds_filter = false;
@@ -1946,6 +1985,57 @@ export default {
         },
         centerParsed(){
             this.center_parsed = (this.center_format == 'latlng') ? this.center['lat'] + ", " + this.center['lng'] : this.convertToUTM();
+        },
+        sumCoordinates(layer_list) {
+            let coordinates_raw = layer_list.map(operative => {
+                //Filtramos todas las capas MultiPolygon y las convertimos a Polygon
+                let not_multipolygon = operative.geojson.features.filter(polygon =>{
+                    if(polygon.geometry.type == "MultiPolygon"){
+                        return polygon;
+                    }
+                }).map(polygon => {
+                    let new_polygon = polygon.geometry.coordinates.map(coordinate =>{
+                        return { "type": "Polygon", "coordinates": coordinate };
+                    })
+                    return _.first(new_polygon);
+                });
+                // filtramos todas las originalmente Polygon y tomamos solo su geometria
+                let polygon = operative.geojson.features.filter(polygon =>{
+                    if(polygon.geometry.type == "Polygon"){
+                        return polygon;
+                    }
+                }).map(polygon => {
+                    return polygon.geometry;
+                });
+                //Concatenamos ambos arreglos
+                const geometry = not_multipolygon.concat(polygon);
+                return geometry;
+            }).map(geometry => {
+                //Tomamos el primer elemento de todas sus coordenadas
+                return geometry.map(geo => 
+                     _.first(geo.coordinates).map( coord => { return [coord[0], coord[1]]})
+                );
+            });
+
+            //Juntamos los polygon con los expolygon
+            let coordinates = coordinates_raw.reduce((polygons, polygon) => {
+                let poly = polygon.reduce((coords, coord) => {
+                    return coords.concat(coord);
+                }, []);
+                return polygons.concat(poly);
+            }, []);
+
+            return coordinates;
+        },
+        enableFilterList(geojson_list){
+            let layers = this.active_layers;
+            return geojson_list.filter(geojson =>{
+                let layer = layers.filter(ly => geojson.layer_id == ly.id);
+
+                if(layer && _.first(layer).sh_map_has_layer_type_enable_filter){
+                    return geojson;
+                }
+            });
         }
     }
 }
