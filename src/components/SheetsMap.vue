@@ -242,6 +242,7 @@
 </template>
 <script>
 import L from 'leaflet';
+import Simplify  from 'simplify-js';
 import _ from 'lodash';
 import proj4 from 'proj4';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
@@ -1531,16 +1532,23 @@ export default {
                 });
 
                 if(this.layer_boundaries.length > 0){
-                    let search = [this.layer_boundaries];
+                    let search = this.layer_boundaries;
+                        search = search.map(coord => {
+                        return {x:coord[0], y:coord[1]};
+                    });
                     let layer_boundaries = all_col.filter(columns =>
                         columns.format == 'POLYGON'
                     ).map((columns, key) => {
+
+                        let simplified = Simplify(search, 0.0005).map(coord => {
+                            return [coord['x'], coord['y']];
+                        });
 
                         let bounds_filter = {
                             "column": columns,
                             "id": "external-filter-" + columns.id,
                             "order": count + key + 1,
-                            "search": search,
+                            "search": [simplified],
                             "type": "POLYGON"
                         };
                         return bounds_filter;
