@@ -10,8 +10,8 @@
                     <b>{{ col.name }}</b>
                 </span>
                 <br />
-                <a v-if="col.format === 'URL'" :href="getPopupData(marker, col)" class="marker-pop-up-info-content">
-                    {{ getPopupData(marker, col) }}
+                <a v-if="col.format === 'URL[GENERATED]'" :href="generateURL" rel="noopener noreferrer" target="_blank" class="marker-pop-up-info-content">
+                    ver parte
                 </a>
                 <span v-else class="marker-pop-up-info-content">
                     {{ getPopupData(marker, col) }}
@@ -50,6 +50,7 @@ export default {
         visible_columns: Array,
         entity_type_id: String,
         popup_point_options: Object,
+        base_url: String,
     },
     data() {
         return {
@@ -63,7 +64,10 @@ export default {
             });
 
             return getFormColFormat ? true : false;
-        }
+        },
+        generateURL() {
+            return `${this.base_url}/sait/generateUrl/${this.info.entity_type.id}/${this.marker.data["id"]}`;
+        },
     },
     watch: {
          info: {
