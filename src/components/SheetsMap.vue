@@ -78,6 +78,7 @@
                     ></l-tile-layer>
                 <l-tile-layer v-else :url="default_base_layer"
                     :attribution="default_attribution"
+                    :options="{ maxNativeZoom: 19, maxZoom: 20 }"
                     ></l-tile-layer>
                 
                 <supercluster-entity-type-layer
@@ -816,7 +817,7 @@ export default {
             else if(zoom === "in") this.zoom++;
             else this.zoom++;
             
-            if(this.zoom > 18) this.zoom = 18;
+            if(this.zoom > 20) this.zoom = 20;
             if(this.zoom < 0) this.zoom = 0;
         },
         ready(){
@@ -1350,6 +1351,10 @@ export default {
                     return 11;
                 case 18:
                     return 12;
+                case 19:
+                    return 13;
+                case 20:
+                    return 14;
                 default:
                     return 1;
                 }
@@ -1371,6 +1376,11 @@ export default {
                 case 17:
                 case 18:{
                     h = 15;
+                    break;
+                }
+                case 19:
+                case 20:{
+                    h = 20;
                     break;
                 }
                 default:{
