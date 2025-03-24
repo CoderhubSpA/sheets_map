@@ -48,6 +48,11 @@ npm publish
 \
 &nbsp;
 ## Configuración en Sheets
+### Instalar en Sheets
+Ejecutar
+```bash
+npm install @CoderhubSpA/sheets_map@latest
+```
 ---
 ### Casos soportados por el "Mapa de claves" de Sheets Map :
 

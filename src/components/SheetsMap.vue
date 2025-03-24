@@ -160,6 +160,7 @@
                     :name="layer.sh_map_has_layer_geoserver_layer"
                     :transparent="true"
                     :format="layer.sh_map_has_layer_wms_format || 'image/png'"
+                    :options="{ maxNativeZoom: 20, maxZoom: 20 }"
                     layer-type="base"
                     service="WMS"
                 />
