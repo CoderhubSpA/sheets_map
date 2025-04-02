@@ -674,8 +674,11 @@ export default {
                     return feature.layer_id == l.id;
                 });
 
-                const color      = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : '#3388ff';
-                const fill_color = (layer?.sh_map_has_layer_text_color) ? layer.sh_map_has_layer_text_color : color;
+                const color      = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : 
+                                   (feature.properties.stroke) ? feature.properties.stroke : '#3388ff';
+                const fill_color = (layer?.sh_map_has_layer_text_color) ? layer.sh_map_has_layer_text_color : 
+                                   (feature.properties.fill) ? feature.properties.fill : color;
+
 
                 const style = {
                     color       : color,
