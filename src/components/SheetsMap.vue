@@ -164,6 +164,17 @@
                     layer-type="base"
                     service="WMS"
                 />
+                <l-protobuf 
+                    v-for="layer in (vector_tiles_tms || [])"
+                    :key="layer.id"
+                    :url="layer.sh_map_has_layer_url+'/{z}/{y}/{x}.'+(layer.sh_map_has_layer_wms_format || 'mvt')+'?layer='+layer.sh_map_has_layer_geoserver_layer" 
+                    :options="{ maxNativeZoom: 20, maxZoom: 20 }"
+                    :name="layer.sh_map_has_layer_geoserver_layer"
+                    :layers="layer.sh_map_has_layer_geoserver_layer"
+                />
+                
+                <!-- GeoJSON Vector Grid Layers 
+                <div v-for="layer in geojson_tiles" :key="layer.id" ref="geojson_vector_grid_container"></div>-->
 
                 <l-control class="sheets-map-legend" position="bottomright" v-if="active_layers.length > 0 && show_legend">
                     <div class="legend-container" >
@@ -248,6 +259,7 @@ import Simplify  from 'simplify-js';
 import _ from 'lodash';
 import proj4 from 'proj4';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
+import LProtobuf from 'vue2-leaflet-vectorgrid'
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
@@ -277,6 +289,7 @@ export default {
         LTileLayer,
         LMarker,
         LGeoJson,
+        LProtobuf,
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
         BIcon,
@@ -344,6 +357,8 @@ export default {
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
             operative_geoserver_wms    : [],
+            vector_tiles_tms           : [],
+            geojson_tiles              : [],
             bounds_filters             : [],
             num_zoom                   : false,
             bounds                     : [],
@@ -837,6 +852,7 @@ export default {
             
             // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
+            this.vector_tiles_tms = [];
 
             this.active_layers.forEach(l => {
                 this.activeLayers(l);
@@ -851,7 +867,22 @@ export default {
 
             let geojson_bounds = this.getMapGeoJsonBounds();
 
-            switch(layer.sh_map_has_layer_code){
+            switch(layer.sh_map_has_layer_code){/*
+                case 'geojson_tiles': {
+                    // Add the layer to the geojson_tiles array
+                    this.geojson_tiles.push(layer);
+                    
+                    // Request the GeoJSON data
+                    this.requestGeoJson(layer, {})
+                        .then((response) => {
+                            // Create a VectorGrid.Slicer for the GeoJSON data
+                            this.createGeoJsonVectorGrid(layer, response.data);
+                        })
+                        .catch((error) => {
+                            console.error('Error loading GeoJSON for vector tiles:', error);
+                        });
+                    break;
+                }*/
                 case 'analytic_geojson' : 
                 case 'analytic_geojson_logarithmic' : {
                     // eslint-disable-next-line
@@ -898,6 +929,13 @@ export default {
                 }
                 case 'base_open_street_map' : {
                     this.base_open_street_map = layer;
+                    break;
+
+                }
+                case 'vector_tiles_tms' : {
+                    console.log('this.vector_tiles_tms');
+                    this.vector_tiles_tms.push(layer)
+                    console.log(this.vector_tiles_tms);
                     break;
 
                 }
@@ -979,11 +1017,28 @@ export default {
 
                     break;
                 }
+                case 'vector_tiles_tms' : {
+                    //Filtra un elementos inactivo de vector_tiles_tms segun layer dejando solo los elementos activos
+                    this.vector_tiles_tms = this.cleanGeojsonLayer(layer, this.vector_tiles_tms);
+                    break;
+
+                }
                 case 'supercluster': 
                 case 'supercluster_by_entity_type': {
                     // La capa supercluster se desactiva mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
-                }
+                }/*
+                case 'geojson_tiles': {
+                    // Remove the VectorGrid.Slicer from the map
+                    if (layer.vectorGridLayer) {
+                        this.map.removeLayer(layer.vectorGridLayer);
+                        layer.vectorGridLayer = null;
+                    }
+                    
+                    // Remove the layer from the geojson_tiles array
+                    this.geojson_tiles = this.geojson_tiles.filter(l => l.id !== layer.id);
+                    break;
+                }*/
                 default:{
                     //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
@@ -2055,6 +2110,71 @@ export default {
                     return geojson;
                 }
             });
+        },
+        createGeoJsonVectorGrid(layer, geojsonData) {
+            // Default options for VectorGrid.Slicer
+            const defaultOptions = {
+                maxZoom: 20,
+                tolerance: 5,
+                debug: 0,
+                buffer: 128,
+                vectorTileLayerStyles: {
+                    // Default style for all features
+                    '': {
+                        fill: true,
+                        weight: 2,
+                        fillColor: layer.sh_map_has_layer_color || '#3388ff',
+                        color: layer.sh_map_has_layer_text_color || '#3388ff',
+                        fillOpacity: 0.6,
+                        opacity: 0.8
+                    }
+                },
+                interactive: true,
+                getFeatureId: function(feature) {
+                    // Use a property from your GeoJSON as a unique identifier
+                    return feature.properties.id || Math.random().toString(36).substring(2, 15);
+                }
+            };
+
+            // Merge with any custom options from the layer
+            const options = {
+                ...defaultOptions,
+                ...(layer.sh_map_has_layer_options ? JSON.parse(layer.sh_map_has_layer_options) : {})
+            };
+
+            // Create the VectorGrid.Slicer
+            const vectorGrid = L.vectorGrid.slicer(geojsonData, options);
+
+            // Add the layer to the map
+            vectorGrid.addTo(this.map);
+
+            // Store a reference to the layer for later removal
+            layer.vectorGridLayer = vectorGrid;
+
+            // Add click event handler if needed
+            if (options.interactive) {
+                vectorGrid.on('click', (e) => {
+                    const properties = e.layer.properties;
+                    if (properties) {
+                        // Create a popup with the feature properties
+                        const popupContent = Object.entries(properties)
+                            .map(([key, value]) => {
+                                const title = this.formatKeyToHumanText(key);
+                                value = (value === null || value === undefined) ? 'Sin información disponible' : value;
+                                value = isNaN(value) ? value : value.toLocaleString('es-ES');
+                                return `<span class="marker-pop-up-info-title"><b>${title}:</b></span> <span class="marker-pop-up-info-content">${value}</span>`;
+                            })
+                            .join('<br>');
+
+                        L.popup()
+                            .setLatLng(e.latlng)
+                            .setContent(popupContent)
+                            .openOn(this.map);
+                    }
+                });
+            }
+
+            return vectorGrid;
         }
     }
 }
