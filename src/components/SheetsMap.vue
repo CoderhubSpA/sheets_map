@@ -23,6 +23,7 @@
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
                 @click="onMapClick"
+                @mouseup="onMapMouseUp();"
                 :zoom.sync="zoom"
                 :center.sync="center"
                 ref="my_map"
@@ -164,17 +165,6 @@
                     layer-type="base"
                     service="WMS"
                 />
-                <l-protobuf 
-                    v-for="layer in (vector_tiles_tms || [])"
-                    :key="layer.id"
-                    :url="layer.sh_map_has_layer_url+'/{z}/{y}/{x}.'+(layer.sh_map_has_layer_wms_format || 'mvt')+'?layer='+layer.sh_map_has_layer_geoserver_layer" 
-                    :options="{ maxNativeZoom: 20, maxZoom: 20 }"
-                    :name="layer.sh_map_has_layer_geoserver_layer"
-                    :layers="layer.sh_map_has_layer_geoserver_layer"
-                />
-                
-                <!-- GeoJSON Vector Grid Layers 
-                <div v-for="layer in geojson_tiles" :key="layer.id" ref="geojson_vector_grid_container"></div>-->
 
                 <l-control class="sheets-map-legend" position="bottomright" v-if="active_layers.length > 0 && show_legend">
                     <div class="legend-container" >
@@ -259,7 +249,6 @@ import Simplify  from 'simplify-js';
 import _ from 'lodash';
 import proj4 from 'proj4';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
-import LProtobuf from 'vue2-leaflet-vectorgrid'
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
@@ -289,7 +278,6 @@ export default {
         LTileLayer,
         LMarker,
         LGeoJson,
-        LProtobuf,
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
         BIcon,
@@ -358,6 +346,9 @@ export default {
             base_open_street_map       : undefined,
             operative_geoserver_wms    : [],
             vector_tiles_tms           : [],
+            end_map_move               : false,
+            end_map_pressure           : false,
+            last_bounds                : [],
             geojson_tiles              : [],
             bounds_filters             : [],
             num_zoom                   : false,
@@ -742,6 +733,9 @@ export default {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
         zoom(newZoom){
+            this.change_bounds = true;
+            this.switchLayers();
+            console.log('a');
             if(this.analytic_cluster_initial_zoom !== undefined) {
                 this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
             }
@@ -852,7 +846,7 @@ export default {
             
             // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
-            this.vector_tiles_tms = [];
+            console.log('a');
 
             this.active_layers.forEach(l => {
                 this.activeLayers(l);
@@ -932,10 +926,48 @@ export default {
                     break;
 
                 }
-                case 'vector_tiles_tms' : {
-                    console.log('this.vector_tiles_tms');
-                    this.vector_tiles_tms.push(layer)
-                    console.log(this.vector_tiles_tms);
+                case 'operative_vector_tiles_tms' : {
+                    const organizeLayers = this.organizeLayers(layer, this.operative_geojson_list);
+                    const is_empty = organizeLayers['is_empty'];
+
+                    //importante
+                    // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
+                    if(is_empty || (!is_empty && this.change_bounds)){
+                        this.change_bounds = false;
+                        /*
+                        let keys = Object.keys(this.center);
+
+                        let lng = (keys.includes("lng")) ? 'lng' : 0;
+
+            // Calcular el huso UTM en función de la longitud
+            const zoneNumber = Math.floor((this.center[lng] + 180) / 6) + 1;
+                        // Transform coordinates from WGS84 (EPSG:4326) to Web Mercator (EPSG:3857)
+                        // geojson_bounds[0] is [longitude, latitude] of northeast corner
+                        // geojson_bounds[2] is [longitude, latitude] of southwest corner
+
+                        const specificZone = (this.center[lng] > -78 || this.center[lng] < -66) ? zoneNumber : (this.center[lng] > -72 ? 19 : 18);
+                        // Proyección UTM que corresponde al huso calculado y al hemisferio
+                        const utmProjection = `EPSG:327${specificZone}`; // 327 es para el hemisferio sur
+                        const northeast = proj4(proj4.WGS84, utmProjection, geojson_bounds[0]);
+                        const southwest = proj4(proj4.WGS84, utmProjection, geojson_bounds[2]);
+                        var coord = southwest.join(',')+ ',' + northeast.join(',') ;*/
+                        const northeast = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[0]);
+                        const southwest = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[2]);
+                        var coord = southwest.join(',')+ ',' + northeast.join(',') ;
+
+                        const url = layer.sh_map_has_layer_url.split("?bbox=");
+
+                        
+                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord;
+                        this.requestGeoJson(layer, this.operative_geojson_features)
+                        .then(() => {
+                            if(!is_empty){
+                                this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+                            }
+                            this.getOperativeGeoJson(layer);
+                        });
+                    }
+
                     break;
 
                 }
@@ -947,6 +979,7 @@ export default {
                 case 'operative_geoserver_wfs_point': {
                     const {is_empty,is_new_layer} = this.organizeLayers(layer, this.operative_geojson_list);
 
+                    //importante
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
                     if(is_empty || (!is_empty && is_new_layer)){
                         this.requestGeoJson(layer, this.operative_geojson_features)
@@ -1011,17 +1044,12 @@ export default {
                     break;
 
                 }
+                case 'operative_vector_tiles_tms' : 
                 case 'operative_geoserver_wfs_point': {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
                     this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
 
                     break;
-                }
-                case 'vector_tiles_tms' : {
-                    //Filtra un elementos inactivo de vector_tiles_tms segun layer dejando solo los elementos activos
-                    this.vector_tiles_tms = this.cleanGeojsonLayer(layer, this.vector_tiles_tms);
-                    break;
-
                 }
                 case 'supercluster': 
                 case 'supercluster_by_entity_type': {
@@ -1223,7 +1251,7 @@ export default {
         getOperativeGeoJson(layer){
 
                 //Relacionar el total de data con feature
-                let features = this.operative_geojson_features[layer.id].map(feature => {
+                let features = this.operative_geojson_features[layer.id]?.map(feature => {
 
                     feature['layer_id'] = layer.id;
 
@@ -1555,6 +1583,20 @@ export default {
             });
 
             this.map.closePopup(); // Cerramos todos los popups al mover el mapa https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
+            this.end_map_move = true;
+            this.searchNewTiles();
+        },
+        onMapMouseUp(){
+            this.end_map_pressure = true;
+            this.searchNewTiles();
+        },
+        searchNewTiles(){
+            if (this.end_map_move && this.end_map_pressure) {
+                this.end_map_move     = false;
+                this.end_map_pressure = false;
+                this.change_bounds = true;
+                this.switchLayers();
+            }
         },
         onMapClick(event){
             // Check the mode
@@ -2110,71 +2152,6 @@ export default {
                     return geojson;
                 }
             });
-        },
-        createGeoJsonVectorGrid(layer, geojsonData) {
-            // Default options for VectorGrid.Slicer
-            const defaultOptions = {
-                maxZoom: 20,
-                tolerance: 5,
-                debug: 0,
-                buffer: 128,
-                vectorTileLayerStyles: {
-                    // Default style for all features
-                    '': {
-                        fill: true,
-                        weight: 2,
-                        fillColor: layer.sh_map_has_layer_color || '#3388ff',
-                        color: layer.sh_map_has_layer_text_color || '#3388ff',
-                        fillOpacity: 0.6,
-                        opacity: 0.8
-                    }
-                },
-                interactive: true,
-                getFeatureId: function(feature) {
-                    // Use a property from your GeoJSON as a unique identifier
-                    return feature.properties.id || Math.random().toString(36).substring(2, 15);
-                }
-            };
-
-            // Merge with any custom options from the layer
-            const options = {
-                ...defaultOptions,
-                ...(layer.sh_map_has_layer_options ? JSON.parse(layer.sh_map_has_layer_options) : {})
-            };
-
-            // Create the VectorGrid.Slicer
-            const vectorGrid = L.vectorGrid.slicer(geojsonData, options);
-
-            // Add the layer to the map
-            vectorGrid.addTo(this.map);
-
-            // Store a reference to the layer for later removal
-            layer.vectorGridLayer = vectorGrid;
-
-            // Add click event handler if needed
-            if (options.interactive) {
-                vectorGrid.on('click', (e) => {
-                    const properties = e.layer.properties;
-                    if (properties) {
-                        // Create a popup with the feature properties
-                        const popupContent = Object.entries(properties)
-                            .map(([key, value]) => {
-                                const title = this.formatKeyToHumanText(key);
-                                value = (value === null || value === undefined) ? 'Sin información disponible' : value;
-                                value = isNaN(value) ? value : value.toLocaleString('es-ES');
-                                return `<span class="marker-pop-up-info-title"><b>${title}:</b></span> <span class="marker-pop-up-info-content">${value}</span>`;
-                            })
-                            .join('<br>');
-
-                        L.popup()
-                            .setLatLng(e.latlng)
-                            .setContent(popupContent)
-                            .openOn(this.map);
-                    }
-                });
-            }
-
-            return vectorGrid;
         }
     }
 }
