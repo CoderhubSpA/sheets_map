@@ -733,9 +733,9 @@ export default {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
         zoom(newZoom){
-            this.change_bounds = true;
+            this.search_new_titles = true;
+            this.change_zoom       = true;
             this.switchLayers();
-            console.log('a');
             if(this.analytic_cluster_initial_zoom !== undefined) {
                 this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
             }
@@ -846,7 +846,6 @@ export default {
             
             // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
-            console.log('a');
 
             this.active_layers.forEach(l => {
                 this.activeLayers(l);
@@ -932,25 +931,9 @@ export default {
 
                     //importante
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
-                    if(is_empty || (!is_empty && this.change_bounds)){
-                        this.change_bounds = false;
-                        /*
-                        let keys = Object.keys(this.center);
-
-                        let lng = (keys.includes("lng")) ? 'lng' : 0;
-
-            // Calcular el huso UTM en función de la longitud
-            const zoneNumber = Math.floor((this.center[lng] + 180) / 6) + 1;
-                        // Transform coordinates from WGS84 (EPSG:4326) to Web Mercator (EPSG:3857)
-                        // geojson_bounds[0] is [longitude, latitude] of northeast corner
-                        // geojson_bounds[2] is [longitude, latitude] of southwest corner
-
-                        const specificZone = (this.center[lng] > -78 || this.center[lng] < -66) ? zoneNumber : (this.center[lng] > -72 ? 19 : 18);
-                        // Proyección UTM que corresponde al huso calculado y al hemisferio
-                        const utmProjection = `EPSG:327${specificZone}`; // 327 es para el hemisferio sur
-                        const northeast = proj4(proj4.WGS84, utmProjection, geojson_bounds[0]);
-                        const southwest = proj4(proj4.WGS84, utmProjection, geojson_bounds[2]);
-                        var coord = southwest.join(',')+ ',' + northeast.join(',') ;*/
+                    if(is_empty || (!is_empty && this.search_new_titles)){
+                        this.search_new_titles = false;
+                        //TODO: revisar por EPSG
                         const northeast = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[0]);
                         const southwest = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[2]);
                         var coord = southwest.join(',')+ ',' + northeast.join(',') ;
@@ -1055,18 +1038,7 @@ export default {
                 case 'supercluster_by_entity_type': {
                     // La capa supercluster se desactiva mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
-                }/*
-                case 'geojson_tiles': {
-                    // Remove the VectorGrid.Slicer from the map
-                    if (layer.vectorGridLayer) {
-                        this.map.removeLayer(layer.vectorGridLayer);
-                        layer.vectorGridLayer = null;
-                    }
-                    
-                    // Remove the layer from the geojson_tiles array
-                    this.geojson_tiles = this.geojson_tiles.filter(l => l.id !== layer.id);
-                    break;
-                }*/
+                }
                 default:{
                     //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
@@ -1294,8 +1266,62 @@ export default {
                             raw_data = {};
                         }
                     }
-                    
+                        
+                // Si no existen features
+                // si no es una capa vector tile
+                // si cambio el nivel de zoom
+                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.change_zoom) {
+                    this.change_zoom = false;
+                    // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
+                } else {
+                    // Merge the new features with existing ones, but avoid duplicates
+                    // Create a map of existing features using a unique identifier
+                    const existingFeatures = new Map();
+                    
+                    // Use properties that uniquely identify a feature
+                    // This might need adjustment based on your specific GeoJSON structure
+                    feature_container[layer.id].forEach(feature => {
+                        // Create a unique key based on geometry coordinates and properties
+                        // For points, we can use coordinates directly
+                        let key;
+                        if (feature.geometry.type === 'Point') {
+                            key = JSON.stringify(feature.geometry.coordinates);
+                        } else {
+                            // For polygons and other geometries, we might need a more complex approach
+                            // Here we use a hash of the first coordinate set as a simple solution
+                            key = JSON.stringify(feature.geometry.coordinates[0][0]);
+                        }
+                        
+                        // Add additional property identifiers if needed
+                        if (feature.properties && feature.properties.id) {
+                            key += '_' + feature.properties.id;
+                        }
+                        
+                        existingFeatures.set(key, feature);
+                    });
+                    
+                    // Add new features only if they don't already exist
+                    raw_data.features.forEach(feature => {
+                        let key;
+                        if (feature.geometry.type === 'Point') {
+                            key = JSON.stringify(feature.geometry.coordinates);
+                        } else {
+                            key = JSON.stringify(feature.geometry.coordinates[0][0]);
+                        }
+                        
+                        if (feature.properties && feature.properties.id) {
+                            key += '_' + feature.properties.id;
+                        }
+                        
+                        if (!existingFeatures.has(key)) {
+                            existingFeatures.set(key, feature);
+                        }
+                    });
+                    
+                    // Convert the map back to an array
+                    feature_container[layer.id] = Array.from(existingFeatures.values());
+                }
 
                 });
         },
@@ -1594,7 +1620,7 @@ export default {
             if (this.end_map_move && this.end_map_pressure) {
                 this.end_map_move     = false;
                 this.end_map_pressure = false;
-                this.change_bounds = true;
+                this.search_new_titles = true;
                 this.switchLayers();
             }
         },
