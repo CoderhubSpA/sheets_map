@@ -860,22 +860,7 @@ export default {
 
             let geojson_bounds = this.getMapGeoJsonBounds();
 
-            switch(layer.sh_map_has_layer_code){/*
-                case 'geojson_tiles': {
-                    // Add the layer to the geojson_tiles array
-                    this.geojson_tiles.push(layer);
-                    
-                    // Request the GeoJSON data
-                    this.requestGeoJson(layer, {})
-                        .then((response) => {
-                            // Create a VectorGrid.Slicer for the GeoJSON data
-                            this.createGeoJsonVectorGrid(layer, response.data);
-                        })
-                        .catch((error) => {
-                            console.error('Error loading GeoJSON for vector tiles:', error);
-                        });
-                    break;
-                }*/
+            switch(layer.sh_map_has_layer_code){
                 case 'analytic_geojson' : 
                 case 'analytic_geojson_logarithmic' : {
                     // eslint-disable-next-line
