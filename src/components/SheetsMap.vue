@@ -23,6 +23,7 @@
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
                 @click="onMapClick"
+                @mouseup="onMapMouseUp();"
                 :zoom.sync="zoom"
                 :center.sync="center"
                 ref="my_map"
@@ -344,6 +345,11 @@ export default {
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
             operative_geoserver_wms    : [],
+            vector_tiles_tms           : [],
+            end_map_move               : false,
+            end_map_pressure           : false,
+            last_bounds                : [],
+            geojson_tiles              : [],
             bounds_filters             : [],
             num_zoom                   : false,
             bounds                     : [],
@@ -727,6 +733,9 @@ export default {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
         zoom(newZoom){
+            this.search_new_titles = true;
+            this.change_zoom       = true;
+            this.switchLayers();
             if(this.analytic_cluster_initial_zoom !== undefined) {
                 this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
             }
@@ -901,6 +910,35 @@ export default {
                     break;
 
                 }
+                case 'operative_vector_tiles_tms' : {
+                    const organizeLayers = this.organizeLayers(layer, this.operative_geojson_list);
+                    const is_empty = organizeLayers['is_empty'];
+
+                    //importante
+                    // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
+                    if(is_empty || (!is_empty && this.search_new_titles)){
+                        this.search_new_titles = false;
+                        //TODO: revisar por EPSG
+                        const northeast = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[0]);
+                        const southwest = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[2]);
+                        var coord = southwest.join(',')+ ',' + northeast.join(',') ;
+
+                        const url = layer.sh_map_has_layer_url.split("?bbox=");
+
+                        
+                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord;
+                        this.requestGeoJson(layer, this.operative_geojson_features)
+                        .then(() => {
+                            if(!is_empty){
+                                this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+                            }
+                            this.getOperativeGeoJson(layer);
+                        });
+                    }
+
+                    break;
+
+                }
                 case 'operative_geoserver_wms' : {
                     this.operative_geoserver_wms.push(layer)
                     break;
@@ -909,6 +947,7 @@ export default {
                 case 'operative_geoserver_wfs_point': {
                     const {is_empty,is_new_layer} = this.organizeLayers(layer, this.operative_geojson_list);
 
+                    //importante
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
                     if(is_empty || (!is_empty && is_new_layer)){
                         this.requestGeoJson(layer, this.operative_geojson_features)
@@ -973,6 +1012,7 @@ export default {
                     break;
 
                 }
+                case 'operative_vector_tiles_tms' : 
                 case 'operative_geoserver_wfs_point': {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
                     this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
@@ -1168,7 +1208,7 @@ export default {
         getOperativeGeoJson(layer){
 
                 //Relacionar el total de data con feature
-                let features = this.operative_geojson_features[layer.id].map(feature => {
+                let features = this.operative_geojson_features[layer.id]?.map(feature => {
 
                     feature['layer_id'] = layer.id;
 
@@ -1211,8 +1251,62 @@ export default {
                             raw_data = {};
                         }
                     }
-                    
+                        
+                // Si no existen features
+                // si no es una capa vector tile
+                // si cambio el nivel de zoom
+                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.change_zoom) {
+                    this.change_zoom = false;
+                    // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
+                } else {
+                    // Merge the new features with existing ones, but avoid duplicates
+                    // Create a map of existing features using a unique identifier
+                    const existingFeatures = new Map();
+                    
+                    // Use properties that uniquely identify a feature
+                    // This might need adjustment based on your specific GeoJSON structure
+                    feature_container[layer.id].forEach(feature => {
+                        // Create a unique key based on geometry coordinates and properties
+                        // For points, we can use coordinates directly
+                        let key;
+                        if (feature.geometry.type === 'Point') {
+                            key = JSON.stringify(feature.geometry.coordinates);
+                        } else {
+                            // For polygons and other geometries, we might need a more complex approach
+                            // Here we use a hash of the first coordinate set as a simple solution
+                            key = JSON.stringify(feature.geometry.coordinates[0][0]);
+                        }
+                        
+                        // Add additional property identifiers if needed
+                        if (feature.properties && feature.properties.id) {
+                            key += '_' + feature.properties.id;
+                        }
+                        
+                        existingFeatures.set(key, feature);
+                    });
+                    
+                    // Add new features only if they don't already exist
+                    raw_data.features.forEach(feature => {
+                        let key;
+                        if (feature.geometry.type === 'Point') {
+                            key = JSON.stringify(feature.geometry.coordinates);
+                        } else {
+                            key = JSON.stringify(feature.geometry.coordinates[0][0]);
+                        }
+                        
+                        if (feature.properties && feature.properties.id) {
+                            key += '_' + feature.properties.id;
+                        }
+                        
+                        if (!existingFeatures.has(key)) {
+                            existingFeatures.set(key, feature);
+                        }
+                    });
+                    
+                    // Convert the map back to an array
+                    feature_container[layer.id] = Array.from(existingFeatures.values());
+                }
 
                 });
         },
@@ -1500,6 +1594,20 @@ export default {
             });
 
             this.map.closePopup(); // Cerramos todos los popups al mover el mapa https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
+            this.end_map_move = true;
+            this.searchNewTiles();
+        },
+        onMapMouseUp(){
+            this.end_map_pressure = true;
+            this.searchNewTiles();
+        },
+        searchNewTiles(){
+            if (this.end_map_move && this.end_map_pressure) {
+                this.end_map_move     = false;
+                this.end_map_pressure = false;
+                this.search_new_titles = true;
+                this.switchLayers();
+            }
         },
         onMapClick(event){
             // Check the mode
