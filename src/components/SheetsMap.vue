@@ -345,11 +345,8 @@ export default {
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
             operative_geoserver_wms    : [],
-            vector_tiles_tms           : [],
             end_map_move               : false,
             end_map_pressure           : false,
-            last_bounds                : [],
-            geojson_tiles              : [],
             bounds_filters             : [],
             num_zoom                   : false,
             bounds                     : [],
@@ -975,7 +972,7 @@ export default {
                 }
 
             }
-
+            this.change_zoom = false;
         }, 
         disableLayers(layer){
             
@@ -1259,7 +1256,6 @@ export default {
                 // si no es una capa vector tile
                 // si cambio el nivel de zoom
                 if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.change_zoom) {
-                    this.change_zoom = false;
                     // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
                 } else {
