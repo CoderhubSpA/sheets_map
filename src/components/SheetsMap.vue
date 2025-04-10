@@ -341,6 +341,7 @@ export default {
             analytic_geojson_legend    : [],
             operative_geojson_list     : [],
             operative_geojson_features : [],
+            scale_sensitive_layers     : [],
             base_google_map            : undefined,
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
@@ -734,7 +735,13 @@ export default {
         },
         zoom(newZoom){
             this.search_new_titles = true;
-            this.change_zoom       = true;
+
+            this.scale_sensitive_layers = this.active_layers.filter(function(l){
+                return l.sh_map_has_layer_code == "operative_vector_tiles_tms";
+            }).map(function(l){ 
+                return l.id;
+            });
+
             this.switchLayers();
             if(this.analytic_cluster_initial_zoom !== undefined) {
                 this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
@@ -924,7 +931,6 @@ export default {
                         var coord = southwest.join(',')+ ',' + northeast.join(',') ;
 
                         const url = layer.sh_map_has_layer_url.split("?bbox=");
-
                         
                         layer.sh_map_has_layer_url = url[0]+"?bbox="+coord;
                         this.requestGeoJson(layer, this.operative_geojson_features)
@@ -972,7 +978,6 @@ export default {
                 }
 
             }
-            this.change_zoom = false;
         }, 
         disableLayers(layer){
             
@@ -1254,8 +1259,8 @@ export default {
                         
                 // Si no existen features
                 // si no es una capa vector tile
-                // si cambio el nivel de zoom
-                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.change_zoom) {
+                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.scale_sensitive_layers.includes(layer.id)) {
+                    this.scale_sensitive_layers = this.scale_sensitive_layers.filter(l => l != layer.id);
                     // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
                 } else {
