@@ -170,12 +170,24 @@
                     <div class="legend-container" >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
-                                <img class="legend-icon"
-                                    v-if="layer.sh_map_has_layer_point_image"
-                                    :src="base_url + layer.sh_map_has_layer_point_image"
-                                />
-                                <i v-else class="legend-icon-color" :style="legendIconControl(layer)"></i> 
-                                {{layer.name}}
+                                <span v-if="layer.sh_map_has_layer_point_image">
+                                    <img class="legend-icon"
+                                        :src="base_url + layer.sh_map_has_layer_point_image"
+                                    />
+                                    {{layer.name}}
+                                </span>
+                                <span v-else> 
+                                    <span v-if="layer.id in multicolor_geojson_legend && multicolor_geojson_legend[layer.id].length >1">
+                                        {{layer.name}}
+                                        <div class="legend-lavel" v-for="(color_legend, key) in multicolor_geojson_legend[layer.id]"  :key="layer.id+color_legend.type+key">
+                                            <i class="legend-icon-color" :style="color_legend"></i> {{color_legend.type}}
+                                        </div>
+                                    </span>
+                                    <span v-else>
+                                        <i class="legend-icon-color" :style="legendIconControl(layer)"></i> 
+                                        {{layer.name}}
+                                    </span>
+                                </span>
                             </div>
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
                                 <div class="legend-title">
@@ -342,6 +354,7 @@ export default {
             operative_geojson_list     : [],
             operative_geojson_features : [],
             scale_sensitive_layers     : [],
+            multicolor_geojson_legend  : {},
             base_google_map            : undefined,
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
@@ -689,6 +702,26 @@ export default {
                     fillColor   : fill_color
                 };
 
+                const style_by_legend = {
+                    'border-color' : color,
+                    'background'   : fill_color,
+                    'type'         : (layer.sh_map_has_layer_geojson_col_reference) ? feature.properties[layer.sh_map_has_layer_geojson_col_reference] : layer.sh_map_has_layer_name
+                };
+                //Agregamos el estilo
+                if (!(layer.id in this.multicolor_geojson_legend)) {
+                    this.multicolor_geojson_legend[layer.id] = [];
+                }
+                this.multicolor_geojson_legend[layer.id].push(style_by_legend);
+                //luego dejamos solo los estilos que no hayan sido agregados antes
+                let all_options = new Set();
+                this.multicolor_geojson_legend[layer.id] =  this.multicolor_geojson_legend[layer.id]?.filter(color_legend => {
+                    const color_legend_str = JSON.stringify(color_legend);
+                    if (!all_options.has(color_legend_str)) {
+                        all_options.add(color_legend_str);
+                        return true;
+                    }
+                        return false;
+                });
 
                 return style;
             };
@@ -735,8 +768,10 @@ export default {
         },
         zoom(newZoom){
             this.search_new_titles = true;
-
-            this.scale_sensitive_layers = this.active_layers.filter(function(l){
+            if(this.scale_sensitive_layers.length > 0 && !(newZoom in this.scale_sensitive_layers)){
+                this.scale_sensitive_layers = [];
+            }
+            this.scale_sensitive_layers[newZoom] = this.active_layers.filter(function(l){
                 return l.sh_map_has_layer_code == "operative_vector_tiles_tms";
             }).map(function(l){ 
                 return l.id;
@@ -931,15 +966,20 @@ export default {
                         var coord = southwest.join(',')+ ',' + northeast.join(',') ;
 
                         const url = layer.sh_map_has_layer_url.split("?bbox=");
+                        const zoom = this.zoom;
                         
                         layer.sh_map_has_layer_url = url[0]+"?bbox="+coord;
-                        this.requestGeoJson(layer, this.operative_geojson_features)
-                        .then(() => {
-                            if(!is_empty){
-                                this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
-                            }
-                            this.getOperativeGeoJson(layer);
-                        });
+                        if(zoom == this.zoom){
+                            this.requestGeoJson(layer, this.operative_geojson_features)
+                            .then(() => {
+                                if(zoom == this.zoom){
+                                    if(!is_empty){
+                                        this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+                                    }
+                                    this.getOperativeGeoJson(layer);
+                                }
+                            });
+                        }
                     }
 
                     break;
@@ -1236,8 +1276,16 @@ export default {
             let url = (layer.sh_map_has_layer_url && layer.sh_map_has_layer_url.startsWith('/document/')) 
                     ? this.base_url + layer.sh_map_has_layer_url : layer.sh_map_has_layer_url;
             
+            // Guardar el zoom actual para verificar si cambió durante la petición
+            const current_zoom = this.zoom;
+            
             return axios.get(url)
                 .then((response) => {
+                    // Si el zoom cambió durante la petición, cancelamos el procesamiento
+                    if (current_zoom !== this.zoom && layer.sh_map_has_layer_code == "operative_vector_tiles_tms") {
+                        console.log('Zoom changed, canceling GeoJson request processing');
+                        return;
+                    }
                     let raw_data;
                     if (typeof response.data === 'object' && response.data !== null) {
                         raw_data = response.data;
@@ -1259,8 +1307,8 @@ export default {
                         
                 // Si no existen features
                 // si no es una capa vector tile
-                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.scale_sensitive_layers.includes(layer.id)) {
-                    this.scale_sensitive_layers = this.scale_sensitive_layers.filter(l => l != layer.id);
+                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.scale_sensitive_layers[this.zoom].includes(layer.id)) {
+                    this.scale_sensitive_layers[this.zoom] = this.scale_sensitive_layers[this.zoom].filter(l => l != layer.id);
                     // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
                 } else {
@@ -1367,7 +1415,6 @@ export default {
 
         },
         formatFilter(){
-            console.log(this.active_filters);
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
             }
