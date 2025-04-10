@@ -768,7 +768,6 @@ export default {
         },
         zoom(newZoom){
             this.search_new_titles = true;
-            console.log(newZoom);
             if(this.scale_sensitive_layers.length > 0 && !(newZoom in this.scale_sensitive_layers)){
                 this.scale_sensitive_layers = [];
             }
@@ -1416,7 +1415,6 @@ export default {
 
         },
         formatFilter(){
-            console.log(this.active_filters);
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
             }
