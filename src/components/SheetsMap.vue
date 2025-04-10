@@ -170,12 +170,24 @@
                     <div class="legend-container" >
                         <div v-for="layer in active_layers" :key="layer.id">
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
-                                <img class="legend-icon"
-                                    v-if="layer.sh_map_has_layer_point_image"
-                                    :src="base_url + layer.sh_map_has_layer_point_image"
-                                />
-                                <i v-else class="legend-icon-color" :style="legendIconControl(layer)"></i> 
-                                {{layer.name}}
+                                <span v-if="layer.sh_map_has_layer_point_image">
+                                    <img class="legend-icon"
+                                        :src="base_url + layer.sh_map_has_layer_point_image"
+                                    />
+                                    {{layer.name}}
+                                </span>
+                                <span v-else> 
+                                    <span v-if="layer.id in multicolor_geojson_legend && multicolor_geojson_legend[layer.id].length >1">
+                                        {{layer.name}}
+                                        <div class="legend-lavel" v-for="(color_legend, key) in multicolor_geojson_legend[layer.id]"  :key="layer.id+color_legend.type+key">
+                                            <i class="legend-icon-color" :style="color_legend"></i> {{color_legend.type}}
+                                        </div>
+                                    </span>
+                                    <span v-else>
+                                        <i class="legend-icon-color" :style="legendIconControl(layer)"></i> 
+                                        {{layer.name}}
+                                    </span>
+                                </span>
                             </div>
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
                                 <div class="legend-title">
@@ -342,6 +354,7 @@ export default {
             operative_geojson_list     : [],
             operative_geojson_features : [],
             scale_sensitive_layers     : [],
+            multicolor_geojson_legend  : {},
             base_google_map            : undefined,
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
@@ -688,7 +701,27 @@ export default {
                     color       : color,
                     fillColor   : fill_color
                 };
-
+                
+                const style_by_legend = {
+                    'border-color' : color,
+                    'background'   : fill_color,
+                    'type'         : (layer.sh_map_has_layer_geojson_col_reference) ? feature.properties[layer.sh_map_has_layer_geojson_col_reference] : layer.sh_map_has_layer_name
+                };
+                //Agregamos el estilo
+                if (!(layer.id in this.multicolor_geojson_legend)) {
+                    this.multicolor_geojson_legend[layer.id] = [];
+                }
+                this.multicolor_geojson_legend[layer.id].push(style_by_legend);
+                //luego dejamos solo los estilos que no hayan sido agregados antes
+                let all_options = new Set();
+                this.multicolor_geojson_legend[layer.id] =  this.multicolor_geojson_legend[layer.id]?.filter(color_legend => {
+                    const color_legend_str = JSON.stringify(color_legend);
+                    if (!all_options.has(color_legend_str)) {
+                        all_options.add(color_legend_str);
+                        return true;
+                    }
+                        return false;
+                });
 
                 return style;
             };
