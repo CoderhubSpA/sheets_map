@@ -180,7 +180,7 @@
                                     <span v-if="layer.id in multicolor_geojson_legend && multicolor_geojson_legend[layer.id].length >1">
                                         {{layer.name}}
                                         <div class="legend-lavel" v-for="(color_legend, key) in multicolor_geojson_legend[layer.id]"  :key="layer.id+color_legend.type+key">
-                                            <i class="legend-icon-color" :style="color_legend"></i> {{color_legend.type}}
+                                            <i class="legend-icon-color" :style="color_legend" v-on:click="highlightGeojson(color_legend, layer.id)"></i> {{color_legend.type}}
                                         </div>
                                     </span>
                                     <span v-else>
@@ -355,6 +355,7 @@ export default {
             operative_geojson_features : [],
             scale_sensitive_layers     : [],
             multicolor_geojson_legend  : {},
+            color_layer_opacity        : {},
             base_google_map            : undefined,
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
@@ -685,47 +686,66 @@ export default {
 
         },
         operative_geojson_style() {
+            // Retornamos una función que se ejecutará para cada feature del GeoJSON
+            // Esta función ahora es reactiva y se actualizará cuando cambien las propiedades relevantes
             return (feature) => {
-
+                // Buscamos la capa activa correspondiente a este feature
                 const layer = this.active_layers.find(l => {
                     return feature.layer_id == l.id;
                 });
 
+                // Determinamos los colores base para el estilo
                 const color      = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : 
                                    (feature.properties.stroke) ? feature.properties.stroke : '#3388ff';
                 const fill_color = (layer?.sh_map_has_layer_text_color) ? layer.sh_map_has_layer_text_color : 
                                    (feature.properties.fill) ? feature.properties.fill : color;
 
-
-                const style = {
+                // Creamos el objeto de estilo base
+                let style = {
                     color       : color,
                     fillColor   : fill_color
                 };
 
+                // Determinamos el tipo de feature para la leyenda y filtrado
+                let type = (layer.sh_map_has_layer_geojson_col_reference) 
+                    ? feature.properties[layer.sh_map_has_layer_geojson_col_reference] 
+                    : layer.sh_map_has_layer_name;
+                
+                // Creamos el objeto de estilo para la leyenda
                 const style_by_legend = {
                     'border-color' : color,
                     'background'   : fill_color,
-                    'type'         : (layer.sh_map_has_layer_geojson_col_reference) ? feature.properties[layer.sh_map_has_layer_geojson_col_reference] : layer.sh_map_has_layer_name
+                    'type'         : type
                 };
-                //Agregamos el estilo
+
+                // Aplicamos la opacidad si está configurada en color_layer_opacity
+                if(layer.id in this.color_layer_opacity){
+                    if(type in this.color_layer_opacity[layer.id]){
+                        if ('opacity' in this.color_layer_opacity[layer.id][type]){
+                            style['opacity'] = 0;
+                        }
+                    }
+                }
+
+                // Agregamos el estilo a la leyenda si no existe
                 if (!(layer.id in this.multicolor_geojson_legend)) {
                     this.multicolor_geojson_legend[layer.id] = [];
                 }
                 this.multicolor_geojson_legend[layer.id].push(style_by_legend);
-                //luego dejamos solo los estilos que no hayan sido agregados antes
+                
+                // Filtramos estilos duplicados en la leyenda
                 let all_options = new Set();
-                this.multicolor_geojson_legend[layer.id] =  this.multicolor_geojson_legend[layer.id]?.filter(color_legend => {
+                this.multicolor_geojson_legend[layer.id] = this.multicolor_geojson_legend[layer.id]?.filter(color_legend => {
                     const color_legend_str = JSON.stringify(color_legend);
                     if (!all_options.has(color_legend_str)) {
                         all_options.add(color_legend_str);
                         return true;
                     }
-                        return false;
+                    return false;
                 });
 
                 return style;
             };
-
         },
         // Se genera una lista general de todas las capas activas
         active_layers(){
@@ -1593,6 +1613,43 @@ export default {
                     break;
             }
 
+        },
+        highlightGeojson(color_legend, layer_id){
+            let type = color_legend.type;
+
+            // Crear una copia profunda del objeto color_layer_opacity para asegurar reactividad
+            const new_color_layer_opacity = JSON.parse(JSON.stringify(this.color_layer_opacity || {}));
+            
+            // Inicializar el objeto para la capa si no existe
+            if(!(layer_id in new_color_layer_opacity)){
+                new_color_layer_opacity[layer_id] = {};
+            }
+            
+            // Alternar la visibilidad: si existe, eliminarlo; si no, agregarlo
+            if(type in new_color_layer_opacity[layer_id]){
+                delete new_color_layer_opacity[layer_id][type];
+            } else {
+                new_color_layer_opacity[layer_id][type] = {'opacity': 0};
+            }
+            
+            // Asignar el nuevo objeto para forzar la reactividad
+            this.color_layer_opacity = new_color_layer_opacity;
+            
+            // Forzar la actualización de la capa
+            this.$nextTick(() => {
+                // Encontrar y actualizar la capa en operative_geojson_list
+                const layer_index = this.operative_geojson_list.findIndex(l => l.layer_id === layer_id);
+                if (layer_index !== -1) {
+                    // Crear una copia profunda de la capa
+                    const updated_layer = JSON.parse(JSON.stringify(this.operative_geojson_list[layer_index]));
+                    
+                    // Actualizar la capa en la lista usando $set para garantizar reactividad
+                    this.$set(this.operative_geojson_list, layer_index, updated_layer);
+                    
+                    // Forzar una actualización del componente
+                    this.$forceUpdate();
+                }
+            });
         },
         setTileLayer(){
             this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
