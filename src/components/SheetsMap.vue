@@ -526,6 +526,19 @@ export default {
                 if (Object.values(feature.properties)?.length < 1) {
                     return;
                 }
+                const style = layer.options;
+
+                // Si está invisible, desactiva todo
+                if ((style.opacity === 0 || style.fillOpacity === 0)) {
+                    layer.options.interactive = false;
+                    layer.off(); // Quita eventos si los hubiese
+                } else {
+                    // Eventos normales si se ve
+                    layer.on('click', () => {
+                        console.log('click en:', feature.properties.name);
+                    });
+                }
+                
                 layer.bindPopup((layer) => {
                     //Obtenemos la configuración de la capa a la que pertenece
                     const active_layer = this.active_layers.find(l => {
@@ -723,6 +736,8 @@ export default {
                     if(type in this.color_layer_opacity[layer.id]){
                         if ('opacity' in this.color_layer_opacity[layer.id][type]){
                             style['opacity'] = 0;
+                            style['fillOpacity'] = 0;
+                            style['fillOpacity'] = 0;
                         }
                     }
                 }
