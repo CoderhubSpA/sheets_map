@@ -16,7 +16,7 @@
                 v-on:set-layer="setLayer"
             ></QuickLayers>
         </div>
-        <div ref="map_container" class="my-map-container" :class="[{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}, {'drawing': point_mode == 'form-point'}]">
+        <div ref="map_container" class="my-map-container" id="my-map-container" :class="[{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}, {'drawing': point_mode == 'form-point'}]">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
@@ -59,6 +59,11 @@
                         :operativeGeojsonList="operative_geojson_list"
                         v-on:point-mode="setPointMode"
                         v-on:data-form="setForm"
+                    />
+                    <ScreenshotButton
+                        target-id="my-map-container"
+                        filename="sheets-map-screenshot"
+                        image-type="png"
                     />
                 </div>
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
@@ -282,6 +287,7 @@ Icon.Default.mergeOptions({
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
+import ScreenshotButton from './ScreenshotButton.vue';
 
 export default {
     name: 'SheetsMap',
@@ -300,7 +306,8 @@ export default {
         OpenFormPoint,
         QuickLayers,
         LControl,
-        LControlScale
+        LControlScale,
+        ScreenshotButton,
     },
     props: {
         // Propiedades de componentes
