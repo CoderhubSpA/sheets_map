@@ -21,12 +21,6 @@ export default {
             type: String,
             default: "sheets-map-screenshot",
         },
-        // Tipo de imagen (opcional)
-        imageType: {
-            type: String,
-            default: "png",
-            validator: (value) => ["png", "jpeg", "webp"].includes(value),
-        },
         // Calidad de imagen (solo para jpeg/webp)
         quality: {
             type: Number,
@@ -62,7 +56,7 @@ export default {
                         .slice(0, 10)
                         .replace(/-/g, "");
 
-                    link.download = `${vm.filename}-${formattedDate}.${vm.imageType}`;
+                    link.download = `${vm.filename}-${formattedDate}.png`;
                     link.href = dataUrl;
                     link.click();
 
