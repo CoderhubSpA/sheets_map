@@ -20,16 +20,18 @@
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map 
+                ref="my_map"
+                id="my-map"
+                class="my-map"
+                :zoom.sync="zoom"
+                :center.sync="center"
+                :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
+                :options="{ zoomControl: false, trackResize: false }"
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
                 @click="onMapClick"
                 @mouseup="onMapMouseUp();"
-                :zoom.sync="zoom"
-                :center.sync="center"
-                ref="my_map"
-                class="my-map"
-                :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
-                :options="{ zoomControl: false, trackResize: false }">
+            >
 
                 <div :class="btn_style">
                     <div class="zoom-wrapper">
@@ -61,7 +63,7 @@
                         v-on:data-form="setForm"
                     />
                     <ScreenshotButton
-                        target-id="my-map-container"
+                        target-id="my-map"
                         filename="sheets-map-screenshot"
                         image-type="png"
                     />

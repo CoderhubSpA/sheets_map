@@ -1,12 +1,12 @@
 <template>
-    <b-button @click="capturarElemento" class="screenshot-button">
+    <b-button @click="captureMap" class="screenshot-button">
         <b-icon icon="camera" font-scale="1.5"></b-icon>
     </b-button>
 </template>
   
   <script>
-import html2canvas from "html2canvas";
-
+// import html2canvas from "html2canvas";
+import domtoimage from "dom-to-image";
 
 export default {
     name: "ScreenshotButton",
@@ -35,7 +35,11 @@ export default {
         },
     },
     methods: {
-        async capturarElemento() {
+        async captureMap() {
+            await this.$nextTick();
+
+            const vm = this;
+
             try {
                 const targetElement = document.getElementById(this.targetId);
 
@@ -48,31 +52,31 @@ export default {
                 // Mostrar feedback visual durante la captura
                 targetElement.classList.add("screenshot-capturing");
 
-                const canvas = await html2canvas(targetElement, {
-                    scale: 2, // Mejor calidad
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true,
+                domtoimage.toPng(targetElement, {
+                    quality: vm.quality
+                }).then(function (dataUrl) {
+                    // // Crear enlace de descarga
+                    const link = document.createElement("a");
+                    const formattedDate = new Date()
+                        .toISOString()
+                        .slice(0, 10)
+                        .replace(/-/g, "");
+
+                    link.download = `${vm.filename}-${formattedDate}.${vm.imageType}`;
+                    link.href = dataUrl;
+                    link.click();
+
+                    vm.$emit("captured", link.href);
+                }).catch(function (error) {
+                    vm.$emit("error", error);
+
+                    return Promise.reject(error);
                 });
-
-                // Crear enlace de descarga
-                const link = document.createElement("a");
-                const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-
-                link.download = `${this.filename}-${formattedDate}.${this.imageType}`;
-                link.href = canvas.toDataURL(
-                    `image/${this.imageType}`,
-                    this.quality
-                );
-                link.click();
-
-                // Emitir evento con la imagen capturada
-                this.$emit("captured", link.href);
             } catch (error) {
                 console.error("Error al capturar screenshot:", error);
-                this.$emit("error", error);
+                vm.$emit("error", error);
             } finally {
-                const targetElement = document.getElementById(this.targetId);
+                const targetElement = document.getElementById(vm.targetId);
 
                 if (targetElement) {
                     targetElement.classList.remove("screenshot-capturing");
@@ -84,24 +88,24 @@ export default {
 </script>
   
   <style scoped>
-    .screenshot-button {
-        background-color: var(--sh-map-zoom-button-background-color);
-        color: var(--sh-map-zoom-button-text-color);
-        border-radius: var(--sh-map-radius-multiplier);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        --size: 36px;
-        width: var(--size);
-        height: var(--size);
-        padding: 0;
-        border: none;
-        font-size: 0.7rem;
-    }
+.screenshot-button {
+    background-color: var(--sh-map-zoom-button-background-color);
+    color: var(--sh-map-zoom-button-text-color);
+    border-radius: var(--sh-map-radius-multiplier);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    --size: 36px;
+    width: var(--size);
+    height: var(--size);
+    padding: 0;
+    border: none;
+    font-size: 0.7rem;
+}
 
-    .screenshot-capturing {
-        transition: box-shadow 0.3s;
-        box-shadow: 0 0 0 3px var(--sh-map-zoom-button-background-color);
-    }
+.screenshot-capturing {
+    transition: box-shadow 0.3s;
+    box-shadow: 0 0 0 3px var(--sh-map-zoom-button-background-color);
+}
 </style>
   
