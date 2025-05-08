@@ -65,7 +65,7 @@
                     <ScreenshotButton
                         target-id="my-map"
                         filename="sheets-map-screenshot"
-                        :quality="0.9"
+                        :quality="1"
                     />
                 </div>
                 <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>

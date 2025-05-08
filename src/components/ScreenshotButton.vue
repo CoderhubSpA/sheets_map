@@ -46,26 +46,46 @@ export default {
                 // Mostrar feedback visual durante la captura
                 targetElement.classList.add("screenshot-capturing");
 
-                domtoimage.toPng(targetElement, {
-                    quality: vm.quality
-                }).then(function (dataUrl) {
-                    // // Crear enlace de descarga
-                    const link = document.createElement("a");
-                    const formattedDate = new Date()
-                        .toISOString()
-                        .slice(0, 10)
-                        .replace(/-/g, "");
+                domtoimage
+                    .toPng(targetElement, {
+                        filter: (node) => {
+                            // Excluir elementos problemáticos
+                            if (
+                                node.classList &&
+                                node.classList.contains(
+                                    "leaflet-control-container"
+                                )
+                            ) {
+                                return false;
+                            }
+                            return true;
+                        },
+                        style: {
+                            transform: "none", // Eliminar transformaciones problemáticas
+                            "will-change": "auto",
+                        },
+                        quality: vm.quality,
+                        cacheBust: true
+                    })
+                    .then(function (dataUrl) {
+                        // // Crear enlace de descarga
+                        const link = document.createElement("a");
+                        const formattedDate = new Date()
+                            .toISOString()
+                            .slice(0, 10)
+                            .replace(/-/g, "");
 
-                    link.download = `${vm.filename}-${formattedDate}.png`;
-                    link.href = dataUrl;
-                    link.click();
+                        link.download = `${vm.filename}-${formattedDate}.png`;
+                        link.href = dataUrl;
+                        link.click();
 
-                    vm.$emit("captured", link.href);
-                }).catch(function (error) {
-                    vm.$emit("error", error);
+                        vm.$emit("captured", link.href);
+                    })
+                    .catch(function (error) {
+                        vm.$emit("error", error);
 
-                    return Promise.reject(error);
-                });
+                        return Promise.reject(error);
+                    });
             } catch (error) {
                 console.error("Error al capturar screenshot:", error);
                 vm.$emit("error", error);
