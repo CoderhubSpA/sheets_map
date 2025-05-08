@@ -1,6 +1,6 @@
 {
-  "name": "@CoderhubSpA/sheets_map",
-  "version": "1.44.3",
+  "name": "coderhubspa_sheets_map",
+  "version": "1.44.4",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -63,19 +63,16 @@
     "last 2 versions",
     "not dead"
   ],
-  "publishConfig": {
-    "@paupololi:registry": "https://npm.pkg.github.com"
-  },
   "description": "Sheets Map",
   "main": "dist/index.umd.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paupololi/sheets_map.git"
+    "url": "git+https://github.com/CoderhubSpA/sheets_map.git"
   },
   "author": "Coderhub",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/paupololi/sheets_map/issues"
+    "url": "https://github.com/CoderhubSpA/sheets_map/issues"
   },
-  "homepage": "https://github.com/paupololi/sheets_map#readme"
+  "homepage": "https://github.com/CoderhubSpA/sheets_map#readme"
 }
