@@ -1,6 +1,7 @@
 <template>
     <b-button @click="captureMap" class="screenshot-button">
-        <b-icon icon="camera" font-scale="1.5"></b-icon>
+        <div v-if="loading" class="loader"></div>
+        <b-icon v-if="!loading" icon="camera" font-scale="1.5"></b-icon>
     </b-button>
 </template>
   
@@ -28,11 +29,19 @@ export default {
             validator: (value) => value >= 0 && value <= 1,
         },
     },
+    data() {
+        return {
+            // Estado de carga (opcional)
+            loading: false,
+        };
+    },
     methods: {
         async captureMap() {
             await this.$nextTick();
 
             const vm = this;
+
+            vm.loading = true;
 
             try {
                 const targetElement = document.getElementById(this.targetId);
@@ -52,12 +61,11 @@ export default {
                             // Excluir elementos problemáticos
                             if (
                                 node.classList &&
-                                node.classList.contains(
-                                    "leaflet-control-container"
-                                )
+                                node.classList.contains("custom-controls")
                             ) {
                                 return false;
                             }
+
                             return true;
                         },
                         style: {
@@ -65,7 +73,7 @@ export default {
                             "will-change": "auto",
                         },
                         quality: vm.quality,
-                        cacheBust: true
+                        cacheBust: true,
                     })
                     .then(function (dataUrl) {
                         // // Crear enlace de descarga
@@ -80,11 +88,15 @@ export default {
                         link.click();
 
                         vm.$emit("captured", link.href);
+                        vm.loading = false;
                     })
                     .catch(function (error) {
                         vm.$emit("error", error);
 
                         return Promise.reject(error);
+                    })
+                    .finally(() => {
+                        vm.loading = false;
                     });
             } catch (error) {
                 console.error("Error al capturar screenshot:", error);
@@ -119,7 +131,21 @@ export default {
 
 .screenshot-capturing {
     transition: box-shadow 0.3s;
-    box-shadow: 0 0 0 3px var(--sh-map-zoom-button-background-color);
+    box-shadow: 0 0 0 3px var(--sh-map-zoom-button-text-color);
+}
+
+/* HTML: <div class="loader"></div> */
+.loader {
+    width: 20px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 4px solid var(--sh-map-zoom-button-text-color);
+    border-right-color: var(--sh-map-zoom-button-background-color);
+    animation: l2 1s infinite linear;
+}
+@keyframes l2 {
+    to {
+        transform: rotate(1turn);
+    }
 }
 </style>
-  
