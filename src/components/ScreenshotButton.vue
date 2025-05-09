@@ -66,6 +66,11 @@ export default {
                                 return false;
                             }
 
+                            // Excluir elementos SVG
+                            if (node.tagName === "svg") {
+                                return false;
+                            }
+
                             return true;
                         },
                         style: {
@@ -134,7 +139,6 @@ export default {
     box-shadow: 0 0 0 3px var(--sh-map-zoom-button-text-color);
 }
 
-/* HTML: <div class="loader"></div> */
 .loader {
     width: 20px;
     aspect-ratio: 1;
