@@ -305,6 +305,8 @@ export default {
         }
     },
     created() {
+        console.log(this.layer);
+        console.log(this.classification_icon_content);
         this.create_supercluster_index(this.clusterize);
     },
     watch: {

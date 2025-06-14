@@ -75,11 +75,15 @@
               // - Id del tipo de entidad
               //entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
               //entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
-              entity_type_id: "66364d80-9516-45ae-bed1-09f7604e8740",
+              //entity_type_id: "66364d80-9516-45ae-bed1-09f7604e8740",
+              //entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
+              entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
               // - Registro de configuracion (ID del mapa)
               //config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
               //config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
-              config_entity_id: "453d6632-ecc2-49fd-90c8-75e417ebf16c",
+              //config_entity_id: "453d6632-ecc2-49fd-90c8-75e417ebf16c",
+              // config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
+              config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
               // Tipo de entidad de configuracion
               config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
               // Endpoint de configuracion

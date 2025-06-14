@@ -868,6 +868,7 @@ export default {
         classification_icon(id = null){
             let classification_icon;
             let classification_icon_info;
+            let classification_icon_base;
             let need_classification = false;
             if (!id) {
                 // Se usa para el caso de supercluster en local,
@@ -877,17 +878,20 @@ export default {
                 classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
             }
             if (typeof classification_icon_info !== 'undefined') {
+
+                classification_icon_base = (typeof classification_icon_info.sh_map_has_layer_column_icon_id == 'undefined') ? classification_icon_info[0] : classification_icon_info;
+                
                 classification_icon = {
-                    'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column_id,
-                    'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification_id,
-                    'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon_id
+                    'classification_column'      : classification_icon_base.sh_map_has_layer_classification_column_id,
+                    'source_icon_classification' : classification_icon_base.sh_map_has_layer_source_icon_classification_id,
+                    'column_icon'                : classification_icon_base.sh_map_has_layer_column_icon_id
 
                 };
                 need_classification = (!Object.values(classification_icon).includes(undefined)) ? true : false ;
             }
 
             if(need_classification ){
-                this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column_id;
+                this.classification_icon_column = classification_icon_base.sh_map_has_layer_classification_column_id;
 
             }else{
                 this.classification_icon_column = false;
