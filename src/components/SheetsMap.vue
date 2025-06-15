@@ -206,15 +206,15 @@
                                 </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="legendIconControl(layer,'small')"></div> 
-                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                    0 - {{$refs.supercluster_layer.getLimitBySize('medium', layer)}}
                                 </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="legendIconControl(layer,'medium')"></div> 
-                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                    {{$refs.supercluster_layer.getLimitBySize('medium', layer)}} - {{$refs.supercluster_layer.getLimitBySize('large', layer)}}
                                 </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="legendIconControl(layer,'large')"></div> 
-                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                    >{{$refs.supercluster_layer.getLimitBySize('large', layer)}}
                                 </div>
                             </div>
                             <div class="legend-sublavel-container" 
@@ -887,34 +887,17 @@ export default {
                 entity_type = 'base';
             } else{
                 classification_icon_info = JSON.parse(JSON.stringify(this.active_layers.filter((layer) => layer.id == id) || {}));
-                /*console.log("classification_icon_info");
-                console.log(classification_icon_info);*/
                 entity_type = classification_icon_info[0]['sh_map_has_layer_entity_type_id'];
 
             }
             if ( Object.keys(classification_icon_info).length == 0){
                 classification_icon_info = undefined;
             }
-            /*
-            if (typeof classification_icon_info !== 'undefined') {
-
-                classification_icon_base = (typeof classification_icon_info.sh_map_has_layer_column_icon_id == 'undefined') ? classification_icon_info[0] : classification_icon_info;
-                
-                classification_icon = {
-                    'classification_column'      : classification_icon_base.sh_map_has_layer_classification_column_id,
-                    'source_icon_classification' : classification_icon_base.sh_map_has_layer_source_icon_classification_id,
-                    'column_icon'                : classification_icon_base.sh_map_has_layer_column_icon_id
-
-                };
-                need_classification = (!Object.values(classification_icon).includes(undefined)) ? true : false ;
-            }*/
            
             if (typeof classification_icon_info !== 'undefined') {
                 if(!id){
                     need_classification["supercluster"] = true;
                 }else{
-                    console.log(need_classification["supercluster_by_entity_type"]);
-                    console.log(id);
                     need_classification["supercluster_by_entity_type"][id] = true;
                 }
                 //Obtener base dependiendo si es un supercluster normal o uno externo
@@ -927,31 +910,14 @@ export default {
                     'column_icon'                : classification_icon_base.sh_map_has_layer_column_icon_id
 
                 };
-                if(Object.values(classification_icon).includes(undefined)){
-                    // console.log('Falta configuracion de iconos en la capa '+id);
-                    // console.log(classification_icon);
-                }
-                // console.log('hmmm,', classification_icon_info);
-                /*
-                if ( classification_icon_info?.[0]?.["sh_map_has_layer_id"] == "840be8b9-d99b-429a-b1ad-cb512d0c069f")
-                    console.log('classification_icon_info:', JSON.stringify(classification_icon_info, false, 2));*/
-            }/*
-
-            console.log('id', id);
-            console.log('need_classification', need_classification);
-            if ( classification_icon_info?.[0]?.["sh_map_has_layer_id"] == "840be8b9-d99b-429a-b1ad-cb512d0c069f")
-                console.log('id', id);
-                console.log('need_classification', need_classification);*/
+            }
+            
             let need = (!id) ? need_classification["supercluster"] : need_classification["supercluster_by_entity_type"][id];
             if(need){
                 this.classification_icon_column[entity_type] = {
                     "entity_type" : entity_type,
                     "value" : classification_icon_base.sh_map_has_layer_classification_column_id
                 };
-                //this.classification_icon_column[entity_type] = classification_icon_base.sh_map_has_layer_classification_column_id;
-                /*
-                if ( classification_icon_info?.[0]?.["sh_map_has_layer_id"] == "840be8b9-d99b-429a-b1ad-cb512d0c069f")
-                    console.log('SheetsMap - Setting classification_icon_column to:', this.classification_icon_column);*/
             }else{
                 this.classification_icon_column[entity_type] = {
                     "entity_type" : entity_type,
@@ -959,7 +925,6 @@ export default {
                 };
                 classification_icon = undefined;
             }
-            //console.log('need_classification', this.classification_icon_column);
 
             return classification_icon;
         },

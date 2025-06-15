@@ -230,14 +230,16 @@ export default {
             let clusters = this.clusters_markers
                 .map((d) => {
                     if (d.properties.cluster) {
-                        let count = d.properties.point_count;
+                        //Decide si escucha los limites del mapa o el de la capa
+                        let medium = this.getLimitBySize('medium');
+                        let large  = this.getLimitBySize('large');
+                        let count  = d.properties.point_count;
                         let size =
                             count <
-                            this.config.sh_map_medium_cluster_size_starts_at
+                                medium
                                 ? "small"
                                 : count <
-                                  this.config
-                                      .sh_map_large_cluster_size_starts_at
+                                    large
                                 ? "medium"
                                 : "large";
 
@@ -335,7 +337,6 @@ export default {
             this.getClusterMarkers();
         },
         async classification_icon() {
-            console.log('HUH')
             if (this.classification_icon_content === undefined && 
                 this.classification_icon != undefined && 
                 this.classification_icon.source_icon_classification != null) {
@@ -405,6 +406,13 @@ export default {
         },
         getPopupData(marker,col){
             return (marker.data[col.id] === 'NULL') ? '-' : marker.data[col.id];
+        },
+        getLimitBySize(size, layer = null){
+            let alias = "sh_map_has_layer_"+size+"_cluster_size_starts_at";
+            let current_layer = (layer == null) ? this.layer : layer;
+            let limit_by_size = (alias in current_layer && current_layer[alias]) ? current_layer[alias] : this.config['sh_map_'+size+'_cluster_size_starts_at'];
+            
+            return limit_by_size;
         },
         getClusterMarkers() {
             let bounds = this.map.getBounds();

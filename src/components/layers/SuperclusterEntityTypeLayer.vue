@@ -62,7 +62,6 @@ export default {
         },
     },
     mounted() {
-        console.log('classification_icon??', this.classification_icon)
         this.init();
     },
     destroyed() {
@@ -104,8 +103,6 @@ export default {
             }
             const columns_ids_str = JSON.stringify(columns_ids)
             const url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=${columns_ids_str}&page=1`;
-
-            console.log('URL', url)
 
             return axios.get(url).then((response) => {
                 const content = response.data.content;
