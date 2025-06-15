@@ -1,6 +1,6 @@
 {
-  "name": "@CoderhubSpA/sheets_map",
-  "version": "1.45.6",
+  "name": "coderhubspa_sheets_map",
+  "version": "1.45.7",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -16,6 +16,7 @@
     "bootstrap-icons": "^1.8.3",
     "bootstrap-vue": "^2.22.0",
     "core-js": "^3.23.1",
+    "dom-to-image": "^2.2.1",
     "h3-js": "^3.7.2",
     "heatmap.js": "^2.0.5",
     "leaflet": "^1.8.0",
@@ -63,19 +64,16 @@
     "last 2 versions",
     "not dead"
   ],
-  "publishConfig": {
-    "@paupololi:registry": "https://npm.pkg.github.com"
-  },
   "description": "Sheets Map",
   "main": "dist/index.umd.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paupololi/sheets_map.git"
+    "url": "git+https://github.com/CoderhubSpA/sheets_map.git"
   },
   "author": "Coderhub",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/paupololi/sheets_map/issues"
+    "url": "https://github.com/CoderhubSpA/sheets_map/issues"
   },
-  "homepage": "https://github.com/paupololi/sheets_map#readme"
+  "homepage": "https://github.com/CoderhubSpA/sheets_map#readme"
 }
