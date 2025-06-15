@@ -51,7 +51,7 @@ npm publish
 ### Instalar en Sheets
 Ejecutar
 ```bash
-npm install @CoderhubSpA/sheets_map@latest
+npm install coderhubspa_sheets_map@latest
 ```
 ---
 ### Casos soportados por el "Mapa de claves" de Sheets Map :
