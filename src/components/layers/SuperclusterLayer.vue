@@ -55,7 +55,7 @@
                 :radius="3"
                 v-on:click="getMarkerData(marker)"
                 color="#00642a"
-                v-if="classification_icon_path(marker) == null || classification_icon_path(marker) == undefined">
+                v-if="classification_icon_path(marker, '5') == null || classification_icon_path(marker, '4') == undefined">
             <!-- pop-up del marcador de círculo-->
                 <pop-up-marker
                     :marker="marker"
@@ -262,16 +262,18 @@ export default {
             let markers = this.clusters_markers
                 .map((d) => {
                     if (!d.properties.cluster) {
+                        let type = (typeof d.properties.type == 'undefined') ? d.type : d.properties.type;
+                        let id = (typeof d.properties.id == 'undefined')   ? d.id : d.properties.id;
                         return {
                             lat_lng: [
                                 d.geometry.coordinates[1],
                                 d.geometry.coordinates[0],
                             ],
-                            id: d.properties.id,
-                            type: d.properties.type,
-                            data: this.markers_data[d.properties.id] || {},
+                            id: id,
+                            type: type,
+                            data: this.markers_data[id] || {},
                             has_data: !_.isEmpty(
-                                this.markers_data[d.properties.id]
+                                this.markers_data[id]
                             ),
                         };
                     }
@@ -305,8 +307,6 @@ export default {
         }
     },
     created() {
-        console.log(this.layer);
-        console.log(this.classification_icon_content);
         this.create_supercluster_index(this.clusterize);
     },
     watch: {
@@ -335,6 +335,7 @@ export default {
             this.getClusterMarkers();
         },
         async classification_icon() {
+            console.log('HUH')
             if (this.classification_icon_content === undefined && 
                 this.classification_icon != undefined && 
                 this.classification_icon.source_icon_classification != null) {

@@ -62,6 +62,7 @@ export default {
         },
     },
     mounted() {
+        console.log('classification_icon??', this.classification_icon)
         this.init();
     },
     destroyed() {
@@ -94,7 +95,17 @@ export default {
         },
         async requestData(){
             //data
-            const url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=["${this.col_lng}","${this.col_lat}"]&page=1`;
+            const columns_ids = [
+                this.col_lng,
+                this.col_lat
+            ]
+            if (this.classification_icon?.classification_column) {
+                columns_ids.push(this.classification_icon?.classification_column);
+            }
+            const columns_ids_str = JSON.stringify(columns_ids)
+            const url = `${this.base_url}/entity/data/${this.entity_type_id}?column_ids=${columns_ids_str}&page=1`;
+
+            console.log('URL', url)
 
             return axios.get(url).then((response) => {
                 const content = response.data.content;

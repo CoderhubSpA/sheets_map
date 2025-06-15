@@ -368,7 +368,7 @@ export default {
             h3                         : require("h3-js"),
             shouldShowSearchMarker     : false,
             searchMarkerLatLng         : null,
-            classification_icon_column : false,
+            classification_icon_column : [],
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
             color_point : 'yellow',
@@ -867,16 +867,26 @@ export default {
     methods:{
         classification_icon(id = null){
             let classification_icon;
-            let classification_icon_info;
             let classification_icon_base;
-            let need_classification = false;
+            let classification_icon_info;
+            let need_classification = {"supercluster" : false , "supercluster_by_entity_type": {}};
+            let entity_type;
             if (!id) {
                 // Se usa para el caso de supercluster en local,
                 // cuando se integre con Sheets, este caso se aborda en el orquestador
-                classification_icon_info = this.active_layers.filter(layer => layer.sh_map_has_layer_code === 'supercluster')[0]; 
+                classification_icon_info = JSON.parse(JSON.stringify(this.active_layers.filter(layer => layer.sh_map_has_layer_code === 'supercluster')[0] || {})); 
+                entity_type = 'base';
             } else{
-                classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
+                classification_icon_info = JSON.parse(JSON.stringify(this.active_layers.filter((layer) => layer.id == id) || {}));
+                /*console.log("classification_icon_info");
+                console.log(classification_icon_info);*/
+                entity_type = classification_icon_info[0]['sh_map_has_layer_entity_type_id'];
+
             }
+            if ( Object.keys(classification_icon_info).length == 0){
+                classification_icon_info = undefined;
+            }
+            /*
             if (typeof classification_icon_info !== 'undefined') {
 
                 classification_icon_base = (typeof classification_icon_info.sh_map_has_layer_column_icon_id == 'undefined') ? classification_icon_info[0] : classification_icon_info;
@@ -888,16 +898,59 @@ export default {
 
                 };
                 need_classification = (!Object.values(classification_icon).includes(undefined)) ? true : false ;
-            }
+            }*/
+           
+            if (typeof classification_icon_info !== 'undefined') {
+                if(!id){
+                    need_classification["supercluster"] = true;
+                }else{
+                    console.log(need_classification["supercluster_by_entity_type"]);
+                    console.log(id);
+                    need_classification["supercluster_by_entity_type"][id] = true;
+                }
+                //Obtener base dependiendo si es un supercluster normal o uno externo
+                classification_icon_base = (typeof classification_icon_info.sh_map_has_layer_column_icon_id == 'undefined') 
+                    ? classification_icon_info[0]
+                    : classification_icon_info;
+                classification_icon = {
+                    'classification_column'      : classification_icon_base.sh_map_has_layer_classification_column_id,
+                    'source_icon_classification' : classification_icon_base.sh_map_has_layer_source_icon_classification_id,
+                    'column_icon'                : classification_icon_base.sh_map_has_layer_column_icon_id
 
-            if(need_classification ){
-                this.classification_icon_column = classification_icon_base.sh_map_has_layer_classification_column_id;
+                };
+                if(Object.values(classification_icon).includes(undefined)){
+                    // console.log('Falta configuracion de iconos en la capa '+id);
+                    // console.log(classification_icon);
+                }
+                // console.log('hmmm,', classification_icon_info);
+                /*
+                if ( classification_icon_info?.[0]?.["sh_map_has_layer_id"] == "840be8b9-d99b-429a-b1ad-cb512d0c069f")
+                    console.log('classification_icon_info:', JSON.stringify(classification_icon_info, false, 2));*/
+            }/*
 
+            console.log('id', id);
+            console.log('need_classification', need_classification);
+            if ( classification_icon_info?.[0]?.["sh_map_has_layer_id"] == "840be8b9-d99b-429a-b1ad-cb512d0c069f")
+                console.log('id', id);
+                console.log('need_classification', need_classification);*/
+            let need = (!id) ? need_classification["supercluster"] : need_classification["supercluster_by_entity_type"][id];
+            if(need){
+                this.classification_icon_column[entity_type] = {
+                    "entity_type" : entity_type,
+                    "value" : classification_icon_base.sh_map_has_layer_classification_column_id
+                };
+                //this.classification_icon_column[entity_type] = classification_icon_base.sh_map_has_layer_classification_column_id;
+                /*
+                if ( classification_icon_info?.[0]?.["sh_map_has_layer_id"] == "840be8b9-d99b-429a-b1ad-cb512d0c069f")
+                    console.log('SheetsMap - Setting classification_icon_column to:', this.classification_icon_column);*/
             }else{
-                this.classification_icon_column = false;
+                this.classification_icon_column[entity_type] = {
+                    "entity_type" : entity_type,
+                    "value" : false
+                };
                 classification_icon = undefined;
-
             }
+            //console.log('need_classification', this.classification_icon_column);
 
             return classification_icon;
         },
