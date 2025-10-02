@@ -1014,8 +1014,10 @@ export default {
 
                         const url = layer.sh_map_has_layer_url.split("?bbox=");
                         const zoom = this.zoom;
-                        
-                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord;
+
+                        const crs = layer.sh_map_has_layer_crs || 'EPSG:3857';
+
+                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord+"&crs="+crs;
                         if(zoom == this.zoom){
                             this.requestGeoJson(layer, this.operative_geojson_features)
                             .then(() => {
@@ -1354,8 +1356,11 @@ export default {
                         
                 // Si no existen features
                 // si no es una capa vector tile
-                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.scale_sensitive_layers[this.zoom].includes(layer.id)) {
-                    this.scale_sensitive_layers[this.zoom] = this.scale_sensitive_layers[this.zoom].filter(l => l != layer.id);
+                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || (this.scale_sensitive_layers[this.zoom] && this.scale_sensitive_layers[this.zoom].includes(layer.id))) {
+                    // Validar que scale_sensitive_layers[this.zoom] existe antes de usar filter
+                    if (this.scale_sensitive_layers[this.zoom]) {
+                        this.scale_sensitive_layers[this.zoom] = this.scale_sensitive_layers[this.zoom].filter(l => l != layer.id);
+                    }
                     // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
                 } else {
