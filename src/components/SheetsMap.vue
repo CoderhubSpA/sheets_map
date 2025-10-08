@@ -412,7 +412,7 @@ export default {
                 "--sh-map-marker-pop-up-srcoll-color"        : custom_styles["marker-pop-up-scroll-color"]         || "#999393",
                 "--sh-map-marker-pop-up-srcoll-color-hover"  : custom_styles["marker-pop-up-scroll-color-hover"]   || "#b3b3b3",
                 "--sh-map-marker-pop-up-srcoll-color-active" : custom_styles["marker-pop-up-scroll-color-active"]  || "#999999",
-
+                "--sh-map-vertical-controls"                 : custom_styles["vertical-controls"]                  || "false"
             };
 
 
@@ -482,15 +482,17 @@ export default {
                 "polygon_draft_dash_array"    : custom_styles["polygon_draft_dash_array"]    || '3',
                 "polygon_draft_fill_opacity"  : custom_styles["polygon_draft_fill_opacity"]  || 0.3,
                 "polygon_draft_circle_radius" : custom_styles["polygon_draft_circle_radius"] || 3,
-                
+
             };
 
         },
         btn_style(){
             let class_name = 'custom-controls';
-            if (this.theme == 'horizontal_form_map') {
+
+            if (this.css_vars["--sh-map-vertical-controls"] === "true") {
                 class_name = class_name+" horizontal-form-map-btn";
             }
+
             return class_name;
         },
         show_legend(){
@@ -2408,7 +2410,7 @@ export default {
         flex-direction: column;
         justify-content: flex-end;
         align-items: flex-end; 
-        padding-right: 8px;
+        padding-right: 80px;
     }
     .horizontal-form-map-btn .zoom-wrapper{
         display: flex;
