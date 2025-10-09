@@ -158,6 +158,8 @@
                     :entity_type_id="vectorTile.entity_type_id"
                     :base_url="base_url"
                     @feature-click="handleVectorTileFeatureClick"
+                    @layer-shown="recalculateVectorTileZIndexes"
+                    ref="vectorTileLayers"
                 ></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
 
@@ -945,10 +947,64 @@ export default {
                 this.map.invalidateSize(false);
             });
             resizeObserver.observe(this.$refs.map_container);
-        }, 
+            
+            // Configurar handler centralizado para clicks en capas vectoriales
+            this.setupVectorTileClickHandler();
+        },
+        
+        /**
+         * Configura un handler centralizado para clicks en capas vectoriales
+         * Este handler consulta las capas en orden de z-index descendente (de arriba hacia abajo)
+         * y para en la primera capa que encuentre un feature
+         */
+        setupVectorTileClickHandler() {
+            this.map.on('click', (e) => {
+                // Obtener capas vectoriales en orden inverso (mayor z-index primero)
+                const layers = [...(this.$refs.vectorTileLayers || [])].reverse();
+                
+                // Buscar en cada capa, empezando por la de arriba
+                for (const layerComponent of layers) {
+                    if (layerComponent && layerComponent.tryHandleClick) {
+                        const handled = layerComponent.tryHandleClick(e);
+                        if (handled) {
+                            // Si esta capa manejó el click, no procesar más
+                            break;
+                        }
+                    }
+                }
+            });
+        },
+        
         filter(){
             this.findBounds();
-        },  
+        },
+        
+        /**
+         * Recalcula los z-index de todas las capas vectoriales activas
+         * basándose en el orden actual del array operative_vector_tiles_xyz
+         */
+        recalculateVectorTileZIndexes() {
+            this.$nextTick(() => {
+                // Pequeño delay adicional para asegurar que Vue terminó de re-renderizar
+                setTimeout(() => {
+                    const baseZIndex = 400;
+                    
+                    // Iterar sobre el array en orden y encontrar el componente correspondiente
+                    this.operative_vector_tiles_xyz.forEach((vectorTile, index) => {
+                        // Encontrar el componente que corresponde a esta capa
+                        const layerComponent = this.$refs.vectorTileLayers?.find(
+                            component => component.layer.id === vectorTile.layer.id
+                        );
+                        
+                        if (layerComponent && typeof layerComponent.updateZIndex === 'function') {
+                            const newZIndex = baseZIndex + index;
+                            layerComponent.updateZIndex(newZIndex);
+                        }
+                    });
+                }, 50);
+            });
+        },
+        
         switchLayers(){
             
             // Recalculamos siempre las operative_geoserver_wms activas
@@ -1053,7 +1109,8 @@ export default {
                 }
                 case 'operative_vector_tiles_xyz' : {
                     // Activar capa de Vector Tiles XYZ usando componente VectorTileLayer
-                    const is_new_layer = !this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
+                    const existingLayerData = this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
+                    const is_new_layer = !existingLayerData;
                     
                     if (is_new_layer) {
                         // Agregar al array para que se renderice el componente
@@ -1064,13 +1121,23 @@ export default {
                             visible_columns: layer.visible_columns || [],
                             entity_type_id: layer.entity_type_id || ''
                         });
-                    } else {
-                        // Si ya existe, solo actualizar visibilidad
-                        const existingLayer = this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
-                        if (existingLayer) {
+                    } else if (existingLayerData.visible === false) {
+                        // Solo reordenar si la capa estaba INVISIBLE y ahora se está reactivando
+                        // Si ya estaba visible, no hacer nada (evita reordenamientos innecesarios)
+                        const index = this.operative_vector_tiles_xyz.findIndex(vt => vt.layer_id === layer.id);
+                        
+                        if (index !== -1) {
+                            // Remover de su posición actual
+                            const [existingLayer] = this.operative_vector_tiles_xyz.splice(index, 1);
+                            // Marcar como visible y agregar al final (tope del stack)
                             existingLayer.visible = true;
+                            this.operative_vector_tiles_xyz.push(existingLayer);
+                            
+                            // Recalcular z-indexes de todas las capas para reflejar el nuevo orden
+                            this.recalculateVectorTileZIndexes();
                         }
                     }
+                    // Si la capa ya existe Y ya está visible, no hacer nada
                     break;
                 }
                 case 'operative_geoserver_wms' : {
