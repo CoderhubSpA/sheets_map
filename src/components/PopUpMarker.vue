@@ -54,7 +54,7 @@ export default {
     computed: {
         getFormColFormat() {
             const getFormColFormat = this.info.columns.find((column) => {
-                return (column.format = "FORM");
+                return column.format === "FORM";
             });
 
             return getFormColFormat ? true : false;
