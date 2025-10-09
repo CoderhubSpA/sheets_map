@@ -489,7 +489,7 @@ export default {
         btn_style(){
             let class_name = 'custom-controls';
 
-            if (this.css_vars["--sh-map-vertical-controls"] === "true") {
+            if (this.theme == 'horizontal_form_map' || this.css_vars["--sh-map-vertical-controls"] === "true") {
                 class_name = class_name+" horizontal-form-map-btn";
             }
 
