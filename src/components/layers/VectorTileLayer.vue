@@ -24,10 +24,6 @@ export default {
             type: Object,
             required: true
         },
-        visible: {
-            type: Boolean,
-            default: true
-        },
         info: {
             type: Object,
             required: false,  // Ya no lo usa este componente
@@ -55,33 +51,38 @@ export default {
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
             // Nombre del pane personalizado para esta capa
-            customPaneName: null
+            customPaneName: null,
+            // Flag para indicar si el estilo MapLibre ha sido cargado completamente
+            styleLoaded: false
         };
     },
-    watch: {
-        visible(newValue, oldValue) {
-            if (newValue) {
-                this.addLayer();
-                // Si la capa estaba oculta y ahora se muestra, notificar al padre
-                // para que recalcule los z-indexes de todas las capas
-                if (oldValue === false) {
-                    this.$emit('layer-shown');
-                }
-            } else {
-                this.removeLayer();
-            }
-        }
-    },
     mounted() {
-        if (this.visible) {
-            this.createVectorTileLayer();
-        }
+        // Crear la capa cuando el componente se monta
+        this.createVectorTileLayer();
     },
     beforeDestroy() {
         this.cleanup();
     },
     methods: {
         createVectorTileLayer() {
+            /**
+             * IMPORTANTE: Gestión del ciclo de vida de MapLibre GL con L.maplibreGL
+             * 
+             * MapLibre GL carga su estilo de forma asíncrona. Aunque la capa se renderice
+             * visualmente, el estilo NO está listo para consultas (queryRenderedFeatures)
+             * hasta que el evento 'load' se haya disparado.
+             * 
+             * Por eso:
+             * 1. Creamos la capa con L.maplibreGL({ style: ... })
+             * 2. Escuchamos el evento 'load' del maplibreMap
+             * 3. Solo entonces marcamos styleLoaded = true
+             * 4. tryHandleClick() y setupMouseMoveHandler() verifican styleLoaded antes de consultar
+             * 
+             * Sin esta verificación, queryRenderedFeatures() retorna array vacío y se ve el error:
+             * "There is no style added to the map"
+             * 
+             * Referencia: https://github.com/maplibre/maplibre-gl-leaflet
+             */
             // Verificar que MapLibre GL Leaflet esté disponible
             if (!L.maplibreGL) {
                 console.error('VectorTileLayer: L.maplibreGL no está disponible');
@@ -97,6 +98,9 @@ export default {
                 // Crear el pane si no existe
                 pane = this.map.createPane(this.customPaneName);
                 // NO usar pointerEvents: 'none' - necesitamos que capture eventos para detectar clicks
+            } else {
+                // El pane ya existe (reutilización al reactivar una capa)
+                // Esto es OK - simplemente reutilizamos el pane
             }
             
             // SIEMPRE actualizar el z-index para reflejar el orden actual
@@ -166,6 +170,12 @@ export default {
             // Obtener MapLibre GL map instance
             this.maplibreMap = this.vectorTileLayer.getMaplibreMap();
             
+            // CRÍTICO: Esperar a que el estilo MapLibre se cargue completamente
+            // Sin esto, queryRenderedFeatures() no funcionará
+            this.maplibreMap.on('load', () => {
+                this.styleLoaded = true;
+            });
+            
             // Asegurar que el canvas esté correctamente configurado
             this.configureCanvas();
             
@@ -228,7 +238,15 @@ export default {
          * @returns {boolean} - True si se manejó el click, false si no
          */
         tryHandleClick(e) {
-            if (!this.maplibreMap || !this.visible) return false;
+            // Verificaciones previas
+            if (!this.maplibreMap) return false;
+            
+            // CRÍTICO: Verificar que el estilo esté completamente cargado
+            // Sin esto, queryRenderedFeatures() retornará array vacío
+            if (!this.styleLoaded) {
+                console.warn(`VectorTileLayer: Estilo no cargado aún para capa ${this.layer.id}, ignorando click`);
+                return false;
+            }
             
             // Convertir coordenadas Leaflet LatLng a Point de MapLibre GL
             const maplibrePoint = this.maplibreMap.project([e.latlng.lng, e.latlng.lat]);
@@ -282,8 +300,8 @@ export default {
             
             // Handler de mousemove para cambiar cursor
             this.leafletMouseMoveHandler = function(e) {
-                if (!self.maplibreMap || !self.visible) {
-                    // Si esta capa no está visible, resetear cursor si lo habíamos cambiado
+                if (!self.maplibreMap || !self.styleLoaded) {
+                    // Si el estilo no está cargado, no hacer nada
                     return;
                 }
                 
@@ -525,32 +543,15 @@ export default {
         //     // Descomentar solo si necesitas debuggear problemas con vector tiles
         // },
         
-        addLayer() {
-            if (this.vectorTileLayer && this.map && !this.map.hasLayer(this.vectorTileLayer)) {
-                this.vectorTileLayer.addTo(this.map);
-            }
-        },
-        
         removeLayer() {
             if (this.vectorTileLayer && this.map && this.map.hasLayer(this.vectorTileLayer)) {
                 this.map.removeLayer(this.vectorTileLayer);
             }
         },
         
-        /**
-         * Actualiza el z-index del pane de esta capa
-         * @param {number} newZIndex - El nuevo z-index a asignar
-         */
-        updateZIndex(newZIndex) {
-            if (this.customPaneName && this.map) {
-                const pane = this.map.getPane(this.customPaneName);
-                if (pane) {
-                    pane.style.zIndex = newZIndex;
-                }
-            }
-        },
-        
         cleanup() {
+            console.log(`VectorTileLayer: Destruyendo capa ${this.layer.id}`);
+            
             // Cerrar popups
             if (this.map) {
                 this.map.closePopup();
@@ -569,18 +570,16 @@ export default {
                 }
             }
             
+            // Resetear flag de estilo cargado
+            this.styleLoaded = false;
+            
             // Remover capa del mapa usando el método de Leaflet
             // Esto llamará automáticamente al onRemove de L.maplibreGL que
             // limpiará el canvas, la sincronización y recursos internos
             this.removeLayer();
             
-            // Remover el pane personalizado si existe
-            if (this.customPaneName && this.map) {
-                const pane = this.map.getPane(this.customPaneName);
-                if (pane && pane.parentNode) {
-                    pane.parentNode.removeChild(pane);
-                }
-            }
+            // NO remover el pane - lo reutilizaremos si la capa se reactiva
+            // Esto evita race conditions al destruir/crear componentes rápidamente
             
             // Limpiar referencias
             this.vectorTileLayer = null;

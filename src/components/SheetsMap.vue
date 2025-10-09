@@ -147,18 +147,18 @@
                 </div>
 
                 <!-- Vector Tile Layers (MapLibre GL) -->
+                <!-- Las capas se renderizan en orden de array: primera = fondo, última = tope -->
+                <!-- El _uid asegura que Vue destruya y recree componentes correctamente -->
                 <vector-tile-layer
                     v-for="vectorTile in operative_vector_tiles_xyz"
-                    :key="vectorTile.layer_id"
+                    :key="vectorTile._uid"
                     :map="map"
                     :layer="vectorTile.layer"
-                    :visible="vectorTile.visible"
                     :info="info"
                     :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id"
                     :base_url="base_url"
                     @feature-click="handleVectorTileFeatureClick"
-                    @layer-shown="recalculateVectorTileZIndexes"
                     ref="vectorTileLayers"
                 ></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
@@ -979,32 +979,6 @@ export default {
             this.findBounds();
         },
         
-        /**
-         * Recalcula los z-index de todas las capas vectoriales activas
-         * basándose en el orden actual del array operative_vector_tiles_xyz
-         */
-        recalculateVectorTileZIndexes() {
-            this.$nextTick(() => {
-                // Pequeño delay adicional para asegurar que Vue terminó de re-renderizar
-                setTimeout(() => {
-                    const baseZIndex = 400;
-                    
-                    // Iterar sobre el array en orden y encontrar el componente correspondiente
-                    this.operative_vector_tiles_xyz.forEach((vectorTile, index) => {
-                        // Encontrar el componente que corresponde a esta capa
-                        const layerComponent = this.$refs.vectorTileLayers?.find(
-                            component => component.layer.id === vectorTile.layer.id
-                        );
-                        
-                        if (layerComponent && typeof layerComponent.updateZIndex === 'function') {
-                            const newZIndex = baseZIndex + index;
-                            layerComponent.updateZIndex(newZIndex);
-                        }
-                    });
-                }, 50);
-            });
-        },
-        
         switchLayers(){
             
             // Recalculamos siempre las operative_geoserver_wms activas
@@ -1108,36 +1082,21 @@ export default {
                     break;
                 }
                 case 'operative_vector_tiles_xyz' : {
-                    // Activar capa de Vector Tiles XYZ usando componente VectorTileLayer
+                    // Activar capa de Vector Tiles XYZ
+                    // Simplemente agregar al final del array (= tope del stack visual)
                     const existingLayerData = this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
-                    const is_new_layer = !existingLayerData;
                     
-                    if (is_new_layer) {
-                        // Agregar al array para que se renderice el componente
+                    if (!existingLayerData) {
+                        // Nueva capa: agregar al final con un ID único para forzar recreación
                         this.operative_vector_tiles_xyz.push({
                             layer_id: layer.id,
                             layer: layer,
-                            visible: true,
                             visible_columns: layer.visible_columns || [],
-                            entity_type_id: layer.entity_type_id || ''
+                            entity_type_id: layer.entity_type_id || '',
+                            _uid: `${layer.id}-${Date.now()}-${Math.random()}` // ID único para Vue
                         });
-                    } else if (existingLayerData.visible === false) {
-                        // Solo reordenar si la capa estaba INVISIBLE y ahora se está reactivando
-                        // Si ya estaba visible, no hacer nada (evita reordenamientos innecesarios)
-                        const index = this.operative_vector_tiles_xyz.findIndex(vt => vt.layer_id === layer.id);
-                        
-                        if (index !== -1) {
-                            // Remover de su posición actual
-                            const [existingLayer] = this.operative_vector_tiles_xyz.splice(index, 1);
-                            // Marcar como visible y agregar al final (tope del stack)
-                            existingLayer.visible = true;
-                            this.operative_vector_tiles_xyz.push(existingLayer);
-                            
-                            // Recalcular z-indexes de todas las capas para reflejar el nuevo orden
-                            this.recalculateVectorTileZIndexes();
-                        }
                     }
-                    // Si la capa ya existe Y ya está visible, no hacer nada
+                    // Si ya existe, no hacer nada (evitar duplicados)
                     break;
                 }
                 case 'operative_geoserver_wms' : {
@@ -1221,9 +1180,10 @@ export default {
                 }
                 case 'operative_vector_tiles_xyz': {
                     // Desactivar capa de Vector Tiles XYZ
-                    const existingLayer = this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
-                    if (existingLayer) {
-                        existingLayer.visible = false;
+                    // Simplemente ELIMINAR del array - esto destruirá el componente
+                    const index = this.operative_vector_tiles_xyz.findIndex(vt => vt.layer_id === layer.id);
+                    if (index !== -1) {
+                        this.operative_vector_tiles_xyz.splice(index, 1);
                     }
                     break;
                 }
