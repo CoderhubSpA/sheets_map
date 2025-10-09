@@ -51,13 +51,22 @@ export default {
             vectorTileLayer: null,
             maplibreMap: null,
             sourceLayer: null,
-            isInitialized: false
+            isInitialized: false,
+            // Referencias a handlers para poder limpiarlos
+            leafletMouseMoveHandler: null,
+            // Nombre del pane personalizado para esta capa
+            customPaneName: null
         };
     },
     watch: {
-        visible(newValue) {
+        visible(newValue, oldValue) {
             if (newValue) {
                 this.addLayer();
+                // Si la capa estaba oculta y ahora se muestra, notificar al padre
+                // para que recalcule los z-indexes de todas las capas
+                if (oldValue === false) {
+                    this.$emit('layer-shown');
+                }
             } else {
                 this.removeLayer();
             }
@@ -78,6 +87,30 @@ export default {
                 console.error('VectorTileLayer: L.maplibreGL no está disponible');
                 return;
             }
+
+            // Crear un pane único para esta capa vectorial
+            // Esto permite que múltiples capas se apilen correctamente
+            this.customPaneName = `vectorTilePane-${this.layer.id}`;
+            let pane = this.map.getPane(this.customPaneName);
+            
+            if (!pane) {
+                // Crear el pane si no existe
+                pane = this.map.createPane(this.customPaneName);
+                // NO usar pointerEvents: 'none' - necesitamos que capture eventos para detectar clicks
+            }
+            
+            // SIEMPRE actualizar el z-index para reflejar el orden actual
+            // z-index base para overlays es 400
+            // Contar cuántos panes de vector tiles hay activos ANTES de este
+            const baseZIndex = 400;
+            const vectorTilePanes = Object.keys(this.map._panes)
+                .filter(p => p.startsWith('vectorTilePane-') && p !== this.customPaneName)
+                .map(p => this.map._panes[p])
+                .filter(p => p.parentNode); // Solo panes que están actualmente en el DOM
+            
+            const newZIndex = baseZIndex + vectorTilePanes.length;
+            pane.style.zIndex = newZIndex;
+
 
             // Preparar URL del tile con los parámetros {z}/{x}/{y}
             let tileUrl = this.layer.sh_map_has_layer_url;
@@ -107,16 +140,24 @@ export default {
                     }
                 },
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-                layers: this.createMapLibreLayers()
+                layers: [
+                    // NO incluir capa de fondo - dejar completamente transparente
+                    ...this.createMapLibreLayers()
+                ]
             };
             
             // Crear la capa MapLibre GL como capa de Leaflet
             this.vectorTileLayer = L.maplibreGL({
                 style: maplibreStyle,
                 attribution: this.layer.sh_map_has_layer_attribution || '',
-                interactive: true,
-                pane: 'overlayPane',
-                updateInterval: 32
+                interactive: false,  // FALSE: Dejar que Leaflet maneje TODOS los eventos (evita patinado)
+                pane: this.customPaneName,  // Usar el pane personalizado
+                updateInterval: 16,  // Más frecuente para mejor sincronización (default: 32)
+                padding: 0.1,  // Padding para evitar flickering en los bordes (default: 0.1)
+                // Opciones de MapLibre GL para transparencia y rendering
+                preserveDrawingBuffer: true,  // Preservar buffer para permitir transparencia
+                antialias: true,  // Mejorar calidad del rendering
+                fadeDuration: 0  // Desactivar fade para evitar problemas con múltiples capas
             });
             
             // Agregar la capa al mapa
@@ -125,16 +166,145 @@ export default {
             // Obtener MapLibre GL map instance
             this.maplibreMap = this.vectorTileLayer.getMaplibreMap();
             
+            // Asegurar que el canvas esté correctamente configurado
+            this.configureCanvas();
+            
             // Si hay icono personalizado, cargarlo
             if (this.layer.sh_map_has_layer_point_image) {
                 this.loadCustomIcon();
             }
             
-            // Configurar sincronización y eventos
-            this.setupMapSync();
-            this.setupMapLibreEvents();
+            // NO configurar eventos aquí - el padre los maneja centralizadamente
+            // para evitar que múltiples capas compitan por el mismo click
+            
+            // Configurar solo el handler de mousemove para el cursor
+            this.setupMouseMoveHandler();
             
             this.isInitialized = true;
+        },
+        
+        /**
+         * Configura el canvas de MapLibre para evitar problemas de superposición
+         * y asegurar transparencia completa
+         */
+        configureCanvas() {
+            if (!this.maplibreMap || !this.vectorTileLayer) return;
+            
+            // Esperar a que MapLibre esté listo
+            this.maplibreMap.once('load', () => {
+                // Obtener el canvas usando el método de L.maplibreGL
+                const canvas = this.vectorTileLayer.getCanvas();
+                if (canvas) {
+                    // En modo no-interactivo, el canvas NO debe capturar eventos
+                    canvas.style.pointerEvents = 'none';
+                    
+                    // CRÍTICO: Hacer el canvas completamente transparente
+                    canvas.style.backgroundColor = 'transparent';
+                    canvas.style.opacity = '1';
+                    
+                    // Usar mix-blend-mode para mezclar con las capas debajo
+                    canvas.style.mixBlendMode = 'normal';
+                    
+                    // Asegurar que el canvas esté posicionado correctamente
+                    canvas.style.position = 'absolute';
+                    canvas.style.top = '0';
+                    canvas.style.left = '0';
+                }
+                
+                // También configurar el contenedor
+                const container = this.vectorTileLayer.getContainer();
+                if (container) {
+                    container.style.pointerEvents = 'none';
+                    container.style.backgroundColor = 'transparent';
+                    container.style.opacity = '1';
+                }
+            });
+        },
+        
+        /**
+         * Intenta manejar un click en esta capa
+         * Retorna true si encontró un feature y manejó el click, false si no
+         * @param {Object} e - Evento de click de Leaflet
+         * @returns {boolean} - True si se manejó el click, false si no
+         */
+        tryHandleClick(e) {
+            if (!this.maplibreMap || !this.visible) return false;
+            
+            // Convertir coordenadas Leaflet LatLng a Point de MapLibre GL
+            const maplibrePoint = this.maplibreMap.project([e.latlng.lng, e.latlng.lat]);
+            
+            // Crear lista de layers a consultar
+            const layerIds = [
+                `${this.layer.id}-fill`,
+                `${this.layer.id}-line`
+            ];
+            
+            // Agregar layer de puntos según si hay icono o no
+            if (this.layer.sh_map_has_layer_point_image) {
+                layerIds.push(`${this.layer.id}-symbol`);
+            } else {
+                layerIds.push(`${this.layer.id}-circle`);
+            }
+            
+            // Consultar features en el punto clickeado
+            const features = this.maplibreMap.queryRenderedFeatures(maplibrePoint, {
+                layers: layerIds
+            });
+            
+            if (features.length > 0) {
+                const feature = features[0];
+                const properties = feature.properties;
+                
+                // Crear y mostrar el popup
+                this.showPopup(properties, [e.latlng.lat, e.latlng.lng]);
+                
+                // Emitir evento para que el padre pueda reaccionar si necesita
+                this.$emit('feature-click', {
+                    layer: this.layer,
+                    feature: feature,
+                    properties: properties,
+                    latlng: [e.latlng.lat, e.latlng.lng]
+                });
+                
+                return true; // Click manejado
+            }
+            
+            return false; // No se encontró feature
+        },
+        
+        /**
+         * Configura el handler de mousemove para cambiar el cursor
+         */
+        setupMouseMoveHandler() {
+            if (!this.map || !this.maplibreMap) return;
+            
+            const self = this;
+            
+            // Handler de mousemove para cambiar cursor
+            this.leafletMouseMoveHandler = function(e) {
+                if (!self.maplibreMap || !self.visible) {
+                    // Si esta capa no está visible, resetear cursor si lo habíamos cambiado
+                    return;
+                }
+                
+                const maplibrePoint = self.maplibreMap.project([e.latlng.lng, e.latlng.lat]);
+                const layerIds = [
+                    `${self.layer.id}-fill`,
+                    `${self.layer.id}-line`,
+                    self.layer.sh_map_has_layer_point_image ? `${self.layer.id}-symbol` : `${self.layer.id}-circle`
+                ];
+                
+                const features = self.maplibreMap.queryRenderedFeatures(maplibrePoint, {
+                    layers: layerIds
+                });
+                
+                // Cambiar cursor si hay features bajo el mouse
+                if (features.length > 0) {
+                    self.map.getContainer().style.cursor = 'pointer';
+                }
+            };
+            
+            this.map.on('mousemove', this.leafletMouseMoveHandler);
         },
         
         /**
@@ -230,114 +400,6 @@ export default {
             }
             
             return layers;
-        },
-        
-        setupMapSync() {
-            if (!this.maplibreMap || !this.map) return;
-            
-            // Sincronización entre Leaflet y MapLibre GL
-            this.map.on('move', () => {
-                if (this.maplibreMap && !this.maplibreMap._moving) {
-                    const center = this.map.getCenter();
-                    const zoom = this.map.getZoom();
-                    
-                    requestAnimationFrame(() => {
-                        const mlCenter = this.maplibreMap.getCenter();
-                        const mlZoom = this.maplibreMap.getZoom();
-                        
-                        const centerDiff = Math.abs(mlCenter.lat - center.lat) + Math.abs(mlCenter.lng - center.lng);
-                        const zoomDiff = Math.abs(mlZoom - (zoom - 1));
-                        
-                        if (centerDiff > 0.0001 || zoomDiff > 0.1) {
-                            this.maplibreMap._moving = true;
-                            this.maplibreMap.jumpTo({
-                                center: [center.lng, center.lat],
-                                zoom: zoom - 1
-                            });
-                            setTimeout(() => { this.maplibreMap._moving = false; }, 100);
-                        }
-                    });
-                }
-            });
-        },
-        
-        setupMapLibreEvents() {
-            if (!this.maplibreMap) return;
-            
-            const self = this;
-            
-            // Evento de carga - solo para debugging inicial si es necesario
-            // this.maplibreMap.once('load', function() {
-            //     self.debugVectorTiles();
-            // });
-            
-            // Errores
-            this.maplibreMap.on('error', function(e) {
-                console.error('VectorTileLayer MapLibre Error:', e.error);
-            });
-            
-            // Eventos de mouse para cambiar cursor
-            const layerIds = [
-                `${this.layer.id}-fill`,
-                `${this.layer.id}-line`,
-                `${this.layer.id}-circle`
-            ];
-            
-            this.maplibreMap.on('mouseenter', layerIds, function() {
-                self.maplibreMap.getCanvas().style.cursor = 'pointer';
-            });
-            
-            this.maplibreMap.on('mouseleave', layerIds, function() {
-                self.maplibreMap.getCanvas().style.cursor = '';
-            });
-            
-            // Evento de click
-            this.maplibreMap.on('click', function(e) {
-                // Prevenir propagación a Leaflet
-                if (e.originalEvent) {
-                    e.originalEvent.stopPropagation();
-                    e.originalEvent.preventDefault();
-                }
-                
-                self.handleMapLibreClick(e);
-            });
-        },
-        
-        handleMapLibreClick(e) {
-            if (!this.maplibreMap) return;
-            
-            // Crear lista de layers a consultar (incluye symbol si hay icono personalizado)
-            const layerIds = [
-                `${this.layer.id}-fill`,
-                `${this.layer.id}-line`
-            ];
-            
-            // Agregar layer de puntos según si hay icono o no
-            if (this.layer.sh_map_has_layer_point_image) {
-                layerIds.push(`${this.layer.id}-symbol`);
-            } else {
-                layerIds.push(`${this.layer.id}-circle`);
-            }
-            
-            const features = this.maplibreMap.queryRenderedFeatures(e.point, {
-                layers: layerIds
-            });
-            
-            if (features.length > 0) {
-                const feature = features[0];
-                const properties = feature.properties;
-                
-                // Crear y mostrar el popup directamente aquí
-                this.showPopup(properties, [e.lngLat.lat, e.lngLat.lng]);
-                
-                // Emitir evento para que el padre pueda reaccionar si necesita
-                this.$emit('feature-click', {
-                    layer: this.layer,
-                    feature: feature,
-                    properties: properties,
-                    latlng: [e.lngLat.lat, e.lngLat.lng]
-                });
-            }
         },
         
         /**
@@ -475,29 +537,55 @@ export default {
             }
         },
         
+        /**
+         * Actualiza el z-index del pane de esta capa
+         * @param {number} newZIndex - El nuevo z-index a asignar
+         */
+        updateZIndex(newZIndex) {
+            if (this.customPaneName && this.map) {
+                const pane = this.map.getPane(this.customPaneName);
+                if (pane) {
+                    pane.style.zIndex = newZIndex;
+                }
+            }
+        },
+        
         cleanup() {
             // Cerrar popups
             if (this.map) {
                 this.map.closePopup();
             }
             
-            // Limpiar eventos de MapLibre GL
-            if (this.maplibreMap) {
-                try {
-                    this.maplibreMap.off('click');
-                    this.maplibreMap.off('mouseenter');
-                    this.maplibreMap.off('mouseleave');
-                    this.maplibreMap.off('error');
-                } catch (e) {
-                    console.error('VectorTileLayer: Error limpiando eventos MapLibre', e);
+            // Remover event listeners de LEAFLET que nosotros agregamos
+            if (this.map) {
+                if (this.leafletMouseMoveHandler) {
+                    this.map.off('mousemove', this.leafletMouseMoveHandler);
+                    this.leafletMouseMoveHandler = null;
+                }
+                
+                // Resetear cursor
+                if (this.map.getContainer()) {
+                    this.map.getContainer().style.cursor = '';
                 }
             }
             
-            // Remover capa del mapa
+            // Remover capa del mapa usando el método de Leaflet
+            // Esto llamará automáticamente al onRemove de L.maplibreGL que
+            // limpiará el canvas, la sincronización y recursos internos
             this.removeLayer();
             
+            // Remover el pane personalizado si existe
+            if (this.customPaneName && this.map) {
+                const pane = this.map.getPane(this.customPaneName);
+                if (pane && pane.parentNode) {
+                    pane.parentNode.removeChild(pane);
+                }
+            }
+            
+            // Limpiar referencias
             this.vectorTileLayer = null;
             this.maplibreMap = null;
+            this.customPaneName = null;
             this.isInitialized = false;
         }
     }
