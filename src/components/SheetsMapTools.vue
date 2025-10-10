@@ -143,17 +143,45 @@
                 </div>
             </div>
         </menu>
+
+        <!-- Modal para selección de formato de descarga -->
+        <b-modal
+            v-model="showFormatModal"
+            title="Seleccionar formato de descarga"
+            ok-title="Descargar"
+            cancel-title="Cancelar"
+            centered
+            @ok="downloadWithFormat(selectedFormat)"
+        >
+            <div class="format-selection-container">
+                <p>Seleccione el formato en el que desea descargar la capa:</p>
+                <b-form-group>
+                    <b-form-radio
+                        v-for="format in availableFormats"
+                        :key="format"
+                        v-model="selectedFormat"
+                        :value="format"
+                        class="mb-2"
+                    >
+                        {{ format.toUpperCase() }}
+                    </b-form-radio>
+                </b-form-group>
+            </div>
+        </b-modal>
     </div>
 </template>
 <script>
 import _ from "lodash";
-import { BIcon } from 'bootstrap-vue';
+import { BIcon, BModal, BFormGroup, BFormRadio } from 'bootstrap-vue';
 import SheetsTooltip from "./SheetsTooltip.vue";
 import axios from 'axios';
 
 export default {
     components: {
         BIcon,
+        BModal,
+        BFormGroup,
+        BFormRadio,
         SheetsTooltip
     },
     props: {
@@ -183,6 +211,11 @@ export default {
             active_groups: {},
             disabled_layers: {},
             clusterize: true,
+            availableFormats: [],
+            selectedLayerUrl: '',
+            selectedLayerName: '',
+            selectedFormat: '',
+            showFormatModal: false,
         };
     },
     computed: {
@@ -592,7 +625,35 @@ export default {
                 }
             }
         },
-        download_layer(url, layer_name) {
+        async download_layer(url, layer_name) {
+            // Obtenemos capacidades de la capa (estandar WFS)
+            try {
+                // Intentamos obtener capabilities
+                const capabilitiesURL = `${url}/capabilities`;
+                const capabilitiesResponse = await axios.get(capabilitiesURL);
+
+                console.log('Capabilities response:', capabilitiesResponse.data);
+
+                // Si tiene formatos disponibles, mostrar popup
+                if (capabilitiesResponse.data &&
+                    capabilitiesResponse.data.supported_formats &&
+                    capabilitiesResponse.data.supported_formats.length > 0) {
+
+                        console.log('Showing format popup with formats:', capabilitiesResponse.data.supported_formats);
+                        // Mostrar popup con opciones de descarga
+                        this.showFormatSelectionPopup(
+                            capabilitiesResponse.data.supported_formats,
+                            url,
+                            layer_name
+                        );
+                        return;
+                    }
+            } catch (error) {
+                console.error("Error al obtener capabilities: ", error);
+                // Continuar con el flujo normal de descarga
+            }
+
+
             axios.get(url).then((response) => {
                 let fileType = _.split(response.headers['content-type'], ';', 1);
                 fileType = _.head(fileType);
@@ -604,6 +665,35 @@ export default {
                 }
             }).catch((error) => {
                 console.error("Download Layer error: " + error);
+            });
+        },
+        showFormatSelectionPopup(formats, baseUrl, layerName){
+            console.log('showFormatSelectionPopup called with:', { formats, baseUrl, layerName });
+            // Aquí mostramos el modal de Bootstrap con los formatos
+            this.availableFormats = formats;
+            this.selectedLayerUrl = baseUrl;
+            this.selectedLayerName = layerName;
+            this.selectedFormat = formats[0] || ''; // Seleccionar el primer formato por defecto
+            console.log('About to show modal, state:', {
+                availableFormats: this.availableFormats,
+                selectedLayerUrl: this.selectedLayerUrl,
+                selectedLayerName: this.selectedLayerName,
+                selectedFormat: this.selectedFormat
+            });
+            this.showFormatModal = true; // Mostrar el modal
+        },
+        downloadWithFormat(format) {
+            const exportUrl = `${this.selectedLayerUrl}/export?outputFormat=${format}`;
+
+            axios.get(exportUrl, { responseType: 'blob' }).then((response) => {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.selectedLayerName}.${this.getFileExtension(format)}`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }).catch((error) => {
+                console.error("Export error: " + error);
             });
         },
         createDownloadFile(data, type, name, origen_url) {
@@ -628,6 +718,19 @@ export default {
             a.click();
 
             window.URL.revokeObjectURL(url);
+        },
+        getFileExtension(format) {
+            const formatMap = {
+                'geojson': 'geojson',
+                'json': 'json',
+                'shapefile': 'zip',
+                'shp': 'zip',
+                'kml': 'kml',
+                'csv': 'csv',
+                'gpkg': 'gpkg',
+                'geopackage': 'gpkg'
+            };
+            return formatMap[format.toLowerCase()] || format.toLowerCase();
         }
     },
 };
@@ -994,6 +1097,33 @@ export default {
             width: 24px;
             height: auto;
         }
+    }
+}
+
+// Estilos para el radio button del modal (con /deep/ para atravesar el scoped)
+/deep/ .custom-control-input:checked ~ .custom-control-label::before {
+    background-color: #5d99c6 !important;
+    border-color: var(--option-active-color) !important;
+}
+
+/deep/ .btn-secondary {
+    background-color: var(--button-color);
+    border-color: var(--button-color);
+    color: var(--button-text-color);
+
+    &:hover {
+        background-color: var(--button-hover-color);
+        border-color: var(--button-hover-color);
+    }
+}
+
+/deep/ .btn-primary {
+    background-color: var(--button-hover-color);
+    border-color: var(--button-hover-color);
+    color: var(--button-text-color);
+
+    &:hover {
+        opacity: 0.9;
     }
 }
 </style>
