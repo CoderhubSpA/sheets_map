@@ -1102,28 +1102,31 @@ export default {
 
 // Estilos para el radio button del modal (con /deep/ para atravesar el scoped)
 /deep/ .custom-control-input:checked ~ .custom-control-label::before {
-    background-color: #5d99c6 !important;
-    border-color: var(--option-active-color) !important;
+    background-color: #338b94 !important;
+    border-color: #338b94 !important;
 }
 
 /deep/ .btn-secondary {
-    background-color: var(--button-color);
-    border-color: var(--button-color);
-    color: var(--button-text-color);
+    background-color: #f8f9fa;
+    border-color: #f8f9fa;
+    color: #212529;
 
     &:hover {
-        background-color: var(--button-hover-color);
-        border-color: var(--button-hover-color);
+        background-color: #e2e6ea;
+        border-color: #dae0e5;
+        color: #212529;
     }
 }
 
 /deep/ .btn-primary {
-    background-color: var(--button-hover-color);
-    border-color: var(--button-hover-color);
-    color: var(--button-text-color);
+    background-color: #338b94;
+    border-color: #338b94;
+    color: #FFFFFF !important;
 
     &:hover {
-        opacity: 0.9;
+        background-color: #2a6f76;
+        border-color: #2a6f76;
+        color: #FFFFFF !important;
     }
 }
 </style>
