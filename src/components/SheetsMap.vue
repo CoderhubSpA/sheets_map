@@ -335,6 +335,10 @@ export default {
             type: Boolean,
             default: true,
         },
+        metrics_lookup: {
+            type: Object,
+            default: () => ({})
+        },
 
     },
     data () {
