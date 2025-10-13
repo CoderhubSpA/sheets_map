@@ -2528,6 +2528,36 @@ export default {
         background:white;
         padding-bottom: 6px;
     }
+    .legend-metric-subtitle {
+        margin-left: 8px;
+        margin-top: 4px;
+        margin-bottom: 6px;
+        font-size: 0.9em;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .metric-name {
+        font-style: italic;
+    }
+    .metric-info-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: #0074BD;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: help;
+        flex-shrink: 0;
+    }
+    .metric-info-icon:hover {
+        background-color: #005a94;
+    }
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
     }
