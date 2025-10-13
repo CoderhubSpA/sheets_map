@@ -814,6 +814,32 @@ export default {
             
             return operative_coordinates.concat(analytic_coordinates);
         },
+        // Obtiene la información de la métrica para una capa analítica
+        // Considera tanto la métrica base del layer como filtros dinámicos de tipo METRIC
+        layerMetricInfo() {
+            return (layer) => {
+                // Primero verificar si hay un filtro METRIC activo
+                const {metric} = this.metricFilter(layer);
+                const metric_id = metric || layer.sh_map_has_layer_metric_id;
+                
+                // Buscar en metrics_lookup
+                if (metric_id && this.metrics_lookup && this.metrics_lookup[metric_id]) {
+                    return this.metrics_lookup[metric_id];
+                }
+                
+                // Fallback a enriched_data si existe
+                if (layer.enriched_data && layer.enriched_data.metric_name) {
+                    return {
+                        id: layer.enriched_data.metric_id,
+                        name: layer.enriched_data.metric_name,
+                        description: layer.enriched_data.metric_description,
+                        format: layer.enriched_data.metric_format
+                    };
+                }
+                
+                return null;
+            };
+        },
     },
     watch:{
         analytic_cluster() {
