@@ -235,6 +235,15 @@
                                 <div class="legend-title">
                                     <b>{{layer.name}}</b>
                                 </div>
+                                <!-- Subtítulo con métrica -->
+                                <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
+                                    <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
+                                    <span class="metric-info-icon" 
+                                          v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                          :title="layerMetricInfo(layer).description">
+                                        ⓘ
+                                    </span>
+                                </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
                                     0 - {{config.sh_map_medium_cluster_size_starts_at}}
