@@ -353,9 +353,9 @@ export default {
             type: Boolean,
             default: true,
         },
-        metrics_lookup: {
-            type: Object,
-            default: () => ({})
+        metrics: {
+            type: Array,
+            default: () => []
         },
 
     },
@@ -519,6 +519,18 @@ export default {
         },
         show_legend(){
             return (this.config.sh_map_show_legend == 1) ? true : false;
+        },
+        // Crea un lookup interno de métricas desde el array
+        metricsLookup() {
+            return this.metrics.reduce((acc, metric) => {
+                acc[metric.id] = {
+                    id: metric.id,
+                    name: metric.name || metric.metric_name,
+                    description: metric.description,
+                    format: metric.format
+                };
+                return acc;
+            }, {});
         },
 
         analytic_cluster_options() {
@@ -840,9 +852,9 @@ export default {
                 const {metric} = this.metricFilter(layer);
                 const metric_id = metric || layer.sh_map_has_layer_metric_id;
                 
-                // Buscar en metrics_lookup
-                if (metric_id && this.metrics_lookup && this.metrics_lookup[metric_id]) {
-                    return this.metrics_lookup[metric_id];
+                // Buscar en metricsLookup (computed interno)
+                if (metric_id && this.metricsLookup && this.metricsLookup[metric_id]) {
+                    return this.metricsLookup[metric_id];
                 }
                 
                 // Fallback a enriched_data si existe
