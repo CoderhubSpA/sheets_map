@@ -226,11 +226,12 @@
                                     <!-- Subtítulo con métrica -->
                                     <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
                                         <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
-                                        <span class="metric-info-icon" 
-                                              v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
-                                              :title="layerMetricInfo(layer).description">
-                                            ⓘ
-                                        </span>
+                                        <b-icon 
+                                            v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                            icon="info-circle-fill" 
+                                            class="metric-info-icon"
+                                            :title="layerMetricInfo(layer).description">
+                                        </b-icon>
                                     </div>
                                     <table>
                                         <tr>
@@ -247,11 +248,12 @@
                                 <!-- Subtítulo con métrica -->
                                 <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
                                     <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
-                                    <span class="metric-info-icon" 
-                                          v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
-                                          :title="layerMetricInfo(layer).description">
-                                        ⓘ
-                                    </span>
+                                    <b-icon 
+                                        v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                        icon="info-circle-fill" 
+                                        class="metric-info-icon"
+                                        :title="layerMetricInfo(layer).description">
+                                    </b-icon>
                                 </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
@@ -2554,21 +2556,14 @@ export default {
         font-style: italic;
     }
     .metric-info-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background-color: #0074BD;
-        color: white;
-        font-size: 12px;
-        font-weight: bold;
+        color: #0074BD;
+        font-size: 16px;
         cursor: help;
         flex-shrink: 0;
+        transition: color 0.2s ease;
     }
     .metric-info-icon:hover {
-        background-color: #005a94;
+        color: #005a94;
     }
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
