@@ -223,6 +223,15 @@
                                 <div class="legend-sublavel">
 
                                     <b>{{layer.name}}</b>
+                                    <!-- Subtítulo con métrica -->
+                                    <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
+                                        <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
+                                        <span class="metric-info-icon" 
+                                              v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                              :title="layerMetricInfo(layer).description">
+                                            ⓘ
+                                        </span>
+                                    </div>
                                     <table>
                                         <tr>
                                             <td><div class="legend-icon-color" :style="analyticLegendIconControl(layer)"></div></td>
