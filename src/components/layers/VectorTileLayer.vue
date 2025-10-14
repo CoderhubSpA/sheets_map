@@ -544,8 +544,6 @@ export default {
         },
         
         cleanup() {
-            console.log(`VectorTileLayer: Destruyendo capa ${this.layer.id}`);
-            
             // Cerrar popups
             if (this.map) {
                 this.map.closePopup();
