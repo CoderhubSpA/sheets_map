@@ -1,9 +1,3 @@
-<template>
-    <!-- Este componente NO renderiza nada en el DOM -->
-    <!-- Solo maneja la capa de MapLibre y emite eventos -->
-    <div style="display: none;"></div>
-</template>
-
 <script>
 import L from 'leaflet';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -590,8 +584,3 @@ export default {
     }
 };
 </script>
-
-<style scoped>
-/* Este componente no tiene estilos propios */
-/* Los estilos de popup y canvas están en SheetsMap.vue */
-</style>
