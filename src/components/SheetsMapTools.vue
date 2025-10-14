@@ -632,14 +632,10 @@ export default {
                 const capabilitiesURL = `${url}/capabilities`;
                 const capabilitiesResponse = await axios.get(capabilitiesURL);
 
-                console.log('Capabilities response:', capabilitiesResponse.data);
-
                 // Si tiene formatos disponibles, mostrar popup
                 if (capabilitiesResponse.data &&
                     capabilitiesResponse.data.supported_formats &&
                     capabilitiesResponse.data.supported_formats.length > 0) {
-
-                        console.log('Showing format popup with formats:', capabilitiesResponse.data.supported_formats);
                         // Mostrar popup con opciones de descarga
                         this.showFormatSelectionPopup(
                             capabilitiesResponse.data.supported_formats,
@@ -668,18 +664,11 @@ export default {
             });
         },
         showFormatSelectionPopup(formats, baseUrl, layerName){
-            console.log('showFormatSelectionPopup called with:', { formats, baseUrl, layerName });
             // Aquí mostramos el modal de Bootstrap con los formatos
             this.availableFormats = formats;
             this.selectedLayerUrl = baseUrl;
             this.selectedLayerName = layerName;
             this.selectedFormat = formats[0] || ''; // Seleccionar el primer formato por defecto
-            console.log('About to show modal, state:', {
-                availableFormats: this.availableFormats,
-                selectedLayerUrl: this.selectedLayerUrl,
-                selectedLayerName: this.selectedLayerName,
-                selectedFormat: this.selectedFormat
-            });
             this.showFormatModal = true; // Mostrar el modal
         },
         downloadWithFormat(format) {
