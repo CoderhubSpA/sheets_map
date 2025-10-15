@@ -240,6 +240,28 @@
                                 <div class="legend-sublavel">
 
                                     <b>{{layer.name}}</b>
+                                    <!-- Subtítulo con métrica -->
+                                    <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
+                                        <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
+                                        <b-icon 
+                                            v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                            :id="`metric-info-${layer.id}`"
+                                            icon="info-circle-fill" 
+                                            class="metric-info-icon"
+                                            tabindex="0">
+                                        </b-icon>
+                                        <b-popover 
+                                            v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                            :target="`metric-info-${layer.id}`"
+                                            triggers="click blur"
+                                            placement="left"
+                                            boundary="viewport"
+                                            :title="layerMetricInfo(layer).name">
+                                            <template #default>
+                                                {{ layerMetricInfo(layer).description }}
+                                            </template>
+                                        </b-popover>
+                                    </div>
                                     <table>
                                         <tr>
                                             <td><div class="legend-icon-color" :style="analyticLegendIconControl(layer)"></div></td>
@@ -251,6 +273,29 @@
                             <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_code == 'analytic_cluster'">
                                 <div class="legend-title">
                                     <b>{{layer.name}}</b>
+                                </div>
+                                <!-- Subtítulo con métrica -->
+                                <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
+                                    <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
+                                    <b-icon 
+                                        v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                        :id="`metric-info-cluster-${layer.id}`"
+                                        icon="info-circle-fill" 
+                                        class="metric-info-icon"
+                                        tabindex="0">
+                                    </b-icon>
+                                    <b-popover 
+                                        v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
+                                        :target="`metric-info-cluster-${layer.id}`"
+                                        triggers="click blur"
+                                        placement="left"
+                                        boundary="viewport"
+                                        custom-class="metric-info-popover"
+                                        :title="layerMetricInfo(layer).name">
+                                        <template #default>
+                                            {{ layerMetricInfo(layer).description }}
+                                        </template>
+                                    </b-popover>
                                 </div>
                                 <div class="legend-sublavel">
                                     <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
@@ -294,7 +339,8 @@ import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
 import axios from 'axios';
 import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
-import { BButton, BIcon } from 'bootstrap-vue'
+import { BButton, BIcon, BPopover } from 'bootstrap-vue'
+import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import OpenFormPoint from './form/openFormPoint.vue';
 import "@geoman-io/leaflet-geoman-free";
@@ -319,6 +365,7 @@ export default {
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
         BIcon,
+        BPopover,
         SearchBarProxy,
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
@@ -353,6 +400,10 @@ export default {
         clusterize: {
             type: Boolean,
             default: true,
+        },
+        metrics: {
+            type: Array,
+            default: () => []
         },
 
     },
@@ -517,6 +568,19 @@ export default {
         },
         show_legend(){
             return (this.config.sh_map_show_legend == 1) ? true : false;
+        },
+        // Crea un lookup interno de métricas desde el array
+        metricsLookup() {  
+            const lookup = this.metrics.reduce((acc, metric) => {                
+                acc[metric.id] = {
+                    id: metric.id,
+                    name: metric.name || metric.metric_name,
+                    description: metric.description,
+                    format: metric.format
+                };
+                return acc;
+            }, {});            
+            return lookup;
         },
 
         analytic_cluster_options() {
@@ -829,6 +893,33 @@ export default {
             const analytic_coordinates  = this.sumCoordinates(enable_filter_analytic_list);
             
             return operative_coordinates.concat(analytic_coordinates);
+        },
+        // Obtiene la información de la métrica para una capa analítica
+        // Considera tanto la métrica base del layer como filtros dinámicos de tipo METRIC
+        layerMetricInfo() {
+            return (layer) => {            
+                // Primero verificar si hay un filtro METRIC activo
+                const {metric} = this.metricFilter(layer);
+                const metric_id = metric || layer.sh_map_has_layer_metric_id;
+                
+                // Buscar en metricsLookup (computed interno)
+                if (metric_id && this.metricsLookup && this.metricsLookup[metric_id]) {
+                    const metricInfo = this.metricsLookup[metric_id];
+                    return metricInfo;
+                }
+                
+                // Fallback a enriched_data si existe
+                if (layer.enriched_data && layer.enriched_data.metric_name) {
+                    const enrichedInfo = {
+                        id: layer.enriched_data.metric_id,
+                        name: layer.enriched_data.metric_name,
+                        description: layer.enriched_data.metric_description,
+                        format: layer.enriched_data.metric_format
+                    };
+                    return enrichedInfo;
+                }
+                return null;
+            };
         },
     },
     watch:{
@@ -2575,6 +2666,35 @@ export default {
         background:white;
         padding-bottom: 6px;
     }
+    .legend-metric-subtitle {
+        margin-left: 8px;
+        margin-right: 12px;
+        margin-top: 4px;
+        margin-bottom: 6px;
+        font-size: 0.9em;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .metric-name {
+        font-style: italic;
+        flex: 1;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.3;
+    }
+    .metric-info-icon {
+        color: #0074BD;
+        font-size: 16px;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: color 0.2s ease;
+    }
+    .metric-info-icon:hover {
+        color: #005a94;
+        transform: scale(1.1);
+    }
     :deep(.leaflet-control-container) .leaflet-bottom{
         flex-flow: column;
     }
@@ -2633,6 +2753,51 @@ export default {
     .my-map >>> .maplibregl-canvas-container,
     .my-map >>> .maplibregl-canvas {
         z-index: 1 !important;
+    }
+
+</style>
+<style>
+    /* Estilos globales para el popover (necesarios porque Bootstrap Vue renderiza fuera del componente) */
+    .metric-info-popover.popover {
+        max-width: 280px !important;
+    }
+    
+    .metric-info-popover .popover-body {
+        max-height: 200px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.4;
+        font-size: 0.85em;
+        padding: 0.75rem;
+    }
+    
+    .metric-info-popover .popover-header {
+        font-size: 0.9em;
+        padding: 0.5rem 0.75rem;
+        font-weight: 600;
+        background-color: #f7f7f7;
+        border-bottom: 1px solid #ebebeb;
+    }
+    
+    /* Estilos del scrollbar para el popover */
+    .metric-info-popover .popover-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .metric-info-popover .popover-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .metric-info-popover .popover-body::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    
+    .metric-info-popover .popover-body::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 
 </style>
