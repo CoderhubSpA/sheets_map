@@ -237,7 +237,8 @@
                                             v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
                                             :target="`metric-info-${layer.id}`"
                                             triggers="click blur"
-                                            placement="top"
+                                            placement="left"
+                                            boundary="viewport"
                                             :title="layerMetricInfo(layer).name">
                                             <template #default>
                                                 {{ layerMetricInfo(layer).description }}
@@ -270,7 +271,9 @@
                                         v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
                                         :target="`metric-info-cluster-${layer.id}`"
                                         triggers="click blur"
-                                        placement="top"
+                                        placement="left"
+                                        boundary="viewport"
+                                        custom-class="metric-info-popover"
                                         :title="layerMetricInfo(layer).name">
                                         <template #default>
                                             {{ layerMetricInfo(layer).description }}
@@ -547,7 +550,7 @@ export default {
         },
         // Crea un lookup interno de métricas desde el array
         metricsLookup() {  
-            const lookup = this.metrics.reduce((acc, metric, index) => {                
+            const lookup = this.metrics.reduce((acc, metric) => {                
                 acc[metric.id] = {
                     id: metric.id,
                     name: metric.name || metric.metric_name,
@@ -2623,4 +2626,51 @@ export default {
     .btn-coordinate-format{
         font-size: 9px;
     }
+    
+    /* Estilos para el popover de información de métricas */
+</style>
+<style>
+    /* Estilos globales para el popover (necesarios porque Bootstrap Vue renderiza fuera del componente) */
+    .metric-info-popover.popover {
+        max-width: 280px !important;
+    }
+    
+    .metric-info-popover .popover-body {
+        max-height: 200px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.4;
+        font-size: 0.85em;
+        padding: 0.75rem;
+    }
+    
+    .metric-info-popover .popover-header {
+        font-size: 0.9em;
+        padding: 0.5rem 0.75rem;
+        font-weight: 600;
+        background-color: #f7f7f7;
+        border-bottom: 1px solid #ebebeb;
+    }
+    
+    /* Estilos del scrollbar para el popover */
+    .metric-info-popover .popover-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .metric-info-popover .popover-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .metric-info-popover .popover-body::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    
+    .metric-info-popover .popover-body::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
 </style>
