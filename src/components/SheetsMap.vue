@@ -146,6 +146,23 @@
                     
                 </div>
 
+                <!-- Vector Tile Layers (MapLibre GL) -->
+                <!-- Las capas se renderizan en orden de array: primera = fondo, última = tope -->
+                <!-- El _uid asegura que Vue destruya y recree componentes correctamente -->
+                <vector-tile-layer
+                    v-for="vectorTile in operative_vector_tiles_xyz"
+                    :key="vectorTile._uid"
+                    :map="map"
+                    :layer="vectorTile.layer"
+                    :info="info"
+                    :visible_columns="vectorTile.visible_columns"
+                    :entity_type_id="vectorTile.entity_type_id"
+                    :base_url="base_url"
+                    @feature-click="handleVectorTileFeatureClick"
+                    ref="vectorTileLayers"
+                ></vector-tile-layer>
+                <!-- End Vector Tile Layers -->
+
                 <!-- Polygon draft-->
                 <polygon-drafter
                   ref="polygon_drafter"
@@ -316,6 +333,7 @@ import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlSc
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
+import VectorTileLayer from './layers/VectorTileLayer.vue';
 import PolygonDrafter from './PolygonDrafter.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
@@ -328,6 +346,7 @@ import OpenFormPoint from './form/openFormPoint.vue';
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import QuickLayers from './layers/QuickLayers.vue';
+
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -350,6 +369,7 @@ export default {
         SearchBarProxy,
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
+        VectorTileLayer,
         PolygonDrafter,
         OpenFormPoint,
         QuickLayers,
@@ -419,6 +439,7 @@ export default {
             base_map_guide             : undefined,
             base_open_street_map       : undefined,
             operative_geoserver_wms    : [],
+            operative_vector_tiles_xyz : [],
             end_map_move               : false,
             end_map_pressure           : false,
             bounds_filters             : [],
@@ -1019,10 +1040,38 @@ export default {
                 this.map.invalidateSize(false);
             });
             resizeObserver.observe(this.$refs.map_container);
-        }, 
+            
+            // Configurar handler centralizado para clicks en capas vectoriales
+            this.setupVectorTileClickHandler();
+        },
+        
+        /**
+         * Configura un handler centralizado para clicks en capas vectoriales
+         * Este handler consulta las capas en orden de z-index descendente (de arriba hacia abajo)
+         * y para en la primera capa que encuentre un feature
+         */
+        setupVectorTileClickHandler() {
+            this.map.on('click', (e) => {
+                // Obtener capas vectoriales en orden inverso (mayor z-index primero)
+                const layers = [...(this.$refs.vectorTileLayers || [])].reverse();
+                
+                // Buscar en cada capa, empezando por la de arriba
+                for (const layerComponent of layers) {
+                    if (layerComponent && layerComponent.tryHandleClick) {
+                        const handled = layerComponent.tryHandleClick(e);
+                        if (handled) {
+                            // Si esta capa manejó el click, no procesar más
+                            break;
+                        }
+                    }
+                }
+            });
+        },
+        
         filter(){
             this.findBounds();
-        },  
+        },
+        
         switchLayers(){
             
             // Recalculamos siempre las operative_geoserver_wms activas
@@ -1106,8 +1155,10 @@ export default {
 
                         const url = layer.sh_map_has_layer_url.split("?bbox=");
                         const zoom = this.zoom;
-                        
-                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord;
+
+                        const crs = layer.sh_map_has_layer_crs || 'EPSG:3857';
+
+                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord+"&crs="+crs;
                         if(zoom == this.zoom){
                             this.requestGeoJson(layer, this.operative_geojson_features)
                             .then(() => {
@@ -1122,7 +1173,24 @@ export default {
                     }
 
                     break;
-
+                }
+                case 'operative_vector_tiles_xyz' : {
+                    // Activar capa de Vector Tiles XYZ
+                    // Simplemente agregar al final del array (= tope del stack visual)
+                    const existingLayerData = this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
+                    
+                    if (!existingLayerData) {
+                        // Nueva capa: agregar al final con un ID único para forzar recreación
+                        this.operative_vector_tiles_xyz.push({
+                            layer_id: layer.id,
+                            layer: layer,
+                            visible_columns: layer.visible_columns || [],
+                            entity_type_id: layer.entity_type_id || '',
+                            _uid: `${layer.id}-${Date.now()}-${Math.random()}` // ID único para Vue
+                        });
+                    }
+                    // Si ya existe, no hacer nada (evitar duplicados)
+                    break;
                 }
                 case 'operative_geoserver_wms' : {
                     this.operative_geoserver_wms.push(layer)
@@ -1201,6 +1269,15 @@ export default {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
                     this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
 
+                    break;
+                }
+                case 'operative_vector_tiles_xyz': {
+                    // Desactivar capa de Vector Tiles XYZ
+                    // Simplemente ELIMINAR del array - esto destruirá el componente
+                    const index = this.operative_vector_tiles_xyz.findIndex(vt => vt.layer_id === layer.id);
+                    if (index !== -1) {
+                        this.operative_vector_tiles_xyz.splice(index, 1);
+                    }
                     break;
                 }
                 case 'supercluster': 
@@ -1446,8 +1523,11 @@ export default {
                         
                 // Si no existen features
                 // si no es una capa vector tile
-                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || this.scale_sensitive_layers[this.zoom].includes(layer.id)) {
-                    this.scale_sensitive_layers[this.zoom] = this.scale_sensitive_layers[this.zoom].filter(l => l != layer.id);
+                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || (this.scale_sensitive_layers[this.zoom] && this.scale_sensitive_layers[this.zoom].includes(layer.id))) {
+                    // Validar que scale_sensitive_layers[this.zoom] existe antes de usar filter
+                    if (this.scale_sensitive_layers[this.zoom]) {
+                        this.scale_sensitive_layers[this.zoom] = this.scale_sensitive_layers[this.zoom].filter(l => l != layer.id);
+                    }
                     // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
                 } else {
@@ -2445,6 +2525,22 @@ export default {
                     return geojson;
                 }
             });
+        },
+        
+        // ================================================================================
+        // HANDLER PARA VECTOR TILES XYZ (Protobuf)
+        // El popup se maneja internamente en VectorTileLayer.vue
+        // Este handler solo maneja la emisión de eventos al padre si es necesario
+        // ================================================================================
+        
+        handleVectorTileFeatureClick(eventData) {
+            const { layer, properties } = eventData;
+            
+            // Emitir evento para que el componente padre pueda reaccionar
+            this.$emit('set_layer', {
+                layer_id: layer.id,
+                feature: { properties: properties }
+            });
         }
     }
 }
@@ -2627,7 +2723,38 @@ export default {
         font-size: 9px;
     }
     
-    /* Estilos para el popover de información de métricas */
+    /* Asegurar que los popups de MapLibre GL vector tiles aparezcan sobre el canvas */
+    .my-map >>> .leaflet-popup-pane {
+        z-index: 10000 !important;
+        pointer-events: none; /* Permitir clicks a través del pane */
+    }
+    
+    .my-map >>> .leaflet-popup {
+        z-index: 10001 !important;
+        pointer-events: auto; /* Permitir interacción con el popup */
+        /* IMPORTANTE: No forzar position relative; Leaflet calcula top/left para que la punta (tip) apunte al punto */
+    }
+    
+    .my-map >>> .leaflet-popup-content-wrapper,
+    .my-map >>> .leaflet-popup-tip {
+        z-index: 10003 !important;
+        /* No alterar position aquí; Leaflet usa absolute en el contenedor principal */
+    }
+
+    /* Ajuste fino opcional: si la flecha queda unos pixeles abajo del punto, se puede subir ligeramente todo el popup
+       descomentando la siguiente regla (probar sólo si aún queda desalineado) */
+    /*
+    .my-map >>> .leaflet-popup.leaflet-zoom-animated {
+        transform: translate3d(var(--leaflet-left), var(--leaflet-top), 0) translateY(-6px) !important;
+    }
+    */
+    
+    /* Asegurar que el canvas de MapLibre esté DEBAJO de los popups */
+    .my-map >>> .maplibregl-canvas-container,
+    .my-map >>> .maplibregl-canvas {
+        z-index: 1 !important;
+    }
+
 </style>
 <style>
     /* Estilos globales para el popover (necesarios porque Bootstrap Vue renderiza fuera del componente) */
