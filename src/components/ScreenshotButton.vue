@@ -20,8 +20,8 @@
 </template>
   
   <script>
-// import html2canvas from "html2canvas";
-import domtoimage from "dom-to-image";
+import html2canvas from "html2canvas";
+
 
 export default {
     name: "ScreenshotButton",
@@ -61,12 +61,12 @@ export default {
             await this.$nextTick();
 
             const vm = this;
+            const targetElement = document.getElementById(this.targetId);
 
             vm.loading = true;
 
-            try {
-                const targetElement = document.getElementById(this.targetId);
 
+            try {
                 if (!targetElement) {
                     throw new Error(
                         `Elemento con ID '${this.targetId}' no encontrado`
@@ -76,35 +76,44 @@ export default {
                 // Mostrar feedback visual durante la captura
                 targetElement.classList.add("screenshot-capturing");
 
-                domtoimage
-                    .toPng(targetElement, {
-                        filter: (node) => {
-                            // Excluir elementos problemáticos
-                            if (
-                                node.classList &&
-                                node.classList.contains("custom-controls")
-                            ) {
-                                return false;
-                            }
+                // --- Workaround para transformaciones de Leaflet ---
+                // Aplanar la transformación de los paneles que contienen contenido visual.
+                const panes = targetElement.querySelectorAll('.leaflet-tile-pane, .leaflet-marker-pane, .leaflet-overlay-pane > svg');
+                
+                // Guardar transformaciones originales
+                const originalTransforms = Array.from(panes).map(p => p.style.transform);
 
-                            // Excluir elementos SVG
-                            if (node.tagName === "svg") {
-                                return false;
-                            }
+                // Aplanar la transformación de cada panel
+                panes.forEach(pane => {
+                    const computedTransform = window.getComputedStyle(pane).transform;
+                    if (computedTransform && computedTransform !== 'none') {
+                        const matrix = new DOMMatrix(computedTransform);
+                        pane.style.transform = `translate(${matrix.e}px, ${matrix.f}px)`;
+                    }
+                });
 
-                            return true;
+                const scale = window.devicePixelRatio || 1;
+
+                html2canvas(targetElement, {
+                        useCORS: true, // Similar a cacheBust
+                        ignoreElements: (element) => {
+                            return (
+                                (element.classList &&
+                                    element.classList.contains("custom-controls")) ||
+                                // Excluir el SVG de los controles de zoom, pero no las capas SVG
+                                (element.tagName === "svg" &&
+                                    element.classList.contains("leaflet-control-zoom"))
+                            );
                         },
-                        style: {
-                            transform: "none", // Eliminar transformaciones problemáticas
-                            "will-change": "auto",
-                        },
-                        quality: vm.quality,
-                        cacheBust: true,
+                        scale: scale, // Aumentar la resolución para pantallas HiDPI
+                    })
+                    .then((canvas) => {
+                        return canvas.toDataURL("image/png", vm.quality);
                     })
                     .then(function (dataUrl) {
                         // Procesar la imagen para agregar título y subtítulo
                         if (vm.screenshotTitle || vm.screenshotSubtitle) {
-                            return vm.addTextToImage(dataUrl);
+                            return vm.addTextToImage(dataUrl, scale);
                         }
                         return dataUrl;
                     })
@@ -125,27 +134,27 @@ export default {
                         vm.modalVisible = false;
                     })
                     .catch(function (error) {
-                        vm.$emit("error", error);
-
+                        vm.$emit("error", error)
                         return Promise.reject(error);
                     })
                     .finally(() => {
                         vm.loading = false;
+                        // Restaurar siempre las transformaciones originales
+                        panes.forEach((pane, index) => {
+                            pane.style.transform = originalTransforms[index];
+                        });
+                        targetElement.classList.remove("screenshot-capturing");
                     });
             } catch (error) {
                 console.error("Error al capturar screenshot:", error);
                 vm.$emit("error", error);
             } finally {
-                const targetElement = document.getElementById(vm.targetId);
-
-                if (targetElement) {
-                    targetElement.classList.remove("screenshot-capturing");
-                }
+                // La limpieza final se hace en el .finally() de la promesa de html2canvas
             }
         },
         
         // Método para agregar título y subtítulo a la imagen
-        addTextToImage(dataUrl) {
+        addTextToImage(dataUrl, scale = 1) {
             return new Promise((resolve, reject) => {
                 try {
                     const img = new Image();
@@ -160,8 +169,8 @@ export default {
                         ctx.drawImage(img, 0, 0);
                         
                         // Calcular dimensiones para el fondo
-                            const paddingX = 10;
-                            const paddingY = 8;
+                            const paddingX = 10 * scale;
+                            const paddingY = 8 * scale;
                             const hasTitle = !!this.screenshotTitle;
                             const hasSubtitle = !!this.screenshotSubtitle;
 
@@ -170,24 +179,24 @@ export default {
                             const subtitleText = hasSubtitle ? this.screenshotSubtitle.toUpperCase() : "";
 
                             // Medir el ancho de cada línea
-                            ctx.font = 'bold 24px Arial';
+                            ctx.font = `bold ${24 * scale}px Arial`;
                             const titleWidth = hasTitle ? ctx.measureText(titleText).width : 0;
-                            const titleHeight = hasTitle ? 24 : 0;
+                            const titleHeight = hasTitle ? (24 * scale) : 0;
 
-                            ctx.font = '18px Arial';
+                            ctx.font = `${18 * scale}px Arial`;
                             const subtitleWidth = hasSubtitle ? ctx.measureText(subtitleText).width : 0;
-                            const subtitleHeight = hasSubtitle ? 18 : 0;
+                            const subtitleHeight = hasSubtitle ? (18 * scale) : 0;
 
                             const textWidth = Math.max(titleWidth, subtitleWidth);
-                            const lineSpacing = (hasTitle && hasSubtitle) ? 6 : 0;
+                            const lineSpacing = (hasTitle && hasSubtitle) ? (6 * scale) : 0;
                             const textHeight = titleHeight + subtitleHeight + lineSpacing;
 
                             // Dibujar fondo ajustado al texto con esquinas redondeadas
                             if (textWidth > 0 && textHeight > 0) {
-                                const x = 10, y = 10;
+                                const x = 10 * scale, y = 10 * scale;
                                 const w = textWidth + paddingX * 2;
                                 const h = textHeight + paddingY * 2;
-                                const radius = 12;
+                                const radius = 12 * scale;
                                 ctx.fillStyle = 'rgba(255, 255, 255, 1)'; // Fondo blanco
                                 ctx.beginPath();
                                 ctx.moveTo(x + radius, y);
@@ -206,20 +215,20 @@ export default {
                             // Configurar el estilo para el texto
                             ctx.fillStyle = 'black'; // Color del texto
                             ctx.strokeStyle = 'black'; // Borde del texto para mejor legibilidad
-                            ctx.lineWidth = 0.5;
+                            ctx.lineWidth = 0.5 * scale;
                             // Agregar título
                             if (hasTitle) {
-                                ctx.font = 'bold 24px Arial';
-                                ctx.fillText(titleText, 10 + paddingX, 10 + paddingY + titleHeight);
-                                ctx.strokeText(titleText, 10 + paddingX, 10 + paddingY + titleHeight);
+                                ctx.font = `bold ${24 * scale}px Arial`;
+                                ctx.fillText(titleText, (10 * scale) + paddingX, (10 * scale) + paddingY + titleHeight);
+                                ctx.strokeText(titleText, (10 * scale) + paddingX, (10 * scale) + paddingY + titleHeight);
                             }
 
                             // Agregar subtítulo
                             if (hasSubtitle) {
-                                ctx.font = '18px Arial';
-                                const subY = hasTitle ? (10 + paddingY + titleHeight + lineSpacing + subtitleHeight) : (10 + paddingY + subtitleHeight);
-                                ctx.fillText(subtitleText, 10 + paddingX, subY);
-                                ctx.strokeText(subtitleText, 10 + paddingX, subY);
+                                ctx.font = `${18 * scale}px Arial`;
+                                const subY = hasTitle ? ((10 * scale) + paddingY + titleHeight + lineSpacing + subtitleHeight) : ((10 * scale) + paddingY + subtitleHeight);
+                                ctx.fillText(subtitleText, (10 * scale) + paddingX, subY);
+                                ctx.strokeText(subtitleText, (10 * scale) + paddingX, subY);
                             }
 
                             // Convertir el canvas a una URL de datos
