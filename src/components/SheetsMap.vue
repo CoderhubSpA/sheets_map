@@ -196,7 +196,7 @@
                             <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
                                 <span v-if="layer.sh_map_has_layer_point_image">
                                     <img class="legend-icon"
-                                        :src="base_url + layer.sh_map_has_layer_point_image"
+                                        :src="getIconUrl(layer.sh_map_has_layer_point_image)"
                                     />
                                     {{layer.name}}
                                 </span>
@@ -217,7 +217,7 @@
                                 <div class="legend-title">
                                     <img class="legend-icon"
                                     v-if="layer.sh_map_has_layer_point_image"
-                                    :src="base_url + layer.sh_map_has_layer_point_image"
+                                    :src="getIconUrl(layer.sh_map_has_layer_point_image)"
                                     />
                                     <b>{{layer.name}}</b>
                                 </div>
@@ -606,7 +606,7 @@ export default {
                     const popup_anchor = this.style_variables['analytic-geojson-point-popup-anchor'];
 
                     const icon = L.icon({
-                        iconUrl: this.base_url+active_layer.sh_map_has_layer_point_image,
+                        iconUrl: this.getIconUrl(active_layer.sh_map_has_layer_point_image),
                         iconSize:     [icon_size, icon_size], // size of the icon
                         iconAnchor:   [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
                         popupAnchor:  [popup_anchor, popup_anchor] // point from which the popup should open relative to the iconAnchor
@@ -1018,6 +1018,10 @@ export default {
             }
 
             return classification_icon;
+        },
+        getIconUrl(iconId){
+            // Construye la URL completa para el icono usando el patrón /document/{id}
+            return iconId ? `${this.base_url}/document/${iconId}` : '';
         },
         zoomToLocation(latLng){
             this.searchMarkerLatLng = latLng;
