@@ -745,7 +745,7 @@ export default {
         opacity: 0.4; /* Optional: Add some visual cue that element is disabled */
     }
 }
-.layers-dropdown /deep/ {
+.layers-dropdown ::v-deep {
     .layers-menu {
         .grouped-title {
             display: flex;
@@ -1095,12 +1095,12 @@ export default {
 }
 
 // Estilos para el radio button del modal (con /deep/ para atravesar el scoped)
-/deep/ .custom-control-input:checked ~ .custom-control-label::before {
+::v-deep .custom-control-input:checked ~ .custom-control-label::before {
     background-color: #338b94 !important;
     border-color: #338b94 !important;
 }
 
-/deep/ .btn-secondary {
+::v-deep .btn-secondary {
     background-color: #f8f9fa;
     border-color: #f8f9fa;
     color: #212529;
@@ -1112,7 +1112,7 @@ export default {
     }
 }
 
-/deep/ .btn-primary {
+::v-deep .btn-primary {
     background-color: #338b94;
     border-color: #338b94;
     color: #FFFFFF !important;

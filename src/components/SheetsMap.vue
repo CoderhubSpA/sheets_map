@@ -26,7 +26,7 @@
                 :zoom.sync="zoom"
                 :center.sync="center"
                 :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
-                :options="{ zoomControl: false, trackResize: false }"
+                :options="{ zoomControl: false, trackResize: false, preferCanvas: true }"
                 @ready="ready()"
                 @moveend="onMapMoveEnd();"
                 @click="onMapClick"
