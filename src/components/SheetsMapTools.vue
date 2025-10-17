@@ -164,7 +164,7 @@
                         :value="format"
                         class="mb-2"
                     >
-                        {{ format.toUpperCase() }}
+                        {{ getFormatDisplayName(format) }}
                     </b-form-radio>
                 </b-form-group>
             </div>
@@ -723,6 +723,22 @@ export default {
                 'geopackage': 'gpkg'
             };
             return formatMap[format.toLowerCase()] || format.toLowerCase();
+        },
+        getFormatDisplayName(format) {
+            const displayNames = {
+                'shape-zip': 'SHAPEFILE',
+                'geojson': 'GEOJSON',
+                'json': 'JSON',
+                'shapefile': 'SHAPEFILE',
+                'shp': 'SHAPEFILE',
+                'kml': 'KML',
+                'csv': 'CSV',
+                'gpkg': 'GEOPACKAGE',
+                'geopackage': 'GEOPACKAGE',
+                'gml3': 'GML3',
+                'kmz': 'KMZ'
+            };
+            return displayNames[format.toLowerCase()] || format.toUpperCase();
         }
     },
 };
