@@ -162,7 +162,7 @@ export default {
             }
         }
 
-        /deep/ a {
+        ::v-deep a {
             color: var(--link-color);
             text-decoration-line: underline;
         }

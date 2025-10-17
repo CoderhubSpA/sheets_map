@@ -1,3 +1,9 @@
+<template>
+    <!-- No renderiza ningun funcionalidad, pero es necesario para evitar que arroje un error por consola
+     indicando que hace falta el bloque <template> -->
+    <div style="display: none;"></div>
+</template>
+
 <script>
 import L from 'leaflet';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -152,10 +158,12 @@ export default {
                 pane: this.customPaneName,  // Usar el pane personalizado
                 updateInterval: 16,  // Más frecuente para mejor sincronización (default: 32)
                 padding: 0.1,  // Padding para evitar flickering en los bordes (default: 0.1)
-                // Opciones de MapLibre GL para transparencia y rendering
-                preserveDrawingBuffer: true,  // Preservar buffer para permitir transparencia
-                antialias: true,  // Mejorar calidad del rendering
-                fadeDuration: 0  // Desactivar fade para evitar problemas con múltiples capas
+                // Opciones para el contexto WebGL de MapLibre.
+                // Esto es lo que permite a html2canvas leer el contenido del canvas.
+                canvasContextAttributes: {
+                    preserveDrawingBuffer: true,  // CRÍTICO para html2canvas: Preservar buffer para permitir captura
+                    antialias: true,  // Mejorar calidad del rendering
+                }
             });
             
             // Agregar la capa al mapa
