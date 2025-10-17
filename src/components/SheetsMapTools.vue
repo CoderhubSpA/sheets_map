@@ -104,11 +104,10 @@
                                 <li
                                     v-for="option in subgroup"
                                     :key="option.key"
-                                    @click="toggleLayer(option, group, subgroup)"
                                     :class="[{'disabled-layer': option.disabled }]"
                                 >
                                     <div class="layers-setting-in-group">
-                                        <div>
+                                        <div @click="toggleLayer(option, group, subgroup)">
                                             <input
                                                 type="checkbox"
                                                 :checked="option.active"
@@ -122,9 +121,11 @@
                                                 :data-text-color="option.text_color"
                                              >{{option.value}}</label>
                                         </div>
-                                         <div>
-                                             <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value)"></b-icon>
-                                         </div>
+                                        <div>
+                                            <span class="layer-download-btn">
+                                                <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value)"></b-icon>
+                                            </span>
+                                        </div>
                                     </div>
                                 </li>
                             </ul>
@@ -952,6 +953,10 @@ export default {
                             flex-direction: row;
                             justify-content: space-between;
                             align-items: center;
+
+                            .layer-download-btn {
+                                cursor: pointer;
+                            }
                         }
                     }
                 }
