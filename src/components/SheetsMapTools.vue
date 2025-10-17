@@ -673,17 +673,18 @@ export default {
         },
         downloadWithFormat(format) {
             const exportUrl = `${this.selectedLayerUrl}/export?outputFormat=${format}`;
-
-            axios.get(exportUrl, { responseType: 'blob' }).then((response) => {
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${this.selectedLayerName}.${this.getFileExtension(format)}`;
-                a.click();
-                window.URL.revokeObjectURL(url);
-            }).catch((error) => {
-                console.error("Export error: " + error);
-            });
+            
+            // Crear elemento <a> para descarga directa del navegador
+            const a = document.createElement('a');
+            a.href = exportUrl;
+            a.download = `${this.selectedLayerName}.${this.getFileExtension(format)}`;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            
+            // Agregar temporalmente al DOM y hacer clic
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         },
         createDownloadFile(data, type, name, origen_url) {
             let blob = null;
@@ -714,6 +715,7 @@ export default {
                 'json': 'json',
                 'shapefile': 'zip',
                 'shp': 'zip',
+                'shape-zip': 'zip',
                 'kml': 'kml',
                 'csv': 'csv',
                 'gpkg': 'gpkg',
