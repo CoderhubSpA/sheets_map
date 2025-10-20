@@ -1,6 +1,6 @@
 <template>
     <div>
-        <b-button @click="showModal" class="screenshot-button">
+        <b-button @click="showModal" class="screenshot-button" title="Descargar vista de mapa">
             <div v-if="loading" class="loader"></div>
             <b-icon v-if="!loading" icon="camera" font-scale="1.5"></b-icon>
         </b-button>
