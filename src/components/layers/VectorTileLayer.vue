@@ -355,8 +355,34 @@ export default {
         
         createMapLibreLayers() {
             const layers = [];
-            const fillColor = this.layer.sh_map_has_layer_text_color || this.layer.sh_map_has_layer_color || '#3388ff';
-            const strokeColor = this.layer.sh_map_has_layer_color || '#3388ff';
+            // Colores por defecto desde la configuración de la capa
+            const defaultFillColor = this.layer.sh_map_has_layer_text_color || this.layer.sh_map_has_layer_color || '#3388ff';
+            const defaultStrokeColor = this.layer.sh_map_has_layer_color || '#3388ff';
+            
+            /**
+             * Expresiones de MapLibre GL para colores dinámicos desde el protobuff
+             * 
+             * Usa el atributo 'Fill' o 'fill' del feature si existe, sino usa el color por defecto
+             * Sintaxis: ['coalesce', ['get', 'atributo'], 'valor_por_defecto']
+             * 
+             * Probamos múltiples variantes del nombre (mayúsculas/minúsculas) para mayor compatibilidad
+             * ya que los nombres de propiedades en protobuff pueden variar.
+             */
+            const fillColorExpression = [
+                'coalesce',
+                ['get', 'Fill'],    // Intenta 'Fill' (con mayúscula)
+                ['get', 'fill'],    // Intenta 'fill' (minúscula)
+                ['get', 'FILL'],    // Intenta 'FILL' (mayúsculas)
+                defaultFillColor    // Si ninguno existe, usa el color por defecto
+            ];
+            
+            const strokeColorExpression = [
+                'coalesce',
+                ['get', 'Stroke'],  // Intenta 'Stroke' (con mayúscula)
+                ['get', 'stroke'],  // Intenta 'stroke' (minúscula)
+                ['get', 'STROKE'],  // Intenta 'STROKE' (mayúsculas)
+                defaultStrokeColor  // Si ninguno existe, usa el color por defecto
+            ];
             
             // Capa para polígonos
             layers.push({
@@ -366,12 +392,12 @@ export default {
                 'source-layer': this.sourceLayer,
                 filter: ['==', '$type', 'Polygon'],
                 paint: {
-                    'fill-color': fillColor,
+                    'fill-color': fillColorExpression,
                     'fill-opacity': 0.6
                 }
             });
             
-            // Capa para líneas
+            // Capa para líneas (bordes de polígonos y líneas)
             layers.push({
                 id: `${this.layer.id}-line`,
                 type: 'line',
@@ -379,7 +405,7 @@ export default {
                 'source-layer': this.sourceLayer,
                 filter: ['in', '$type', 'LineString', 'Polygon'],
                 paint: {
-                    'line-color': strokeColor,
+                    'line-color': strokeColorExpression,
                     'line-width': 2,
                     'line-opacity': 0.8
                 }
@@ -402,7 +428,7 @@ export default {
                     }
                 });
             } else {
-                // Layer tipo CIRCLE (sin icono)
+                // Layer tipo CIRCLE (sin icono) - también usa colores dinámicos
                 layers.push({
                     id: `${this.layer.id}-circle`,
                     type: 'circle',
@@ -411,9 +437,9 @@ export default {
                     filter: ['==', '$type', 'Point'],
                     paint: {
                         'circle-radius': 8,
-                        'circle-color': strokeColor,
+                        'circle-color': fillColorExpression, // Color dinámico desde 'Fill'
                         'circle-stroke-width': 3,
-                        'circle-stroke-color': '#ffffff',
+                        'circle-stroke-color': strokeColorExpression, // Color dinámico desde 'Stroke'
                         'circle-opacity': 1.0
                     }
                 });
