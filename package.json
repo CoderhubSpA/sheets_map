@@ -3,11 +3,12 @@
   "version": "1.50.0",
   "private": false,
   "scripts": {
-    "serve": "vue-cli-service serve",
+    "serve": "vite",
     "build": "npm run build-library",
     "build:lib": "npm run build-library",
-    "lint": "vue-cli-service lint",
-    "build-library": "vue-cli-service build --target lib --name index ./src/main.js"
+    "build-library": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .vue,.js"
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.15.0",
@@ -33,13 +34,11 @@
   "devDependencies": {
     "@babel/core": "^7.18.5",
     "@babel/eslint-parser": "^7.18.2",
-    "@vue/cli-plugin-babel": "~5.0.0",
-    "@vue/cli-plugin-eslint": "~5.0.0",
-    "@vue/cli-service": "~5.0.0",
+    "@vitejs/plugin-vue2": "^2.3.4",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
-    "node-sass": "^7.0.3",
-    "sass-loader": "^13.0.2",
+    "sass": "^1.97.3",
+    "vite": "^7.3.1",
     "vue-template-compiler": "^2.6.14"
   },
   "overrides": {
