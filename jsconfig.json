@@ -1,13 +1,11 @@
 {
-  "vueCompilerOptions": {
-    "target": 2.7,
+  "compilerOptions": {
+    "target": "esnext",
     "module": "esnext",
+    "moduleResolution": "bundler",
     "baseUrl": "./",
-    "moduleResolution": "node",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
     "lib": [
       "esnext",
@@ -15,8 +13,21 @@
       "dom.iterable",
       "scripthost"
     ],
-    "extensions": [
-      ".vue"
-    ]
-  }
+    "jsx": "preserve",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "noEmit": true
+  },
+  "vueCompilerOptions": {
+    "target": 3
+  },
+  "include": [
+    "src/**/*.js",
+    "src/**/*.vue",
+    "vite.config.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
