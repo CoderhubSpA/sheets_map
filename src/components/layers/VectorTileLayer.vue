@@ -8,6 +8,9 @@
 import L from 'leaflet';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@maplibre/maplibre-gl-leaflet';
+import { normalizeVectorTileLegendConfig, inferVectorTileLayerNameFromUrl } from '../../utils/vectorTileLegend/config';
+import { buildDefaultVectorTilePaint, buildVectorTileSemanticRenderState } from '../../utils/vectorTileLegend/style';
+import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
 
 export default {
     name: 'VectorTileLayer',
@@ -47,6 +50,8 @@ export default {
             vectorTileLayer: null,
             maplibreMap: null,
             sourceLayer: null,
+            tileUrl: null,
+            pointRenderMode: 'circle',
             isInitialized: false,
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
@@ -64,7 +69,7 @@ export default {
         this.cleanup();
     },
     methods: {
-        createVectorTileLayer() {
+        async createVectorTileLayer() {
             /**
              * IMPORTANTE: Gestión del ciclo de vida de MapLibre GL con L.maplibreGL
              * 
@@ -119,16 +124,25 @@ export default {
             // Preparar URL del tile con los parámetros {z}/{x}/{y}
             let tileUrl = this.layer.sh_map_has_layer_url;
             
-            // Extraer el nombre de la capa de la URL
-            const urlParts = tileUrl.split('/');
-            this.sourceLayer = urlParts[urlParts.length - 1].replace(/\{.*\}|\.pbf/g, '') || 'default';
-            
             // Agregar parámetros {z}/{x}/{y} si no están presentes
             if (!tileUrl.includes('{z}') && !tileUrl.includes('{x}') && !tileUrl.includes('{y}')) {
                 if (!tileUrl.endsWith('/')) {
                     tileUrl += '/';
                 }
                 tileUrl += '{z}/{x}/{y}.pbf';
+            }
+
+            this.tileUrl = tileUrl;
+
+            const renderState = await this.resolveRenderState(tileUrl);
+
+            this.sourceLayer =
+                renderState.sourceLayerHint ||
+                inferVectorTileLayerNameFromUrl(tileUrl) ||
+                'default';
+
+            if (this.isDestroyed()) {
+                return;
             }
             
             // Crear el estilo MapLibre GL (Mapbox Style Spec v8)
@@ -146,9 +160,11 @@ export default {
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                 layers: [
                     // NO incluir capa de fondo - dejar completamente transparente
-                    ...this.createMapLibreLayers()
+                    ...this.createMapLibreLayers(renderState.styleExpressions)
                 ]
             };
+
+            this.emitLegend(renderState.legend);
             
             // Crear la capa MapLibre GL como capa de Leaflet
             this.vectorTileLayer = L.maplibreGL({
@@ -177,6 +193,23 @@ export default {
             this.maplibreMap.on('load', () => {
                 this.styleLoaded = true;
             });
+
+            // Generar imágenes de formas bajo demanda.
+            // Cuando MapLibre necesita un icon-image 'vtl-shape-{shape}-{fill}-{stroke}'
+            // que aún no existe, este handler lo genera en canvas con colores baked-in.
+            this.maplibreMap.on('styleimagemissing', (e) => {
+                const id = e.id;
+                if (id && id.startsWith('vtl-shape-')) {
+                    // Formato: vtl-shape-{shape}-{fillHex}-{strokeHex}-{strokeWidth}
+                    const rest = id.substring('vtl-shape-'.length);
+                    const parts = rest.split('-');
+                    const shape = parts[0] || 'circle';
+                    const fill = '#' + (parts[1] || '3388ff');
+                    const stroke = '#' + (parts[2] || parts[1] || '3388ff');
+                    const sw = Number(parts[3]) || 3;
+                    this.generateColoredShapeImage(id, shape, fill, stroke, sw);
+                }
+            });
             
             // Asegurar que el canvas esté correctamente configurado
             this.configureCanvas();
@@ -193,6 +226,57 @@ export default {
             this.setupMouseMoveHandler();
             
             this.isInitialized = true;
+        },
+
+        isDestroyed() {
+            return this._isBeingDestroyed || this._isDestroyed;
+        },
+
+        async resolveRenderState(tileUrl) {
+            const defaultRenderState = {
+                styleExpressions: buildDefaultVectorTilePaint(this.layer),
+                legend: null,
+                sourceLayerHint: null,
+            };
+
+            const legendConfig = normalizeVectorTileLegendConfig(this.layer);
+
+            if (!legendConfig || legendConfig.mode !== 'semantic' || !legendConfig.layerName || !legendConfig.attribute) {
+                return defaultRenderState;
+            }
+
+            try {
+                const semanticLegend = await fetchVectorTileSemanticLegend({
+                    tileUrl,
+                    layerName: legendConfig.layerName,
+                    attribute: legendConfig.attribute,
+                });
+
+                if (!semanticLegend || this.isDestroyed()) {
+                    return defaultRenderState;
+                }
+
+                return buildVectorTileSemanticRenderState({
+                    layer: this.layer,
+                    config: legendConfig,
+                    semanticLegend,
+                });
+            } catch (error) {
+                console.warn(`VectorTileLayer: No fue posible cargar la leyenda semántica para capa ${this.layer.id}`, error);
+                return defaultRenderState;
+            }
+        },
+
+        emitLegend(legend) {
+            if (!legend || legend.visible === false) {
+                this.$emit('legend-clear', this.layer.id);
+                return;
+            }
+
+            this.$emit('legend-ready', {
+                layerId: this.layer.id,
+                legend,
+            });
         },
         
         /**
@@ -256,19 +340,19 @@ export default {
             // Crear lista de layers a consultar
             const layerIds = [
                 `${this.layer.id}-fill`,
+                `${this.layer.id}-line-border`,
                 `${this.layer.id}-line`
             ];
             
-            // Agregar layer de puntos según si hay icono o no
-            if (this.layer.sh_map_has_layer_point_image) {
-                layerIds.push(`${this.layer.id}-symbol`);
-            } else {
-                layerIds.push(`${this.layer.id}-circle`);
-            }
+            // Agregar layers de puntos que existen en el estilo
+            layerIds.push(...this.getPointLayerIds());
             
             // Consultar features en el punto clickeado
             const features = this.maplibreMap.queryRenderedFeatures(maplibrePoint, {
-                layers: layerIds
+                layers: layerIds.filter(id => {
+                    try { return Boolean(this.maplibreMap.getLayer(id)); }
+                    catch (_e) { return false; }
+                })
             });
             
             if (features.length > 0) {
@@ -310,9 +394,13 @@ export default {
                 const maplibrePoint = self.maplibreMap.project([e.latlng.lng, e.latlng.lat]);
                 const layerIds = [
                     `${self.layer.id}-fill`,
+                    `${self.layer.id}-line-border`,
                     `${self.layer.id}-line`,
-                    self.layer.sh_map_has_layer_point_image ? `${self.layer.id}-symbol` : `${self.layer.id}-circle`
-                ];
+                    ...self.getPointLayerIds()
+                ].filter(id => {
+                    try { return Boolean(self.maplibreMap.getLayer(id)); }
+                    catch (_e) { return false; }
+                });
                 
                 const features = self.maplibreMap.queryRenderedFeatures(maplibrePoint, {
                     layers: layerIds
@@ -332,57 +420,179 @@ export default {
          */
         loadCustomIcon() {
             if (!this.maplibreMap) return;
-            
-            const iconUrl = this.base_url + this.layer.sh_map_has_layer_point_image;
+
+            const rawIconRef = String(this.layer.sh_map_has_layer_point_image || '').trim();
+            if (!rawIconRef) return;
+
+            let iconUrl = '';
+
+            if (/^https?:\/\//i.test(rawIconRef)) {
+                iconUrl = rawIconRef;
+            } else if (rawIconRef.startsWith('/')) {
+                iconUrl = `${this.base_url}${rawIconRef}`;
+            } else {
+                iconUrl = `${this.base_url}/document/${rawIconRef}`;
+            }
+
             const iconId = `${this.layer.id}-icon`;
-            
-            // Esperar a que MapLibre esté listo
-            this.maplibreMap.on('load', () => {
-                // Cargar imagen
+
+            const loadIcon = () => {
                 this.maplibreMap.loadImage(iconUrl, (error, image) => {
                     if (error) {
                         console.error('VectorTileLayer: Error cargando icono', iconUrl, error);
                         return;
                     }
-                    
-                    // Verificar si ya existe
+
                     if (!this.maplibreMap.hasImage(iconId)) {
                         this.maplibreMap.addImage(iconId, image);
                     }
                 });
+            };
+
+            if (typeof this.maplibreMap.isStyleLoaded === 'function' && this.maplibreMap.isStyleLoaded()) {
+                loadIcon();
+                return;
+            }
+
+            this.maplibreMap.once('load', loadIcon);
+        },
+
+        /**
+         * Genera una imagen en canvas de alta resolución con colores baked-in.
+         * NO usa SDF — los colores están pintados directamente en la imagen.
+         * Esto produce formas nítidas sin distorsión de esquinas.
+         *
+         * @param {string} imageId — ID único para MapLibre
+         * @param {string} shape — circle | square | triangle | diamond
+         * @param {string} fillColor — color de relleno hex (#4E79A7)
+         * @param {string} strokeColor — color de borde hex (#3A5A80)
+         * @param {number} strokeWidth — grosor del borde en píxeles de canvas
+         */
+        generateColoredShapeImage(imageId, shape, fillColor, strokeColor, strokeWidth) {
+            if (this.maplibreMap.hasImage(imageId)) return;
+
+            const size = 128;
+            const sw = Math.max(1, Math.min(12, strokeWidth || 3));
+            // Escalar al canvas de 128px: un strokeWidth de 3 lógico → ~6px en canvas
+            const scaledSw = Math.round(sw * 2);
+            const padding = scaledSw + 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const center = size / 2;
+            const r = (size / 2) - padding;
+
+            ctx.beginPath();
+
+            switch (shape) {
+                case 'square': {
+                    const side = r * 1.6;
+                    const half = side / 2;
+                    ctx.rect(center - half, center - half, side, side);
+                    break;
+                }
+                case 'triangle':
+                    ctx.moveTo(center, center - r);
+                    ctx.lineTo(center + r * 0.87, center + r * 0.75);
+                    ctx.lineTo(center - r * 0.87, center + r * 0.75);
+                    ctx.closePath();
+                    break;
+                case 'diamond': {
+                    // Cuadrado rotado 45°
+                    const side = r * 1.15;
+                    ctx.save();
+                    ctx.translate(center, center);
+                    ctx.rotate(Math.PI / 4);
+                    ctx.rect(-side / 2, -side / 2, side, side);
+                    ctx.restore();
+                    break;
+                }
+                default: // circle
+                    ctx.arc(center, center, r, 0, Math.PI * 2);
+                    break;
+            }
+
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = scaledSw;
+            ctx.lineJoin = 'miter';
+            ctx.stroke();
+
+            const imageData = ctx.getImageData(0, 0, size, size);
+            this.maplibreMap.addImage(imageId, {
+                width: size,
+                height: size,
+                data: new Uint8Array(imageData.data.buffer),
             });
         },
+
+        /**
+         * Construye la expresión icon-image para formas con colores baked-in.
+         * Cada clase del atributo se mapea a un imageId único que codifica shape+fill+stroke.
+         *
+         * @param {string} attribute — nombre del atributo (e.g. 'tipo_de_un')
+         * @param {Array} legendItems — items resueltos con fill, stroke, pointShape, expressionKey
+         * @param {string} fallbackFill — color fill para el fallback
+         * @param {string} fallbackStroke — color stroke para el fallback
+         * @returns {string|Array} — ID de imagen o expresión match
+         */
+        buildColoredShapeIconExpression(attribute, legendItems, fallbackFill, fallbackStroke) {
+            const makeImageId = (shape, fill, stroke, sw) => {
+                const f = (fill || '#3388ff').replace('#', '');
+                const s = (stroke || f).replace('#', '');
+                const w = Math.round(Number(sw) || 3);
+                return `vtl-shape-${shape || 'circle'}-${f}-${s}-${w}`;
+            };
+
+            if (!attribute || !Array.isArray(legendItems) || legendItems.length === 0) {
+                return makeImageId('circle', fallbackFill, fallbackStroke, 3);
+            }
+
+            const expression = [
+                'match',
+                ['to-string', ['coalesce', ['get', attribute], '__VECTOR_TILE_NULL__']],
+            ];
+
+            legendItems.forEach(item => {
+                expression.push(item.expressionKey);
+                expression.push(makeImageId(item.pointShape, item.fill, item.stroke, item.pointStrokeWidth));
+            });
+
+            expression.push(makeImageId('circle', fallbackFill, fallbackStroke, 3));
+            return expression;
+        },
+
+        pointGeometryFilter() {
+            return ['==', '$type', 'Point'];
+        },
+
+        /**
+         * Retorna los IDs de layers de puntos candidatos según el modo de renderizado.
+         * Se usa para queryRenderedFeatures (click/hover).
+         */
+        getPointLayerIds() {
+            if (this.pointRenderMode === 'symbol') {
+                return [
+                    `${this.layer.id}-symbol`,
+                    `${this.layer.id}-circle-fallback`,
+                ];
+            }
+
+            return [`${this.layer.id}-circle`];
+        },
         
-        createMapLibreLayers() {
+        createMapLibreLayers(styleExpressions = null) {
             const layers = [];
-            // Colores por defecto desde la configuración de la capa
-            const defaultFillColor = this.layer.sh_map_has_layer_text_color || this.layer.sh_map_has_layer_color || '#3388ff';
-            const defaultStrokeColor = this.layer.sh_map_has_layer_color || '#3388ff';
-            
-            /**
-             * Expresiones de MapLibre GL para colores dinámicos desde el protobuff
-             * 
-             * Usa el atributo 'Fill' o 'fill' del feature si existe, sino usa el color por defecto
-             * Sintaxis: ['coalesce', ['get', 'atributo'], 'valor_por_defecto']
-             * 
-             * Probamos múltiples variantes del nombre (mayúsculas/minúsculas) para mayor compatibilidad
-             * ya que los nombres de propiedades en protobuff pueden variar.
-             */
-            const fillColorExpression = [
-                'coalesce',
-                ['get', 'Fill'],    // Intenta 'Fill' (con mayúscula)
-                ['get', 'fill'],    // Intenta 'fill' (minúscula)
-                ['get', 'FILL'],    // Intenta 'FILL' (mayúsculas)
-                defaultFillColor    // Si ninguno existe, usa el color por defecto
-            ];
-            
-            const strokeColorExpression = [
-                'coalesce',
-                ['get', 'Stroke'],  // Intenta 'Stroke' (con mayúscula)
-                ['get', 'stroke'],  // Intenta 'stroke' (minúscula)
-                ['get', 'STROKE'],  // Intenta 'STROKE' (mayúsculas)
-                defaultStrokeColor  // Si ninguno existe, usa el color por defecto
-            ];
+            const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
+            const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
+            const strokeColorExpression = resolvedStyleExpressions.strokeColorExpression;
+            const pointRadiusExpression = resolvedStyleExpressions.pointRadiusExpression || 8;
+            const pointStrokeWidthExpression = resolvedStyleExpressions.pointStrokeWidthExpression || 3;
+            const useSymbolForPointShape = Boolean(
+                resolvedStyleExpressions.useSymbolForPointShape && !this.layer.sh_map_has_layer_point_image
+            );
             
             // Capa para polígonos
             layers.push({
@@ -397,48 +607,104 @@ export default {
                 }
             });
             
-            // Capa para líneas (bordes de polígonos y líneas)
+            // Capa para bordes de polígonos
             layers.push({
-                id: `${this.layer.id}-line`,
+                id: `${this.layer.id}-line-border`,
                 type: 'line',
                 source: 'vector-tiles',
                 'source-layer': this.sourceLayer,
-                filter: ['in', '$type', 'LineString', 'Polygon'],
+                filter: ['==', '$type', 'Polygon'],
                 paint: {
                     'line-color': strokeColorExpression,
                     'line-width': 2,
                     'line-opacity': 0.8
                 }
             });
+
+            // Capa para líneas standalone (calles, ríos, etc.)
+            // Usa fillColorExpression para que coincida con la leyenda
+            layers.push({
+                id: `${this.layer.id}-line`,
+                type: 'line',
+                source: 'vector-tiles',
+                'source-layer': this.sourceLayer,
+                filter: ['==', '$type', 'LineString'],
+                paint: {
+                    'line-color': fillColorExpression,
+                    'line-width': 2.5,
+                    'line-opacity': 0.85
+                }
+            });
             
             // Capa para puntos: Usar icono personalizado SI existe, sino círculo
             if (this.layer.sh_map_has_layer_point_image) {
+                this.pointRenderMode = 'symbol';
+                layers.push({
+                    id: `${this.layer.id}-circle-fallback`,
+                    type: 'circle',
+                    source: 'vector-tiles',
+                    'source-layer': this.sourceLayer,
+                    filter: this.pointGeometryFilter(),
+                    paint: {
+                        'circle-radius': pointRadiusExpression,
+                        'circle-color': fillColorExpression,
+                        'circle-stroke-width': pointStrokeWidthExpression,
+                        'circle-stroke-color': strokeColorExpression,
+                        'circle-opacity': 0.85
+                    }
+                });
                 // Layer tipo SYMBOL con icono personalizado
                 layers.push({
                     id: `${this.layer.id}-symbol`,
                     type: 'symbol',
                     source: 'vector-tiles',
                     'source-layer': this.sourceLayer,
-                    filter: ['==', '$type', 'Point'],
+                    filter: this.pointGeometryFilter(),
                     layout: {
                         'icon-image': `${this.layer.id}-icon`,
                         'icon-size': 0.8,
                         'icon-allow-overlap': true,
-                        'icon-ignore-placement': false
+                        'icon-ignore-placement': true
+                    }
+                });
+            } else if (useSymbolForPointShape) {
+                // Formas custom via imágenes canvas con colores baked-in (NO SDF).
+                // Las imágenes se generan instantáneamente via styleimagemissing.
+                this.pointRenderMode = 'symbol';
+                const legendItems = resolvedStyleExpressions.legendItems || [];
+                const legendAttribute = resolvedStyleExpressions.legendAttribute;
+                const defaultFill = resolvedStyleExpressions.defaultFillColor || '#3388ff';
+                const defaultStroke = resolvedStyleExpressions.defaultStrokeColor || '#3388ff';
+
+                // Symbol layer con iconos de formas coloreadas
+                layers.push({
+                    id: `${this.layer.id}-symbol`,
+                    type: 'symbol',
+                    source: 'vector-tiles',
+                    'source-layer': this.sourceLayer,
+                    filter: this.pointGeometryFilter(),
+                    layout: {
+                        'icon-image': this.buildColoredShapeIconExpression(
+                            legendAttribute, legendItems, defaultFill, defaultStroke
+                        ),
+                        'icon-size': ['/', pointRadiusExpression, 32],
+                        'icon-allow-overlap': true,
+                        'icon-ignore-placement': true,
                     }
                 });
             } else {
+                this.pointRenderMode = 'circle';
                 // Layer tipo CIRCLE (sin icono) - también usa colores dinámicos
                 layers.push({
                     id: `${this.layer.id}-circle`,
                     type: 'circle',
                     source: 'vector-tiles',
                     'source-layer': this.sourceLayer,
-                    filter: ['==', '$type', 'Point'],
+                    filter: this.pointGeometryFilter(),
                     paint: {
-                        'circle-radius': 8,
+                        'circle-radius': pointRadiusExpression,
                         'circle-color': fillColorExpression, // Color dinámico desde 'Fill'
-                        'circle-stroke-width': 3,
+                        'circle-stroke-width': pointStrokeWidthExpression,
                         'circle-stroke-color': strokeColorExpression, // Color dinámico desde 'Stroke'
                         'circle-opacity': 1.0
                     }
@@ -598,6 +864,8 @@ export default {
             
             // Resetear flag de estilo cargado
             this.styleLoaded = false;
+
+            this.$emit('legend-clear', this.layer.id);
             
             // Remover capa del mapa usando el método de Leaflet
             // Esto llamará automáticamente al onRemove de L.maplibreGL que
@@ -611,6 +879,8 @@ export default {
             this.vectorTileLayer = null;
             this.maplibreMap = null;
             this.customPaneName = null;
+            this.tileUrl = null;
+            this.pointRenderMode = 'circle';
             this.isInitialized = false;
         }
     }
