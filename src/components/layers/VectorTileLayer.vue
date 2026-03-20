@@ -61,9 +61,18 @@ export default {
             styleLoaded: false
         };
     },
+    watch: {
+        map(newMap, oldMap) {
+            if (!oldMap && newMap && !this.isInitialized) {
+                this.createVectorTileLayer();
+            }
+        }
+    },
     mounted() {
         // Crear la capa cuando el componente se monta
-        this.createVectorTileLayer();
+        if (this.map && typeof this.map.addLayer === 'function') {
+            this.createVectorTileLayer();
+        }
     },
     beforeDestroy() {
         this.cleanup();
@@ -88,6 +97,10 @@ export default {
              * 
              * Referencia: https://github.com/maplibre/maplibre-gl-leaflet
              */
+            if (!this.map || typeof this.map.addLayer !== 'function' || this.isInitialized) {
+                return;
+            }
+
             // Verificar que MapLibre GL Leaflet esté disponible
             if (!L.maplibreGL) {
                 console.error('VectorTileLayer: L.maplibreGL no está disponible');
