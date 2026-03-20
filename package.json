@@ -1,6 +1,6 @@
 {
   "name": "coderhubspa_sheets_map",
-  "version": "1.51.0",
+  "version": "1.51.1",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
