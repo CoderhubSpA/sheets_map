@@ -1,0 +1,285 @@
+.default-layout {
+    display: grid;
+        grid-template-columns: 16dvw auto 1fr minmax(10dvh, auto);
+    grid-template-rows: minmax(10dvh, auto) minmax(10dvh, auto) 1fr minmax(10dvh, auto);
+    grid-template-areas:
+        "b c c c"
+        "b g h d"
+        "b . . d"
+        "b f e d";
+    width: 100dvw;
+    height: 100dvh;
+    gap: 12px;
+    color: #6b6b6b;
+    background-color: #f0f0f0;
+    box-sizing: border-box;
+
+    .zone-a {
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+        z-index: 0;
+        overflow: hidden;
+    }
+
+    .zones-container {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+    grid-template-columns: 16dvw auto 1fr minmax(10dvh, auto);
+        grid-template-rows: minmax(10dvh, auto) minmax(10dvh, auto) 1fr minmax(10dvh, auto);
+        grid-template-areas:
+            "b c c c"
+            "b g h d"
+            "b . . d"
+            "b f e d";
+        gap: 12px;
+        padding: 12px;
+        z-index: 1;
+        pointer-events: none;
+        overflow: visible;
+    }
+
+    .zone-b, .zone-c, .zone-d, .zone-e, .zone-f, .zone-g, .zone-h {
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+    }
+
+    // Zones C-H don't need a stacking context — auto allows modal (in zone-b)
+    // to appear above them via position: fixed; z-index: 9999
+    .zone-c, .zone-d, .zone-e, .zone-f, .zone-g, .zone-h {
+        z-index: auto;
+    }
+
+    &.dev-mode {
+        .zone-b, .zone-c, .zone-d, .zone-e, .zone-f, .zone-g, .zone-h {
+            background-color: #e0e0e09a;
+            border: 1px dotted #636262;
+
+            h1, h2, h4 {
+                display: revert;
+            }
+        }
+    }
+
+    .zone-c, .zone-g, .zone-h, .zone-e, .zone-f {
+        max-height: 15dvh;
+        text-align: center;
+    }
+
+    .zone-b {
+        grid-area: b;
+        text-align: end;
+        max-width: 16dvw;
+        overflow: visible;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+
+    .zone-c {
+        grid-area: c;
+        padding: 0;
+        align-items: stretch;
+        justify-content: flex-start;
+        overflow: visible;
+    }
+
+    .zone-d {
+        grid-area: d;
+        max-width: 15dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 0;
+        overflow: visible;
+    }
+
+    .zone-e {
+        grid-area: e;
+        justify-content: flex-start;
+        overflow-x: auto;
+        overflow-y: visible;
+        padding: 0;
+    }
+
+    .zone-f {
+        grid-area: f;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 0 0 8px 8px;
+        overflow: visible;
+        width: fit-content;
+    }
+
+    .zone-g {
+        grid-area: g;
+        overflow: visible;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 0 0 0 8px;
+    }
+
+    .zone-h {
+        grid-area: h;
+        overflow: visible;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .zone-i {
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        padding: 12px;
+        text-align: center;
+        pointer-events: none;
+
+        &:has(> *) {
+            pointer-events: auto;
+        }
+    }
+
+    @media (min-width: 768px) {
+        &.sidebar-collapsed {
+            grid-template-columns: 70px auto 1fr minmax(10dvh, auto);
+
+            .zones-container {
+                grid-template-columns: 70px auto 1fr minmax(10dvh, auto);
+            }
+
+            .zone-b {
+                max-width: 70px;
+            }
+        }
+    }
+
+    // ── Responsive: medium screens (tablets landscape / small desktops) ──────
+    @media (max-width: 1199px) {
+        grid-template-columns: 29dvw 1fr 1fr minmax(8dvh, auto);
+
+        .zones-container {
+            grid-template-columns: 29dvw 1fr 1fr minmax(8dvh, auto);
+        }
+
+        .zone-b {
+            max-width: 29dvw;
+        }
+
+        .zone-d {
+            max-width: 8dvh;
+        }
+
+        .zone-c,
+        .zone-g,
+        .zone-h,
+        .zone-e,
+        .zone-f {
+            max-height: 12dvh;
+        }
+
+        &.sidebar-collapsed {
+            grid-template-columns: 70px 1fr 1fr minmax(8dvh, auto);
+
+            .zones-container {
+                grid-template-columns: 70px 1fr 1fr minmax(8dvh, auto);
+            }
+
+            .zone-b {
+                max-width: 70px;
+            }
+        }
+    }
+
+    // ── Responsive: tablet portrait ──────────────────────────────────────────
+    @media (max-width: 767px) {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        grid-template-areas:
+            "c"
+            "."
+            "e";
+
+        .zones-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "c"
+                "."
+                "e";
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .zone-b {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100dvh;
+            max-width: 260px;
+            width: 260px;
+            border-radius: 0 20px 20px 0;
+            z-index: 10;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            pointer-events: auto;
+
+            &.open {
+                transform: translateX(0);
+            }
+        }
+
+        .zone-d {
+            position: fixed;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            max-width: 52px;
+            z-index: 5;
+        }
+
+        .zone-c,
+        .zone-g,
+        .zone-h,
+        .zone-e,
+        .zone-f {
+            max-height: none;
+        }
+
+        gap: 8px;
+    }
+
+    // ── Responsive: mobile ───────────────────────────────────────────────────
+    @media (max-width: 480px) {
+        grid-template-areas:
+            "c"
+            "."
+            "e";
+
+        .zones-container {
+            grid-template-areas:
+                "c"
+                "."
+                "e";
+            padding: 6px;
+            gap: 6px;
+        }
+
+        .zone-c,
+        .zone-g,
+        .zone-h,
+        .zone-e,
+        .zone-f {
+            font-size: 0.85rem;
+        }
+
+        gap: 6px;
+    }
+}

@@ -1,0 +1,63 @@
+@use '../fonts/mona_sans.scss' as *;
+
+
+$primary-color: #4c6ef5;
+$secondary-color: #4c6ef5;
+$tertiary-color: #4c6ef5;
+$other-color-1: #ff0000bc;
+$other-color-2: #ff0000bc;
+$gray-scale-1: #f8f9fa;
+$gray-scale-2: #e9ecef;
+$gray-scale-3: #dee2e6;
+$gray-scale-4: #ced4da;
+$gray-scale-5: #adb5bd;
+$gray-scale-6: #6c757d;
+$gray-scale-7: #495057;
+$text-color: #212529;
+$font-sm-size: 0.8rem;
+$font-md-size: 1rem;
+$font-lg-size: 1.2rem;
+$font-xl-size: 1.5rem;
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+$font-weight-black: 900;
+$border-radius: 0.25rem;
+$font-family: "Mona Sans", sans-serif;
+
+*,
+*::before,
+*::after {
+  font-family: $font-family;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+.theme-fruit {
+  --primary-color: #{$primary-color};
+  --secondary-color: #{$secondary-color};
+  --tertiary-color: #{$tertiary-color};
+  --other-color-1: #{$other-color-1};
+  --other-color-2: #{$other-color-2};
+  --gray-scale-1: #{$gray-scale-1};
+  --gray-scale-2: #{$gray-scale-2};
+  --gray-scale-3: #{$gray-scale-3};
+  --gray-scale-4: #{$gray-scale-4};
+  --gray-scale-5: #{$gray-scale-5};
+  --gray-scale-6: #{$gray-scale-6};
+  --gray-scale-7: #{$gray-scale-7};
+  --text-color: #{$text-color};
+  --font-sm-size: #{$font-sm-size};
+  --font-md-size: #{$font-md-size};
+  --font-lg-size: #{$font-lg-size};
+  --font-xl-size: #{$font-xl-size};
+  --font-weight-light: #{$font-weight-light};
+  --font-weight-regular: #{$font-weight-regular};
+  --font-weight-medium: #{$font-weight-medium};
+  --font-weight-bold: #{$font-weight-bold};
+  --font-weight-black: #{$font-weight-black};
+  --border-radius: #{$border-radius};
+  --font-family: #{$font-family};
+}
