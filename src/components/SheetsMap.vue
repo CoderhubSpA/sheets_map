@@ -159,6 +159,8 @@
                     :entity_type_id="vectorTile.entity_type_id"
                     :base_url="base_url"
                     @feature-click="handleVectorTileFeatureClick"
+                    @legend-ready="handleVectorTileLegendReady"
+                    @legend-clear="handleVectorTileLegendClear"
                     ref="vectorTileLayers"
                 ></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
@@ -193,7 +195,12 @@
                 <l-control class="sheets-map-legend" position="bottomright" v-if="active_layers.length > 0 && show_legend">
                     <div class="legend-container" >
                         <div v-for="layer in active_layers" :key="layer.id">
-                            <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
+                            <vector-tile-legend
+                                v-if="hasVectorTileSemanticLegend(layer)"
+                                :layer="layer"
+                                :legend="vectorTileLegend(layer.id)"
+                            />
+                            <div class="legend-lavel" v-else-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
                                 <span v-if="layer.sh_map_has_layer_point_image">
                                     <img class="legend-icon"
                                         :src="getIconUrl(layer.sh_map_has_layer_point_image)"
@@ -334,6 +341,7 @@ import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
 import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
 import VectorTileLayer from './layers/VectorTileLayer.vue';
+import VectorTileLegend from './layers/VectorTileLegend.vue';
 import PolygonDrafter from './PolygonDrafter.vue';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
@@ -370,6 +378,7 @@ export default {
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
         VectorTileLayer,
+        VectorTileLegend,
         PolygonDrafter,
         OpenFormPoint,
         QuickLayers,
@@ -440,6 +449,7 @@ export default {
             base_open_street_map       : undefined,
             operative_geoserver_wms    : [],
             operative_vector_tiles_xyz : [],
+            vector_tile_legends        : {},
             end_map_move               : false,
             end_map_pressure           : false,
             bounds_filters             : [],
@@ -1022,6 +1032,29 @@ export default {
         getIconUrl(iconId){
             // Construye la URL completa para el icono usando el patrón /document/{id}
             return iconId ? `${this.base_url}/document/${iconId}` : '';
+        },
+        hasVectorTileSemanticLegend(layer) {
+            return Boolean(
+                layer &&
+                layer.sh_map_has_layer_code === 'operative_vector_tiles_xyz' &&
+                this.vector_tile_legends[layer.id] &&
+                this.vector_tile_legends[layer.id].visible !== false &&
+                Array.isArray(this.vector_tile_legends[layer.id].items) &&
+                this.vector_tile_legends[layer.id].items.length > 0
+            );
+        },
+        vectorTileLegend(layerId) {
+            return this.vector_tile_legends[layerId] || null;
+        },
+        handleVectorTileLegendReady(payload) {
+            if (!payload || !payload.layerId || !payload.legend) return;
+
+            this.$set(this.vector_tile_legends, payload.layerId, payload.legend);
+        },
+        handleVectorTileLegendClear(layerId) {
+            if (!layerId || !this.vector_tile_legends[layerId]) return;
+
+            this.$delete(this.vector_tile_legends, layerId);
         },
         zoomToLocation(latLng){
             this.searchMarkerLatLng = latLng;
