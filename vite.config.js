@@ -7,9 +7,10 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/main.js'),
-      name: 'index',
+      name: 'CoderhubSpaSheetsMap',
       formats: ['umd', 'es'],
-      fileName: (format) => `index.${format}.js`
+      fileName: (format) => `index.${format}.js`,
+      cssFileName: 'index'
     },
     rollupOptions: {
       // Externalizar dependencias pesadas para no incluirlas en el bundle

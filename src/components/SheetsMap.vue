@@ -72,22 +72,24 @@
                 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
-                <l-tile-layer v-if="base_open_street_map"
-                    :url="base_open_street_map.sh_map_has_layer_url"
-                    :attribution="'&copy; ' + base_open_street_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
-                    ></l-tile-layer>
-                <l-tile-layer v-else-if="base_google_map"
-                    :url="base_google_map.sh_map_has_layer_url"
-                    :attribution="'&copy; ' + base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
-                    ></l-tile-layer>
-                <l-tile-layer v-else-if="base_map_guide"
-                    :url="base_map_guide.sh_map_has_layer_url"
-                    :attribution="'&copy; ' + base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
-                    ></l-tile-layer>
-                <l-tile-layer v-else :url="default_base_layer"
-                    :attribution="default_attribution"
-                    :options="{ maxNativeZoom: 19, maxZoom: 20 }"
-                    ></l-tile-layer>
+                <template v-if="!hide_base_layer">
+                    <l-tile-layer v-if="base_open_street_map"
+                        :url="base_open_street_map.sh_map_has_layer_url"
+                        :attribution="'&copy; ' + base_open_street_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
+                        ></l-tile-layer>
+                    <l-tile-layer v-else-if="base_google_map"
+                        :url="base_google_map.sh_map_has_layer_url"
+                        :attribution="'&copy; ' + base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
+                        ></l-tile-layer>
+                    <l-tile-layer v-else-if="base_map_guide"
+                        :url="base_map_guide.sh_map_has_layer_url"
+                        :attribution="'&copy; ' + base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
+                        ></l-tile-layer>
+                    <l-tile-layer v-else :url="default_base_layer"
+                        :attribution="default_attribution"
+                        :options="{ maxNativeZoom: 19, maxZoom: 20 }"
+                        ></l-tile-layer>
+                </template>
                 
                 <supercluster-entity-type-layer
                     v-for="layer in supercluster_by_entity_type_layers"
@@ -336,6 +338,7 @@ import L from 'leaflet';
 import Simplify  from 'simplify-js';
 import _ from 'lodash';
 import proj4 from 'proj4';
+import * as h3 from 'h3-js';
 import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
 import SearchBarProxy from './SearchBarProxy.vue';
 import SuperclusterLayer from './layers/SuperclusterLayer.vue';
@@ -354,14 +357,20 @@ import OpenFormPoint from './form/openFormPoint.vue';
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import QuickLayers from './layers/QuickLayers.vue';
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
+import packageInfo from '../../package.json';
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+    iconRetinaUrl: markerIcon2xUrl,
+    iconUrl: markerIconUrl,
+    shadowUrl: markerShadowUrl,
 });
 import ScreenshotButton from './ScreenshotButton.vue';
+
+const sheetsMapVersion = packageInfo.version;
 
 export default {
     name: 'SheetsMap',
@@ -455,7 +464,7 @@ export default {
             bounds_filters             : [],
             num_zoom                   : false,
             bounds                     : [],
-            h3                         : require("h3-js"),
+            h3,
             shouldShowSearchMarker     : false,
             searchMarkerLatLng         : null,
             classification_icon_column : false,
@@ -470,6 +479,7 @@ export default {
                 polyline: false,
                 delete: false
             },
+            hide_base_layer: false,
         };
     },
     computed:{
@@ -566,6 +576,66 @@ export default {
 
             };
 
+        },
+        /**
+         * API pública de acciones del mapa.
+         * Permite controlar el mapa desde fuera del componente.
+         *
+         * Uso desde el padre (con $refs):
+         *   this.$refs.sheetsMap.mapActions.zoomIn()
+         *
+         * Uso por evento (sin $refs):
+         *   <SheetsMap @map-actions-ready="onActionsReady" />
+         *   // en el padre:
+         *   methods: {
+         *     onActionsReady(actions) { this.mapActions = actions; }
+         *   }
+         *   // luego:  this.mapActions.zoomIn()
+         */
+        mapActions() {
+            return {
+                /** Acercar el zoom del mapa en 1 nivel */
+                zoomIn:  () => this.zoomMap('in'),
+                /** Alejar el zoom del mapa en 1 nivel */
+                zoomOut: () => this.zoomMap('out'),
+                /** Establecer un nivel de zoom específico (0-20) */
+                setZoom: (level) => {
+                    const z = Math.max(0, Math.min(20, level));
+                    this.zoom = z;
+                },
+                /** Obtener el nivel de zoom actual */
+                getZoom: () => this.zoom,
+                /** Volar a una ubicación { lat, lng } con zoom opcional (default 12) */
+                flyTo: (latLng, zoom) => this.zoomToLocation(latLng, zoom),
+                /** Centrar el mapa en { lat, lng } sin animación */
+                panTo: (latLng) => {
+                    if (this.map) this.map.panTo(latLng);
+                },
+                /** Filtrar por zona visible del mapa */
+                filterByBounds: () => this.filter(),
+                /** Iniciar trazo de polígono ('polygon', 'circle', 'rectangle') o 'delete' */
+                drawShape: (shape) => this.polygonAction(shape),
+                /** Cambiar formato de coordenadas (latlng / UTM) */
+                toggleCoordinateFormat: () => this.changeCoordinateFormat(),
+                /** Obtener las coordenadas del centro actual */
+                getCenter: () => this.center,
+                /** Invalidar tamaño del mapa (útil tras redimensionar el contenedor) */
+                invalidateSize: () => {
+                    if (this.map) this.map.invalidateSize(false);
+                },
+                /** Acceso directo al objeto Leaflet map (avanzado) */
+                getLeafletMap: () => this.map,
+                /** Eliminar la capa base del mapa (fondo gris neutro, solo capas de datos visibles) */
+                removeBaseLayer: () => {
+                    this.hide_base_layer = true;
+                },
+                /** Restaurar la capa base del mapa */
+                restoreBaseLayer: () => {
+                    this.hide_base_layer = false;
+                },
+                /** Consultar si la capa base está oculta */
+                isBaseLayerHidden: () => this.hide_base_layer,
+            };
         },
         btn_style(){
             let class_name = 'custom-controls';
@@ -1056,10 +1126,10 @@ export default {
 
             this.$delete(this.vector_tile_legends, layerId);
         },
-        zoomToLocation(latLng){
+        zoomToLocation(latLng, zoom){
             this.searchMarkerLatLng = latLng;
             this.shouldShowSearchMarker = true;
-            this.map.flyTo(latLng, 12);
+            this.map.flyTo(latLng, zoom || 12);
         },
         zoomMap(zoom){
             if(zoom === "out") this.zoom--;
@@ -1080,6 +1150,9 @@ export default {
             
             // Configurar handler centralizado para clicks en capas vectoriales
             this.setupVectorTileClickHandler();
+
+            // Emitir API pública para consumidores externos
+            this.$emit('map-actions-ready', this.mapActions);
         },
         
         /**
@@ -2398,6 +2471,11 @@ export default {
         poweredCoderhub() {
              // Getting Open Street Map attribution container
             const poweredByOpenStreetMap = document.querySelector('.leaflet-bottom.leaflet-right');
+
+            if (!poweredByOpenStreetMap || poweredByOpenStreetMap.querySelector('.sheets-map-version')) {
+                return;
+            }
+
             // Creating Coderhub powered by container
             const poweredByCoderhubDiv = document.createElement('div');
             poweredByCoderhubDiv.classList.add("leaflet-control-attribution");
@@ -2420,6 +2498,9 @@ export default {
             poweredByCoderhubLink.href = "https://www.coderhub.cl/";
             poweredByCoderhubLink.target = '_blank';
             poweredByCoderhubLink.style.paddingRight = "5px";
+            const poweredByVersionSpan = document.createElement('span');
+            poweredByVersionSpan.classList.add('sheets-map-version');
+            poweredByVersionSpan.textContent = `v${sheetsMapVersion}`;
             // Creating separator
             const poweredByCoderhubSpanSeparator = document.createElement('span');
             poweredByCoderhubSpanSeparator.ariaHidden = "true";
@@ -2430,6 +2511,8 @@ export default {
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpan);
             // Adding Coderhub link
             poweredByCoderhubDiv.appendChild(poweredByCoderhubLink);
+            // Adding current library version
+            poweredByCoderhubDiv.appendChild(poweredByVersionSpan);
             // Adding separator
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpanSeparator);
             // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
@@ -2585,19 +2668,19 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
     .my-map-container.drawing .my-map,
-    .my-map-container.drawing >>> .leaflet-interactive:not(.polygon_draft_circle_marker){
+    .my-map-container.drawing :deep(.leaflet-interactive:not(.polygon_draft_circle_marker)){
       cursor: crosshair !important;
     }
     .my-map {
-        min-height: 60vh;
+        min-height: 96dvh;
     }
-    .my-map >>> .my-labels{
+    .my-map :deep(.my-labels){
         background-color: transparent !important;
         border: transparent !important;
         box-shadow: none !important;
         color: white;
     }
-    .my-map.hide-cluster-labels >>> .my-labels {
+    .my-map.hide-cluster-labels :deep(.my-labels) {
         display: none;
     }
     li {
@@ -2606,8 +2689,8 @@ export default {
     }
 
 
-    .my-map >>> .leaflet-popup-content-wrapper,
-    .my-map >>> .leaflet-popup-tip{
+    .my-map :deep(.leaflet-popup-content-wrapper),
+    .my-map :deep(.leaflet-popup-tip){
         background-color: var(--sh-map-marker-pop-up-background);
         border-color : var(--sh-map-marker-pop-up-border-color);
         border-width : var(--sh-map-marker-pop-up-border-width);
@@ -2657,13 +2740,19 @@ export default {
         font-size: 0.7rem;
     }
 
+    .custom-controls .zoom-btn:hover {
+        background-color: #e2e6ea;
+        border-color: #dae0e5;
+        color: #212529;
+    }
+
     /* This line delete the UKR flag in the leaflet powered banner */
-    .my-map >>> .leaflet-control-attribution svg {
+    .my-map :deep(.leaflet-control-attribution svg) {
         display: none !important;
     }
 
     /* This line deletes additional padding-right of coderhub powered container after delete UKR flag */
-    .my-map >>> .leaflet-right > .leaflet-control:first-child {
+    .my-map :deep(.leaflet-right > .leaflet-control:first-child) {
         padding-right: 0px;
     }
     .legend-container{
@@ -2761,19 +2850,19 @@ export default {
     }
     
     /* Asegurar que los popups de MapLibre GL vector tiles aparezcan sobre el canvas */
-    .my-map >>> .leaflet-popup-pane {
+    .my-map :deep(.leaflet-popup-pane) {
         z-index: 10000 !important;
         pointer-events: none; /* Permitir clicks a través del pane */
     }
     
-    .my-map >>> .leaflet-popup {
+    .my-map :deep(.leaflet-popup) {
         z-index: 10001 !important;
         pointer-events: auto; /* Permitir interacción con el popup */
         /* IMPORTANTE: No forzar position relative; Leaflet calcula top/left para que la punta (tip) apunte al punto */
     }
     
-    .my-map >>> .leaflet-popup-content-wrapper,
-    .my-map >>> .leaflet-popup-tip {
+    .my-map :deep(.leaflet-popup-content-wrapper),
+    .my-map :deep(.leaflet-popup-tip) {
         z-index: 10003 !important;
         /* No alterar position aquí; Leaflet usa absolute en el contenedor principal */
     }
@@ -2787,8 +2876,8 @@ export default {
     */
     
     /* Asegurar que el canvas de MapLibre esté DEBAJO de los popups */
-    .my-map >>> .maplibregl-canvas-container,
-    .my-map >>> .maplibregl-canvas {
+    .my-map :deep(.maplibregl-canvas-container),
+    .my-map :deep(.maplibregl-canvas) {
         z-index: 1 !important;
     }
 

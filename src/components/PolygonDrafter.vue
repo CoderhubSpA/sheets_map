@@ -29,6 +29,7 @@ import {
     LCircleMarker
 } from 'vue2-leaflet';
 import * as L from 'leaflet';
+import "@geoman-io/leaflet-geoman-free";
 export default {
     name: "PolygonDrafter",
     props: {
@@ -57,6 +58,7 @@ export default {
             },
             invisibleLayer: null,
             popupcontents: {},
+            pmInitialized: false,
         };
     },
     computed: {
@@ -109,44 +111,53 @@ export default {
     },
     watch: {
         map() {
-            this.map.pm.setLang("es");
-            L.PM.setOptIn(true);
-            this.map.on('pm:create', (e) => {
-                // Creamos el id, y tomamos la layer y el objeto geojson creado
-                let polygon_id = "ID" + this.polygon_arr_id_cont;
-                const layer = e.layer;
-                let geojson = e.shape == "Circle" ? L.PM.Utils.circleToPolygon(layer, 60).toGeoJSON() : layer.toGeoJSON();
-
-                // Agregamos el id al objeto geojson y a la layer, luego lo agregamos al array de poligonos
-                layer.properties = polygon_id;
-                geojson.properties.id = polygon_id;
-                let polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
-                polygon_structure["features"][0] = geojson;
-                this.polygon_arr[polygon_id] = polygon_structure;
-                this.polygon_arr_id_cont++;
-                this.layers.push(layer);
-
-                //Configuramos la layer como editable mediante geoman
-                layer.options.pmIgnore = false;
-                L.PM.reInitLayer(layer);
-
-                // Agregamos los eventos para las modificaciones de la layer
-                this.setupLayerEvents(layer);
-
-                // Calculamos los bounds de los poligonos y los emitimos a sheets
-                this.polygonBounds();
-                this.$emit('apply-filter', this.bounds_filters);
-                this.drawing = false;
-                this.map.eachLayer((layer) => {
-                    if (this.popupcontents[layer._leaflet_id]) {
-                        layer.bindPopup(this.popupcontents[layer._leaflet_id]);
-                        delete this.popupcontents[layer._leaflet_id];
-                    }
-                });
-            });
+            this.initializePm();
         }
     },
     methods: {
+        initializePm() {
+            if (this.pmInitialized || !this.map || !this.map.pm || !L.PM) {
+                return;
+            }
+
+            this.map.pm.setLang("es");
+            L.PM.setOptIn(true);
+            this.map.on('pm:create', this.handlePmCreate);
+            this.pmInitialized = true;
+        },
+        handlePmCreate(e) {
+            // Creamos el id, y tomamos la layer y el objeto geojson creado
+            let polygon_id = "ID" + this.polygon_arr_id_cont;
+            const layer = e.layer;
+            let geojson = e.shape == "Circle" ? L.PM.Utils.circleToPolygon(layer, 60).toGeoJSON() : layer.toGeoJSON();
+
+            // Agregamos el id al objeto geojson y a la layer, luego lo agregamos al array de poligonos
+            layer.properties = polygon_id;
+            geojson.properties.id = polygon_id;
+            let polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
+            polygon_structure["features"][0] = geojson;
+            this.polygon_arr[polygon_id] = polygon_structure;
+            this.polygon_arr_id_cont++;
+            this.layers.push(layer);
+
+            //Configuramos la layer como editable mediante geoman
+            layer.options.pmIgnore = false;
+            L.PM.reInitLayer(layer);
+
+            // Agregamos los eventos para las modificaciones de la layer
+            this.setupLayerEvents(layer);
+
+            // Calculamos los bounds de los poligonos y los emitimos a sheets
+            this.polygonBounds();
+            this.$emit('apply-filter', this.bounds_filters);
+            this.drawing = false;
+            this.map.eachLayer((layer) => {
+                if (this.popupcontents[layer._leaflet_id]) {
+                    layer.bindPopup(this.popupcontents[layer._leaflet_id]);
+                    delete this.popupcontents[layer._leaflet_id];
+                }
+            });
+        },
         setupLayerEvents(layer) {
             // No esta activada la funcion para actualizar dibujos (edit tool), se mantiene en caso de ser agregado
             layer.on('pm:update', (e) => {

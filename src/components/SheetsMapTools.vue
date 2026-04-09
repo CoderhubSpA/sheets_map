@@ -178,6 +178,7 @@ import SheetsTooltip from "./SheetsTooltip.vue";
 import axios from 'axios';
 
 export default {
+    name: 'SheetsMapTools',
     components: {
         BIcon,
         BModal,
