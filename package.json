@@ -4,9 +4,7 @@
   "private": false,
   "scripts": {
     "serve": "vite",
-    "build": "npm run build-library",
-    "build:lib": "npm run build-library",
-    "build-library": "vite build",
+    "build:lib": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .vue,.js"
   },
