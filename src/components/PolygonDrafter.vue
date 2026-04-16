@@ -1,272 +1,382 @@
 <template>
-    <div>
-        <!-- Circle drawing-->
-        <l-circle-marker v-if="draft_circle_coordinates.length > 0" :lat-lng="draft_circle_coordinates"
-            :radius="style_variables['polygon_draft_circle_radius']" :color="style_variables['polygon_draft_fill_color']"
-            :fillColor="style_variables['polygon_draft_fill_color']" :fillOpacity="1"
-            className="polygon_draft_circle_marker" title="Terminar poligono" v-on:click="draw()" />
-        <!-- Circle drawing-->
-        <div v-if="analytic_geojson_list.length > 0 && drawing">
-            <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
-                <l-geo-json :geojson="analytic_geojson.geojson" :options-style="active_layer_draft_style"></l-geo-json>
-            </div>
-
-        </div>
-        <!-- End Analytic layers -->
-
-        <!-- Operative layers -->
-
-        <div v-if="operative_geojson_list.length > 0 && drawing">
-            <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
-                <l-geo-json :geojson="operative_geojson.geojson" :options-style="active_layer_draft_style"></l-geo-json>
-            </div>
-        </div>
+  <div>
+    <!-- Circle drawing-->
+    <l-circle-marker
+      v-if="draft_circle_coordinates.length > 0"
+      :lat-lng="draft_circle_coordinates"
+      :radius="style_variables['polygon_draft_circle_radius']"
+      :color="style_variables['polygon_draft_fill_color']"
+      :fillColor="style_variables['polygon_draft_fill_color']"
+      :fillOpacity="1"
+      className="polygon_draft_circle_marker"
+      title="Terminar poligono"
+      v-on:click="draw()"
+    />
+    <!-- Circle drawing-->
+    <div v-if="analytic_geojson_list.length > 0 && drawing">
+      <div
+        v-for="analytic_geojson in analytic_geojson_list"
+        :key="analytic_geojson.id"
+      >
+        <l-geo-json
+          :geojson="analytic_geojson.geojson"
+          :options-style="active_layer_draft_style"
+        ></l-geo-json>
+      </div>
     </div>
+    <!-- End Analytic layers -->
+
+    <!-- Operative layers -->
+
+    <div v-if="operative_geojson_list.length > 0 && drawing">
+      <div
+        v-for="operative_geojson in operative_geojson_list"
+        :key="operative_geojson.id"
+      >
+        <l-geo-json
+          :geojson="operative_geojson.geojson"
+          :options-style="active_layer_draft_style"
+        ></l-geo-json>
+      </div>
+    </div>
+  </div>
 </template>
 <script>
-import {
-    LGeoJson,
-    LCircleMarker
-} from 'vue2-leaflet';
-import * as L from 'leaflet';
+import { LGeoJson, LCircleMarker } from "vue2-leaflet";
+import * as L from "leaflet";
+import "@geoman-io/leaflet-geoman-free";
 export default {
-    name: "PolygonDrafter",
-    props: {
-        info: Object,
-        style_variables: Object,
-        analytic_geojson_list: Array,
-        operative_geojson_list: Array,
-        map: Object,
-    },
-    components: {
-        LGeoJson,
-        LCircleMarker
-    },
-    data() {
-        return {
-            drawing: false,
-            polygon_arr: {},
-            polygon_arr_id_cont: 0,
-            layers: [],
-            bounds_filters: [],
-            draft_circle_coordinates: [],
-            buttons_pressed: {
-                marker: false,
-                polyline: false,
-                delete: false
+  name: "PolygonDrafter",
+  props: {
+    info: Object,
+    style_variables: Object,
+    analytic_geojson_list: Array,
+    operative_geojson_list: Array,
+    map: Object,
+  },
+  components: {
+    LGeoJson,
+    LCircleMarker,
+  },
+  data() {
+    return {
+      drawing: false,
+      polygon_arr: {},
+      polygon_arr_id_cont: 0,
+      layers: [],
+      bounds_filters: [],
+      draft_circle_coordinates: [],
+      buttons_pressed: {
+        marker: false,
+        polyline: false,
+        delete: false,
+      },
+      invisibleLayer: null,
+      popupcontents: {},
+      pmInitialized: false,
+    };
+  },
+  computed: {
+    //Estructura base para poligonos y cuadrados
+    polygon_structure() {
+      let polygon_structure = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: { id: "" },
+            geometry: {
+              coordinates: [],
+              type: "Polygon",
             },
-            invisibleLayer: null,
-            popupcontents: {},
-        };
+          },
+        ],
+      };
+      return polygon_structure;
     },
-    computed: {
-        //Estructura base para poligonos y cuadrados
-        polygon_structure() {
-            let polygon_structure = {
-                "type": "FeatureCollection",
-                "features": [
-                    {
-                        "type": "Feature",
-                        "properties": { "id": "" },
-                        "geometry": {
-                            "coordinates": [],
-                            "type": "Polygon"
-                        }
-                    }
-                ]
-            };
-            return polygon_structure;
+    draft_style() {
+      const style = {
+        templineStyle: {
+          color: this.style_variables["polygon_draft_color"],
+          weight: this.style_variables["polygon_draft_weight"],
         },
-        draft_style() {
-            const style = {
-                templineStyle: {
-                    color: this.style_variables['polygon_draft_color'],
-                    weight: this.style_variables['polygon_draft_weight']
-                },
-                hintlineStyle: {
-                    color: this.style_variables['polygon_draft_color'],
-                    dashArray: this.style_variables['polygon_draft_dash_array']
-                },
-                pathOptions: {
-                    color: this.style_variables['polygon_draft_color'],
-                    fillColor: this.style_variables['polygon_draft_fill_color'],
-                    fillOpacity: this.style_variables['polygon_draft_fill_opacity']
-                },
-            };
-
-            return style;
+        hintlineStyle: {
+          color: this.style_variables["polygon_draft_color"],
+          dashArray: this.style_variables["polygon_draft_dash_array"],
         },
-        active_layer_draft_style() {
+        pathOptions: {
+          color: this.style_variables["polygon_draft_color"],
+          fillColor: this.style_variables["polygon_draft_fill_color"],
+          fillOpacity: this.style_variables["polygon_draft_fill_opacity"],
+        },
+      };
 
-            const style = {
-                opacity: 0,
-                fillOpacity: 0
-            };
+      return style;
+    },
+    active_layer_draft_style() {
+      const style = {
+        opacity: 0,
+        fillOpacity: 0,
+      };
 
+      return style;
+    },
+  },
+  watch: {
+    map() {
+      this.initializePm();
+    },
+  },
+  methods: {
+    initializePm() {
+      if (this.pmInitialized || !this.map || !this.map.pm || !L.PM) {
+        return;
+      }
 
-            return style;
+      this.map.pm.setLang("es");
+      L.PM.setOptIn(true);
+      this.map.on("pm:create", this.handlePmCreate);
+      this.map.on("pm:drawend", this.handlePmDrawEnd);
+      this.pmInitialized = true;
+    },
+    handlePmCreate(e) {
+      // Creamos el id, y tomamos la layer y el objeto geojson creado
+      let polygon_id = "ID" + this.polygon_arr_id_cont;
+      const layer = e.layer;
+      let geojson =
+        e.shape == "Circle"
+          ? L.PM.Utils.circleToPolygon(layer, 60).toGeoJSON()
+          : layer.toGeoJSON();
+
+      // Agregamos el id al objeto geojson y a la layer, luego lo agregamos al array de poligonos
+      layer.properties = polygon_id;
+      geojson.properties.id = polygon_id;
+      let polygon_structure = JSON.parse(
+        JSON.stringify(this.polygon_structure),
+      );
+      polygon_structure["features"][0] = geojson;
+      this.polygon_arr[polygon_id] = polygon_structure;
+      this.polygon_arr_id_cont++;
+      this.layers.push(layer);
+
+      //Configuramos la layer como editable mediante geoman
+      layer.options.pmIgnore = false;
+      L.PM.reInitLayer(layer);
+
+      // Agregamos los eventos para las modificaciones de la layer
+      this.setupLayerEvents(layer);
+
+      // Calculamos los bounds de los poligonos y los emitimos a sheets
+      this.polygonBounds();
+      this.$emit("apply-filter", this.bounds_filters);
+      // Guardamos el shape activo para re-habilitar en pm:drawend
+      this._lastShape = e.shape;
+      this.map.eachLayer((layer) => {
+        if (this.popupcontents[layer._leaflet_id]) {
+          layer.bindPopup(this.popupcontents[layer._leaflet_id]);
+          delete this.popupcontents[layer._leaflet_id];
         }
+      });
     },
-    watch: {
-        map() {
-            this.map.pm.setLang("es");
-            L.PM.setOptIn(true);
-            this.map.on('pm:create', (e) => {
-                // Creamos el id, y tomamos la layer y el objeto geojson creado
-                let polygon_id = "ID" + this.polygon_arr_id_cont;
-                const layer = e.layer;
-                let geojson = e.shape == "Circle" ? L.PM.Utils.circleToPolygon(layer, 60).toGeoJSON() : layer.toGeoJSON();
-
-                // Agregamos el id al objeto geojson y a la layer, luego lo agregamos al array de poligonos
-                layer.properties = polygon_id;
-                geojson.properties.id = polygon_id;
-                let polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
-                polygon_structure["features"][0] = geojson;
-                this.polygon_arr[polygon_id] = polygon_structure;
-                this.polygon_arr_id_cont++;
-                this.layers.push(layer);
-
-                //Configuramos la layer como editable mediante geoman
-                layer.options.pmIgnore = false;
-                L.PM.reInitLayer(layer);
-
-                // Agregamos los eventos para las modificaciones de la layer
-                this.setupLayerEvents(layer);
-
-                // Calculamos los bounds de los poligonos y los emitimos a sheets
-                this.polygonBounds();
-                this.$emit('apply-filter', this.bounds_filters);
-                this.drawing = false;
-                this.map.eachLayer((layer) => {
-                    if (this.popupcontents[layer._leaflet_id]) {
-                        layer.bindPopup(this.popupcontents[layer._leaflet_id]);
-                        delete this.popupcontents[layer._leaflet_id];
-                    }
-                });
-            });
+    setupLayerEvents(layer) {
+      // No esta activada la funcion para actualizar dibujos (edit tool), se mantiene en caso de ser agregado
+      layer.on("pm:update", (e) => {
+        let polygon_id = e.layer.properties;
+        let geojson =
+          e.shape == "Circle"
+            ? L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON()
+            : e.layer.toGeoJSON();
+        geojson.properties.id = polygon_id;
+        let polygon_structure = JSON.parse(
+          JSON.stringify(this.polygon_structure),
+        );
+        polygon_structure["features"][0] = geojson;
+        this.polygon_arr[polygon_id] = polygon_structure;
+        this.polygonBounds();
+        this.$emit("apply-filter", this.bounds_filters);
+      });
+      // Evento para borrar poligonos
+      layer.on("pm:remove", (e) => {
+        // Se toma el id del poligono a partir de la layer, y se borra del arreglo. En caso de que el arreglo quede
+        // vacio se lanza el evento para recalcular los puntos en vista del mapa
+        let polygon_id = e.layer.properties;
+        delete this.polygon_arr[polygon_id];
+        if (Object.keys(this.polygon_arr).length == 0) {
+          this.$emit("drawing-empty");
+        } else {
+          this.polygonBounds();
+          this.$emit("apply-filter", this.bounds_filters);
         }
+      });
     },
-    methods: {
-        setupLayerEvents(layer) {
-            // No esta activada la funcion para actualizar dibujos (edit tool), se mantiene en caso de ser agregado
-            layer.on('pm:update', (e) => {
-                let polygon_id = e.layer.properties;
-                let geojson = e.shape == "Circle" ? L.PM.Utils.circleToPolygon(e.layer, 60).toGeoJSON() : e.layer.toGeoJSON();
-                geojson.properties.id = polygon_id;
-                let polygon_structure = JSON.parse(JSON.stringify(this.polygon_structure))
-                polygon_structure["features"][0] = geojson;
-                this.polygon_arr[polygon_id] = polygon_structure;
-                this.polygonBounds();
-                this.$emit('apply-filter', this.bounds_filters);
-            });
-            // Evento para borrar poligonos
-            layer.on('pm:remove', (e) => {
-                // Se toma el id del poligono a partir de la layer, y se borra del arreglo. En caso de que el arreglo quede 
-                // vacio se lanza el evento para recalcular los puntos en vista del mapa
-                let polygon_id = e.layer.properties;
-                delete this.polygon_arr[polygon_id];
-                if (Object.keys(this.polygon_arr).length == 0) {
-                    this.$emit('drawing-empty');
-                } else {
-                    this.polygonBounds();
-                    this.$emit('apply-filter', this.bounds_filters);
-                }
-            });
-        },
-        polygonBounds() {
+    polygonBounds() {
+      let search = [];
 
-            let search = [];
+      for (const [key, geojson] of Object.entries(this.polygon_arr)) {
+        console.log(key);
+        console.log(geojson);
+        search.push(geojson.features[0].geometry.coordinates[0]);
+      }
 
-            for (const [key, geojson] of Object.entries(this.polygon_arr)) {
-                console.log(key);
-                console.log(geojson);
-                search.push(geojson.features[0].geometry.coordinates[0]);
-            }
+      let all_col = this.info.columns;
 
-            let all_col = this.info.columns;
+      // Not continue if search is empty
+      if (search.length == 0) {
+        this.bounds_filters = [];
+        return;
+      }
 
-            // Not continue if search is empty
-            if (search.length == 0) {
-                this.bounds_filters = [];
-                return;
-            }
+      let hasPolygonColumn = all_col.some(
+        (column) => column.format === "POLYGON",
+      );
 
-            let hasPolygonColumn = all_col.some(column => column.format === 'POLYGON');
+      if (!hasPolygonColumn) {
+        console.warn(
+          'No se encontro columna con formato "POLYGON" en la entidad',
+        );
+      }
 
-            if (!hasPolygonColumn) {
-                console.warn('No se encontro columna con formato "POLYGON" en la entidad');
-            }
-            
-            let bounds_filters = all_col.filter(columns =>
-                columns.format == 'POLYGON'
-            ).map((columns, key) => {
+      let bounds_filters = all_col
+        .filter((columns) => columns.format == "POLYGON")
+        .map((columns, key) => {
+          let bounds_filter = {
+            column: columns,
+            id: "external-filter-" + columns.id,
+            order: key + 1,
+            search: search,
+            type: "POLYGON",
+          };
+          return bounds_filter;
+        });
+      this.bounds_filters = bounds_filters;
+    },
+    beginDraw(shape) {
+      //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
+      this.map.eachLayer((layer) => {
+        layer.closePopup();
+        this.popupcontents[layer._leaflet_id] = layer.getPopup();
+        layer.unbindPopup();
+      });
+      //activamos el valor de drawing, y desactivamos el modo de borrado, para empezar a dibujar
+      this.drawing = true;
+      // Guardar en capitalizado (como lo devuelve geoman en e.shape) para usarlo en enableDraw
+      const shapeMap = {
+        polygon: "Polygon",
+        circle: "Circle",
+        rectangle: "Rectangle",
+      };
+      this._prevShape = shapeMap[shape] || shape;
+      this.setCursor("crosshair");
+      this.map.pm.disableGlobalRemovalMode();
+      this.buttons_pressed["delete"] = false;
+      this.$emit("button-pressed", this.buttons_pressed);
+      switch (shape) {
+        // caso para un marcador, para ser utilizado debe activarse el boton en SheetsMap
+        // case 'marker': {
+        //     if (this.buttons_pressed["marker"]) {
+        //         this.map.pm.disableDraw();
+        //     } else {
+        //         this.map.pm.enableDraw('Marker');
+        //     }
+        //     this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
+        //     this.$emit('button-pressed', this.buttons_pressed);
+        //     break;
+        // }
+        case "polygon": {
+          this.map.pm.enableDraw("Polygon", this.draft_style);
 
-                let bounds_filter = {
-                    "column": columns,
-                    "id": "external-filter-" + columns.id,
-                    "order": key + 1,
-                    "search": search,
-                    "type": "POLYGON"
-                };
-                return bounds_filter;
-            });
-            this.bounds_filters = bounds_filters;
+          break;
+        }
+        case "circle": {
+          this.map.pm.enableDraw("Circle", this.draft_style);
 
-        },
-        beginDraw(shape) {
-            //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
-            this.map.eachLayer((layer) => {
-                layer.closePopup();
-                this.popupcontents[layer._leaflet_id] = layer.getPopup();
-                layer.unbindPopup();
-            });
-            //activamos el valor de drawing, y desactivamos el modo de borrado, para empezar a dibujar
-            this.drawing = true;
-            this.map.pm.disableGlobalRemovalMode();
-            this.buttons_pressed['delete'] = false;
-            this.$emit('button-pressed', this.buttons_pressed);
-            switch (shape) {
-                // caso para un marcador, para ser utilizado debe activarse el boton en SheetsMap
-                // case 'marker': {
-                //     if (this.buttons_pressed["marker"]) {
-                //         this.map.pm.disableDraw();
-                //     } else {
-                //         this.map.pm.enableDraw('Marker');
-                //     }
-                //     this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
-                //     this.$emit('button-pressed', this.buttons_pressed);
-                //     break;
-                // }
-                case 'polygon': {
-                    this.map.pm.enableDraw('Polygon', this.draft_style);
+          break;
+        }
+        case "rectangle": {
+          this.map.pm.enableDraw("Rectangle", this.draft_style);
 
-                    break;
-                }
-                case 'circle': {
-                    this.map.pm.enableDraw('Circle', this.draft_style);
-
-                    break;
-                }
-                case 'rectangle': {
-                    this.map.pm.enableDraw('Rectangle', this.draft_style);
-
-                    break;
-                }
-            }
-        },
-        toggleDelete() {
-            this.map.pm.toggleGlobalRemovalMode();
-            this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
-            this.$emit('button-pressed', this.buttons_pressed);
-        },
-        deleteAll() {
-            for (const layer of this.layers) {
-                this.map.removeLayer(layer);
-            }
-            this.polygon_arr = {};
-            this.polygonBounds();
-            this.$emit('apply-filter', this.bounds_filters);
-        },
-    }
-}
+          break;
+        }
+      }
+    },
+    toggleDelete() {
+      if (!this.map || !this.map.pm) return;
+      this.map.pm.toggleGlobalRemovalMode();
+      this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
+      this.$emit("button-pressed", this.buttons_pressed);
+      // Si se activa el eraser, pausamos el modo dibujo
+      if (this.buttons_pressed["delete"]) {
+        this.map.pm.disableDraw();
+        this.drawing = false;
+        this._lastShape = null;
+        this.setCursor("");
+      } else if (
+        this._prevShape &&
+        this.drawing === false &&
+        !this._cancelling
+      ) {
+        // Si se desactiva el eraser y había un shape activo, retomamos el dibujo
+        this.drawing = true;
+        this._lastShape = this._prevShape;
+        this._prevShape = null;
+        this.setCursor("crosshair");
+        if (this.map && this.map.pm) {
+          this.map.pm.enableDraw(this._lastShape, this.draft_style);
+        }
+      } else {
+        // Desactivado por cancelación — limpiar sin retomar
+        this._prevShape = null;
+      }
+    },
+    cancelDraw() {
+      this._cancelling = true;
+      this.map.pm.disableDraw();
+      this.drawing = false;
+      this._lastShape = null;
+      this._prevShape = null;
+      this.setCursor("");
+      this._cancelling = false;
+    },
+    // pm:drawend se dispara después de pm:create Y al desactivar eraser mode.
+    // Solo re-habilitamos el draw si drawing sigue activo (polígono completado, no cancelado).
+    // Verificamos que el shape sea un shape de dibujo válido (no "Removal" del eraser).
+    handlePmDrawEnd(e) {
+      const validShapes = [
+        "Polygon",
+        "Circle",
+        "Rectangle",
+        "Marker",
+        "CircleMarker",
+        "Line",
+      ];
+      const isDrawShape = e && e.shape && validShapes.includes(e.shape);
+      if (this.drawing && this._lastShape && isDrawShape) {
+        // Capturamos _lastShape AHORA — no en el momento de ejecución del nextTick,
+        // porque toggleDelete puede nullarlo antes de que el microtask se ejecute.
+        const shapeToRedraw = this._lastShape;
+        this.$nextTick(() => {
+          if (this.map && this.map.pm && this.drawing && shapeToRedraw) {
+            this.map.pm.enableDraw(shapeToRedraw, this.draft_style);
+          }
+        });
+      } else if (this._lastShape && !this.drawing && isDrawShape) {
+        this._lastShape = null;
+        this.setCursor("");
+      }
+    },
+    setCursor(type) {
+      const container = this.map.getContainer();
+      if (container) container.style.cursor = type;
+    },
+    deleteAll() {
+      for (const layer of this.layers) {
+        this.map.removeLayer(layer);
+      }
+      this.layers = [];
+      this.polygon_arr = {};
+      this.bounds_filters = [];
+      this.$emit("apply-filter", null);
+    },
+  },
+};
 </script>

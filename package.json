@@ -1,12 +1,10 @@
 {
   "name": "coderhubspa_sheets_map",
-  "version": "1.50.0",
+  "version": "1.52.0",
   "private": false,
   "scripts": {
     "serve": "vite",
-    "build": "npm run build-library",
-    "build:lib": "npm run build-library",
-    "build-library": "vite build",
+    "build:lib": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .vue,.js"
   },
@@ -65,6 +63,8 @@
   ],
   "description": "Sheets Map",
   "main": "dist/index.umd.js",
+  "module": "dist/index.es.js",
+  "style": "dist/index.css",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CoderhubSpA/sheets_map.git"

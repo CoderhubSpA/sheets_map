@@ -1,38 +1,32 @@
 <template>
-    <div :id="'content-'+config.id" :style="css_vars">
+    <div :id="'content-' + config.id" :style="css_vars">
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
         <div class="search-and-quick-layer-container">
-            <search-bar-proxy
-                v-if="config.sh_map_search_component && config.sh_map_search_component_config"
-                :componentName="config.sh_map_search_component"
-                :config="JSON.parse(config.sh_map_search_component_config)"
-                @change-location="zoomToLocation"
-            />
-            <QuickLayers
-                :layers="working_layers"
-                :css_vars="css_vars"
-                v-on:set-layer="setLayer"
-            ></QuickLayers>
+            <search-bar-proxy v-if="
+                config.sh_map_search_component &&
+                config.sh_map_search_component_config
+            " :componentName="config.sh_map_search_component" :config="JSON.parse(config.sh_map_search_component_config)"
+                @change-location="zoomToLocation" />
+            <QuickLayers :layers="working_layers" :css_vars="css_vars" v-on:set-layer="setLayer"></QuickLayers>
         </div>
-        <div ref="map_container" class="my-map-container" :class="[{'drawing': ($refs.polygon_drafter) ? $refs.polygon_drafter.drawing : false}, {'drawing': point_mode == 'form-point'}]">
+        <div ref="map_container" class="my-map-container" :class="[
+            {
+                drawing: $refs.polygon_drafter
+                    ? $refs.polygon_drafter.drawing
+                    : false,
+            },
+            { drawing: point_mode == 'form-point' },
+        ]">
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
-            <l-map 
-                ref="my_map"
-                id="my-map"
-                class="my-map"
-                :zoom.sync="zoom"
-                :center.sync="center"
-                :class="{ 'hide-cluster-labels': should_hide_cluster_labels}"
-                :options="{ zoomControl: false, trackResize: false, preferCanvas: true }"
-                @ready="ready()"
-                @moveend="onMapMoveEnd();"
-                @click="onMapClick"
-                @mouseup="onMapMouseUp();"
-            >
-
+            <l-map ref="my_map" id="my-map" class="my-map" :zoom.sync="zoom" :center.sync="center"
+                :class="{ 'hide-cluster-labels': should_hide_cluster_labels }" :options="{
+                    zoomControl: false,
+                    trackResize: false,
+                    preferCanvas: true,
+                }" @ready="ready()" @moveend="onMapMoveEnd()" @click="onMapClick" @mouseup="onMapMouseUp()">
                 <div :class="btn_style">
                     <div class="zoom-wrapper">
                         <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
@@ -42,98 +36,75 @@
                             <b-icon icon="plus-lg"></b-icon>
                         </b-button>
                     </div>
-                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
+                        @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
-                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
+                        @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
                         <b-icon icon="circle"></b-icon>
                     </b-button>
-                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
+                        @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
                         <b-icon icon="square"></b-icon>
                     </b-button>
-                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn" @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa" :pressed="buttons_pressed['delete']">
+                    <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
+                        @click.capture.stop="polygonAction('delete')" title="Elimina los trazos libres en el mapa"
+                        :pressed="buttons_pressed['delete']">
                         <b-icon icon="eraser"></b-icon>
                     </b-button>
-                    <OpenFormPoint
-                        :info="info"
-                        :mapPoint="point"
-                        :styleVariables="style_variables"
-                        :operativeGeojsonList="operative_geojson_list"
-                        v-on:point-mode="setPointMode"
-                        v-on:data-form="setForm"
-                    />
-                    <ScreenshotButton
-                        target-id="my-map"
-                        filename="sheets-map-screenshot"
-                        :quality="1"
-                    />
+                    <OpenFormPoint :info="info" :mapPoint="point" :styleVariables="style_variables"
+                        :operativeGeojsonList="operative_geojson_list" v-on:point-mode="setPointMode"
+                        v-on:data-form="setForm" />
+                    <ScreenshotButton target-id="my-map" filename="sheets-map-screenshot" :quality="1" />
                 </div>
-                <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng" ></l-marker>
-                
+                <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng"></l-marker>
+
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
-                <l-tile-layer v-if="base_open_street_map"
-                    :url="base_open_street_map.sh_map_has_layer_url"
-                    :attribution="'&copy; ' + base_open_street_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
-                    ></l-tile-layer>
-                <l-tile-layer v-else-if="base_google_map"
-                    :url="base_google_map.sh_map_has_layer_url"
-                    :attribution="'&copy; ' + base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
-                    ></l-tile-layer>
-                <l-tile-layer v-else-if="base_map_guide"
-                    :url="base_map_guide.sh_map_has_layer_url"
-                    :attribution="'&copy; ' + base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]"
-                    ></l-tile-layer>
-                <l-tile-layer v-else :url="default_base_layer"
-                    :attribution="default_attribution"
-                    :options="{ maxNativeZoom: 19, maxZoom: 20 }"
-                    ></l-tile-layer>
-                
-                <supercluster-entity-type-layer
-                    v-for="layer in supercluster_by_entity_type_layers"
-                    :key="layer.id"
-                    :cluster_key="layer.id"
-                    :classification_icon="classification_icon(layer.id)"
-                    :layer="layer"
-                    :base_url="base_url"
-                    :map="map"
-                    :config="config"
-                    :css_vars="css_vars"
-                    v-on:form="setForm"
-                    ref="supercluster_by_entity_type_layers"
-                ></supercluster-entity-type-layer>
-                    <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
-                <div>
-                    
-                </div>
-                <supercluster-layer
-                    :visible="active_layers.some(layer => layer.sh_map_has_layer_code === 'supercluster')"
-                    :data="data"
-                    :info="info"
-                    :classification_icon="classification_icon()"
-                    :map="map"
-                    :config="config"
-                    :col_lat="col_lat"
-                    :col_lng="col_lng"
-                    :entity_type_id="entity_type_id"
-                    :base_url="base_url"
-                    :theme="''"
-                    :clusterize="clusterize"
-                    ref="supercluster_layer"
-                    v-on:form="setForm"
-                ></supercluster-layer>
-                
+                <template v-if="!hide_base_layer">
+                    <l-tile-layer v-if="base_open_street_map" :url="base_open_street_map.sh_map_has_layer_url"
+                        :attribution="'&copy; ' +
+                            base_open_street_map.sh_map_has_layer_url.match(
+                                '^.*?([^:/]/)',
+                            )?.[0]
+                            "></l-tile-layer>
+                    <l-tile-layer v-else-if="base_google_map" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
+                        base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
+                        "></l-tile-layer>
+                    <l-tile-layer v-else-if="base_map_guide" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
+                        base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
+                        "></l-tile-layer>
+                    <l-tile-layer v-else :url="default_base_layer" :attribution="default_attribution"
+                        :options="{ maxNativeZoom: 19, maxZoom: 20 }"></l-tile-layer>
+                </template>
+
+                <supercluster-entity-type-layer v-for="layer in supercluster_by_entity_type_layers" :key="layer.id"
+                    :cluster_key="layer.id" :classification_icon="classification_icon(layer.id)" :layer="layer"
+                    :base_url="base_url" :map="map" :config="config" :css_vars="css_vars" v-on:form="setForm"
+                    ref="supercluster_by_entity_type_layers"></supercluster-entity-type-layer>
+                <!--https://vue2-leaflet.netlify.app/components/LCircleMarker.html -->
+                <div></div>
+                <supercluster-layer :visible="active_layers.some(
+                    (layer) => layer.sh_map_has_layer_code === 'supercluster',
+                )
+                    " :data="data" :info="info" :classification_icon="classification_icon()" :map="map" :config="config"
+                    :col_lat="col_lat" :col_lng="col_lng" :entity_type_id="entity_type_id" :base_url="base_url"
+                    :theme="''" :clusterize="clusterize" ref="supercluster_layer"
+                    v-on:form="setForm"></supercluster-layer>
+
                 <!-- 
                     Analytic layers 
                         - Analytic Cluster 
                         - Analytic GeoJson 
                 -->
-                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json" :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
+                <l-geo-json v-if="analytic_cluster != undefined" :geojson="analytic_cluster.geo_json"
+                    :options-style="analytic_cluster_style" :options="analytic_cluster_options"></l-geo-json>
                 <div v-if="analytic_geojson_list.length > 0">
                     <div v-for="analytic_geojson in analytic_geojson_list" :key="analytic_geojson.id">
-                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style" :options ="geojson_options"></l-geo-json>
+                        <l-geo-json :geojson="analytic_geojson.geojson" :options-style="analytic_geojson_style"
+                            :options="geojson_options"></l-geo-json>
                     </div>
-                    
                 </div>
                 <!-- End Analytic layers -->
 
@@ -141,121 +112,109 @@
 
                 <div v-if="operative_geojson_list.length > 0">
                     <div v-for="operative_geojson in operative_geojson_list" :key="operative_geojson.id">
-                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style" :options ="geojson_options" v-on:click="setLayer(operative_geojson)"></l-geo-json>
+                        <l-geo-json :geojson="operative_geojson.geojson" :options-style="operative_geojson_style"
+                            :options="geojson_options" v-on:click="setLayer(operative_geojson)"></l-geo-json>
                     </div>
-                    
                 </div>
 
                 <!-- Vector Tile Layers (MapLibre GL) -->
                 <!-- Las capas se renderizan en orden de array: primera = fondo, última = tope -->
                 <!-- El _uid asegura que Vue destruya y recree componentes correctamente -->
-                <vector-tile-layer
-                    v-for="vectorTile in operative_vector_tiles_xyz"
-                    :key="vectorTile._uid"
-                    :map="map"
-                    :layer="vectorTile.layer"
-                    :info="info"
-                    :visible_columns="vectorTile.visible_columns"
-                    :entity_type_id="vectorTile.entity_type_id"
-                    :base_url="base_url"
-                    @feature-click="handleVectorTileFeatureClick"
-                    ref="vectorTileLayers"
-                ></vector-tile-layer>
+                <vector-tile-layer v-for="vectorTile in operative_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
+                    :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
+                    :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
+                    @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
+                    @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
 
                 <!-- Polygon draft-->
-                <polygon-drafter
-                  ref="polygon_drafter"
-                  :info="info"
-                  :style_variables="style_variables"
-                  :analytic_geojson_list="analytic_geojson_list"
-                  :operative_geojson_list="operative_geojson_list"
-                  :map="map"
-                  v-on:apply-filter="polygonFilter"
-                  v-on:button-pressed="setButtonsPressed"
-                  v-on:drawing-empty="findBounds"
-                ></polygon-drafter>
+                <polygon-drafter ref="polygon_drafter" :info="info" :style_variables="style_variables"
+                    :analytic_geojson_list="analytic_geojson_list" :operative_geojson_list="operative_geojson_list"
+                    :map="map" v-on:apply-filter="polygonFilter" v-on:button-pressed="setButtonsPressed"
+                    v-on:drawing-empty="findBounds"></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
-                <l-wms-tile-layer
-                    v-for="layer in (operative_geoserver_wms || [])"
-                    :key="layer.id"
-                    :base-url="layer.sh_map_has_layer_url"
-                    :layers="layer.sh_map_has_layer_geoserver_layer"
-                    :name="layer.sh_map_has_layer_geoserver_layer"
-                    :transparent="true"
+                <l-wms-tile-layer v-for="layer in operative_geoserver_wms || []" :key="layer.id"
+                    :base-url="layer.sh_map_has_layer_url" :layers="layer.sh_map_has_layer_geoserver_layer"
+                    :name="layer.sh_map_has_layer_geoserver_layer" :transparent="true"
                     :format="layer.sh_map_has_layer_wms_format || 'image/png'"
-                    :options="{ maxNativeZoom: 20, maxZoom: 20 }"
-                    layer-type="base"
-                    service="WMS"
-                />
+                    :options="{ maxNativeZoom: 20, maxZoom: 20 }" layer-type="base" service="WMS" />
 
-                <l-control class="sheets-map-legend" position="bottomright" v-if="active_layers.length > 0 && show_legend">
-                    <div class="legend-container" >
+                <l-control class="sheets-map-legend" position="bottomright"
+                    v-if="active_layers.length > 0 && show_legend">
+                    <div class="legend-container">
                         <div v-for="layer in active_layers" :key="layer.id">
-                            <div class="legend-lavel" v-if="layer.sh_map_has_layer_type!='analytic' && layer.sh_map_has_layer_type!='supercluster'">
+                            <vector-tile-legend v-if="hasVectorTileSemanticLegend(layer)" :layer="layer"
+                                :legend="vectorTileLegend(layer.id)" />
+                            <div class="legend-lavel" v-else-if="
+                                layer.sh_map_has_layer_type != 'analytic' &&
+                                layer.sh_map_has_layer_type != 'supercluster'
+                            ">
                                 <span v-if="layer.sh_map_has_layer_point_image">
-                                    <img class="legend-icon"
-                                        :src="getIconUrl(layer.sh_map_has_layer_point_image)"
-                                    />
-                                    {{layer.name}}
+                                    <img class="legend-icon" :src="getIconUrl(layer.sh_map_has_layer_point_image)" />
+                                    {{ layer.name }}
                                 </span>
-                                <span v-else> 
-                                    <span v-if="layer.id in multicolor_geojson_legend && multicolor_geojson_legend[layer.id].length >1">
-                                        {{layer.name}}
-                                        <div class="legend-lavel" v-for="(color_legend, key) in multicolor_geojson_legend[layer.id]"  :key="layer.id+color_legend.type+key">
-                                            <i class="legend-icon-color" :style="color_legend" v-on:click="highlightGeojson(color_legend, layer.id)"></i> {{color_legend.type}}
+                                <span v-else>
+                                    <span v-if="
+                                        layer.id in multicolor_geojson_legend &&
+                                        multicolor_geojson_legend[layer.id].length > 1
+                                    ">
+                                        {{ layer.name }}
+                                        <div class="legend-lavel" v-for="(color_legend, key) in multicolor_geojson_legend[
+                                            layer.id
+                                        ]" :key="layer.id + color_legend.type + key">
+                                            <i class="legend-icon-color" :style="color_legend"
+                                                v-on:click="highlightGeojson(color_legend, layer.id)"></i>
+                                            {{ color_legend.type }}
                                         </div>
                                     </span>
                                     <span v-else>
-                                        <i class="legend-icon-color" :style="legendIconControl(layer)"></i> 
-                                        {{layer.name}}
+                                        <i class="legend-icon-color" :style="legendIconControl(layer)"></i>
+                                        {{ layer.name }}
                                     </span>
                                 </span>
                             </div>
-                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
+                            <div class="legend-sublavel-container"
+                                v-else-if="layer.sh_map_has_layer_type == 'supercluster'">
                                 <div class="legend-title">
-                                    <img class="legend-icon"
-                                    v-if="layer.sh_map_has_layer_point_image"
-                                    :src="getIconUrl(layer.sh_map_has_layer_point_image)"
-                                    />
-                                    <b>{{layer.name}}</b>
+                                    <img class="legend-icon" v-if="layer.sh_map_has_layer_point_image"
+                                        :src="getIconUrl(layer.sh_map_has_layer_point_image)" />
+                                    <b>{{ layer.name }}</b>
                                 </div>
                                 <div class="legend-sublavel">
-                                    <div class="legend-icon-color" :style="legendIconControl(layer,'small')"></div> 
-                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                    <div class="legend-icon-color" :style="legendIconControl(layer, 'small')"></div>
+                                    0 - {{ config.sh_map_medium_cluster_size_starts_at }}
                                 </div>
                                 <div class="legend-sublavel">
-                                    <div class="legend-icon-color" :style="legendIconControl(layer,'medium')"></div> 
-                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                    <div class="legend-icon-color" :style="legendIconControl(layer, 'medium')"></div>
+                                    {{ config.sh_map_medium_cluster_size_starts_at }} -
+                                    {{ config.sh_map_large_cluster_size_starts_at }}
                                 </div>
                                 <div class="legend-sublavel">
-                                    <div class="legend-icon-color" :style="legendIconControl(layer,'large')"></div> 
-                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                    <div class="legend-icon-color" :style="legendIconControl(layer, 'large')"></div>
+                                    >{{ config.sh_map_large_cluster_size_starts_at }}
                                 </div>
                             </div>
-                            <div class="legend-sublavel-container" 
-                                v-else-if="layer.sh_map_has_layer_type == 'analytic' && 
-                                           layer.sh_map_has_layer_code != 'analytic_cluster'">
+                            <div class="legend-sublavel-container" v-else-if="
+                                layer.sh_map_has_layer_type == 'analytic' &&
+                                layer.sh_map_has_layer_code != 'analytic_cluster'
+                            ">
                                 <div class="legend-sublavel">
-
-                                    <b>{{layer.name}}</b>
+                                    <b>{{ layer.name }}</b>
                                     <!-- Subtítulo con métrica -->
                                     <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
-                                        <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
-                                        <b-icon 
-                                            v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
-                                            :id="`metric-info-${layer.id}`"
-                                            icon="info-circle-fill" 
-                                            class="metric-info-icon"
-                                            tabindex="0">
+                                        <span class="metric-name">{{
+                                            layerMetricInfo(layer).name
+                                            }}</span>
+                                        <b-icon v-if="
+                                            layerMetricInfo(layer).description &&
+                                            layerMetricInfo(layer).description.trim()
+                                        " :id="`metric-info-${layer.id}`" icon="info-circle-fill" class="metric-info-icon" tabindex="0">
                                         </b-icon>
-                                        <b-popover 
-                                            v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
-                                            :target="`metric-info-${layer.id}`"
-                                            triggers="click blur"
-                                            placement="left"
-                                            boundary="viewport"
+                                        <b-popover v-if="
+                                            layerMetricInfo(layer).description &&
+                                            layerMetricInfo(layer).description.trim()
+                                        " :target="`metric-info-${layer.id}`" triggers="click blur" placement="left" boundary="viewport"
                                             :title="layerMetricInfo(layer).name">
                                             <template #default>
                                                 {{ layerMetricInfo(layer).description }}
@@ -264,33 +223,39 @@
                                     </div>
                                     <table>
                                         <tr>
-                                            <td><div class="legend-icon-color" :style="analyticLegendIconControl(layer)"></div></td>
-                                            <td>Mayor concentración <br> Menor concentración</td>
+                                            <td>
+                                                <div class="legend-icon-color"
+                                                    :style="analyticLegendIconControl(layer)"></div>
+                                            </td>
+                                            <td>
+                                                Mayor concentración <br />
+                                                Menor concentración
+                                            </td>
                                         </tr>
                                     </table>
                                 </div>
                             </div>
-                            <div class="legend-sublavel-container" v-else-if="layer.sh_map_has_layer_code == 'analytic_cluster'">
+                            <div class="legend-sublavel-container"
+                                v-else-if="layer.sh_map_has_layer_code == 'analytic_cluster'">
                                 <div class="legend-title">
-                                    <b>{{layer.name}}</b>
+                                    <b>{{ layer.name }}</b>
                                 </div>
                                 <!-- Subtítulo con métrica -->
                                 <div class="legend-metric-subtitle" v-if="layerMetricInfo(layer)">
-                                    <span class="metric-name">{{layerMetricInfo(layer).name}}</span>
-                                    <b-icon 
-                                        v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
-                                        :id="`metric-info-cluster-${layer.id}`"
-                                        icon="info-circle-fill" 
-                                        class="metric-info-icon"
+                                    <span class="metric-name">{{
+                                        layerMetricInfo(layer).name
+                                        }}</span>
+                                    <b-icon v-if="
+                                        layerMetricInfo(layer).description &&
+                                        layerMetricInfo(layer).description.trim()
+                                    " :id="`metric-info-cluster-${layer.id}`" icon="info-circle-fill" class="metric-info-icon"
                                         tabindex="0">
                                     </b-icon>
-                                    <b-popover 
-                                        v-if="layerMetricInfo(layer).description && layerMetricInfo(layer).description.trim()"
-                                        :target="`metric-info-cluster-${layer.id}`"
-                                        triggers="click blur"
-                                        placement="left"
-                                        boundary="viewport"
-                                        custom-class="metric-info-popover"
+                                    <b-popover v-if="
+                                        layerMetricInfo(layer).description &&
+                                        layerMetricInfo(layer).description.trim()
+                                    " :target="`metric-info-cluster-${layer.id}`" triggers="click blur" placement="left"
+                                        boundary="viewport" custom-class="metric-info-popover"
                                         :title="layerMetricInfo(layer).name">
                                         <template #default>
                                             {{ layerMetricInfo(layer).description }}
@@ -298,16 +263,20 @@
                                     </b-popover>
                                 </div>
                                 <div class="legend-sublavel">
-                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'small')"></div> 
-                                    0 - {{config.sh_map_medium_cluster_size_starts_at}}
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer, 'small')">
+                                    </div>
+                                    0 - {{ config.sh_map_medium_cluster_size_starts_at }}
                                 </div>
                                 <div class="legend-sublavel">
-                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'medium')"></div> 
-                                    {{config.sh_map_medium_cluster_size_starts_at}} - {{config.sh_map_large_cluster_size_starts_at}}
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer, 'medium')">
+                                    </div>
+                                    {{ config.sh_map_medium_cluster_size_starts_at }} -
+                                    {{ config.sh_map_large_cluster_size_starts_at }}
                                 </div>
                                 <div class="legend-sublavel">
-                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer,'large')"></div> 
-                                    >{{config.sh_map_large_cluster_size_starts_at}}
+                                    <div class="legend-icon-color" :style="analyticLegendIconControl(layer, 'large')">
+                                    </div>
+                                    >{{ config.sh_map_large_cluster_size_starts_at }}
                                 </div>
                             </div>
                         </div>
@@ -316,47 +285,63 @@
                 <l-control class="coordinate-format" position="bottomleft">
                     <b-button class="btn-coordinate-format" @click.capture.stop="changeCoordinateFormat()">
                         <b-icon icon="arrow-left-right"></b-icon>
-                    </b-button> {{center_parsed}} 
+                    </b-button>
+                    {{ center_parsed }}
                 </l-control>
-                <l-control-scale class="scale" position="bottomleft"  :imperial="false" :metric="true"></l-control-scale>
+                <l-control-scale class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
         </div>
     </div>
-        
 </template>
 <script>
-import L from 'leaflet';
-import Simplify  from 'simplify-js';
-import _ from 'lodash';
-import proj4 from 'proj4';
-import {LMap, LTileLayer, LMarker, LGeoJson, LWMSTileLayer, LControl, LControlScale } from 'vue2-leaflet';
-import SearchBarProxy from './SearchBarProxy.vue';
-import SuperclusterLayer from './layers/SuperclusterLayer.vue';
-import SuperclusterEntityTypeLayer from './layers/SuperclusterEntityTypeLayer.vue';
-import VectorTileLayer from './layers/VectorTileLayer.vue';
-import PolygonDrafter from './PolygonDrafter.vue';
-import 'leaflet/dist/leaflet.css';
-import { Icon } from 'leaflet';
-import axios from 'axios';
-import HeatmapOverlay from'heatmap.js/plugins/leaflet-heatmap'
-import { BButton, BIcon, BPopover } from 'bootstrap-vue'
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
-import OpenFormPoint from './form/openFormPoint.vue';
+import L from "leaflet";
+import Simplify from "simplify-js";
+import _ from "lodash";
+import proj4 from "proj4";
+import * as h3 from "h3-js";
+import {
+    LMap,
+    LTileLayer,
+    LMarker,
+    LGeoJson,
+    LWMSTileLayer,
+    LControl,
+    LControlScale,
+} from "vue2-leaflet";
+import SearchBarProxy from "./SearchBarProxy.vue";
+import SuperclusterLayer from "./layers/SuperclusterLayer.vue";
+import SuperclusterEntityTypeLayer from "./layers/SuperclusterEntityTypeLayer.vue";
+import VectorTileLayer from "./layers/VectorTileLayer.vue";
+import VectorTileLegend from "./layers/VectorTileLegend.vue";
+import PolygonDrafter from "./PolygonDrafter.vue";
+import "leaflet/dist/leaflet.css";
+import { Icon } from "leaflet";
+import axios from "axios";
+import HeatmapOverlay from "heatmap.js/plugins/leaflet-heatmap";
+import { BButton, BIcon, BPopover } from "bootstrap-vue";
+import "bootstrap/dist/css/bootstrap.css";
+import "bootstrap-vue/dist/bootstrap-vue.css";
+import OpenFormPoint from "./form/openFormPoint.vue";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
-import QuickLayers from './layers/QuickLayers.vue';
+import QuickLayers from "./layers/QuickLayers.vue";
+import markerIcon2xUrl from "leaflet/dist/images/marker-icon-2x.png";
+import markerIconUrl from "leaflet/dist/images/marker-icon.png";
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
+import packageInfo from "../../package.json";
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+    iconRetinaUrl: markerIcon2xUrl,
+    iconUrl: markerIconUrl,
+    shadowUrl: markerShadowUrl,
 });
-import ScreenshotButton from './ScreenshotButton.vue';
+import ScreenshotButton from "./ScreenshotButton.vue";
+
+const sheetsMapVersion = packageInfo.version;
 
 export default {
-    name: 'SheetsMap',
+    name: "SheetsMap",
     components: {
         LMap,
         LTileLayer,
@@ -370,6 +355,7 @@ export default {
         SuperclusterLayer,
         SuperclusterEntityTypeLayer,
         VectorTileLayer,
+        VectorTileLegend,
         PolygonDrafter,
         OpenFormPoint,
         QuickLayers,
@@ -379,23 +365,23 @@ export default {
     },
     props: {
         // Propiedades de componentes
-        id                    : String,
-        entity_type_id        : String,
-        config_entity_id      : String,
-        config_entity_type_id : String,
-        endpoint_config       : String,
-        code                  : String,
-        base_url              : String,
-        custom_styles         : String,
+        id: String,
+        entity_type_id: String,
+        config_entity_id: String,
+        config_entity_type_id: String,
+        endpoint_config: String,
+        code: String,
+        base_url: String,
+        custom_styles: String,
         // Propiedades que provienen del store
-        active_filters        : Array,
-        info                  : Object,
-        data                  : Object,
-        theme                 : String,
+        active_filters: Array,
+        info: Object,
+        data: Object,
+        theme: String,
         // SheetsMapTools
-        config                : Object, // Todas las capas
-        layers                : Object, // Todas las capas
-        working_layers        : Array,
+        config: Object, // Todas las capas
+        layers: Object, // Todas las capas
+        working_layers: Array,
         trigger_filter_function: Boolean,
         clusterize: {
             type: Boolean,
@@ -403,295 +389,480 @@ export default {
         },
         metrics: {
             type: Array,
-            default: () => []
+            default: () => [],
         },
-
     },
-    data () {
+    data() {
         return {
-            url: '',
-            default_base_layer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            default_attribution: '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-            zoom                      : 7,
-            center_default            : [-33.472 , -70.769],
-            center                    : undefined,
-            center_parsed             : '',
-            center_format             : 'latlng',
-            col_lat                   : undefined,
-            col_lng                   : undefined,
-            map                       : undefined,
-            circle                    : undefined,
+            url: "",
+            default_base_layer: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            default_attribution:
+                '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+            zoom: 7,
+            center_default: [-33.472, -70.769],
+            center: undefined,
+            center_parsed: "",
+            center_format: "latlng",
+            col_lat: undefined,
+            col_lng: undefined,
+            map: undefined,
+            circle: undefined,
             /*Layers*/
             /** Zoom del mapa al momento de carga analytic_cluster. */
-            analytic_cluster_initial_zoom : undefined,
-            should_hide_cluster_labels : false,
-            analytic_cluster           : undefined,
-            analytic_countour_map      : undefined,
-            analytic_geojson_list      : [],
-            analytic_geojson_features  : [],
-            analytic_geojson_legend    : [],
-            operative_geojson_list     : [],
-            operative_geojson_features : [],
-            scale_sensitive_layers     : [],
-            multicolor_geojson_legend  : {},
-            color_layer_opacity        : {},
-            base_google_map            : undefined,
-            base_map_guide             : undefined,
-            base_open_street_map       : undefined,
-            operative_geoserver_wms    : [],
-            operative_vector_tiles_xyz : [],
-            end_map_move               : false,
-            end_map_pressure           : false,
-            bounds_filters             : [],
-            num_zoom                   : false,
-            bounds                     : [],
-            h3                         : require("h3-js"),
-            shouldShowSearchMarker     : false,
-            searchMarkerLatLng         : null,
-            classification_icon_column : false,
+            analytic_cluster_initial_zoom: undefined,
+            should_hide_cluster_labels: false,
+            analytic_cluster: undefined,
+            analytic_countour_map: undefined,
+            analytic_geojson_list: [],
+            analytic_geojson_features: [],
+            analytic_geojson_legend: [],
+            operative_geojson_list: [],
+            operative_geojson_features: [],
+            scale_sensitive_layers: [],
+            multicolor_geojson_legend: {},
+            color_layer_opacity: {},
+            base_google_map: undefined,
+            base_map_guide: undefined,
+            base_open_street_map: undefined,
+            operative_geoserver_wms: [],
+            operative_vector_tiles_xyz: [],
+            vector_tile_legends: {},
+            end_map_move: false,
+            end_map_pressure: false,
+            bounds_filters: [],
+            num_zoom: false,
+            bounds: [],
+            h3,
+            shouldShowSearchMarker: false,
+            searchMarkerLatLng: null,
+            classification_icon_column: false,
             // Usadas para las capas analiticas tipo analytic_geojson
-            should_skip_bounds_filter : false, // Usada para no filtrar por los limites del mapa en analytic_geojson
-            color_point : 'yellow',
+            should_skip_bounds_filter: false, // Usada para no filtrar por los limites del mapa en analytic_geojson
+            color_point: "yellow",
             point: null,
-            point_mode: '',
+            point_mode: "",
             is_trigger_filter_function: false,
             buttons_pressed: {
                 marker: false,
                 polyline: false,
-                delete: false
+                delete: false,
             },
+            hide_base_layer: false,
+            _polygonFilterCallback: null,
         };
     },
-    computed:{
+    computed: {
         css_vars() {
             let custom_styles = JSON.parse(this.custom_styles) || {};
             let content = {
-                "--sh-map-zoom-button-background-color"      : custom_styles["zoom-button-background-color"]       || "#001D09",
-                "--sh-map-zoom-button-text-color"            : custom_styles["zoom-button-text-color"]             || "#D3D3D3",
-                "--sh-map-radius-multiplier"                 : custom_styles["radius-multiplier"]                  || "8px",
+                "--sh-map-zoom-button-background-color":
+                    custom_styles["zoom-button-background-color"] || "#001D09",
+                "--sh-map-zoom-button-text-color":
+                    custom_styles["zoom-button-text-color"] || "#D3D3D3",
+                "--sh-map-radius-multiplier":
+                    custom_styles["radius-multiplier"] || "8px",
                 //Pop-up
-                "--sh-map-marker-pop-up-background"          : custom_styles["marker-pop-up-background"]           || "white",
-                "--sh-map-marker-pop-up-border-color"        : custom_styles["marker-pop-up-border-color"]         || "white",
-                "--sh-map-marker-pop-up-border-width"        : custom_styles["marker-pop-up-border-width"]         || "0px",
-                "--sh-map-marker-pop-up-border-style"        : custom_styles["marker-pop-up-border-style"]         || "solid",
+                "--sh-map-marker-pop-up-background":
+                    custom_styles["marker-pop-up-background"] || "white",
+                "--sh-map-marker-pop-up-border-color":
+                    custom_styles["marker-pop-up-border-color"] || "white",
+                "--sh-map-marker-pop-up-border-width":
+                    custom_styles["marker-pop-up-border-width"] || "0px",
+                "--sh-map-marker-pop-up-border-style":
+                    custom_styles["marker-pop-up-border-style"] || "solid",
 
-                "--sh-map-marker-pop-up-title-font"          : custom_styles["marker-pop-up-title-font"]           || '"Helvetica Neue", Arial, Helvetica, sans-serif',
-                "--sh-map-marker-pop-up-title-color"         : custom_styles["marker-pop-up-title-color"]          || "black",
-                "--sh-map-marker-pop-up-content-font"        : custom_styles["marker-pop-up-content-font"]         || '"Helvetica Neue", Arial, Helvetica, sans-serif',
-                "--sh-map-marker-pop-up-content-color"       : custom_styles["marker-pop-up-content-color"]        || "black",
+                "--sh-map-marker-pop-up-title-font":
+                    custom_styles["marker-pop-up-title-font"] ||
+                    '"Helvetica Neue", Arial, Helvetica, sans-serif',
+                "--sh-map-marker-pop-up-title-color":
+                    custom_styles["marker-pop-up-title-color"] || "black",
+                "--sh-map-marker-pop-up-content-font":
+                    custom_styles["marker-pop-up-content-font"] ||
+                    '"Helvetica Neue", Arial, Helvetica, sans-serif',
+                "--sh-map-marker-pop-up-content-color":
+                    custom_styles["marker-pop-up-content-color"] || "black",
 
-                "--sh-map-marker-pop-up-srcoll-color"        : custom_styles["marker-pop-up-scroll-color"]         || "#999393",
-                "--sh-map-marker-pop-up-srcoll-color-hover"  : custom_styles["marker-pop-up-scroll-color-hover"]   || "#b3b3b3",
-                "--sh-map-marker-pop-up-srcoll-color-active" : custom_styles["marker-pop-up-scroll-color-active"]  || "#999999",
-                "--sh-map-vertical-controls"                 : custom_styles["vertical-controls"]                  || "false"
+                "--sh-map-marker-pop-up-srcoll-color":
+                    custom_styles["marker-pop-up-scroll-color"] || "#999393",
+                "--sh-map-marker-pop-up-srcoll-color-hover":
+                    custom_styles["marker-pop-up-scroll-color-hover"] || "#b3b3b3",
+                "--sh-map-marker-pop-up-srcoll-color-active":
+                    custom_styles["marker-pop-up-scroll-color-active"] || "#999999",
+                "--sh-map-vertical-controls":
+                    custom_styles["vertical-controls"] || "false",
             };
 
+            let size = ["small", "medium", "large"];
+            let type = ["", "-theme-1", "-theme-2", "-theme-3", "-theme-4"];
+            type.forEach((t) => {
+                size.forEach((s) => {
+                    let color =
+                        s == "small"
+                            ? "rgba(181, 226, 140, 0.6)"
+                            : s == "medium"
+                                ? "rgba(241, 211, 87, 0.6)"
+                                : "rgba(253, 156, 115, 0.6)";
+                    let color_div =
+                        s == "small"
+                            ? "rgba(110, 204, 57, 0.6)"
+                            : s == "medium"
+                                ? "rgba(240, 194, 12, 0.6)"
+                                : "rgba(241, 128, 23, 0.6)";
+                    let border_color =
+                        s == "small"
+                            ? "rgba(181, 226, 140, 0.6)"
+                            : s == "medium"
+                                ? "rgba(241, 211, 87, 0.6)"
+                                : "rgba(253, 156, 115, 0.6)";
 
-            let size = ['small', 'medium', 'large'];
-            let type = ['', '-theme-1', '-theme-2', '-theme-3', '-theme-4'];
-            type.forEach((t)=>{
-                size.forEach((s)=>{
-                    let color        = (s == 'small') ? "rgba(181, 226, 140, 0.6)" : ((s == 'medium') ? "rgba(241, 211, 87, 0.6)" : "rgba(253, 156, 115, 0.6)");
-                    let color_div    = (s == 'small') ? "rgba(110, 204, 57, 0.6)"  : ((s == 'medium') ? "rgba(240, 194, 12, 0.6)" : "rgba(241, 128, 23, 0.6)");
-                    let border_color = (s == 'small') ? "rgba(181, 226, 140, 0.6)" : ((s == 'medium') ? "rgba(241, 211, 87, 0.6)" : "rgba(253, 156, 115, 0.6)");
-
-                    content[`--sh-map-point-cluster${t}-${s}-size`]         = custom_styles[`point-cluster${t}-${s}-size`]           || "30px";
-                    content[`--sh-map-point-cluster${t}-${s}-font`]         = custom_styles[`point-cluster${t}-${s}-font`]           || '12px "Helvetica Neue", Arial, Helvetica, sans-serif';
-                    content[`--sh-map-point-cluster${t}-${s}-font-color`]   = custom_styles[`point-cluster${t}-${s}-font-color`]     || 'black';
-                    content[`--sh-map-point-cluster${t}-${s}-color`]        = custom_styles[`point-cluster${t}-${s}-color`]          || color;
-                    content[`--sh-map-point-cluster${t}-${s}-color-div`]    = custom_styles[`point-cluster${t}-${s}-color-div`]      || color_div;
-                    content[`--sh-map-point-cluster${t}-${s}-border-color`] = custom_styles[`point-cluster${t}-${s}-border-color`]   || border_color;
-                    content[`--sh-map-point-cluster${t}-${s}-border-style`] = custom_styles[`point-cluster${t}-${s}-border-style`]   || "hidden";
-                    content[`--sh-map-point-cluster${t}-${s}-border-width`] = custom_styles[`point-cluster${t}-${s}-border-width`]   || "1px";     
+                    content[`--sh-map-point-cluster${t}-${s}-size`] =
+                        custom_styles[`point-cluster${t}-${s}-size`] || "30px";
+                    content[`--sh-map-point-cluster${t}-${s}-font`] =
+                        custom_styles[`point-cluster${t}-${s}-font`] ||
+                        '12px "Helvetica Neue", Arial, Helvetica, sans-serif';
+                    content[`--sh-map-point-cluster${t}-${s}-font-color`] =
+                        custom_styles[`point-cluster${t}-${s}-font-color`] || "black";
+                    content[`--sh-map-point-cluster${t}-${s}-color`] =
+                        custom_styles[`point-cluster${t}-${s}-color`] || color;
+                    content[`--sh-map-point-cluster${t}-${s}-color-div`] =
+                        custom_styles[`point-cluster${t}-${s}-color-div`] || color_div;
+                    content[`--sh-map-point-cluster${t}-${s}-border-color`] =
+                        custom_styles[`point-cluster${t}-${s}-border-color`] ||
+                        border_color;
+                    content[`--sh-map-point-cluster${t}-${s}-border-style`] =
+                        custom_styles[`point-cluster${t}-${s}-border-style`] || "hidden";
+                    content[`--sh-map-point-cluster${t}-${s}-border-width`] =
+                        custom_styles[`point-cluster${t}-${s}-border-width`] || "1px";
                 });
             });
-            
-            return content;
 
+            return content;
         },
         style_variables() {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
                 // Hexagonal Clusters Style
-                "hexagonal-cluster-small-color"           : custom_styles["hexagonal-cluster-small-color"]           || "#F9E79F",
-                "hexagonal-cluster-small-opacity"         : custom_styles["hexagonal-cluster-small-opacity"]         || 0.6,
-                "hexagonal-cluster-small-border-color"    : custom_styles["hexagonal-cluster-small-border-color"]    || "#ECEFF1",
-                "hexagonal-cluster-small-border-opacity"  : custom_styles["hexagonal-cluster-small-border-opacity"]  || 0.6,
-                "hexagonal-cluster-small-font"            : custom_styles["hexagonal-cluster-small-font"]            || "",
-                "hexagonal-cluster-small-font-color"      : custom_styles["hexagonal-cluster-small-font-color"]      || "",
-                "hexagonal-cluster-medium-color"          : custom_styles["hexagonal-cluster-medium-color"]          || "#FCAC49",
-                "hexagonal-cluster-medium-opacity"        : custom_styles["hexagonal-cluster-medium-opacity"]        || 0.6,
-                "hexagonal-cluster-medium-border-color"   : custom_styles["hexagonal-cluster-medium-border-color"]   || "#ECEFF1",
-                "hexagonal-cluster-medium-border-opacity" : custom_styles["hexagonal-cluster-medium-border-opacity"] || 0.6,
-                "hexagonal-cluster-medium-font"           : custom_styles["hexagonal-cluster-medium-font"]           || "",
-                "hexagonal-cluster-medium-font-color"     : custom_styles["hexagonal-cluster-medium-font-color"]     || "#E74C3C",
-                "hexagonal-cluster-large-color"           : custom_styles["hexagonal-cluster-large-color"]           || "",
-                "hexagonal-cluster-large-opacity"         : custom_styles["hexagonal-cluster-large-opacity"]         || 0.6,
-                "hexagonal-cluster-large-border-color"    : custom_styles["hexagonal-cluster-large-border-color"]    || "#ECEFF1",
-                "hexagonal-cluster-large-border-opacity"  : custom_styles["hexagonal-cluster-large-border-opacity"]  || 0.6,
-                "hexagonal-cluster-large-font"            : custom_styles["hexagonal-cluster-large-font"]            || "",
-                "hexagonal-cluster-large-font-color"      : custom_styles["hexagonal-cluster-large-font-color"]      || "",
+                "hexagonal-cluster-small-color":
+                    custom_styles["hexagonal-cluster-small-color"] || "#F9E79F",
+                "hexagonal-cluster-small-opacity":
+                    custom_styles["hexagonal-cluster-small-opacity"] || 0.6,
+                "hexagonal-cluster-small-border-color":
+                    custom_styles["hexagonal-cluster-small-border-color"] || "#ECEFF1",
+                "hexagonal-cluster-small-border-opacity":
+                    custom_styles["hexagonal-cluster-small-border-opacity"] || 0.6,
+                "hexagonal-cluster-small-font":
+                    custom_styles["hexagonal-cluster-small-font"] || "",
+                "hexagonal-cluster-small-font-color":
+                    custom_styles["hexagonal-cluster-small-font-color"] || "",
+                "hexagonal-cluster-medium-color":
+                    custom_styles["hexagonal-cluster-medium-color"] || "#FCAC49",
+                "hexagonal-cluster-medium-opacity":
+                    custom_styles["hexagonal-cluster-medium-opacity"] || 0.6,
+                "hexagonal-cluster-medium-border-color":
+                    custom_styles["hexagonal-cluster-medium-border-color"] || "#ECEFF1",
+                "hexagonal-cluster-medium-border-opacity":
+                    custom_styles["hexagonal-cluster-medium-border-opacity"] || 0.6,
+                "hexagonal-cluster-medium-font":
+                    custom_styles["hexagonal-cluster-medium-font"] || "",
+                "hexagonal-cluster-medium-font-color":
+                    custom_styles["hexagonal-cluster-medium-font-color"] || "#E74C3C",
+                "hexagonal-cluster-large-color":
+                    custom_styles["hexagonal-cluster-large-color"] || "",
+                "hexagonal-cluster-large-opacity":
+                    custom_styles["hexagonal-cluster-large-opacity"] || 0.6,
+                "hexagonal-cluster-large-border-color":
+                    custom_styles["hexagonal-cluster-large-border-color"] || "#ECEFF1",
+                "hexagonal-cluster-large-border-opacity":
+                    custom_styles["hexagonal-cluster-large-border-opacity"] || 0.6,
+                "hexagonal-cluster-large-font":
+                    custom_styles["hexagonal-cluster-large-font"] || "",
+                "hexagonal-cluster-large-font-color":
+                    custom_styles["hexagonal-cluster-large-font-color"] || "",
                 // Analytic GeoJson Style
-                "analytic-geojson-small-color"          : custom_styles["analytic-geojson-small-color"]          || "#FDFEFE",
-                "analytic-geojson-small-border-color"   : custom_styles["analytic-geojson-small-border-color"]   || "#FDFEFE",
-                "analytic-geojson-large-color"          : custom_styles["analytic-geojson-large-color"]          || "#0074BD",
-                "analytic-geojson-large-border-color"   : custom_styles["analytic-geojson-large-border-color"]   || "#0074BD",
-                "analytic-geojson-opacity"              : custom_styles["analytic-geojson-opacity"]              || 0.6,
-                "analytic-geojson-border-opacity"       : custom_styles["analytic-geojson-border-opacity"]       || 1,
-                "analytic-geojson-border-weight"        : custom_styles["analytic-geojson-border-weight"]        || 5,
-                
+                "analytic-geojson-small-color":
+                    custom_styles["analytic-geojson-small-color"] || "#FDFEFE",
+                "analytic-geojson-small-border-color":
+                    custom_styles["analytic-geojson-small-border-color"] || "#FDFEFE",
+                "analytic-geojson-large-color":
+                    custom_styles["analytic-geojson-large-color"] || "#0074BD",
+                "analytic-geojson-large-border-color":
+                    custom_styles["analytic-geojson-large-border-color"] || "#0074BD",
+                "analytic-geojson-opacity":
+                    custom_styles["analytic-geojson-opacity"] || 0.6,
+                "analytic-geojson-border-opacity":
+                    custom_styles["analytic-geojson-border-opacity"] || 1,
+                "analytic-geojson-border-weight":
+                    custom_styles["analytic-geojson-border-weight"] || 5,
+
                 // Analytic GeoJson Poits Style
-                "analytic-geojson-point-icon-size"    : custom_styles["analytic-geojson-point-icon-size"]    || 38,
-                "analytic-geojson-point-icon-anchor"  : custom_styles["analytic-geojson-point-icon-anchor"]  || 25,
-                "analytic-geojson-point-popup-anchor" : custom_styles["analytic-geojson-point-popup-anchor"] || 0,
+                "analytic-geojson-point-icon-size":
+                    custom_styles["analytic-geojson-point-icon-size"] || 38,
+                "analytic-geojson-point-icon-anchor":
+                    custom_styles["analytic-geojson-point-icon-anchor"] || 25,
+                "analytic-geojson-point-popup-anchor":
+                    custom_styles["analytic-geojson-point-popup-anchor"] || 0,
                 // Polygon Draft Style
-                "polygon_draft_fill_color"    : custom_styles["polygon_draft_fill_color"]    || '#FD8D3C',
-                "polygon_draft_weight"        : custom_styles["polygon_draft_weight"]        || 1,
-                "polygon_draft_opacity"       : custom_styles["polygon_draft_opacity"]       || 1,
-                "polygon_draft_color"         : custom_styles["polygon_draft_color"]         || '#FD8D3C',
-                "polygon_draft_dash_array"    : custom_styles["polygon_draft_dash_array"]    || '3',
-                "polygon_draft_fill_opacity"  : custom_styles["polygon_draft_fill_opacity"]  || 0.3,
-                "polygon_draft_circle_radius" : custom_styles["polygon_draft_circle_radius"] || 3,
-
+                polygon_draft_fill_color:
+                    custom_styles["polygon_draft_fill_color"] || "#FD8D3C",
+                polygon_draft_weight: custom_styles["polygon_draft_weight"] || 1,
+                polygon_draft_opacity: custom_styles["polygon_draft_opacity"] || 1,
+                polygon_draft_color: custom_styles["polygon_draft_color"] || "#FD8D3C",
+                polygon_draft_dash_array:
+                    custom_styles["polygon_draft_dash_array"] || "3",
+                polygon_draft_fill_opacity:
+                    custom_styles["polygon_draft_fill_opacity"] || 0.3,
+                polygon_draft_circle_radius:
+                    custom_styles["polygon_draft_circle_radius"] || 3,
             };
-
         },
-        btn_style(){
-            let class_name = 'custom-controls';
+        /**
+         * API pública de acciones del mapa.
+         * Permite controlar el mapa desde fuera del componente.
+         *
+         * Uso desde el padre (con $refs):
+         *   this.$refs.sheetsMap.mapActions.zoomIn()
+         *
+         * Uso por evento (sin $refs):
+         *   <SheetsMap @map-actions-ready="onActionsReady" />
+         *   // en el padre:
+         *   methods: {
+         *     onActionsReady(actions) { this.mapActions = actions; }
+         *   }
+         *   // luego:  this.mapActions.zoomIn()
+         */
+        mapActions() {
+            return {
+                /** Acercar el zoom del mapa en 1 nivel */
+                zoomIn: () => this.zoomMap("in"),
+                /** Alejar el zoom del mapa en 1 nivel */
+                zoomOut: () => this.zoomMap("out"),
+                /** Establecer un nivel de zoom específico (0-20) */
+                setZoom: (level) => {
+                    const z = Math.max(0, Math.min(20, level));
+                    this.zoom = z;
+                },
+                /** Obtener el nivel de zoom actual */
+                getZoom: () => this.zoom,
+                /** Volar a una ubicación { lat, lng } con zoom opcional (default 12) */
+                flyTo: (latLng, zoom) => this.zoomToLocation(latLng, zoom),
+                /** Centrar el mapa en { lat, lng } sin animación */
+                panTo: (latLng) => {
+                    if (this.map) this.map.panTo(latLng);
+                },
+                /** Filtrar por zona visible del mapa */
+                filterByBounds: () => this.filter(),
+                /** Iniciar trazo de polígono ('polygon', 'circle', 'rectangle') o 'delete' */
+                drawShape: (shape) => this.polygonAction(shape),
+                /** Cambiar formato de coordenadas (latlng / UTM) */
+                toggleCoordinateFormat: () => this.changeCoordinateFormat(),
+                /** Obtener las coordenadas del centro actual */
+                getCenter: () => this.center,
+                /** Invalidar tamaño del mapa (útil tras redimensionar el contenedor) */
+                invalidateSize: () => {
+                    if (this.map) this.map.invalidateSize(false);
+                },
+                /** Acceso directo al objeto Leaflet map (avanzado) */
+                getLeafletMap: () => this.map,
+                /** Eliminar la capa base del mapa (fondo gris neutro, solo capas de datos visibles) */
+                removeBaseLayer: () => {
+                    this.hide_base_layer = true;
+                },
+                /** Restaurar la capa base del mapa */
+                restoreBaseLayer: () => {
+                    this.hide_base_layer = false;
+                },
+                /** Consultar si la capa base está oculta */
+                isBaseLayerHidden: () => this.hide_base_layer,
+                /** Registrar callback para cuando cambian los polígonos dibujados. Recibe bounds_filters (array|null) */
+                onPolygonFilter: (cb) => {
+                    this._polygonFilterCallback = cb;
+                },
+                /** Verdadero si hay al menos un polígono dibujado en el mapa */
+                hasPolygons: () => {
+                    const d = this.$refs.polygon_drafter;
+                    return d ? Object.keys(d.polygon_arr).length > 0 : false;
+                },
+                /** Verdadero si el modo borrador (eraser) está activo */
+                isEraserActive: () => {
+                    const d = this.$refs.polygon_drafter;
+                    return d ? d.buttons_pressed.delete : false;
+                },
+                /** Verdadero si hay un dibujo en progreso (sin confirmar) */
+                isDrawingInProgress: () => {
+                    const d = this.$refs.polygon_drafter;
+                    return d ? d.drawing : false;
+                },
+                /** Cancelar el dibujo en progreso sin eliminar polígonos ya dibujados */
+                cancelDraw: () => this.polygonAction("cancel"),
+                /** Eliminar todos los polígonos dibujados */
+                clearPolygons: () => this.polygonAction("clear"),
+                /** Activar/desactivar el modo borrador (toggle) */
+                toggleEraserMode: () => this.polygonAction("delete"),
+                /** Activar o desactivar el modo borrador de forma idempotente */
+                setEraserMode: (active) => {
+                    const d = this.$refs.polygon_drafter;
+                    if (d && d.buttons_pressed.delete !== active)
+                        this.polygonAction("delete");
+                },
+            };
+        },
+        btn_style() {
+            let class_name = "custom-controls";
 
-            if (this.theme == 'horizontal_form_map' || this.css_vars["--sh-map-vertical-controls"] === "true") {
-                class_name = class_name+" horizontal-form-map-btn";
+            if (
+                this.theme == "horizontal_form_map" ||
+                this.css_vars["--sh-map-vertical-controls"] === "true"
+            ) {
+                class_name = class_name + " horizontal-form-map-btn";
             }
 
             return class_name;
         },
-        show_legend(){
-            return (this.config.sh_map_show_legend == 1) ? true : false;
+        show_legend() {
+            return this.config.sh_map_show_legend == 1 ? true : false;
         },
         // Crea un lookup interno de métricas desde el array
-        metricsLookup() {  
-            const lookup = this.metrics.reduce((acc, metric) => {                
+        metricsLookup() {
+            const lookup = this.metrics.reduce((acc, metric) => {
                 acc[metric.id] = {
                     id: metric.id,
                     name: metric.name || metric.metric_name,
                     description: metric.description,
-                    format: metric.format
+                    format: metric.format,
                 };
                 return acc;
-            }, {});            
+            }, {});
             return lookup;
         },
 
         analytic_cluster_options() {
-          return {
-            onEachFeature: function(feature, layer) {
-                layer.bindTooltip(function (layer) {
-                    return `${layer.feature.properties.total.toLocaleString('es-ES')}`; 
-                }, {permanent: true, direction: "center", className: "my-labels"});
-            }
-          };
+            return {
+                onEachFeature: function (feature, layer) {
+                    layer.bindTooltip(
+                        function (layer) {
+                            return `${layer.feature.properties.total.toLocaleString(
+                                "es-ES",
+                            )}`;
+                        },
+                        { permanent: true, direction: "center", className: "my-labels" },
+                    );
+                },
+            };
         },
         geojson_options() {
-          return {
-            pointToLayer: (feature, latLng) => {
-                //Obtenemos la configuración de la capa a la que pertenece
-                const active_layer = this.active_layers.find(l => {
-                    return feature.layer_id == l.id;
-                });
-
-                if (active_layer.sh_map_has_layer_point_image != null) {
-                    const icon_size    = this.style_variables['analytic-geojson-point-icon-size'];
-                    const icon_anchor  = this.style_variables['analytic-geojson-point-icon-anchor'];
-                    const popup_anchor = this.style_variables['analytic-geojson-point-popup-anchor'];
-
-                    const icon = L.icon({
-                        iconUrl: this.getIconUrl(active_layer.sh_map_has_layer_point_image),
-                        iconSize:     [icon_size, icon_size], // size of the icon
-                        iconAnchor:   [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
-                        popupAnchor:  [popup_anchor, popup_anchor] // point from which the popup should open relative to the iconAnchor
-                    })
-                    return L.marker(latLng, {icon: icon})
-                }
-
-                return L.marker(latLng)
-
-            },
-            onEachFeature: (feature, layer) => {
-                if (Object.values(feature.properties)?.length < 1) {
-                    return;
-                }
-                const style = layer.options;
-
-                // Si está invisible, desactiva todo
-                if ((style.opacity === 0 || style.fillOpacity === 0)) {
-                    layer.options.interactive = false;
-                    layer.off(); // Quita eventos si los hubiese
-                } else {
-                    // Eventos normales si se ve
-                    layer.on('click', () => {
-                        console.log('click en:', feature.properties.name);
-                    });
-                }
-                
-                layer.bindPopup((layer) => {
+            return {
+                pointToLayer: (feature, latLng) => {
                     //Obtenemos la configuración de la capa a la que pertenece
-                    const active_layer = this.active_layers.find(l => {
-                        return layer.feature.layer_id == l.id;
+                    const active_layer = this.active_layers.find((l) => {
+                        return feature.layer_id == l.id;
                     });
 
-                    let info = ['Sin información disponible']; //Información a retornar en el popup
-                    const property_configuration = active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
+                    if (active_layer.sh_map_has_layer_point_image != null) {
+                        const icon_size =
+                            this.style_variables["analytic-geojson-point-icon-size"];
+                        const icon_anchor =
+                            this.style_variables["analytic-geojson-point-icon-anchor"];
+                        const popup_anchor =
+                            this.style_variables["analytic-geojson-point-popup-anchor"];
 
-                    // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
-                    // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
-                    if (property_configuration == null) {
-                        switch(active_layer.sh_map_has_layer_code){
-                            case 'analytic_geojson' :{
-                                //Almacenamos el calculo hecho entre el Bi y el feature
-                                const [metric_value] = Object.values(layer.feature.properties.metric_data);
-                                const total = (metric_value == null) ? 'Sin información disponible' : metric_value.toLocaleString('es-ES');
-
-                                return `<span class="marker-pop-up-info-content"> ${total} </span>`;
-
-                            }
-                            case 'operative_geoserver_wfs_point' :{
-
-                                info = this.infoGeojsonWithKeys(layer, false);
-                                break;
-                            }
-                        }
-                    }else{
-
-                        //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
-                        if ((property_configuration).charAt(0) == '*') {
-                            const human_keys = (property_configuration == '*') ? true : false;
-                            info = this.infoGeojsonWithKeys(layer, human_keys);
-                        }
-
-                        // Si la configuración proporcionada es un json entonces retorna la configuración + alias proporcionado por la configuración
-                        if (this.isJson(property_configuration)) {
-                            let property_keys = JSON.parse(property_configuration);
-                            info = this.infoGeojsonWithAlias(layer, property_keys);
-                        }
+                        const icon = L.icon({
+                            iconUrl: this.getIconUrl(
+                                active_layer.sh_map_has_layer_point_image,
+                            ),
+                            iconSize: [icon_size, icon_size], // size of the icon
+                            iconAnchor: [icon_anchor, icon_anchor], // point of the icon which will correspond to marker's location
+                            popupAnchor: [popup_anchor, popup_anchor], // point from which the popup should open relative to the iconAnchor
+                        });
+                        return L.marker(latLng, { icon: icon });
                     }
-                    
 
-                    return `${info.join('<br>')}`;
-                }, {permanent: false, direction: "center", className: "marker-pop-up-content"});
-            }
-          };
+                    return L.marker(latLng);
+                },
+                onEachFeature: (feature, layer) => {
+                    if (Object.values(feature.properties)?.length < 1) {
+                        return;
+                    }
+                    const style = layer.options;
+
+                    // Si está invisible, desactiva todo
+                    if (style.opacity === 0 || style.fillOpacity === 0) {
+                        layer.options.interactive = false;
+                        layer.off(); // Quita eventos si los hubiese
+                    } else {
+                        // Eventos normales si se ve
+                        layer.on("click", () => {
+                            console.log("click en:", feature.properties.name);
+                        });
+                    }
+
+                    layer.bindPopup(
+                        (layer) => {
+                            //Obtenemos la configuración de la capa a la que pertenece
+                            const active_layer = this.active_layers.find((l) => {
+                                return layer.feature.layer_id == l.id;
+                            });
+
+                            let info = ["Sin información disponible"]; //Información a retornar en el popup
+                            const property_configuration =
+                                active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
+
+                            // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
+                            // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
+                            if (property_configuration == null) {
+                                switch (active_layer.sh_map_has_layer_code) {
+                                    case "analytic_geojson": {
+                                        //Almacenamos el calculo hecho entre el Bi y el feature
+                                        const [metric_value] = Object.values(
+                                            layer.feature.properties.metric_data,
+                                        );
+                                        const total =
+                                            metric_value == null
+                                                ? "Sin información disponible"
+                                                : metric_value.toLocaleString("es-ES");
+
+                                        return `<span class="marker-pop-up-info-content"> ${total} </span>`;
+                                    }
+                                    case "operative_geoserver_wfs_point": {
+                                        info = this.infoGeojsonWithKeys(layer, false);
+                                        break;
+                                    }
+                                }
+                            } else {
+                                //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
+                                if (property_configuration.charAt(0) == "*") {
+                                    const human_keys =
+                                        property_configuration == "*" ? true : false;
+                                    info = this.infoGeojsonWithKeys(layer, human_keys);
+                                }
+
+                                // Si la configuración proporcionada es un json entonces retorna la configuración + alias proporcionado por la configuración
+                                if (this.isJson(property_configuration)) {
+                                    let property_keys = JSON.parse(property_configuration);
+                                    info = this.infoGeojsonWithAlias(layer, property_keys);
+                                }
+                            }
+
+                            return `${info.join("<br>")}`;
+                        },
+                        {
+                            permanent: false,
+                            direction: "center",
+                            className: "marker-pop-up-content",
+                        },
+                    );
+                },
+            };
         },
         heatmapLayer() {
-
             let config = {
-              'radius': 100,
-              'maxOpacity': 0.8,
-              'scaleRadius': false,
-              'useLocalExtrema': true,
-              latField:'lat',
-              lngField:'lng',
-              valueField:'count',
+                radius: 100,
+                maxOpacity: 0.8,
+                scaleRadius: false,
+                useLocalExtrema: true,
+                latField: "lat",
+                lngField: "lng",
+                valueField: "count",
             };
 
             let heatmapLayer = new HeatmapOverlay(config);
@@ -708,29 +879,41 @@ export default {
                 // let font_color;
 
                 //Concentración Alta
-                if (feature.properties.total >= this.config.sh_map_large_cluster_size_starts_at) {
-                    color          = this.style_variables["hexagonal-cluster-large-color"];
-                    opacity        = this.style_variables["hexagonal-cluster-large-opacity"];
-                    border_color   = this.style_variables["hexagonal-cluster-large-border-color"];
+                if (
+                    feature.properties.total >=
+                    this.config.sh_map_large_cluster_size_starts_at
+                ) {
+                    color = this.style_variables["hexagonal-cluster-large-color"];
+                    opacity = this.style_variables["hexagonal-cluster-large-opacity"];
+                    border_color =
+                        this.style_variables["hexagonal-cluster-large-border-color"];
                     // border_opacity = this.style_variables["hexagonal-cluster-large-border-opacity"];
                     // font           = this.style_variables["hexagonal-cluster-large-font"];
                     // font_color     = this.style_variables["hexagonal-cluster-large-font-color"];
                 }
 
-                //Concentración Media 
-                if (feature.properties.total < this.config.sh_map_large_cluster_size_starts_at) {
-                    color          = this.style_variables["hexagonal-cluster-medium-color"];
-                    opacity        = this.style_variables["hexagonal-cluster-medium-opacity"];
-                    border_color   = this.style_variables["hexagonal-cluster-medium-border-color"];
+                //Concentración Media
+                if (
+                    feature.properties.total <
+                    this.config.sh_map_large_cluster_size_starts_at
+                ) {
+                    color = this.style_variables["hexagonal-cluster-medium-color"];
+                    opacity = this.style_variables["hexagonal-cluster-medium-opacity"];
+                    border_color =
+                        this.style_variables["hexagonal-cluster-medium-border-color"];
                     // border_opacity = this.style_variables["hexagonal-cluster-medium-border-opacity"];
                     // font           = this.style_variables["hexagonal-cluster-medium-font"];
                     // font_color     = this.style_variables["hexagonal-cluster-medium-font-color"];
                 }
                 //Baja
-                if (feature.properties.total < this.config.sh_map_medium_cluster_size_starts_at) {
-                    color          = this.style_variables["hexagonal-cluster-small-color"];
-                    opacity        = this.style_variables["hexagonal-cluster-small-opacity"];
-                    border_color   = this.style_variables["hexagonal-cluster-small-border-color"];
+                if (
+                    feature.properties.total <
+                    this.config.sh_map_medium_cluster_size_starts_at
+                ) {
+                    color = this.style_variables["hexagonal-cluster-small-color"];
+                    opacity = this.style_variables["hexagonal-cluster-small-opacity"];
+                    border_color =
+                        this.style_variables["hexagonal-cluster-small-border-color"];
                     // border_opacity = this.style_variables["hexagonal-cluster-small-border-opacity"];
                     // font           = this.style_variables["hexagonal-cluster-small-font"];
                     // font_color     = this.style_variables["hexagonal-cluster-small-font-color"];
@@ -743,96 +926,103 @@ export default {
                     fillOpacity: opacity,
                     fillColor: color,
                 };
-
             };
-
         },
         analytic_geojson_style() {
             return (feature) => {
-
-                const layer = this.active_layers.find(l => {
+                const layer = this.active_layers.find((l) => {
                     return feature.layer_id == l.id;
                 });
 
                 const { max_total, min_total } = layer;
                 const [metric_total] = Object.values(feature.properties.metric_data);
 
-                if(metric_total == null) {
+                if (metric_total == null) {
                     return {
-                        weight      : 5,
-                        color       : "#ffffff",
-                        opacity     : "0",
-                        fillOpacity : "0",
-                        fillColor   : "#ffffff",
+                        weight: 5,
+                        color: "#ffffff",
+                        opacity: "0",
+                        fillOpacity: "0",
+                        fillColor: "#ffffff",
                     };
                 }
 
-                const color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-color"],
-                                                     this.style_variables["analytic-geojson-large-color"], 
-                                                     min_total, 
-                                                     max_total, 
-                                                     metric_total);
-                const border_color = this.calcColorByMinMax(this.style_variables["analytic-geojson-small-border-color"],
-                                                            this.style_variables["analytic-geojson-large-border-color"], 
-                                                            min_total, 
-                                                            max_total, 
-                                                            metric_total);
+                const color = this.calcColorByMinMax(
+                    this.style_variables["analytic-geojson-small-color"],
+                    this.style_variables["analytic-geojson-large-color"],
+                    min_total,
+                    max_total,
+                    metric_total,
+                );
+                const border_color = this.calcColorByMinMax(
+                    this.style_variables["analytic-geojson-small-border-color"],
+                    this.style_variables["analytic-geojson-large-border-color"],
+                    min_total,
+                    max_total,
+                    metric_total,
+                );
 
-                const border_weight = this.style_variables["analytic-geojson-border-weight"];
+                const border_weight =
+                    this.style_variables["analytic-geojson-border-weight"];
                 const opacity = this.style_variables["analytic-geojson-opacity"];
 
                 const style = {
-                    weight      : border_weight,
-                    color       : border_color,
-                    opacity     : opacity,
-                    fillOpacity : opacity,
-                    fillColor   : color,
+                    weight: border_weight,
+                    color: border_color,
+                    opacity: opacity,
+                    fillOpacity: opacity,
+                    fillColor: color,
                 };
 
                 return style;
             };
-
         },
         operative_geojson_style() {
             // Retornamos una función que se ejecutará para cada feature del GeoJSON
             // Esta función ahora es reactiva y se actualizará cuando cambien las propiedades relevantes
             return (feature) => {
                 // Buscamos la capa activa correspondiente a este feature
-                const layer = this.active_layers.find(l => {
+                const layer = this.active_layers.find((l) => {
                     return feature.layer_id == l.id;
                 });
 
                 // Determinamos los colores base para el estilo
-                const color      = (layer?.sh_map_has_layer_color) ? layer.sh_map_has_layer_color : 
-                                   (feature.properties.stroke) ? feature.properties.stroke : '#3388ff';
-                const fill_color = (layer?.sh_map_has_layer_text_color) ? layer.sh_map_has_layer_text_color : 
-                                   (feature.properties.fill) ? feature.properties.fill : color;
+                const color = layer?.sh_map_has_layer_color
+                    ? layer.sh_map_has_layer_color
+                    : feature.properties.stroke
+                        ? feature.properties.stroke
+                        : "#3388ff";
+                const fill_color = layer?.sh_map_has_layer_text_color
+                    ? layer.sh_map_has_layer_text_color
+                    : feature.properties.fill
+                        ? feature.properties.fill
+                        : color;
 
                 // Creamos el objeto de estilo base
                 let style = {
-                    color       : color,
-                    fillColor   : fill_color
+                    color: color,
+                    fillColor: fill_color,
                 };
 
                 // Determinamos el tipo de feature para la leyenda y filtrado
-                let type = (layer.sh_map_has_layer_geojson_col_reference) 
-                    ? feature.properties[layer.sh_map_has_layer_geojson_col_reference] 
+                let type = layer.sh_map_has_layer_geojson_col_reference
+                    ? feature.properties[layer.sh_map_has_layer_geojson_col_reference]
                     : layer.sh_map_has_layer_name;
-                
+
                 // Creamos el objeto de estilo para la leyenda
                 const style_by_legend = {
-                    'border-color' : color,
-                    'background'   : fill_color,
-                    'type'         : type
+                    "border-color": color,
+                    background: fill_color,
+                    type: type,
                 };
 
                 // Aplicamos la opacidad si está configurada en color_layer_opacity
-                if(layer.id in this.color_layer_opacity){
-                    if(type in this.color_layer_opacity[layer.id]){
-                        if ('opacity' in this.color_layer_opacity[layer.id][type]){
-                            style['opacity'] = 0;
-                            style['fillOpacity'] = 0;
-                            style['fillOpacity'] = 0;
+                if (layer.id in this.color_layer_opacity) {
+                    if (type in this.color_layer_opacity[layer.id]) {
+                        if ("opacity" in this.color_layer_opacity[layer.id][type]) {
+                            style["opacity"] = 0;
+                            style["fillOpacity"] = 0;
+                            style["fillOpacity"] = 0;
                         }
                     }
                 }
@@ -842,79 +1032,102 @@ export default {
                     this.multicolor_geojson_legend[layer.id] = [];
                 }
                 this.multicolor_geojson_legend[layer.id].push(style_by_legend);
-                
+
                 // Filtramos estilos duplicados en la leyenda
                 let all_options = new Set();
-                this.multicolor_geojson_legend[layer.id] = this.multicolor_geojson_legend[layer.id]?.filter(color_legend => {
-                    const color_legend_str = JSON.stringify(color_legend);
-                    if (!all_options.has(color_legend_str)) {
-                        all_options.add(color_legend_str);
-                        return true;
-                    }
-                    return false;
-                });
-                
+                this.multicolor_geojson_legend[layer.id] =
+                    this.multicolor_geojson_legend[layer.id]?.filter((color_legend) => {
+                        const color_legend_str = JSON.stringify(color_legend);
+                        if (!all_options.has(color_legend_str)) {
+                            all_options.add(color_legend_str);
+                            return true;
+                        }
+                        return false;
+                    });
+
                 // Ordenamos los elementos por el atributo background (color hexadecimal)
                 // Convertimos el hexadecimal a HSL para ordenar por el tono (hue) como en un arcoiris
-                this.multicolor_geojson_legend[layer.id] = this.orderByColor(this.multicolor_geojson_legend[layer.id]);
+                this.multicolor_geojson_legend[layer.id] = this.orderByColor(
+                    this.multicolor_geojson_legend[layer.id],
+                );
                 return style;
             };
         },
         // Se genera una lista general de todas las capas activas
-        active_layers(){
-            if(_.isEmpty(this.layers)){ return []}
-            let active_layers_raw = []
+        active_layers() {
+            if (_.isEmpty(this.layers)) {
+                return [];
+            }
+            let active_layers_raw = [];
 
-            active_layers_raw = active_layers_raw.concat(this.working_layers.filter( l => l.active));
+            active_layers_raw = active_layers_raw.concat(
+                this.working_layers.filter((l) => l.active),
+            );
 
-            let active_layers_keys = active_layers_raw.map( lr => lr.key );
+            let active_layers_keys = active_layers_raw.map((lr) => lr.key);
 
-            let active_layers = Object.values(this.layers).filter( l => active_layers_keys.includes(l.id));
+            let active_layers = Object.values(this.layers).filter((l) =>
+                active_layers_keys.includes(l.id),
+            );
 
             return active_layers;
         },
-        disabled_layers(){
-            if(_.isEmpty(this.layers)){ return []}
-            let active_layers_ids = this.active_layers.map(l=> l.id);
-            let disabled_layers =  Object.values(this.layers).filter( l => !active_layers_ids.includes(l.id));
+        disabled_layers() {
+            if (_.isEmpty(this.layers)) {
+                return [];
+            }
+            let active_layers_ids = this.active_layers.map((l) => l.id);
+            let disabled_layers = Object.values(this.layers).filter(
+                (l) => !active_layers_ids.includes(l.id),
+            );
             return disabled_layers;
         },
-        supercluster_by_entity_type_layers(){
-            if(_.isEmpty(this.active_layers)) return [];
-            return this.active_layers.filter( l => l.sh_map_has_layer_code == 'supercluster_by_entity_type');
+        supercluster_by_entity_type_layers() {
+            if (_.isEmpty(this.active_layers)) return [];
+            return this.active_layers.filter(
+                (l) => l.sh_map_has_layer_code == "supercluster_by_entity_type",
+            );
         },
         // Si una capa geojson tiene activa la variable sh_map_has_layer_type_enable_filter
         // entonces se reemplazas los limites del mapa por los limites de dichas capas
-        layer_boundaries(){
-            const enable_filter_operative_list = this.enableFilterList(this.operative_geojson_list);
-            const enable_filter_analytic_list  = this.enableFilterList(this.analytic_geojson_list);
+        layer_boundaries() {
+            const enable_filter_operative_list = this.enableFilterList(
+                this.operative_geojson_list,
+            );
+            const enable_filter_analytic_list = this.enableFilterList(
+                this.analytic_geojson_list,
+            );
 
-            const operative_coordinates = this.sumCoordinates(enable_filter_operative_list);
-            const analytic_coordinates  = this.sumCoordinates(enable_filter_analytic_list);
-            
+            const operative_coordinates = this.sumCoordinates(
+                enable_filter_operative_list,
+            );
+            const analytic_coordinates = this.sumCoordinates(
+                enable_filter_analytic_list,
+            );
+
             return operative_coordinates.concat(analytic_coordinates);
         },
         // Obtiene la información de la métrica para una capa analítica
         // Considera tanto la métrica base del layer como filtros dinámicos de tipo METRIC
         layerMetricInfo() {
-            return (layer) => {            
+            return (layer) => {
                 // Primero verificar si hay un filtro METRIC activo
-                const {metric} = this.metricFilter(layer);
+                const { metric } = this.metricFilter(layer);
                 const metric_id = metric || layer.sh_map_has_layer_metric_id;
-                
+
                 // Buscar en metricsLookup (computed interno)
                 if (metric_id && this.metricsLookup && this.metricsLookup[metric_id]) {
                     const metricInfo = this.metricsLookup[metric_id];
                     return metricInfo;
                 }
-                
+
                 // Fallback a enriched_data si existe
                 if (layer.enriched_data && layer.enriched_data.metric_name) {
                     const enrichedInfo = {
                         id: layer.enriched_data.metric_id,
                         name: layer.enriched_data.metric_name,
                         description: layer.enriched_data.metric_description,
-                        format: layer.enriched_data.metric_format
+                        format: layer.enriched_data.metric_format,
                     };
                     return enrichedInfo;
                 }
@@ -922,57 +1135,62 @@ export default {
             };
         },
     },
-    watch:{
+    watch: {
         analytic_cluster() {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
-        zoom(newZoom){
+        zoom(newZoom) {
             this.search_new_titles = true;
-            if(this.scale_sensitive_layers.length > 0 && !(newZoom in this.scale_sensitive_layers)){
+            if (
+                this.scale_sensitive_layers.length > 0 &&
+                !(newZoom in this.scale_sensitive_layers)
+            ) {
                 this.scale_sensitive_layers = [];
             }
-            this.scale_sensitive_layers[newZoom] = this.active_layers.filter(function(l){
-                return l.sh_map_has_layer_code == "operative_vector_tiles_tms";
-            }).map(function(l){ 
-                return l.id;
-            });
+            this.scale_sensitive_layers[newZoom] = this.active_layers
+                .filter(function (l) {
+                    return l.sh_map_has_layer_code == "operative_vector_tiles_tms";
+                })
+                .map(function (l) {
+                    return l.id;
+                });
 
             this.switchLayers();
-            if(this.analytic_cluster_initial_zoom !== undefined) {
-                this.should_hide_cluster_labels = newZoom < this.analytic_cluster_initial_zoom - 1;
+            if (this.analytic_cluster_initial_zoom !== undefined) {
+                this.should_hide_cluster_labels =
+                    newZoom < this.analytic_cluster_initial_zoom - 1;
             }
 
             this.map.closePopup(); // Cerramos todos los popups al hacer zoom https://github.com/CoderhubSpA/sheets_map/pull/54#issue-2017258160
         },
         active_layers: {
-          handler() {
-            this.switchLayers();
-          },
-          deep: true
+            handler() {
+                this.switchLayers();
+            },
+            deep: true,
         },
         active_filters: {
-          handler() {
-            this.switchLayers();
-          },
-          deep: true
+            handler() {
+                this.switchLayers();
+            },
+            deep: true,
         },
         trigger_filter_function(val) {
-            if(val) {
+            if (val) {
                 this.is_trigger_filter_function = true;
 
-                if(this.is_trigger_filter_function) {
+                if (this.is_trigger_filter_function) {
                     this.filter();
 
                     this.is_trigger_filter_function = false;
                 }
-
             }
         },
-        center(){
+        center() {
             this.centerParsed();
-        }
+        },
     },
-    created(){
+    created() {
         // TO DO:
         // Colocar primera capa base encontrada
 
@@ -981,84 +1199,117 @@ export default {
 
         this.getMapConfiguration();
         // Cuando geo_json es construido, se instancia Supercluster
-
     },
-    mounted(){
+    mounted() {
         this.poweredCoderhub();
     },
-    methods:{
-        classification_icon(id = null){
+    methods: {
+        classification_icon(id = null) {
             let classification_icon;
             let classification_icon_info;
             let need_classification = false;
             if (!id) {
                 // Se usa para el caso de supercluster en local,
                 // cuando se integre con Sheets, este caso se aborda en el orquestador
-                classification_icon_info = this.active_layers.filter(layer => layer.sh_map_has_layer_code === 'supercluster')[0]; 
-            } else{
-                classification_icon_info = this.active_layers.filter((layer) => layer.id == id);
+                classification_icon_info = this.active_layers.filter(
+                    (layer) => layer.sh_map_has_layer_code === "supercluster",
+                )[0];
+            } else {
+                classification_icon_info = this.active_layers.filter(
+                    (layer) => layer.id == id,
+                );
             }
-            if (typeof classification_icon_info !== 'undefined') {
+            if (typeof classification_icon_info !== "undefined") {
                 classification_icon = {
-                    'classification_column'      : classification_icon_info.sh_map_has_layer_classification_column_id,
-                    'source_icon_classification' : classification_icon_info.sh_map_has_layer_source_icon_classification_id,
-                    'column_icon'                : classification_icon_info.sh_map_has_layer_column_icon_id
-
+                    classification_column:
+                        classification_icon_info.sh_map_has_layer_classification_column_id,
+                    source_icon_classification:
+                        classification_icon_info.sh_map_has_layer_source_icon_classification_id,
+                    column_icon: classification_icon_info.sh_map_has_layer_column_icon_id,
                 };
-                need_classification = (!Object.values(classification_icon).includes(undefined)) ? true : false ;
+                need_classification = !Object.values(classification_icon).includes(
+                    undefined,
+                )
+                    ? true
+                    : false;
             }
 
-            if(need_classification ){
-                this.classification_icon_column = classification_icon_info.sh_map_has_layer_classification_column_id;
-
-            }else{
+            if (need_classification) {
+                this.classification_icon_column =
+                    classification_icon_info.sh_map_has_layer_classification_column_id;
+            } else {
                 this.classification_icon_column = false;
                 classification_icon = undefined;
-
             }
 
             return classification_icon;
         },
-        getIconUrl(iconId){
+        getIconUrl(iconId) {
             // Construye la URL completa para el icono usando el patrón /document/{id}
-            return iconId ? `${this.base_url}/document/${iconId}` : '';
+            return iconId ? `${this.base_url}/document/${iconId}` : "";
         },
-        zoomToLocation(latLng){
+        hasVectorTileSemanticLegend(layer) {
+            return Boolean(
+                layer &&
+                layer.sh_map_has_layer_code === "operative_vector_tiles_xyz" &&
+                this.vector_tile_legends[layer.id] &&
+                this.vector_tile_legends[layer.id].visible !== false &&
+                Array.isArray(this.vector_tile_legends[layer.id].items) &&
+                this.vector_tile_legends[layer.id].items.length > 0,
+            );
+        },
+        vectorTileLegend(layerId) {
+            return this.vector_tile_legends[layerId] || null;
+        },
+        handleVectorTileLegendReady(payload) {
+            if (!payload || !payload.layerId || !payload.legend) return;
+
+            this.$set(this.vector_tile_legends, payload.layerId, payload.legend);
+        },
+        handleVectorTileLegendClear(layerId) {
+            if (!layerId || !this.vector_tile_legends[layerId]) return;
+
+            this.$delete(this.vector_tile_legends, layerId);
+        },
+        zoomToLocation(latLng, zoom) {
             this.searchMarkerLatLng = latLng;
             this.shouldShowSearchMarker = true;
-            this.map.flyTo(latLng, 12);
+            this.map.flyTo(latLng, zoom || 12);
         },
-        zoomMap(zoom){
-            if(zoom === "out") this.zoom--;
-            else if(zoom === "in") this.zoom++;
+        zoomMap(zoom) {
+            if (zoom === "out") this.zoom--;
+            else if (zoom === "in") this.zoom++;
             else this.zoom++;
-            
-            if(this.zoom > 20) this.zoom = 20;
-            if(this.zoom < 0) this.zoom = 0;
+
+            if (this.zoom > 20) this.zoom = 20;
+            if (this.zoom < 0) this.zoom = 0;
         },
-        ready(){
+        ready() {
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
-            
+
             const resizeObserver = new ResizeObserver(() => {
                 this.map.invalidateSize(false);
             });
             resizeObserver.observe(this.$refs.map_container);
-            
+
             // Configurar handler centralizado para clicks en capas vectoriales
             this.setupVectorTileClickHandler();
+
+            // Emitir API pública para consumidores externos
+            this.$emit("map-actions-ready", this.mapActions);
         },
-        
+
         /**
          * Configura un handler centralizado para clicks en capas vectoriales
          * Este handler consulta las capas en orden de z-index descendente (de arriba hacia abajo)
          * y para en la primera capa que encuentre un feature
          */
         setupVectorTileClickHandler() {
-            this.map.on('click', (e) => {
+            this.map.on("click", (e) => {
                 // Obtener capas vectoriales en orden inverso (mayor z-index primero)
                 const layers = [...(this.$refs.vectorTileLayers || [])].reverse();
-                
+
                 // Buscar en cada capa, empezando por la de arriba
                 for (const layerComponent of layers) {
                     if (layerComponent && layerComponent.tryHandleClick) {
@@ -1071,342 +1322,395 @@ export default {
                 }
             });
         },
-        
-        filter(){
+
+        filter() {
             this.findBounds();
         },
-        
-        switchLayers(){
-            
+
+        switchLayers() {
             // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
 
-            this.active_layers.forEach(l => {
+            this.active_layers.forEach((l) => {
                 this.activeLayers(l);
             });
-            
-            this.disabled_layers.forEach(l => {
+
+            this.disabled_layers.forEach((l) => {
                 this.disableLayers(l);
             });
-            
-        }, 
-        activeLayers(layer){
-
+        },
+        activeLayers(layer) {
             let geojson_bounds = this.getMapGeoJsonBounds();
 
-            switch(layer.sh_map_has_layer_code){
-                case 'analytic_geojson' : 
-                case 'analytic_geojson_logarithmic' : {
+            switch (layer.sh_map_has_layer_code) {
+                case "analytic_geojson":
+                case "analytic_geojson_logarithmic": {
                     // eslint-disable-next-line
-                    const {is_empty,is_new_layer}= this.organizeLayers(layer, this.analytic_geojson_list);
+                    const { is_empty, is_new_layer } = this.organizeLayers(
+                        layer,
+                        this.analytic_geojson_list,
+                    );
 
                     if (!is_new_layer) {
-                        this.analytic_geojson_list = this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
+                        this.analytic_geojson_list = this.cleanGeojsonLayer(
+                            layer,
+                            this.analytic_geojson_list,
+                        );
                     }
 
                     this.getAnalyticalGeoJson(layer);
                     break;
-
                 }
-                case 'analytic_cluster' : {
-                    let if_empty           = (_.isEmpty(this.analytic_cluster)) ? true : false;
-                    let if_diferent_bounds = (!_.isEmpty(this.analytic_cluster) && (this.analytic_cluster.bounds).join() != (geojson_bounds).join()) ? true : false;
-                    
+                case "analytic_cluster": {
+                    let if_empty = _.isEmpty(this.analytic_cluster) ? true : false;
+                    let if_diferent_bounds =
+                        !_.isEmpty(this.analytic_cluster) &&
+                            this.analytic_cluster.bounds.join() != geojson_bounds.join()
+                            ? true
+                            : false;
+
                     // Si no existia ya una capa analytic_cluster o si los bounds son diferentes (cambio de lugar), se vuelve a generar
-                    if(if_empty || if_diferent_bounds){
+                    if (if_empty || if_diferent_bounds) {
                         this.getAnalyticalClusterGeoJson(layer);
                     }
                     break;
-
                 }
-                case 'analytic_countour_map' : {
-                    let if_empty           = (_.isEmpty(this.analytic_countour_map)) ? true : false;
-                    let if_diferent_bounds = (!_.isEmpty(this.analytic_countour_map) && (this.analytic_countour_map.bounds).join() != (geojson_bounds).join()) ? true : false;
+                case "analytic_countour_map": {
+                    let if_empty = _.isEmpty(this.analytic_countour_map) ? true : false;
+                    let if_diferent_bounds =
+                        !_.isEmpty(this.analytic_countour_map) &&
+                            this.analytic_countour_map.bounds.join() != geojson_bounds.join()
+                            ? true
+                            : false;
 
-                    if(if_empty || if_diferent_bounds){
+                    if (if_empty || if_diferent_bounds) {
                         this.getAnalyticalCountourMap(layer);
                     }
                     break;
-
                 }
-                case 'base_google_map' : {
+                case "base_google_map": {
                     this.base_google_map = layer;
                     break;
-
                 }
-                case 'base_map_guide' : {
+                case "base_map_guide": {
                     this.base_map_guide = layer;
                     break;
-
                 }
-                case 'base_open_street_map' : {
+                case "base_open_street_map": {
                     this.base_open_street_map = layer;
                     break;
-
                 }
-                case 'operative_vector_tiles_tms' : {
-                    const organizeLayers = this.organizeLayers(layer, this.operative_geojson_list);
-                    const is_empty = organizeLayers['is_empty'];
+                case "operative_vector_tiles_tms": {
+                    const organizeLayers = this.organizeLayers(
+                        layer,
+                        this.operative_geojson_list,
+                    );
+                    const is_empty = organizeLayers["is_empty"];
 
                     //importante
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
-                    if(is_empty || (!is_empty && this.search_new_titles)){
+                    if (is_empty || (!is_empty && this.search_new_titles)) {
                         this.search_new_titles = false;
                         //TODO: revisar por EPSG
-                        const northeast = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[0]);
-                        const southwest = proj4('EPSG:4326', 'EPSG:3857', geojson_bounds[2]);
-                        var coord = southwest.join(',')+ ',' + northeast.join(',') ;
+                        const northeast = proj4(
+                            "EPSG:4326",
+                            "EPSG:3857",
+                            geojson_bounds[0],
+                        );
+                        const southwest = proj4(
+                            "EPSG:4326",
+                            "EPSG:3857",
+                            geojson_bounds[2],
+                        );
+                        var coord = southwest.join(",") + "," + northeast.join(",");
 
                         const url = layer.sh_map_has_layer_url.split("?bbox=");
                         const zoom = this.zoom;
 
-                        const crs = layer.sh_map_has_layer_crs || 'EPSG:3857';
+                        const crs = layer.sh_map_has_layer_crs || "EPSG:3857";
 
-                        layer.sh_map_has_layer_url = url[0]+"?bbox="+coord+"&crs="+crs;
-                        if(zoom == this.zoom){
-                            this.requestGeoJson(layer, this.operative_geojson_features)
-                            .then(() => {
-                                if(zoom == this.zoom){
-                                    if(!is_empty){
-                                        this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+                        layer.sh_map_has_layer_url =
+                            url[0] + "?bbox=" + coord + "&crs=" + crs;
+                        if (zoom == this.zoom) {
+                            this.requestGeoJson(layer, this.operative_geojson_features).then(
+                                () => {
+                                    if (zoom == this.zoom) {
+                                        if (!is_empty) {
+                                            this.operative_geojson_list = this.cleanGeojsonLayer(
+                                                layer,
+                                                this.operative_geojson_list,
+                                            );
+                                        }
+                                        this.getOperativeGeoJson(layer);
                                     }
-                                    this.getOperativeGeoJson(layer);
-                                }
-                            });
+                                },
+                            );
                         }
                     }
 
                     break;
                 }
-                case 'operative_vector_tiles_xyz' : {
+                case "operative_vector_tiles_xyz": {
                     // Activar capa de Vector Tiles XYZ
                     // Simplemente agregar al final del array (= tope del stack visual)
-                    const existingLayerData = this.operative_vector_tiles_xyz.find(vt => vt.layer_id === layer.id);
-                    
+                    const existingLayerData = this.operative_vector_tiles_xyz.find(
+                        (vt) => vt.layer_id === layer.id,
+                    );
+
                     if (!existingLayerData) {
                         // Nueva capa: agregar al final con un ID único para forzar recreación
                         this.operative_vector_tiles_xyz.push({
                             layer_id: layer.id,
                             layer: layer,
                             visible_columns: layer.visible_columns || [],
-                            entity_type_id: layer.entity_type_id || '',
-                            _uid: `${layer.id}-${Date.now()}-${Math.random()}` // ID único para Vue
+                            entity_type_id: layer.entity_type_id || "",
+                            _uid: `${layer.id}-${Date.now()}-${Math.random()}`, // ID único para Vue
                         });
                     }
                     // Si ya existe, no hacer nada (evitar duplicados)
                     break;
                 }
-                case 'operative_geoserver_wms' : {
-                    this.operative_geoserver_wms.push(layer)
+                case "operative_geoserver_wms": {
+                    this.operative_geoserver_wms.push(layer);
                     break;
-
                 }
-                case 'operative_geoserver_wfs_point': {
-                    const {is_empty,is_new_layer} = this.organizeLayers(layer, this.operative_geojson_list);
+                case "operative_geoserver_wfs_point": {
+                    const { is_empty, is_new_layer } = this.organizeLayers(
+                        layer,
+                        this.operative_geojson_list,
+                    );
 
                     //importante
                     // Finalmente se agrega una capa si operative_geojson_list está vacía o si tiene otras capas pero no continene a layer (Es decir si es una nueva capa)
-                    if(is_empty || (!is_empty && is_new_layer)){
-                        this.requestGeoJson(layer, this.operative_geojson_features)
-                        .then(() => {
-                            this.getOperativeGeoJson(layer);
-                        });
+                    if (is_empty || (!is_empty && is_new_layer)) {
+                        this.requestGeoJson(layer, this.operative_geojson_features).then(
+                            () => {
+                                this.getOperativeGeoJson(layer);
+                            },
+                        );
                     }
 
                     break;
                 }
-                case 'supercluster':{
+                case "supercluster": {
                     // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
-                case 'supercluster_by_entity_type': {
+                case "supercluster_by_entity_type": {
                     // La capa supercluster se activa mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
-                default:{
-                    console.log('Intento de activar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
+                default: {
+                    console.log(
+                        "Intento de activar " +
+                        layer.sh_map_has_layer_code +
+                        " sin exito. " +
+                        "(" +
+                        layer.sh_map_has_layer_name +
+                        ")",
+                    );
                     break;
                 }
-
             }
-        }, 
-        disableLayers(layer){
-            
-            switch(layer.sh_map_has_layer_code){
-                case 'analytic_geojson' : 
-                case 'analytic_geojson_logarithmic' : {
+        },
+        disableLayers(layer) {
+            switch (layer.sh_map_has_layer_code) {
+                case "analytic_geojson":
+                case "analytic_geojson_logarithmic": {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
-                    this.analytic_geojson_list = this.cleanGeojsonLayer(layer, this.analytic_geojson_list);
+                    this.analytic_geojson_list = this.cleanGeojsonLayer(
+                        layer,
+                        this.analytic_geojson_list,
+                    );
                     break;
                 }
-                case 'analytic_cluster' : {
+                case "analytic_cluster": {
                     this.analytic_cluster = undefined;
                     break;
-
                 }
-                case 'analytic_countour_map' : {
+                case "analytic_countour_map": {
                     if (!_.isEmpty(this.analytic_countour_map)) {
-
                         this.analytic_countour_map = undefined;
-                        
+
                         this.makeEmptyHeatmap();
                     }
                     break;
                 }
-                case 'base_google_map' : {
+                case "base_google_map": {
                     this.base_google_map = undefined;
                     break;
-
                 }
-                case 'base_map_guide' : {
+                case "base_map_guide": {
                     this.base_map_guide = undefined;
                     break;
-
                 }
-                case 'base_open_street_map' : {
+                case "base_open_street_map": {
                     this.base_open_street_map = undefined;
                     break;
-
                 }
-                case 'operative_vector_tiles_tms' : 
-                case 'operative_geoserver_wfs_point': {
+                case "operative_vector_tiles_tms":
+                case "operative_geoserver_wfs_point": {
                     //Filtra un elementos inactivo de analytic_geojson segun layer dejando solo los elementos activos
-                    this.operative_geojson_list = this.cleanGeojsonLayer(layer, this.operative_geojson_list);
+                    this.operative_geojson_list = this.cleanGeojsonLayer(
+                        layer,
+                        this.operative_geojson_list,
+                    );
 
                     break;
                 }
-                case 'operative_vector_tiles_xyz': {
+                case "operative_vector_tiles_xyz": {
                     // Desactivar capa de Vector Tiles XYZ
                     // Simplemente ELIMINAR del array - esto destruirá el componente
-                    const index = this.operative_vector_tiles_xyz.findIndex(vt => vt.layer_id === layer.id);
+                    const index = this.operative_vector_tiles_xyz.findIndex(
+                        (vt) => vt.layer_id === layer.id,
+                    );
                     if (index !== -1) {
                         this.operative_vector_tiles_xyz.splice(index, 1);
                     }
                     break;
                 }
-                case 'supercluster': 
-                case 'supercluster_by_entity_type': {
+                case "supercluster":
+                case "supercluster_by_entity_type": {
                     // La capa supercluster se desactiva mediante el atributo "visible" enviado al componente SuperclusterLayer
                     break;
                 }
-                default:{
+                default: {
                     //console.log('Intento de desactivar '+layer.sh_map_has_layer_code+' sin exito. ' + '('+layer.sh_map_has_layer_name+')');
                     break;
                 }
-
             }
-
-        },      
-        getAnalyticalCountourMap(layer){
-            let h3_zoom        = this.calculateH3ZoomContour();
-            let query_params   = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
-            let url            = query_params.url;
-            let body           = query_params.body;
+        },
+        getAnalyticalCountourMap(layer) {
+            let h3_zoom = this.calculateH3ZoomContour();
+            let query_params = this.makeCubeQueryParameters(layer, [
+                "h3r".concat(h3_zoom),
+            ]);
+            let url = query_params.url;
+            let body = query_params.body;
             let geojson_bounds = this.getMapGeoJsonBounds();
 
-            axios.post(url, body).then(response => {
+            axios.post(url, body).then((response) => {
                 let all_cubes = response.data.content;
-                let data      = _.first(Object.values(all_cubes.data))     || [];
-                let data_map  = _.first(Object.values(all_cubes.data_map)) || [];
+                let data = _.first(Object.values(all_cubes.data)) || [];
+                let data_map = _.first(Object.values(all_cubes.data_map)) || [];
 
-                if (Array.isArray(data) && data.length>0) {
-
-                    let data_map_hex = data_map.map(d => {
+                if (Array.isArray(data) && data.length > 0) {
+                    let data_map_hex = data_map.map((d) => {
                         if (d == "h3r".concat(h3_zoom)) {
-                            return 'h3';
+                            return "h3";
                         }
-                        return 'total';
+                        return "total";
                     });
 
-                    let key_count        = data_map_hex.indexOf("total");
-                    let key_dimension    = data_map_hex.indexOf("h3");
-                    let h3_indexes_data  = data;
-                    
-                    let data_lat_lng = this.h3ToLngLat(h3_indexes_data,key_dimension,key_count);
+                    let key_count = data_map_hex.indexOf("total");
+                    let key_dimension = data_map_hex.indexOf("h3");
+                    let h3_indexes_data = data;
+
+                    let data_lat_lng = this.h3ToLngLat(
+                        h3_indexes_data,
+                        key_dimension,
+                        key_count,
+                    );
                     let contour_data = {
-                      max: 4000,
-                      data: data_lat_lng
+                        max: 4000,
+                        data: data_lat_lng,
                     };
 
                     this.heatmapLayer.addTo(this.map);
                     this.heatmapLayer.setData(contour_data);
-                    this.analytic_countour_map = {bounds : Object.freeze(geojson_bounds)};
-
-                }else{
+                    this.analytic_countour_map = {
+                        bounds: Object.freeze(geojson_bounds),
+                    };
+                } else {
                     this.makeEmptyHeatmap();
                 }
             });
-
-        },      
-        getAnalyticalClusterGeoJson(layer){
-            let polygon; 
+        },
+        getAnalyticalClusterGeoJson(layer) {
+            let polygon;
             let geojson_bounds = this.getMapGeoJsonBounds();
-            let h3_zoom       = this.calculateH3Zoom();
-            let query_params  = this.makeCubeQueryParameters(layer,["h3r".concat(h3_zoom)]);
-            let url           = query_params.url;
-            let body          = query_params.body;
-            
-            axios.post(url, body).then(response => {
+            let h3_zoom = this.calculateH3Zoom();
+            let query_params = this.makeCubeQueryParameters(layer, [
+                "h3r".concat(h3_zoom),
+            ]);
+            let url = query_params.url;
+            let body = query_params.body;
+
+            axios.post(url, body).then((response) => {
                 let all_cubes = response.data.content;
-                let data      = _.first(Object.values(all_cubes.data)) || {};
-                let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+                let data = _.first(Object.values(all_cubes.data)) || {};
+                let data_map = _.first(Object.values(all_cubes.data_map)) || {};
 
-                let key_dimension    = data_map.indexOf("h3r".concat(h3_zoom));
-                let h3_indexes_data  = data; 
+                let key_dimension = data_map.indexOf("h3r".concat(h3_zoom));
+                let h3_indexes_data = data;
 
-                let h3_indexes = data.map(d => {
+                let h3_indexes = data.map((d) => {
                     return d[key_dimension];
                 });
 
-                let data_map_hex = data_map.map(d => {
+                let data_map_hex = data_map.map((d) => {
                     if (d == "h3r".concat(h3_zoom)) {
-                        return 'h3';
+                        return "h3";
                     }
-                    return 'total';
+                    return "total";
                 });
 
-
-                polygon        = this.asPolygon(null,this.h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex));
-                this.analytic_cluster = {geo_json : polygon, bounds : Object.freeze(geojson_bounds)};
+                polygon = this.asPolygon(
+                    null,
+                    this.h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex),
+                );
+                this.analytic_cluster = {
+                    geo_json: polygon,
+                    bounds: Object.freeze(geojson_bounds),
+                };
             });
-
         },
-        getAnalyticalGeoJson(layer){
+        getAnalyticalGeoJson(layer) {
             this.should_skip_bounds_filter = true;
             const dimension_ids = [layer.sh_map_has_layer_dimension_id_reference];
-            const query_params  = this.makeCubeQueryParameters(layer,dimension_ids);
-            const url           = query_params.url;
-            const body          = query_params.body;
+            const query_params = this.makeCubeQueryParameters(layer, dimension_ids);
+            const url = query_params.url;
+            const body = query_params.body;
 
-            if (!(Object.prototype.hasOwnProperty.call(this.analytic_geojson_features,layer.id))) {
-                this.requestGeoJson(layer, this.analytic_geojson_features, url, body)
-                .then(() => {
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    this.analytic_geojson_features,
+                    layer.id,
+                )
+            ) {
+                this.requestGeoJson(
+                    layer,
+                    this.analytic_geojson_features,
+                    url,
+                    body,
+                ).then(() => {
                     this.getAnalyticalGeoJsonBi(layer, url, body);
                 });
-
-            }else{
+            } else {
                 this.getAnalyticalGeoJsonBi(layer, url, body);
             }
         },
-        getAnalyticalGeoJsonBi(layer, url, body){
-            axios.post(url, body).then(response => {
+        getAnalyticalGeoJsonBi(layer, url, body) {
+            axios.post(url, body).then((response) => {
                 let all_cubes = response.data.content;
-                let data      = _.first(Object.values(all_cubes.data)) || {};
-                let data_map  = _.first(Object.values(all_cubes.data_map)) || {};
+                let data = _.first(Object.values(all_cubes.data)) || {};
+                let data_map = _.first(Object.values(all_cubes.data_map)) || {};
 
                 //Conseguir lista de códigos de identificación
-                let key_code_dimension  = data_map.indexOf(layer.sh_map_has_layer_dimension_col_reference);
+                let key_code_dimension = data_map.indexOf(
+                    layer.sh_map_has_layer_dimension_col_reference,
+                );
 
                 //Y tomamos el id de referencia de la dimension sin el registro de identificacion de la metrica
                 layer.total_dimension_ref = data_map.find((dm, key) => {
-                    if (key != key_code_dimension) return dm
+                    if (key != key_code_dimension) return dm;
                 });
                 //Si tenemos este tipo de capa entonces se ordenan los registros de menor a mayor según su dimensión
                 //y difinimos el mínimo y el máximo según la cantidad de registros que haya
-                if(layer.sh_map_has_layer_code == 'analytic_geojson_logarithmic'){
+                if (layer.sh_map_has_layer_code == "analytic_geojson_logarithmic") {
                     data.sort(function (a, b) {
                         const dim_index = data_map.indexOf(layer.total_dimension_ref);
-                            
+
                         if (a[dim_index] > b[dim_index]) {
                             return 1;
                         }
@@ -1417,120 +1721,143 @@ export default {
                         return 0;
                     });
 
-                    data.forEach(function(d,k) {
+                    data.forEach(function (d, k) {
                         d.push(k);
                         return d;
                     });
-                    data_map.push('order');
-                    //Y tomamos la identificacion del ordenamiento por metrica 
-                    layer.total_dimension_ref = 'order';
+                    data_map.push("order");
+                    //Y tomamos la identificacion del ordenamiento por metrica
+                    layer.total_dimension_ref = "order";
                 }
 
                 const key_total_dimension = data_map.indexOf(layer.total_dimension_ref);
-                const total_list = data.map(d => { return d[key_total_dimension]; });
-                
-                const max_total = (total_list.length > 0) ? Math.max(...total_list) : 0;
-                const min_total = (total_list.length > 0) ? Math.min(...total_list) : 0;
-                
-                layer.max_total = max_total;
-                layer.min_total = (max_total != min_total) ? min_total : 0;
-                
-                //Relacionar el total de data con feature
-                const code_id_list = data.map(d => { return d[key_code_dimension]; });
-                const features = this.analytic_geojson_features[layer.id].map(feature => {
-                    // Aquí se busca el la coincicencia entre feature y data
-                    const geojson_col_reference = feature.properties[layer.sh_map_has_layer_geojson_col_reference];
-                    
-                    // Se busca el indice de la coincidencia usando una "loosy comparison"
-                    // Esto para evitar problemas con los tipos de datos. Ejemplo: 1 == "1" => true
-                    const index_dimension = Object.keys(code_id_list).find( i => code_id_list[i] == geojson_col_reference);
-
-                    //Si el indice es encontrado se agrega su valor si no se deja el valor en null1
-                    const total = (index_dimension !== undefined)
-                        ? data[index_dimension][key_total_dimension]
-                        : null;
-
-                    feature.properties.metric_data = {
-                        [layer.total_dimension_ref] : total
-                    };
-                    feature.layer_id = layer.id;
-                    return feature; 
+                const total_list = data.map((d) => {
+                    return d[key_total_dimension];
                 });
 
-                let geojson  = {
-                    "layer_id" : layer.id,
-                    "geojson"  : {
-                        "type"     : "FeatureCollection",
-                        "features" : features
-                    }
+                const max_total = total_list.length > 0 ? Math.max(...total_list) : 0;
+                const min_total = total_list.length > 0 ? Math.min(...total_list) : 0;
+
+                layer.max_total = max_total;
+                layer.min_total = max_total != min_total ? min_total : 0;
+
+                //Relacionar el total de data con feature
+                const code_id_list = data.map((d) => {
+                    return d[key_code_dimension];
+                });
+                const features = this.analytic_geojson_features[layer.id].map(
+                    (feature) => {
+                        // Aquí se busca el la coincicencia entre feature y data
+                        const geojson_col_reference =
+                            feature.properties[layer.sh_map_has_layer_geojson_col_reference];
+
+                        // Se busca el indice de la coincidencia usando una "loosy comparison"
+                        // Esto para evitar problemas con los tipos de datos. Ejemplo: 1 == "1" => true
+                        const index_dimension = Object.keys(code_id_list).find(
+                            (i) => code_id_list[i] == geojson_col_reference,
+                        );
+
+                        //Si el indice es encontrado se agrega su valor si no se deja el valor en null1
+                        const total =
+                            index_dimension !== undefined
+                                ? data[index_dimension][key_total_dimension]
+                                : null;
+
+                        feature.properties.metric_data = {
+                            [layer.total_dimension_ref]: total,
+                        };
+                        feature.layer_id = layer.id;
+                        return feature;
+                    },
+                );
+
+                let geojson = {
+                    layer_id: layer.id,
+                    geojson: {
+                        type: "FeatureCollection",
+                        features: features,
+                    },
                 };
 
                 this.analytic_geojson_list.push(geojson);
-                    
-
             });
         },
-        getOperativeGeoJson(layer){
+        getOperativeGeoJson(layer) {
+            //Relacionar el total de data con feature
+            let features = this.operative_geojson_features[layer.id]?.map(
+                (feature) => {
+                    feature["layer_id"] = layer.id;
 
-                //Relacionar el total de data con feature
-                let features = this.operative_geojson_features[layer.id]?.map(feature => {
+                    return feature;
+                },
+            );
 
-                    feature['layer_id'] = layer.id;
+            let geojson = {
+                layer_id: layer.id,
+                geojson: {
+                    type: "FeatureCollection",
+                    features: features,
+                },
+            };
 
-                    return feature; 
-                });
-
-                let geojson  = {
-                    "layer_id" : layer.id,
-                    "geojson"  : {
-                        "type"     : "FeatureCollection",
-                        "features" : features
-                    }
-                };
-
-
-                this.operative_geojson_list.push(geojson);
+            this.operative_geojson_list.push(geojson);
         },
-        requestGeoJson(layer, feature_container){
+        requestGeoJson(layer, feature_container) {
             // Revisar si la ruta es de un documento o una url completa
-            let url = (layer.sh_map_has_layer_url && layer.sh_map_has_layer_url.startsWith('/document/')) 
-                    ? this.base_url + layer.sh_map_has_layer_url : layer.sh_map_has_layer_url;
-            
+            let url =
+                layer.sh_map_has_layer_url &&
+                    layer.sh_map_has_layer_url.startsWith("/document/")
+                    ? this.base_url + layer.sh_map_has_layer_url
+                    : layer.sh_map_has_layer_url;
+
             // Guardar el zoom actual para verificar si cambió durante la petición
             const current_zoom = this.zoom;
-            
-            return axios.get(url)
-                .then((response) => {
-                    // Si el zoom cambió durante la petición, cancelamos el procesamiento
-                    if (current_zoom !== this.zoom && layer.sh_map_has_layer_code == "operative_vector_tiles_tms") {
-                        console.log('Zoom changed, canceling GeoJson request processing');
-                        return;
-                    }
-                    let raw_data;
-                    if (typeof response.data === 'object' && response.data !== null) {
-                        raw_data = response.data;
-                    }else{//Si data no recibe un objeto
-                        const regex_numeric = /(?<=\[\s*|:\s*|,\s*)(NaN|Infinity)(?=\s*,|\s*]|\s*})/gm;
-                        const regex_text    = /(?<=\[\s*|:\s*|,\s*)([A-Za-zÀ-ÿ\s]*?)(?=\s*,|\s*]|\s*})/gm;
 
-                        let info = response.data;
-                        info = info.replaceAll(regex_numeric, 0);
-                        info = info.replaceAll(regex_text, '"$1"');
+            return axios.get(url).then((response) => {
+                // Si el zoom cambió durante la petición, cancelamos el procesamiento
+                if (
+                    current_zoom !== this.zoom &&
+                    layer.sh_map_has_layer_code == "operative_vector_tiles_tms"
+                ) {
+                    console.log("Zoom changed, canceling GeoJson request processing");
+                    return;
+                }
+                let raw_data;
+                if (typeof response.data === "object" && response.data !== null) {
+                    raw_data = response.data;
+                } else {
+                    //Si data no recibe un objeto
+                    const regex_numeric =
+                        /(?<=\[\s*|:\s*|,\s*)(NaN|Infinity)(?=\s*,|\s*]|\s*})/gm;
+                    const regex_text =
+                        /(?<=\[\s*|:\s*|,\s*)([A-Za-zÀ-ÿ\s]*?)(?=\s*,|\s*]|\s*})/gm;
 
-                        try{
-                            raw_data = JSON.parse(info);
-                        }catch(e){
-                            console.warn(e);
-                            raw_data = {};
-                        }
+                    let info = response.data;
+                    info = info.replaceAll(regex_numeric, 0);
+                    info = info.replaceAll(regex_text, '"$1"');
+
+                    try {
+                        raw_data = JSON.parse(info);
+                    } catch (e) {
+                        console.warn(e);
+                        raw_data = {};
                     }
-                        
+                }
+
                 // Si no existen features
                 // si no es una capa vector tile
-                if (!feature_container[layer.id] || layer.sh_map_has_layer_code != "operative_vector_tiles_tms" || (this.scale_sensitive_layers[this.zoom] && this.scale_sensitive_layers[this.zoom].includes(layer.id))) {
+                if (
+                    !feature_container[layer.id] ||
+                    layer.sh_map_has_layer_code != "operative_vector_tiles_tms" ||
+                    (this.scale_sensitive_layers[this.zoom] &&
+                        this.scale_sensitive_layers[this.zoom].includes(layer.id))
+                ) {
                     // Validar que scale_sensitive_layers[this.zoom] existe antes de usar filter
                     if (this.scale_sensitive_layers[this.zoom]) {
-                        this.scale_sensitive_layers[this.zoom] = this.scale_sensitive_layers[this.zoom].filter(l => l != layer.id);
+                        this.scale_sensitive_layers[this.zoom] =
+                            this.scale_sensitive_layers[this.zoom].filter(
+                                (l) => l != layer.id,
+                            );
                     }
                     // Si no existen features, agrega las nuevas
                     feature_container[layer.id] = raw_data.features;
@@ -1538,142 +1865,144 @@ export default {
                     // Merge the new features with existing ones, but avoid duplicates
                     // Create a map of existing features using a unique identifier
                     const existingFeatures = new Map();
-                    
+
                     // Use properties that uniquely identify a feature
                     // This might need adjustment based on your specific GeoJSON structure
-                    feature_container[layer.id].forEach(feature => {
+                    feature_container[layer.id].forEach((feature) => {
                         // Create a unique key based on geometry coordinates and properties
                         // For points, we can use coordinates directly
                         let key;
-                        if (feature.geometry.type === 'Point') {
+                        if (feature.geometry.type === "Point") {
                             key = JSON.stringify(feature.geometry.coordinates);
                         } else {
                             // For polygons and other geometries, we might need a more complex approach
                             // Here we use a hash of the first coordinate set as a simple solution
                             key = JSON.stringify(feature.geometry.coordinates[0][0]);
                         }
-                        
+
                         // Add additional property identifiers if needed
                         if (feature.properties && feature.properties.id) {
-                            key += '_' + feature.properties.id;
+                            key += "_" + feature.properties.id;
                         }
-                        
+
                         existingFeatures.set(key, feature);
                     });
-                    
+
                     // Add new features only if they don't already exist
-                    raw_data.features.forEach(feature => {
+                    raw_data.features.forEach((feature) => {
                         let key;
-                        if (feature.geometry.type === 'Point') {
+                        if (feature.geometry.type === "Point") {
                             key = JSON.stringify(feature.geometry.coordinates);
                         } else {
                             key = JSON.stringify(feature.geometry.coordinates[0][0]);
                         }
-                        
+
                         if (feature.properties && feature.properties.id) {
-                            key += '_' + feature.properties.id;
+                            key += "_" + feature.properties.id;
                         }
-                        
+
                         if (!existingFeatures.has(key)) {
                             existingFeatures.set(key, feature);
                         }
                     });
-                    
+
                     // Convert the map back to an array
                     feature_container[layer.id] = Array.from(existingFeatures.values());
                 }
-
-                });
-        },
-        cleanGeojsonLayer(layer, layer_geojson_list){
-            // Desactiva la capa actual en layer
-            let layer_geojson_active_list = layer_geojson_list.filter( layer_geojson => {
-                if (layer_geojson.layer_id != layer.id) {
-                    return layer_geojson;
-                }
             });
+        },
+        cleanGeojsonLayer(layer, layer_geojson_list) {
+            // Desactiva la capa actual en layer
+            let layer_geojson_active_list = layer_geojson_list.filter(
+                (layer_geojson) => {
+                    if (layer_geojson.layer_id != layer.id) {
+                        return layer_geojson;
+                    }
+                },
+            );
 
             return layer_geojson_active_list;
         },
-        getMapGeoJsonBounds(){
-            let bounds         = this.map.getBounds();
+        getMapGeoJsonBounds() {
+            let bounds = this.map.getBounds();
             let geojson_bounds = [
                 [bounds._northEast.lng, bounds._northEast.lat],
                 [bounds._southWest.lng, bounds._northEast.lat],
                 [bounds._southWest.lng, bounds._southWest.lat],
-                [bounds._northEast.lng, bounds._southWest.lat]
+                [bounds._northEast.lng, bounds._southWest.lat],
             ];
 
             return geojson_bounds;
         },
-        makeCubeQueryParameters(layer,columns_dimension_ids){
-            const url           = this.base_url+layer.sh_map_has_layer_bi_url;
-            const filters       = this.formatFilter();
+        makeCubeQueryParameters(layer, columns_dimension_ids) {
+            const url = this.base_url + layer.sh_map_has_layer_bi_url;
+            const filters = this.formatFilter();
             const dimension_ids = columns_dimension_ids;
-            const {metric, calculation} = this.metricFilter(layer);
+            const { metric, calculation } = this.metricFilter(layer);
 
-            let body          = {
-                calculation   : calculation,
-                metric_id     : metric, // Viene de la configuracion de la capa (mapa tiene capas)
-                filters       : filters, // Son los active_filters formateados
-                dimension_ids : dimension_ids,
+            let body = {
+                calculation: calculation,
+                metric_id: metric, // Viene de la configuracion de la capa (mapa tiene capas)
+                filters: filters, // Son los active_filters formateados
+                dimension_ids: dimension_ids,
             };
 
             let query_parameters = {
-                url  : url, 
-                body : body
+                url: url,
+                body: body,
             };
 
             return query_parameters;
         },
-        makeEmptyHeatmap(){
-
+        makeEmptyHeatmap() {
             this.heatmapLayer.addTo(this.map);
             let contour_data = {
-              max: 4000,
-              data: []
+                max: 4000,
+                data: [],
             };
 
             this.heatmapLayer.setData(contour_data);
-
         },
-        formatFilter(){
+        formatFilter() {
             if (_.isEmpty(this.active_filters) && _.isEmpty(this.bounds_filters)) {
                 this.findBounds();
             }
             // Se utiliza copia de active_filters para no modificar el original
-            let active_filters = (_.isEmpty(this.active_filters)) ? this.bounds_filters : _.cloneDeep(this.active_filters);
+            let active_filters = _.isEmpty(this.active_filters)
+                ? this.bounds_filters
+                : _.cloneDeep(this.active_filters);
 
             if (this.should_skip_bounds_filter) {
+                active_filters = active_filters.filter(
+                    (a_f) =>
+                        a_f.column.id != this.col_lat && a_f.column.id != this.col_lng,
+                );
 
-                active_filters = active_filters.filter(a_f => a_f.column.id != this.col_lat && a_f.column.id != this.col_lng);
-                
                 this.should_skip_bounds_filter = false;
             }
 
-            let filters = active_filters.map(a_f => {
-
-                if(a_f.type == 'EQUAL'){
-                    a_f.type = 'IN';
+            let filters = active_filters.map((a_f) => {
+                if (a_f.type == "EQUAL") {
+                    a_f.type = "IN";
                     a_f.search = [a_f.search];
                 }
 
-                if (typeof a_f.type === 'undefined'){
-                    a_f.type = 'IN';
+                if (typeof a_f.type === "undefined") {
+                    a_f.type = "IN";
                 }
 
                 let filter = {
-                    column : a_f.column.col_name,
-                    value  : a_f.search,
-                    type   : a_f.type,
+                    column: a_f.column.col_name,
+                    value: a_f.search,
+                    type: a_f.type,
                 };
                 return filter;
             });
 
             return filters;
         },
-        metricFilter(layer){
-            let metric      = layer.sh_map_has_layer_metric_id;
+        metricFilter(layer) {
+            let metric = layer.sh_map_has_layer_metric_id;
             let calculation = layer.sh_map_has_layer_calculation;
             if (!_.isEmpty(this.active_filters)) {
                 //Buscamos en los filtros activos un filtro de tipo metric
@@ -1681,279 +2010,325 @@ export default {
                     return filter.type == "METRIC";
                 });
 
-                metric      = (new_metric) ? new_metric.search : metric;
-                calculation = (new_metric) ? null              : calculation;
+                metric = new_metric ? new_metric.search : metric;
+                calculation = new_metric ? null : calculation;
             }
 
-            return {'metric':metric,'calculation':calculation};
+            return { metric: metric, calculation: calculation };
         },
-        calculateH3Zoom(){
+        calculateH3Zoom() {
             const h3Zoom = (() => {
                 switch (this.zoom) {
-                case 1:
-                case 2:
-                case 3:
-                    return 1;
-                case 4:
-                    return 2;
-                case 5:
-                case 6:
-                    return 3;
-                case 7:
-                    return 4;
-                case 8:
-                case 9:
-                    return 5;
-                case 10:
-                    return 6;
-                case 11:
-                case 12:
-                    return 7;
-                case 13:
-                    return 8;
-                case 14:
-                    return 9;
-                case 15:
-                case 16:
-                    return 10;
-                case 17:
-                    return 11;
-                case 18:
-                    return 12;
-                case 19:
-                    return 13;
-                case 20:
-                    return 14;
-                default:
-                    return 1;
+                    case 1:
+                    case 2:
+                    case 3:
+                        return 1;
+                    case 4:
+                        return 2;
+                    case 5:
+                    case 6:
+                        return 3;
+                    case 7:
+                        return 4;
+                    case 8:
+                    case 9:
+                        return 5;
+                    case 10:
+                        return 6;
+                    case 11:
+                    case 12:
+                        return 7;
+                    case 13:
+                        return 8;
+                    case 14:
+                        return 9;
+                    case 15:
+                    case 16:
+                        return 10;
+                    case 17:
+                        return 11;
+                    case 18:
+                        return 12;
+                    case 19:
+                        return 13;
+                    case 20:
+                        return 14;
+                    default:
+                        return 1;
                 }
             })();
             return h3Zoom - 1;
         },
-        calculateH3ZoomContour(){
-
+        calculateH3ZoomContour() {
             var zoom = this.map.getZoom();
             var h;
             switch (zoom) {
                 case 1:
                 case 2:
-                case 3:{
+                case 3: {
                     h = 1;
                     break;
                 }
                 case 16:
                 case 17:
-                case 18:{
+                case 18: {
                     h = 15;
                     break;
                 }
                 case 19:
-                case 20:{
+                case 20: {
                     h = 20;
                     break;
                 }
-                default:{
+                default: {
                     h = zoom;
                     break;
                 }
             }
             return h;
         },
-        legendIconControl(layer, size = null){
+        legendIconControl(layer, size = null) {
             let theme;
             let style_raw = {};
             let layer_type = layer.sh_map_has_layer_type;
 
             switch (layer_type) {
-                case 'supercluster':{
-                    theme = (layer.sh_map_has_layer_custom_styles) ? layer.sh_map_has_layer_custom_styles : '';
+                case "supercluster": {
+                    theme = layer.sh_map_has_layer_custom_styles
+                        ? layer.sh_map_has_layer_custom_styles
+                        : "";
 
-                    style_raw['background']    = this.css_vars[`--sh-map-point-cluster-${theme}${size}-color`];
-                    style_raw['border-color']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-color`];
-                    style_raw['border-style']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-style`];
-                    style_raw['border-width']  = this.css_vars[`--sh-map-point-cluster-${theme}${size}-border-width`]; 
-                    style_raw['border-radius'] = '50%';  
+                    style_raw["background"] =
+                        this.css_vars[`--sh-map-point-cluster-${theme}${size}-color`];
+                    style_raw["border-color"] =
+                        this.css_vars[
+                        `--sh-map-point-cluster-${theme}${size}-border-color`
+                        ];
+                    style_raw["border-style"] =
+                        this.css_vars[
+                        `--sh-map-point-cluster-${theme}${size}-border-style`
+                        ];
+                    style_raw["border-width"] =
+                        this.css_vars[
+                        `--sh-map-point-cluster-${theme}${size}-border-width`
+                        ];
+                    style_raw["border-radius"] = "50%";
 
                     break;
                 }
-                case 'analityc':{
-                    style_raw['background'] = '#0074BD';
+                case "analityc": {
+                    style_raw["background"] = "#0074BD";
 
                     break;
                 }
                 default:
-                    style_raw['background'] = layer.sh_map_has_layer_color;
+                    style_raw["background"] = layer.sh_map_has_layer_color;
                     break;
             }
 
             return style_raw;
         },
-        analyticLegendIconControl(layer,size){
+        analyticLegendIconControl(layer, size) {
             switch (layer.sh_map_has_layer_code) {
-                case 'analytic_geojson_logarithmic':
-                case 'analytic_geojson':{
+                case "analytic_geojson_logarithmic":
+                case "analytic_geojson": {
                     let small = this.style_variables["analytic-geojson-small-color"];
                     let large = this.style_variables["analytic-geojson-large-color"];
 
-                    return{background: "linear-gradient(to bottom, "+large+", "+small+")",height: '36px'};
+                    return {
+                        background:
+                            "linear-gradient(to bottom, " + large + ", " + small + ")",
+                        height: "36px",
+                    };
                 }
-                case 'analytic_countour_map':{
-                    let small   = '#9cadc5';
-                    let medium  = '#6ef363';
-                    let large   = '#F7F74F';
-                    let biggest = '#F5402A';
+                case "analytic_countour_map": {
+                    let small = "#9cadc5";
+                    let medium = "#6ef363";
+                    let large = "#F7F74F";
+                    let biggest = "#F5402A";
 
-                    return{background: "linear-gradient(to bottom, "+biggest+", "+large+", "+medium+", "+small+")",height: '36px'};
+                    return {
+                        background:
+                            "linear-gradient(to bottom, " +
+                            biggest +
+                            ", " +
+                            large +
+                            ", " +
+                            medium +
+                            ", " +
+                            small +
+                            ")",
+                        height: "36px",
+                    };
                 }
-                case 'analytic_cluster':{
+                case "analytic_cluster": {
                     let style = {};
-                    style['background'] = this.style_variables["hexagonal-cluster-"+size+"-border-color"];
-                    style['clip-path']  = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+                    style["background"] =
+                        this.style_variables["hexagonal-cluster-" + size + "-border-color"];
+                    style["clip-path"] =
+                        "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
                     return style;
                 }
                 default:
-                    console.log(layer.sh_map_has_layer_color, 'Sin formato de leyenda definidox');
+                    console.log(
+                        layer.sh_map_has_layer_color,
+                        "Sin formato de leyenda definidox",
+                    );
                     break;
             }
-
         },
-        highlightGeojson(color_legend, layer_id){
+        highlightGeojson(color_legend, layer_id) {
             let type = color_legend.type;
 
             // Crear una copia profunda del objeto color_layer_opacity para asegurar reactividad
-            const new_color_layer_opacity = JSON.parse(JSON.stringify(this.color_layer_opacity || {}));
-            
+            const new_color_layer_opacity = JSON.parse(
+                JSON.stringify(this.color_layer_opacity || {}),
+            );
+
             // Inicializar el objeto para la capa si no existe
-            if(!(layer_id in new_color_layer_opacity)){
+            if (!(layer_id in new_color_layer_opacity)) {
                 new_color_layer_opacity[layer_id] = {};
             }
-            
+
             // Alternar la visibilidad: si existe, eliminarlo; si no, agregarlo
-            if(type in new_color_layer_opacity[layer_id]){
+            if (type in new_color_layer_opacity[layer_id]) {
                 delete new_color_layer_opacity[layer_id][type];
             } else {
-                new_color_layer_opacity[layer_id][type] = {'opacity': 0};
+                new_color_layer_opacity[layer_id][type] = { opacity: 0 };
             }
-            
+
             // Asignar el nuevo objeto para forzar la reactividad
             this.color_layer_opacity = new_color_layer_opacity;
-            
+
             // Forzar la actualización de la capa
             this.$nextTick(() => {
                 // Encontrar y actualizar la capa en operative_geojson_list
-                const layer_index = this.operative_geojson_list.findIndex(l => l.layer_id === layer_id);
+                const layer_index = this.operative_geojson_list.findIndex(
+                    (l) => l.layer_id === layer_id,
+                );
                 if (layer_index !== -1) {
                     // Crear una copia profunda de la capa
-                    const updated_layer = JSON.parse(JSON.stringify(this.operative_geojson_list[layer_index]));
-                    
+                    const updated_layer = JSON.parse(
+                        JSON.stringify(this.operative_geojson_list[layer_index]),
+                    );
+
                     // Actualizar la capa en la lista usando $set para garantizar reactividad
                     this.$set(this.operative_geojson_list, layer_index, updated_layer);
-                    
+
                     // Forzar una actualización del componente
                     this.$forceUpdate();
                 }
             });
         },
-        setTileLayer(){
-            this.url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        setTileLayer() {
+            this.url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
         },
-        getMapConfiguration(){
+        getMapConfiguration() {
             //data
             const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
 
             let all_data;
             let data;
-            axios.get(url)
-            .then((response) => {
-                try {
-                    all_data     = response.data.content;
-                    data         = _.first(all_data.data);
-                    
-                    this.col_lng = data.sh_map_column_longitude; 
-                    this.col_lat = data.sh_map_column_latitude;
+            axios
+                .get(url)
+                .then((response) => {
+                    try {
+                        all_data = response.data.content;
+                        data = _.first(all_data.data);
 
-                    if(this.getCoordsFromUrlParams()) {
-                        this.center = this.getCoordsFromUrlParams();
-                    } else if(data.latitud_map_center && data.longitud_map_center) {
-                        this.center = [data.latitud_map_center, data.longitud_map_center]
-                    } else {
-                        // Coordenadas para Santiago de Chile - Chile\
+                        this.col_lng = data.sh_map_column_longitude;
+                        this.col_lat = data.sh_map_column_latitude;
+
+                        if (this.getCoordsFromUrlParams()) {
+                            this.center = this.getCoordsFromUrlParams();
+                        } else if (data.latitud_map_center && data.longitud_map_center) {
+                            this.center = [data.latitud_map_center, data.longitud_map_center];
+                        } else {
+                            // Coordenadas para Santiago de Chile - Chile\
+                            this.center = this.center_default;
+                        }
+
+                        this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                    } catch (error) {
+                        console.error(error);
+
+                        // Coordenadas para Santiago de Chile - Chile
                         this.center = this.center_default;
                     }
-
-                    this.zoom = (data.sh_map_zoom) ? data.sh_map_zoom : 7;
-
-                } catch (error) {
+                })
+                .catch((error) => {
                     console.error(error);
-                    
-                    // Coordenadas para Santiago de Chile - Chile
-                    this.center = this.center_default;
-                }
-            })
-            .catch((error) => {
-                console.error(error);
-            })
-            .finally(() => {
-                console.log('done data');
-            });
-
+                })
+                .finally(() => {
+                    console.log("done data");
+                });
         },
-        orderByColor(geojson_multicolor){
+        orderByColor(geojson_multicolor) {
             // Ordenamos los elementos por el atributo background (color hexadecimal)
             // Convertimos el hexadecimal a HSL para ordenar por el tono (hue) como en un arcoiris
             return geojson_multicolor?.sort((a, b) => {
                 // Función para convertir hex a RGB
                 const hexToRgb = (hex) => {
                     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                    return result ? {
-                        r: parseInt(result[1], 16),
-                        g: parseInt(result[2], 16),
-                        b: parseInt(result[3], 16)
-                    } : null;
+                    return result
+                        ? {
+                            r: parseInt(result[1], 16),
+                            g: parseInt(result[2], 16),
+                            b: parseInt(result[3], 16),
+                        }
+                        : null;
                 };
-                    
+
                 // Función para convertir RGB a HSL
                 const rgbToHsl = (r, g, b) => {
                     r /= 255;
                     g /= 255;
                     b /= 255;
-                        
+
                     const max = Math.max(r, g, b);
                     const min = Math.min(r, g, b);
-                    let h, s, l = (max + min) / 2;
-                        
+                    let h,
+                        s,
+                        l = (max + min) / 2;
+
                     if (max === min) {
                         h = s = 0; // achromatic
                     } else {
                         const d = max - min;
                         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-                            
+
                         switch (max) {
-                            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                            case g: h = (b - r) / d + 2; break;
-                            case b: h = (r - g) / d + 4; break;
+                            case r:
+                                h = (g - b) / d + (g < b ? 6 : 0);
+                                break;
+                            case g:
+                                h = (b - r) / d + 2;
+                                break;
+                            case b:
+                                h = (r - g) / d + 4;
+                                break;
                         }
-                            
+
                         h /= 6;
                     }
-                    
+
                     return { h, s, l };
                 };
-                    
+
                 // Obtener el valor HSL para cada color
                 const rgbA = hexToRgb(a.background);
                 const rgbB = hexToRgb(b.background);
-                
+
                 if (!rgbA || !rgbB) return 0;
-                
+
                 const hslA = rgbToHsl(rgbA.r, rgbA.g, rgbA.b);
                 const hslB = rgbToHsl(rgbB.r, rgbB.g, rgbB.b);
-                
+
                 // Ordenar por el valor de hue (tono)
                 return hslA.h - hslB.h;
             });
         },
-        onMapMoveEnd(){
+        onMapMoveEnd() {
             this.$refs.supercluster_layer.getClusterMarkers();
             this.$refs.supercluster_by_entity_type_layers?.forEach((ref) => {
                 ref.getClusterMarkers();
@@ -1963,105 +2338,112 @@ export default {
             this.end_map_move = true;
             this.searchNewTiles();
         },
-        onMapMouseUp(){
+        onMapMouseUp() {
             this.end_map_pressure = true;
             this.searchNewTiles();
         },
-        searchNewTiles(){
+        searchNewTiles() {
             if (this.end_map_move && this.end_map_pressure) {
-                this.end_map_move     = false;
+                this.end_map_move = false;
                 this.end_map_pressure = false;
                 this.search_new_titles = true;
                 this.switchLayers();
             }
         },
-        onMapClick(event){
+        onMapClick(event) {
             // Check the mode
-            if(this.point_mode === 'form-point') {
+            if (this.point_mode === "form-point") {
                 // Save the point
                 this.point = { lat: event.latlng.lat, lng: event.latlng.lng };
                 return;
-            } 
+            }
             // Check the mode
-            if(this.point_mode === 'draw-polygon') {
+            if (this.point_mode === "draw-polygon") {
                 // Add the point to the polygon drafter
                 this.$refs.polygon_drafter.addPolygon(event);
             }
         },
-        findBounds(){
+        findBounds() {
             if (!this.should_skip_bounds_filter) {
-                let all_col  = this.info.columns;
+                let all_col = this.info.columns;
 
                 this.$refs.polygon_drafter.deleteAll();
                 //let h        = this.map.getZoom();
-                let bounds   = this.map.getBounds();
+                let bounds = this.map.getBounds();
                 let count = 0;
 
-                let bounds_filters = all_col.filter(columns=>
-                    columns.id == this.col_lat || columns.id == this.col_lng
-                ).map((columns,key)=>{
-                    let start = (columns.id == this.col_lat) ? bounds._southWest.lat : bounds._southWest.lng;
-                    let end   = (columns.id == this.col_lat) ? bounds._northEast.lat : bounds._northEast.lng;
-                    let bounds_filter = {
-                        "column": columns,
-                        "id": "external-filter-"+columns.id,
-                        "order": key+1,
-                        "search": {
-                            "start": start,
-                            "end": end
-                        },
-                        "type": "BETWEEN"
-                    };
-                    count = key;
-                    return bounds_filter;
-                });
-
-                if(this.layer_boundaries.length > 0){
-                    let search = this.layer_boundaries;
-                        search = search.map(coord => {
-                        return {x:coord[0], y:coord[1]};
-                    });
-                    let layer_boundaries = all_col.filter(columns =>
-                        columns.format == 'POLYGON'
-                    ).map((columns, key) => {
-
-                        let simplified = Simplify(search, 0.0005).map(coord => {
-                            return [coord['x'], coord['y']];
-                        });
-
+                let bounds_filters = all_col
+                    .filter(
+                        (columns) =>
+                            columns.id == this.col_lat || columns.id == this.col_lng,
+                    )
+                    .map((columns, key) => {
+                        let start =
+                            columns.id == this.col_lat
+                                ? bounds._southWest.lat
+                                : bounds._southWest.lng;
+                        let end =
+                            columns.id == this.col_lat
+                                ? bounds._northEast.lat
+                                : bounds._northEast.lng;
                         let bounds_filter = {
-                            "column": columns,
-                            "id": "external-filter-" + columns.id,
-                            "order": count + key + 1,
-                            "search": [simplified],
-                            "type": "POLYGON"
+                            column: columns,
+                            id: "external-filter-" + columns.id,
+                            order: key + 1,
+                            search: {
+                                start: start,
+                                end: end,
+                            },
+                            type: "BETWEEN",
                         };
+                        count = key;
                         return bounds_filter;
                     });
 
+                if (this.layer_boundaries.length > 0) {
+                    let search = this.layer_boundaries;
+                    search = search.map((coord) => {
+                        return { x: coord[0], y: coord[1] };
+                    });
+                    let layer_boundaries = all_col
+                        .filter((columns) => columns.format == "POLYGON")
+                        .map((columns, key) => {
+                            let simplified = Simplify(search, 0.0005).map((coord) => {
+                                return [coord["x"], coord["y"]];
+                            });
+
+                            let bounds_filter = {
+                                column: columns,
+                                id: "external-filter-" + columns.id,
+                                order: count + key + 1,
+                                search: [simplified],
+                                type: "POLYGON",
+                            };
+                            return bounds_filter;
+                        });
+
                     bounds_filters = bounds_filters.concat(layer_boundaries);
                 }
-                
+
                 this.bounds_filters = bounds_filters;
             }
             this.should_skip_bounds_filter = false;
         },
 
-
         //#Convierte un indice h3 en lng lat
-        h3ToLngLat(h3_indexes,key_dimension,key_count){
+        h3ToLngLat(h3_indexes, key_dimension, key_count) {
             let data = [];
             let point;
             let index;
             let h3_index;
-            for(let i in h3_indexes){
+            for (let i in h3_indexes) {
                 index = h3_indexes[i][key_dimension];
                 h3_index = this.h3.h3ToGeo(index);
-                point    = {
-                    lat   : h3_index[0],
-                    lng   : h3_index[1],
-                    count : h3_indexes[i][key_count]
-                }
+                point = {
+                    lat: h3_index[0],
+                    lng: h3_index[1],
+                    count: h3_indexes[i][key_count],
+                };
                 data.push(point);
             }
 
@@ -2072,10 +2454,9 @@ export default {
         //----------------------------------------------------------------------------------------------
         //#Obtiene todos los pentagonos de h3 de resolucion h que estan contenidos dentro de un poligono.
         //#Este incluye un nivel de vecinos para completar todos los espacios del poligono
-        polyfillNeighbors(polygon, h){
-
-            let polygons     = this.h3.polyfill(polygon, h, true);
-            let indexes      = [];
+        polyfillNeighbors(polygon, h) {
+            let polygons = this.h3.polyfill(polygon, h, true);
+            let indexes = [];
             let unique_kring = {};
             let poly;
             let krings;
@@ -2083,171 +2464,182 @@ export default {
 
             for (let i = 0; i < polygons.length; i++) {
                 poly = polygons[i];
-                if (!Object.prototype.hasOwnProperty.call(unique_kring,poly)){
+                if (!Object.prototype.hasOwnProperty.call(unique_kring, poly)) {
                     indexes.push(poly);
                     unique_kring[poly] = null;
                 }
             }
-            
+
             for (let i = 0; i < polygons.length; i++) {
-                poly   = polygons[i];
+                poly = polygons[i];
                 krings = this.h3.kRing(poly, 1);
                 //#krings = h3.compact(krings)
                 for (let j = 0; j < krings.length; j++) {
                     kring = krings[j];
-                    if (!Object.prototype.hasOwnProperty.call(unique_kring,kring)){
+                    if (!Object.prototype.hasOwnProperty.call(unique_kring, kring)) {
                         indexes.push(kring);
                         unique_kring[kring] = null;
                     }
                 }
             }
-                
+
             return indexes;
         },
 
-        getFilters(indexes){
+        getFilters(indexes) {
             let filters_obj = {};
-            let filters     = [];
+            let filters = [];
             let index;
             let r;
             //indexes = h3.compact(indexes);
             for (let i = 0; i < indexes.length; i++) {
                 index = indexes[i];
-                r     = this.h3.h3GetResolution(index);
-                if(!Object.prototype.hasOwnProperty.call(filters_obj,"h3r"+r)){
-                    filters_obj["h3r"+r] = [];
+                r = this.h3.h3GetResolution(index);
+                if (!Object.prototype.hasOwnProperty.call(filters_obj, "h3r" + r)) {
+                    filters_obj["h3r" + r] = [];
                 }
-                filters_obj["h3r"+r].push(index);
+                filters_obj["h3r" + r].push(index);
             }
             for (var key in filters_obj) {
-                filters.push({"column":key,"values":filters_obj[key]});
+                filters.push({ column: key, values: filters_obj[key] });
             }
             return filters;
         },
 
         //#Convierte una lista de Features en un FeatureCollection
-        asPolygon(obj,features){
-            if(obj == null){
+        asPolygon(obj, features) {
+            if (obj == null) {
                 obj = {
-                  "type": "FeatureCollection",
-                  "features": []
+                    type: "FeatureCollection",
+                    features: [],
                 };
             }
-            for(let i in features){
+            for (let i in features) {
                 let feature = features[i];
-                obj['features'].push(feature);
+                obj["features"].push(feature);
             }
             return obj;
         },
 
         //#Convierte un arreglo de coordenadas en un objeto de tipo Feature
-        asFeature(obj, coordinates, properties = {}){
-            if(obj == null){
+        asFeature(obj, coordinates, properties = {}) {
+            if (obj == null) {
                 obj = {
-                    "type": "Feature",
-                    "properties": properties,
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": []
-                    }
+                    type: "Feature",
+                    properties: properties,
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [],
+                    },
                 };
             }
-            obj['geometry']['coordinates'].push(coordinates);
+            obj["geometry"]["coordinates"].push(coordinates);
             return obj;
         },
 
         //#Dado un indice h3 (en hexadecimal o numérico), obtiene el pentagono que lo representa en formato feature
-        getBoundary(h3_index, properties = {}){
-            if (this.isInt(h3_index)){ //#si el indice es numérico, convertir a hexadecimal
+        getBoundary(h3_index, properties = {}) {
+            if (this.isInt(h3_index)) {
+                //#si el indice es numérico, convertir a hexadecimal
                 h3_index = h3_index.toString(16);
             }
             let boundaries = this.h3.h3ToGeoBoundary(h3_index);
-            let res        = [];
-            for(let i in boundaries){
+            let res = [];
+            for (let i in boundaries) {
                 let boundary = boundaries[i];
                 let lat = boundary[0];
                 let lng = boundary[1];
                 res.push([lng, lat]);
             }
             res.push(res[0]);
-            return this.asFeature(null,res, properties);
+            return this.asFeature(null, res, properties);
         },
         /*
-        //#obtiene todos los pentágonos hijos (contenidos) de un indice en h3
-        getChild(h3_index){
-            if(isinstance(h3_index, int)){
-                h3_index = h3_index.toString(16);
-            }
-            childs = this.h3.h3ToChildren(h3_index);
-            res = [];
-            for(let i in childs){
-                child = childs[i];
-                res.push(this.getBoundary(child));
-            }
-            return res;
-        },*/
-        getProperties(index, h3_indexes_data, data_map_hex){
+            //#obtiene todos los pentágonos hijos (contenidos) de un indice en h3
+            getChild(h3_index){
+                if(isinstance(h3_index, int)){
+                    h3_index = h3_index.toString(16);
+                }
+                childs = this.h3.h3ToChildren(h3_index);
+                res = [];
+                for(let i in childs){
+                    child = childs[i];
+                    res.push(this.getBoundary(child));
+                }
+                return res;
+            },*/
+        getProperties(index, h3_indexes_data, data_map_hex) {
             let h3_index_data = h3_indexes_data[index];
             let h3_properties = [];
 
-            let h3_index_properties = h3_index_data.map(function(data,key){
-                let property_name             = data_map_hex[key];
-                let property_value            = data;
+            let h3_index_properties = h3_index_data.map(function (data, key) {
+                let property_name = data_map_hex[key];
+                let property_value = data;
 
-                return {'property_name' : property_name,'property_value' : property_value};
-
+                return { property_name: property_name, property_value: property_value };
             });
 
-            h3_index_properties.forEach(function(data){
+            h3_index_properties.forEach(function (data) {
                 h3_properties[data.property_name] = data.property_value;
             });
 
             return JSON.parse(JSON.stringify(Object.assign({}, h3_properties)));
         },
         //#Convierte un indice h3 en un objeto de tipo Feature
-        h3ToFeature(h3_indexes,h3_indexes_data,data_map_hex){
+        h3ToFeature(h3_indexes, h3_indexes_data, data_map_hex) {
             let features = [];
             let index;
             let properties;
-            for(let i in h3_indexes){
+            for (let i in h3_indexes) {
                 index = h3_indexes[i];
                 properties = this.getProperties(i, h3_indexes_data, data_map_hex);
-                features.push(this.getBoundary(index,properties));
+                features.push(this.getBoundary(index, properties));
             }
             return features;
         },
-        // END SCRIPT DE MAURICIO 
+        // END SCRIPT DE MAURICIO
         //----------------------------------------------------------------------------------------------
         // Helpers
         //----------------------------------------------------------------------------------------------
-                // format text with "_" to text legible for humans,
+        // format text with "_" to text legible for humans,
         // set all on lowercase but first letter to uppercase and each after "_" or " " to uppercase,
         // separe letter from numbers
-        formatKeyToHumanText(text){
+        formatKeyToHumanText(text) {
             let textFormated = text.replace(/_/g, " ");
             textFormated = textFormated.toLowerCase();
-            textFormated = textFormated.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
-            textFormated = textFormated.replace(/([a-z])([0-9])/i, '$1 $2');
-            textFormated = textFormated.replace(/([0-9])([a-z])/i, '$1 $2');
+            textFormated = textFormated.replace(/(?:^|\s)\S/g, function (a) {
+                return a.toUpperCase();
+            });
+            textFormated = textFormated.replace(/([a-z])([0-9])/i, "$1 $2");
+            textFormated = textFormated.replace(/([0-9])([a-z])/i, "$1 $2");
             return textFormated;
         },
         // calc hexadecimal between two colors by ratio (0.0 - 1.0)
-        calcColor(color1, color2, ratio){
-            const hex = function(x) {
-                if(x > 255) x = 255;
+        calcColor(color1, color2, ratio) {
+            const hex = function (x) {
+                if (x > 255) x = 255;
                 x = x.toString(16);
-                return (x.length == 1) ? '0' + x : x;
+                return x.length == 1 ? "0" + x : x;
             };
-            const r = Math.ceil(parseInt(color1.substring(1,3), 16) * ratio + parseInt(color2.substring(1,3), 16) * (1 - ratio));
-            const g = Math.ceil(parseInt(color1.substring(3,5), 16) * ratio + parseInt(color2.substring(3,5), 16) * (1 - ratio));
-            const b = Math.ceil(parseInt(color1.substring(5,7), 16) * ratio + parseInt(color2.substring(5,7), 16) * (1 - ratio));
-            const calc = '#' + hex(r) + hex(g) + hex(b);
+            const r = Math.ceil(
+                parseInt(color1.substring(1, 3), 16) * ratio +
+                parseInt(color2.substring(1, 3), 16) * (1 - ratio),
+            );
+            const g = Math.ceil(
+                parseInt(color1.substring(3, 5), 16) * ratio +
+                parseInt(color2.substring(3, 5), 16) * (1 - ratio),
+            );
+            const b = Math.ceil(
+                parseInt(color1.substring(5, 7), 16) * ratio +
+                parseInt(color2.substring(5, 7), 16) * (1 - ratio),
+            );
+            const calc = "#" + hex(r) + hex(g) + hex(b);
             return calc;
         },
         // calc hexadecimal between two colors by min and max values
         calcColorByMinMax(color_min, color_max, min, max, value) {
             if (max == min) {
-                 return color_min;
+                return color_min;
             }
             if (value == null) {
                 value = 0;
@@ -2264,131 +2656,167 @@ export default {
             return true;
         },
         isInt(value) {
-            return !isNaN(value) && parseInt(Number(value)) == value && !isNaN(parseInt(value, 10));
+            return (
+                !isNaN(value) &&
+                parseInt(Number(value)) == value &&
+                !isNaN(parseInt(value, 10))
+            );
         },
         // Enlistar capas geojson
         organizeLayers(layer, layer_list) {
-            // Analytic_geojson y operative_geoserver_wfs_point son un tipo de capa que 
+            // Analytic_geojson y operative_geoserver_wfs_point son un tipo de capa que
             // permite tener a la vez varias capas de su mismo tipo
             // pero cada una de sus capas puede puede activarse o desactivarse solo una vez por intancia
-            // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse 
-            const is_empty   = (layer_list.length < 1) ? true : false;
+            // Ejem si tenemos una capa de este tipo denominada X, no puede duplicarse
+            const is_empty = layer_list.length < 1 ? true : false;
             let is_new_layer = false;
             // Si la lista de capas no está vacía se revisa si la Layer a activar fue activada previamente
             if (!is_empty) {
-                const layer_ids = layer_list.map(function(layer_l){
-                    return layer_l.layer_id
+                const layer_ids = layer_list.map(function (layer_l) {
+                    return layer_l.layer_id;
                 });
                 //determina si ya existe la capa en la lista
                 is_new_layer = !layer_ids.includes(layer.id);
-
             }
 
-            return {'is_empty':is_empty,'is_new_layer':is_new_layer};
+            return { is_empty: is_empty, is_new_layer: is_new_layer };
         },
         infoGeojsonWithAlias(layer, property_keys) {
             //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
-            let info = Object.entries(property_keys).map(([key, property]) => {
-                let value = null;
-                if(key.includes('.')){
-                    /* Busca hacia adentro cada propiedad separada por `.`
-                    * Ejemplo:
-                    * "key.prop1.key2" => layer.feature.properties['key']['prop1']['key2']
-                    */
-                    let keys = key.split('.');
-                    value = layer.feature.properties;
-                    for(let i in keys){
-                        if(keys[i] == '*' && value != null && typeof value == 'object'){
-                            [value] = Object.values(value);
-                            continue;
+            let info = Object.entries(property_keys)
+                .map(([key, property]) => {
+                    let value = null;
+                    if (key.includes(".")) {
+                        /* Busca hacia adentro cada propiedad separada por `.`
+                         * Ejemplo:
+                         * "key.prop1.key2" => layer.feature.properties['key']['prop1']['key2']
+                         */
+                        let keys = key.split(".");
+                        value = layer.feature.properties;
+                        for (let i in keys) {
+                            if (keys[i] == "*" && value != null && typeof value == "object") {
+                                [value] = Object.values(value);
+                                continue;
+                            }
+                            value = value[keys[i]];
+                            // Si es asterisco, tomamos todos los valores
                         }
-                        value = value[keys[i]];
-                        // Si es asterisco, tomamos todos los valores
+                    } else {
+                        value =
+                            layer.feature.properties[key] == null
+                                ? "Sin información disponible"
+                                : layer.feature.properties[key]; // parseamos el valor resultante
                     }
-                }else{
-                    value = (layer.feature.properties[key] == null) ? 'Sin información disponible' : layer.feature.properties[key];// parseamos el valor resultante
-                }
 
-                // Para soportar alias de mulitples metricas
-                // y que no nos aparezca una lista de metricas vacias,
-                // ignoramos las metricas no encontradas
-                if (value == null && key.includes('metric_data')) {
-                    return null;
-                }
-                value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
+                    // Para soportar alias de mulitples metricas
+                    // y que no nos aparezca una lista de metricas vacias,
+                    // ignoramos las metricas no encontradas
+                    if (value == null && key.includes("metric_data")) {
+                        return null;
+                    }
+                    value = isNaN(value) ? value : value.toLocaleString("es-ES"); // Si el valor resultante es un número nos aseguramos que quede puntuado
 
-                return `
+                    return `
                     <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
                     <span class="marker-pop-up-info-content"> ${value} </span>
                 `;
-            }).filter( i => i);
+                })
+                .filter((i) => i);
 
             return info;
         },
         //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
         //o puede retornarse justo como la presenta el GeoJson
         infoGeojsonWithKeys(layer, human_keys) {
-            let info = Object.entries(layer.feature.properties).map(([property,value]) =>{
-                // Deconstruímos las propiedades reservadas
-                if(property === 'metric_data'){
-                    /* Ejemplo de contenido la variable `value` cuando la property es `metric_data`:
-                     * {'total_casos': 387.123}
-                     */
-                    [[property, value]] = Object.entries(value)
-                }
-                let title = (human_keys) ? this.formatKeyToHumanText(property) : property; // Tomamos la clave de la propiedad
-                value = (value == null) ? 'Sin información disponible' : value; // parseamos el valor resultante
-                value = isNaN(value) ? value : value.toLocaleString('es-ES'); // Si el valor resultante es un número nos aseguramos que quede puntuado
-                return `
+            let info = Object.entries(layer.feature.properties).map(
+                ([property, value]) => {
+                    // Deconstruímos las propiedades reservadas
+                    if (property === "metric_data") {
+                        /* Ejemplo de contenido la variable `value` cuando la property es `metric_data`:
+                         * {'total_casos': 387.123}
+                         */
+                        [[property, value]] = Object.entries(value);
+                    }
+                    let title = human_keys
+                        ? this.formatKeyToHumanText(property)
+                        : property; // Tomamos la clave de la propiedad
+                    value = value == null ? "Sin información disponible" : value; // parseamos el valor resultante
+                    value = isNaN(value) ? value : value.toLocaleString("es-ES"); // Si el valor resultante es un número nos aseguramos que quede puntuado
+                    return `
                     <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
                     <span class="marker-pop-up-info-content"> ${value} </span>
                 `;
-            });
+                },
+            );
 
             return info;
         },
         // END HELPERS
         // Polygon Action: draw or delete
         polygonAction(action) {
-            if (action !== 'delete') {
-                this.$refs.polygon_drafter.beginDraw(action);
-            } else {
+            if (action === "delete") {
                 this.$refs.polygon_drafter.toggleDelete();
+            } else if (action === "clear") {
+                this.$refs.polygon_drafter.deleteAll();
+            } else if (action === "cancel") {
+                this.$refs.polygon_drafter.cancelDraw();
+            } else {
+                this.$refs.polygon_drafter.beginDraw(action);
             }
         },
         polygonFilter(bounds_filters) {
-          this.bounds_filters = bounds_filters;  
+            this.bounds_filters = bounds_filters;
+            if (typeof this._polygonFilterCallback === "function") {
+                this._polygonFilterCallback(bounds_filters);
+            }
+        },
+        polygonFilter(bounds_filters) {
+            this.bounds_filters = bounds_filters;
         },
         setButtonsPressed(buttons_pressed) {
             this.buttons_pressed = buttons_pressed;
         },
         poweredCoderhub() {
-             // Getting Open Street Map attribution container
-            const poweredByOpenStreetMap = document.querySelector('.leaflet-bottom.leaflet-right');
+            // Getting Open Street Map attribution container
+            const poweredByOpenStreetMap = document.querySelector(
+                ".leaflet-bottom.leaflet-right",
+            );
+
+            if (
+                !poweredByOpenStreetMap ||
+                poweredByOpenStreetMap.querySelector(".sheets-map-version")
+            ) {
+                return;
+            }
+
             // Creating Coderhub powered by container
-            const poweredByCoderhubDiv = document.createElement('div');
+            const poweredByCoderhubDiv = document.createElement("div");
             poweredByCoderhubDiv.classList.add("leaflet-control-attribution");
             poweredByCoderhubDiv.classList.add("leaflet-control");
             // Creating Coderhub logo
-            const poweredByCoderhubImg = document.createElement('img');
-            poweredByCoderhubImg.src = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI0OHB4IiBoZWlnaHQ9IjQ4cHgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgNDggNDgiIHhtbDpzcGFjZT0icHJlc2VydmUiPiAgPGltYWdlIGlkPSJpbWFnZTAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgeD0iMCIgeT0iMCIKICAgIGhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBREFBQUFBd0NBWUFBQUJYQXZtSEFBQUFCR2RCVFVFQUFMR1BDL3hoQlFBQUFDQmpTRkpOCkFBQjZKZ0FBZ0lRQUFQb0FBQUNBNkFBQWRUQUFBT3BnQUFBNm1BQUFGM0NjdWxFOEFBQUFCbUpMUjBRQS93RC9BUCtndmFlVEFBQUkKMUVsRVFWUm8zdFdhZTNCVTFSM0h2K2MrOXBITlpuZXpTU0FrQVJJZVFSRENRMEFvQlFFRmNkVHFXSVJDQStKYk95MFViV3ZINTlqVwpka1p0Nitob0d6RHFKQ3BVUUtuZ0F3VkZ5Nk9CQUZZZ0lTRkFDQW1FWk4vM3NmZDFUdjhJd1R5VUxCSkQ4cDNabmJtL1BmZDN6dWYrCjd2MmQzN2xuZ2N1ZzRRLy9mczYwcDU5Sjd3NWZ3dVVBQ0VpeEtSYWxiZ0RyTDlVWDE5T0RaNHh4QU1sdWxtTExDbDhwY3ZjNUFBQ0MKS1BCSmNseWJzZnZvc2RsOUR1RE5uYnNFamhDWFNXbHlRSktXM0wycStKS2kwT01BTzZxT2lwWkZrOEVZb3FvNmMzdGwxU1ZGb2NjQgp2anA1VW95YmhodUV3S1RVRzVTbHdxWC9YSjNTWndBTzFUY0lpcWFmSDNCRVVXZnZxS3ErcHM4QU9FWFJabEpxYnowMktmV0VaSG5KCjk0MUNqd1BrWjJhbThoeVgzTllXVmVPemQxZlhUTzhUQUR6SFpYQ0VPTnJhRE12eU5rbXh4YTl1LzhMWjZ3SHFRNkVNeHBpOW85MHcKclZRN0wxejBlSG9jSUNqSnlaU3hUaVdNb3V0TlA1MDBVZW4xQUxwbDhvd3gwdFpHQ0lISDZRdzViQ0xyOVFDVU1vRUI3UUVBOVBPawpuUDQrL25vY2dPT0lENnpUaGFaMlFUalRKd0JFWGtqK2x2dUVLcm9ldUdTQVArOHU1eFp2MnVMNnkzL0wrUjlpOEl3eHdTR0t2azZECjRJZ2hhMW9VQUpZVkZmdVdGUlU3RXZYWkxodGt1MTNpWnlkUDNmYlN2cS96aHEwcStYSlFpdnZBcnlhTWlkdzhOTS9zRG9Ebk5uOGsKTXNaU093RVFvbExLSkFEWWV1anc5R1NIWFFLd05SR2Y3U0pRT0dxRXhoR3lUVFBOa2JYUjJOcXkwMmMzMy9uaHRtZEhySDd6cHFtbAo2N0orOS9sTzI2VUFyTjlUYnBNMHpkL1JMdktDbk9OUFZSaGpSRGZOZVkyUnlJSU5aWHNUV2kyU2J6Tk9LdmxYYmtVZzlBOUpONjVqCkFCRTRUckx6ZksyTjUzWm11bHhiUlk3Yk42RmZlbDN4RGJQakZ3UGdXSFp2bW02YTJ5aGpvOXZhUFU3bmdYdG1UcCszc2Z4QXJDNFkKM0FJZ2U5eWdnVGZ0ZXVxeC8xMVVCRnBWVm5qNzhUeVBaNlZMRk1zQXdLUTBXVGFNVWVHNGRzK1JVT2kxeW1EbzR3M1Z4NHJ5VjVmZQpNN1NvcE9DQkxaOG5KUUtRNWZQYUFIUnFxeHJHbVp6VTFPQlZlWVBUQ0pDaG0rYkF1bUJ3WGlJK3Z6TUxmYlZzNGFGaFB1L0tKRUdvCmFMVXhBQlpsVHMyeWNzT2FWbGdkaXJ4Y0c0MTk5RlpGMWV0RGlrb2VHdm5xbTFPWGJ2N2tPMWRZK1ptWkhvSG5PdFU3SENIQjVkZlAKMFN2cVR3OW1nSjh5aGtCTStrbmV5dC82MElVdWVKL3R2MlBCem9MWDNuNmtLaFI1UVRYTndSMS9wNHdKbExIK0VVMmZIOU9OMjNoQwpRblV4YVUvT0s2K1hPVVhocytuWkE3NmVuejhrT0RkM0VEczNVQTlIT0J0Z25mZEJDRUc2MjkxY0I2QStGTXJUVE5NREFKcHBlaHBDCjRTNmZneTduZ1FOM0xIdy96ZWw0VXVTNEMwNDBsREhPb05RZjA0M3JUOFdreDQrSG8rK3VyYXpldFBTRHJjOFBMU3FaVzdobGUvOXcKUE81bllKMFNnZHZwQ0RER2lNTW1UbXg1YXdGNGtwS2FwZzBmcGw4eUFDR0UzVFJrVUtuYkp2NkpKeVRhVlhzQVlBQXhLUFhHZE9QcQpSbGxaVVJ1TnZiUHVVTVZIQjRqdFVaUHduWEk4UjBoZ3c1NjlRbGhXQnJiYWtteTJFLzlldWJ6TDRpNmhtZmpsT1RQcG9pdnlWMlc2CmtwNXhDUHd4bnBBNFNlVEViMkRjcW1FV1NJSTR4Zko0MjBlQU1SYUx4NE03cW8rbVdwU2VCNGlwNnZFa3U4M29GZ0FBZU9tNjZkcUsKcXdyK05pTFZOeWMvMVh0WHF0UHhiTEpOTEJNNExzZ1RZaVhraEJBZ05RMXdPRnZRV3I3MStsQzRhV1A1L2lFbXBUbm5Jc0lFbmsrbwp0TGlvVjRzUFR4cXZBNmdCVUJOUzQydm1yZC9rWjR5TnJJdEpZMlREbUtFWTVuZ0EvUTFLdjN0bFpYY0EvblNnb1E3bmlqcG1Gd1NtCm05WVEzVFJUQUlEak9NdnJTbEtDM1EzUVZqNm5nd0pvQXJBZHdQWlphOTU5VlRITXJMQ21qV2xTNGxObDA1akpHQWJxbFBwYUg4enoKOHZxQVNCaUlSVUFJc1dXa3VDZHpoRXNuQU1kYUlxQ251OTNCWXo4a1FGczkvdVZ1RndHc3AzOThkVFdBNmh2WGIzb3ZxTWE5REJoKwpJaEtib2xubU5ZcGhEak1ZemJVb3M0TVhnTFFNUUpYQkxJdHJqa2wzMndUZWFxMVNHV09LeTI2dlQ2VHZiZ0ZvVXVLNUg1ODRXWmoyCjRtcHpZSXI3NEtIbTRORlVoejF3YjhISUEvZU5IYjFyK2RZdlhxcU5TUDMyblQwN2tUTE1ibGJWbStQSjdteDRmRUN3R1pLbTVVTDcKeHA5RmFmVGdxZnJHUlBwT05KbGNVTy9Ybk9BZS9XTFhyVFhoeUhPcWFlWHdoRVR0UEI4RVFhV2Q0NnV6M2E3cVpqVmV3eEhTc0h6QwptUHJTdzFYWEhnbUZuMWVqMFd6VTFnQjYrM1NmNG5UdXplL2YvNFk5ZjNpaXFVY0FBSUF4UnNhOXNmYVdJOEh3WDl2TzJnUXRjd2xqClRCZDVMc0lUN21DeUtKeXdHSDRVak1memNmWTBjS2FobmE5TXIrZjlwMjY5NVdmM3piNUc3cXJmYmx1UkVVTFlxcmt6Tnc3M2VYL2oKRW9XajNMblV5Z0JReGdnRDdMcEZNMVRUbk5Xc3h1OE14dVA1QUFDZkgwaHlvVFd0QW9CSmFlRGVXVE8wUlBydDFoMmFpWm45NlAwZgpmL2Fld0pIS3FLNVBPNnVvVXhuRFdNVTBzaXpHZkl5MVJMemRrbEswdGN3TnF0S2FWc0VveS9oMXlWc09BRktYRjY0N0FUcXE1TkFSClcvSFhoOVByWS9MZ1psVzlGc0Q0dUdtTjBDd3J5MkxNZGI2aFpRRjF4MXRTS3lHdzhmenhLM095NSszNzQxTkhlalFDSFZVNEtsOEgKVUgvdXMrUDVzdjJ1a3NPVmFXRk5ueHlLYTVNRmpoc1QxZlFSRmlHWjFKL0JRNVlCeXdRRE1oVk5Hdy9nOGdKMDFFT1R4c2tBWkFDMQpqTEYxU3paL21sd1JDQTArSlVtRkFlQU93K3RMUTZBSkpxV09nQ1FQVGNUbkQzb0xKYW9KYjZ5MVNhWjE0Nmt6Wng1VGpsV1BaWEdWCmVGeXVIUk5Iajc3OTAxL2UzM0NoY3kvSEpsOG5sUzlkb0IrNWE5R0dVUU56ZnU3Mys5Y1Nqak5pdWo2NUlpb3RmNlQ4NEFXWHE3MEMKb0ZWbGhmTVBUOG9hc05KbHQzOUNMVXRvbE9UN1MvZnNXOWhuQUFEZ2crVVBudTd2U1huQnhuRk5scUtrTk12eUUxY1d2ejJyendBQQp3STFqQzdaN2twd2JiSEswMGMzaFA0MktzbUpLNmJwaGZRYmc3NFdMdEFFKzN5cTNJRlNPczdRWGZRN0htak95c21oSzZUdWQvbC9SCkt3RUFZTTB2SHRqdlMzWjlXTlBRTUtEcTdzVnYrWjJPOXdyUzA0WjIzRnZvdFFCWFpHWFNiSjl2Ylc1NnV2Tys0amZFdlV0dS8ycE0KZXRxK0xjZFB0bXZYYXdFQTRNbGJiem5wc3RzUE5vWWpQQUE4T0g2ME5qZHZVTHRTNnYvV3RmMERCaXNZVGdBQUFDVjBSVmgwWkdGMApaVHBqY21WaGRHVUFNakF5TWkweE1pMHlNVlF4TkRvek5qb3dNeXN3TURvd01MSHBGS2dBQUFBbGRFVllkR1JoZEdVNmJXOWthV1o1CkFESXdNakl0TVRJdE1qRlVNVFE2TXpZNk1ETXJNREE2TUREQXRLd1VBQUFBS0hSRldIUmtZWFJsT25ScGJXVnpkR0Z0Y0FBeU1ESXkKTFRFeUxUSXhWREUwT2pNMk9qQXpLekF3T2pBd2w2R055d0FBQUFCSlJVNUVya0pnZ2c9PSIgLz4KPC9zdmc+Cg==';
-            poweredByCoderhubImg.alt = "coderhub-logo.base64"
-            poweredByCoderhubImg.style.marginRight = "2px"
-            poweredByCoderhubImg.width = "20"
-            poweredByCoderhubImg.height = "16"
+            const poweredByCoderhubImg = document.createElement("img");
+            poweredByCoderhubImg.src =
+                "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI0OHB4IiBoZWlnaHQ9IjQ4cHgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgNDggNDgiIHhtbDpzcGFjZT0icHJlc2VydmUiPiAgPGltYWdlIGlkPSJpbWFnZTAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgeD0iMCIgeT0iMCIKICAgIGhyZWY9ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBREFBQUFBd0NBWUFBQUJYQXZtSEFBQUFCR2RCVFVFQUFMR1BDL3hoQlFBQUFDQmpTRkpOCkFBQjZKZ0FBZ0lRQUFQb0FBQUNBNkFBQWRUQUFBT3BnQUFBNm1BQUFGM0NjdWxFOEFBQUFCbUpMUjBRQS93RC9BUCtndmFlVEFBQUkKMUVsRVFWUm8zdFdhZTNCVTFSM0h2K2MrOXBITlpuZXpTU0FrQVJJZVFSRENRMEFvQlFFRmNkVHFXSVJDQStKYk95MFViV3ZINTlqVwpka1p0Nitob0d6RHFKQ3BVUUtuZ0F3VkZ5Nk9CQUZZZ0lTRkFDQW1FWk4vM3NmZDFUdjhJd1R5VUxCSkQ4cDNabmJtL1BmZDN6dWYrCjd2MmQzN2xuZ2N1ZzRRLy9mczYwcDU5Sjd3NWZ3dVVBQ0VpeEtSYWxiZ0RyTDlVWDE5T0RaNHh4QU1sdWxtTExDbDhwY3ZjNUFBQ0MKS1BCSmNseWJzZnZvc2RsOUR1RE5uYnNFamhDWFNXbHlRSktXM0wycStKS2kwT01BTzZxT2lwWkZrOEVZb3FvNmMzdGwxU1ZGb2NjQgp2anA1VW95YmhodUV3S1RVRzVTbHdxWC9YSjNTWndBTzFUY0lpcWFmSDNCRVVXZnZxS3ErcHM4QU9FWFJabEpxYnowMktmV0VaSG5KCjk0MUNqd1BrWjJhbThoeVgzTllXVmVPemQxZlhUTzhUQUR6SFpYQ0VPTnJhRE12eU5rbXh4YTl1LzhMWjZ3SHFRNkVNeHBpOW85MHcKclZRN0wxejBlSG9jSUNqSnlaU3hUaVdNb3V0TlA1MDBVZW4xQUxwbDhvd3gwdFpHQ0lISDZRdzViQ0xyOVFDVU1vRUI3UUVBOVBPawpuUDQrL25vY2dPT0lENnpUaGFaMlFUalRKd0JFWGtqK2x2dUVLcm9ldUdTQVArOHU1eFp2MnVMNnkzL0wrUjlpOEl3eHdTR0t2azZECjRJZ2hhMW9VQUpZVkZmdVdGUlU3RXZYWkxodGt1MTNpWnlkUDNmYlN2cS96aHEwcStYSlFpdnZBcnlhTWlkdzhOTS9zRG9Ebk5uOGsKTXNaU093RVFvbExLSkFEWWV1anc5R1NIWFFLd05SR2Y3U0pRT0dxRXhoR3lUVFBOa2JYUjJOcXkwMmMzMy9uaHRtZEhySDd6cHFtbAo2N0orOS9sTzI2VUFyTjlUYnBNMHpkL1JMdktDbk9OUFZSaGpSRGZOZVkyUnlJSU5aWHNUV2kyU2J6Tk9LdmxYYmtVZzlBOUpONjVqCkFCRTRUckx6ZksyTjUzWm11bHhiUlk3Yk42RmZlbDN4RGJQakZ3UGdXSFp2bW02YTJ5aGpvOXZhUFU3bmdYdG1UcCszc2Z4QXJDNFkKM0FJZ2U5eWdnVGZ0ZXVxeC8xMVVCRnBWVm5qNzhUeVBaNlZMRk1zQXdLUTBXVGFNVWVHNGRzK1JVT2kxeW1EbzR3M1Z4NHJ5VjVmZQpNN1NvcE9DQkxaOG5KUUtRNWZQYUFIUnFxeHJHbVp6VTFPQlZlWVBUQ0pDaG0rYkF1bUJ3WGlJK3Z6TUxmYlZzNGFGaFB1L0tKRUdvCmFMVXhBQlpsVHMyeWNzT2FWbGdkaXJ4Y0c0MTk5RlpGMWV0RGlrb2VHdm5xbTFPWGJ2N2tPMWRZK1ptWkhvSG5PdFU3SENIQjVkZlAKMFN2cVR3OW1nSjh5aGtCTStrbmV5dC82MElVdWVKL3R2MlBCem9MWDNuNmtLaFI1UVRYTndSMS9wNHdKbExIK0VVMmZIOU9OMjNoQwpRblV4YVUvT0s2K1hPVVhocytuWkE3NmVuejhrT0RkM0VEczNVQTlIT0J0Z25mZEJDRUc2MjkxY0I2QStGTXJUVE5NREFKcHBlaHBDCjRTNmZneTduZ1FOM0xIdy96ZWw0VXVTNEMwNDBsREhPb05RZjA0M3JUOFdreDQrSG8rK3VyYXpldFBTRHJjOFBMU3FaVzdobGUvOXcKUE81bllKMFNnZHZwQ0RER2lNTW1UbXg1YXdGNGtwS2FwZzBmcGw4eUFDR0UzVFJrVUtuYkp2NkpKeVRhVlhzQVlBQXhLUFhHZE9QcQpSbGxaVVJ1TnZiUHVVTVZIQjRqdFVaUHduWEk4UjBoZ3c1NjlRbGhXQnJiYWtteTJFLzlldWJ6TDRpNmhtZmpsT1RQcG9pdnlWMlc2CmtwNXhDUHd4bnBBNFNlVEViMkRjcW1FV1NJSTR4Zko0MjBlQU1SYUx4NE03cW8rbVdwU2VCNGlwNnZFa3U4M29GZ0FBZU9tNjZkcUsKcXdyK05pTFZOeWMvMVh0WHF0UHhiTEpOTEJNNExzZ1RZaVhraEJBZ05RMXdPRnZRV3I3MStsQzRhV1A1L2lFbXBUbm5Jc0lFbmsrbwp0TGlvVjRzUFR4cXZBNmdCVUJOUzQydm1yZC9rWjR5TnJJdEpZMlREbUtFWTVuZ0EvUTFLdjN0bFpYY0EvblNnb1E3bmlqcG1Gd1NtCm05WVEzVFJUQUlEak9NdnJTbEtDM1EzUVZqNm5nd0pvQXJBZHdQWlphOTU5VlRITXJMQ21qV2xTNGxObDA1akpHQWJxbFBwYUg4enoKOHZxQVNCaUlSVUFJc1dXa3VDZHpoRXNuQU1kYUlxQ251OTNCWXo4a1FGczkvdVZ1RndHc3AzOThkVFdBNmh2WGIzb3ZxTWE5REJoKwpJaEtib2xubU5ZcGhEak1ZemJVb3M0TVhnTFFNUUpYQkxJdHJqa2wzMndUZWFxMVNHV09LeTI2dlQ2VHZiZ0ZvVXVLNUg1ODRXWmoyCjRtcHpZSXI3NEtIbTRORlVoejF3YjhISUEvZU5IYjFyK2RZdlhxcU5TUDMyblQwN2tUTE1ibGJWbStQSjdteDRmRUN3R1pLbTVVTDcKeHA5RmFmVGdxZnJHUlBwT05KbGNVTy9Ybk9BZS9XTFhyVFhoeUhPcWFlWHdoRVR0UEI4RVFhV2Q0NnV6M2E3cVpqVmV3eEhTc0h6QwptUHJTdzFYWEhnbUZuMWVqMFd6VTFnQjYrM1NmNG5UdXplL2YvNFk5ZjNpaXFVY0FBSUF4UnNhOXNmYVdJOEh3WDl2TzJnUXRjd2xqClRCZDVMc0lUN21DeUtKeXdHSDRVak1memNmWTBjS2FobmE5TXIrZjlwMjY5NVdmM3piNUc3cXJmYmx1UkVVTFlxcmt6Tnc3M2VYL2oKRW9XajNMblV5Z0JReGdnRDdMcEZNMVRUbk5Xc3h1OE14dVA1QUFDZkgwaHlvVFd0QW9CSmFlRGVXVE8wUlBydDFoMmFpWm45NlAwZgpmL2Fld0pIS3FLNVBPNnVvVXhuRFdNVTBzaXpHZkl5MVJMemRrbEswdGN3TnF0S2FWc0VveS9oMXlWc09BRktYRjY0N0FUcXE1TkFSClcvSFhoOVByWS9MZ1psVzlGc0Q0dUdtTjBDd3J5MkxNZGI2aFpRRjF4MXRTS3lHdzhmenhLM095NSszNzQxTkhlalFDSFZVNEtsOEgKVUgvdXMrUDVzdjJ1a3NPVmFXRk5ueHlLYTVNRmpoc1QxZlFSRmlHWjFKL0JRNVlCeXdRRE1oVk5Hdy9nOGdKMDFFT1R4c2tBWkFDMQpqTEYxU3paL21sd1JDQTArSlVtRkFlQU93K3RMUTZBSkpxV09nQ1FQVGNUbkQzb0xKYW9KYjZ5MVNhWjE0Nmt6Wng1VGpsV1BaWEdWCmVGeXVIUk5Iajc3OTAxL2UzM0NoY3kvSEpsOG5sUzlkb0IrNWE5R0dVUU56ZnU3Mys5Y1Nqak5pdWo2NUlpb3RmNlQ4NEFXWHE3MEMKb0ZWbGhmTVBUOG9hc05KbHQzOUNMVXRvbE9UN1MvZnNXOWhuQUFEZ2crVVBudTd2U1huQnhuRk5scUtrTk12eUUxY1d2ejJyendBQQp3STFqQzdaN2twd2JiSEswMGMzaFA0MktzbUpLNmJwaGZRYmc3NFdMdEFFKzN5cTNJRlNPczdRWGZRN0htak95c21oSzZUdWQvbC9SCkt3RUFZTTB2SHRqdlMzWjlXTlBRTUtEcTdzVnYrWjJPOXdyUzA0WjIzRnZvdFFCWFpHWFNiSjl2Ylc1NnV2Tys0amZFdlV0dS8ycE0KZXRxK0xjZFB0bXZYYXdFQTRNbGJiem5wc3RzUE5vWWpQQUE4T0g2ME5qZHZVTHRTNnYvV3RmMERCaXNZVGdBQUFDVjBSVmgwWkdGMApaVHBqY21WaGRHVUFNakF5TWkweE1pMHlNVlF4TkRvek5qb3dNeXN3TURvd01MSHBGS2dBQUFBbGRFVllkR1JoZEdVNmJXOWthV1o1CkFESXdNakl0TVRJdE1qRlVNVFE2TXpZNk1ETXJNREE2TUREQXRLd1VBQUFBS0hSRldIUmtZWFJsT25ScGJXVnpkR0Z0Y0FBeU1ESXkKTFRFeUxUSXhWREUwT2pNMk9qQXpLekF3T2pBd2w2R055d0FBQUFCSlJVNUVya0pnZ2c9PSIgLz4KPC9zdmc+Cg==";
+            poweredByCoderhubImg.alt = "coderhub-logo.base64";
+            poweredByCoderhubImg.style.marginRight = "2px";
+            poweredByCoderhubImg.width = "20";
+            poweredByCoderhubImg.height = "16";
             // Creating additional text
-            const poweredByCoderhubSpan = document.createElement('span');
-            poweredByCoderhubSpan.innerHTML = "Powered by "
+            const poweredByCoderhubSpan = document.createElement("span");
+            poweredByCoderhubSpan.innerHTML = "Powered by ";
             // Creating Coderhub poweredB by link
-            const poweredByCoderhubLink = document.createElement('a')
+            const poweredByCoderhubLink = document.createElement("a");
             const poweredByCoderhubLinkTextNode = document.createTextNode("Coderhub");
             poweredByCoderhubLink.appendChild(poweredByCoderhubLinkTextNode);
             poweredByCoderhubLink.title = "Coderhub";
             poweredByCoderhubLink.href = "https://www.coderhub.cl/";
-            poweredByCoderhubLink.target = '_blank';
+            poweredByCoderhubLink.target = "_blank";
             poweredByCoderhubLink.style.paddingRight = "5px";
+            const poweredByVersionSpan = document.createElement("span");
+            poweredByVersionSpan.classList.add("sheets-map-version");
+            poweredByVersionSpan.textContent = `v${sheetsMapVersion}`;
             // Creating separator
-            const poweredByCoderhubSpanSeparator = document.createElement('span');
+            const poweredByCoderhubSpanSeparator = document.createElement("span");
             poweredByCoderhubSpanSeparator.ariaHidden = "true";
             poweredByCoderhubSpanSeparator.innerHTML = "";
             // Adding Coderhub logo
@@ -2397,13 +2825,18 @@ export default {
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpan);
             // Adding Coderhub link
             poweredByCoderhubDiv.appendChild(poweredByCoderhubLink);
+            // Adding current library version
+            poweredByCoderhubDiv.appendChild(poweredByVersionSpan);
             // Adding separator
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpanSeparator);
             // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
-            poweredByOpenStreetMap.insertBefore(poweredByCoderhubDiv, poweredByOpenStreetMap.firstChild);
+            poweredByOpenStreetMap.insertBefore(
+                poweredByCoderhubDiv,
+                poweredByOpenStreetMap.firstChild,
+            );
         },
         setForm(form) {
-            if(form) {
+            if (form) {
                 this.$emit("form", form);
             }
         },
@@ -2420,10 +2853,10 @@ export default {
         },
         getCoordsFromUrlParams() {
             let params = new URLSearchParams(document.location.search);
-            let coords = params.get("center_map");// param value example: center_map=-33.472,-70.769
+            let coords = params.get("center_map"); // param value example: center_map=-33.472,-70.769
 
-            if(coords) {
-                coords = coords.split(",")
+            if (coords) {
+                coords = coords.split(",");
 
                 if (coords.length === 2 && this.validateCoords(coords[0], coords[1])) {
                     coords = coords.map((coord) => parseFloat(coord));
@@ -2447,68 +2880,96 @@ export default {
         convertToUTM() {
             let keys = Object.keys(this.center);
 
-            let lat = (keys.includes("lat")) ? 'lat' : 1;
-            let lng = (keys.includes("lng")) ? 'lng' : 0;
-            
+            let lat = keys.includes("lat") ? "lat" : 1;
+            let lng = keys.includes("lng") ? "lng" : 0;
+
             // Calcular el huso UTM en función de la longitud
             const zoneNumber = Math.floor((this.center[lng] + 180) / 6) + 1;
             // Usar husos específicos para Chile si la latitud está dentro de los límites del país
-            const specificZone = (this.center[lng] > -78 || this.center[lng] < -66) ? zoneNumber : (this.center[lng] > -72 ? 19 : 18);
+            const specificZone =
+                this.center[lng] > -78 || this.center[lng] < -66
+                    ? zoneNumber
+                    : this.center[lng] > -72
+                        ? 19
+                        : 18;
             // Proyección UTM que corresponde al huso calculado y al hemisferio
             const utmProjection = `EPSG:327${specificZone}`; // 327 es para el hemisferio sur
 
             // Definir las proyecciones UTM manualmente si no están definidas en Proj4js
             if (!proj4.defs[`EPSG:327${specificZone}`]) {
-                proj4.defs(`EPSG:327${specificZone}`, `+proj=utm +zone=${specificZone} +south +datum=WGS84 +units=m +no_defs`);
+                proj4.defs(
+                    `EPSG:327${specificZone}`,
+                    `+proj=utm +zone=${specificZone} +south +datum=WGS84 +units=m +no_defs`,
+                );
             }
-                
+
             // Convertir coordenadas latitud/longitud a UTM usando proj4
-            const utmCoordinates = proj4(proj4.WGS84, utmProjection, [this.center[lng], this.center[lat]]);
-            
+            const utmCoordinates = proj4(proj4.WGS84, utmProjection, [
+                this.center[lng],
+                this.center[lat],
+            ]);
+
             // Determinar la dirección (Norte o Sur) - siempre Sur en Chile continental
-            const northSouth = 'S';
+            const northSouth = "S";
             // Determinar la dirección (Este u Oeste)
-            const eastWest = this.center[lng] >= 0 ? 'E' : 'O';
+            const eastWest = this.center[lng] >= 0 ? "E" : "O";
             // Formatear las coordenadas UTM con el huso, la letra y las coordenadas Este (E) y Norte (N)
-            return `UTM: ${utmCoordinates[0].toFixed(2)}'${northSouth}, ${utmCoordinates[1].toFixed(2)}'${eastWest} - Huso: ${specificZone}${northSouth}`;
+            return `UTM: ${utmCoordinates[0].toFixed(
+                2,
+            )}'${northSouth}, ${utmCoordinates[1].toFixed(
+                2,
+            )}'${eastWest} - Huso: ${specificZone}${northSouth}`;
         },
-        changeCoordinateFormat(){
-            this.center_format = (this.center_format == 'latlng') ? 'UTM' : 'latlng';
+        changeCoordinateFormat() {
+            this.center_format = this.center_format == "latlng" ? "UTM" : "latlng";
             this.centerParsed();
         },
-        centerParsed(){
-            this.center_parsed = (this.center_format == 'latlng') ? this.center['lat'] + ", " + this.center['lng'] : this.convertToUTM();
+        centerParsed() {
+            this.center_parsed =
+                this.center_format == "latlng"
+                    ? this.center["lat"] + ", " + this.center["lng"]
+                    : this.convertToUTM();
         },
         sumCoordinates(layer_list) {
-            let coordinates_raw = layer_list.map(operative => {
-                //Filtramos todas las capas MultiPolygon y las convertimos a Polygon
-                let not_multipolygon = operative.geojson.features.filter(polygon =>{
-                    if(polygon.geometry.type == "MultiPolygon"){
-                        return polygon;
-                    }
-                }).map(polygon => {
-                    let new_polygon = polygon.geometry.coordinates.map(coordinate =>{
-                        return { "type": "Polygon", "coordinates": coordinate };
-                    })
-                    return _.first(new_polygon);
+            let coordinates_raw = layer_list
+                .map((operative) => {
+                    //Filtramos todas las capas MultiPolygon y las convertimos a Polygon
+                    let not_multipolygon = operative.geojson.features
+                        .filter((polygon) => {
+                            if (polygon.geometry.type == "MultiPolygon") {
+                                return polygon;
+                            }
+                        })
+                        .map((polygon) => {
+                            let new_polygon = polygon.geometry.coordinates.map(
+                                (coordinate) => {
+                                    return { type: "Polygon", coordinates: coordinate };
+                                },
+                            );
+                            return _.first(new_polygon);
+                        });
+                    // filtramos todas las originalmente Polygon y tomamos solo su geometria
+                    let polygon = operative.geojson.features
+                        .filter((polygon) => {
+                            if (polygon.geometry.type == "Polygon") {
+                                return polygon;
+                            }
+                        })
+                        .map((polygon) => {
+                            return polygon.geometry;
+                        });
+                    //Concatenamos ambos arreglos
+                    const geometry = not_multipolygon.concat(polygon);
+                    return geometry;
+                })
+                .map((geometry) => {
+                    //Tomamos el primer elemento de todas sus coordenadas
+                    return geometry.map((geo) =>
+                        _.first(geo.coordinates).map((coord) => {
+                            return [coord[0], coord[1]];
+                        }),
+                    );
                 });
-                // filtramos todas las originalmente Polygon y tomamos solo su geometria
-                let polygon = operative.geojson.features.filter(polygon =>{
-                    if(polygon.geometry.type == "Polygon"){
-                        return polygon;
-                    }
-                }).map(polygon => {
-                    return polygon.geometry;
-                });
-                //Concatenamos ambos arreglos
-                const geometry = not_multipolygon.concat(polygon);
-                return geometry;
-            }).map(geometry => {
-                //Tomamos el primer elemento de todas sus coordenadas
-                return geometry.map(geo => 
-                     _.first(geo.coordinates).map( coord => { return [coord[0], coord[1]]})
-                );
-            });
 
             //Juntamos los polygon con los expolygon
             let coordinates = coordinates_raw.reduce((polygons, polygon) => {
@@ -2520,288 +2981,312 @@ export default {
 
             return coordinates;
         },
-        enableFilterList(geojson_list){
+        enableFilterList(geojson_list) {
             let layers = this.active_layers;
-            return geojson_list.filter(geojson =>{
-                let layer = layers.filter(ly => geojson.layer_id == ly.id);
+            return geojson_list.filter((geojson) => {
+                let layer = layers.filter((ly) => geojson.layer_id == ly.id);
 
-                if(layer && _.first(layer).sh_map_has_layer_type_enable_filter){
+                if (layer && _.first(layer).sh_map_has_layer_type_enable_filter) {
                     return geojson;
                 }
             });
         },
-        
+
         // ================================================================================
         // HANDLER PARA VECTOR TILES XYZ (Protobuf)
         // El popup se maneja internamente en VectorTileLayer.vue
         // Este handler solo maneja la emisión de eventos al padre si es necesario
         // ================================================================================
-        
+
         handleVectorTileFeatureClick(eventData) {
             const { layer, properties } = eventData;
-            
+
             // Emitir evento para que el componente padre pueda reaccionar
-            this.$emit('set_layer', {
+            this.$emit("set_layer", {
                 layer_id: layer.id,
-                feature: { properties: properties }
+                feature: { properties: properties },
             });
-        }
-    }
-}
+        },
+    },
+};
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-    .my-map-container.drawing .my-map,
-    .my-map-container.drawing >>> .leaflet-interactive:not(.polygon_draft_circle_marker){
-      cursor: crosshair !important;
-    }
-    .my-map {
-        min-height: 60vh;
-    }
-    .my-map >>> .my-labels{
-        background-color: transparent !important;
-        border: transparent !important;
-        box-shadow: none !important;
-        color: white;
-    }
-    .my-map.hide-cluster-labels >>> .my-labels {
-        display: none;
-    }
-    li {
-        text-align: left;
-        margin: 0 10px;
-    }
+.my-map-container.drawing .my-map,
+.my-map-container.drawing :deep(.leaflet-interactive:not(.polygon_draft_circle_marker)) {
+    cursor: crosshair !important;
+}
 
+.my-map {
+    min-height: 96dvh;
+}
 
-    .my-map >>> .leaflet-popup-content-wrapper,
-    .my-map >>> .leaflet-popup-tip{
-        background-color: var(--sh-map-marker-pop-up-background);
-        border-color : var(--sh-map-marker-pop-up-border-color);
-        border-width : var(--sh-map-marker-pop-up-border-width);
-        border-style : var(--sh-map-marker-pop-up-border-style);
-    }
+.my-map :deep(.my-labels) {
+    background-color: transparent !important;
+    border: transparent !important;
+    box-shadow: none !important;
+    color: white;
+}
 
-    .custom-controls {
-        position: relative;
-        z-index: 800;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
-        margin-top: 24px;
-    }
-    
-    .zoom-wrapper {
-        display: flex;
-        gap: 8px;
-    }
+.my-map.hide-cluster-labels :deep(.my-labels) {
+    display: none;
+}
 
-    .horizontal-form-map-btn {
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: flex-end; 
-        padding-right: 80px;
-    }
-    .horizontal-form-map-btn .zoom-wrapper{
-        display: flex;
-        flex-direction: column;
-        flex-direction: column-reverse;
-    }
+li {
+    text-align: left;
+    margin: 0 10px;
+}
 
+.my-map :deep(.leaflet-popup-content-wrapper),
+.my-map :deep(.leaflet-popup-tip) {
+    background-color: var(--sh-map-marker-pop-up-background);
+    border-color: var(--sh-map-marker-pop-up-border-color);
+    border-width: var(--sh-map-marker-pop-up-border-width);
+    border-style: var(--sh-map-marker-pop-up-border-style);
+}
 
-    .custom-controls .zoom-btn {
-        background-color: var(--sh-map-zoom-button-background-color);
-        color: var(--sh-map-zoom-button-text-color);
-        border-radius: var(--sh-map-radius-multiplier);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        --size: 36px;
-        width: var(--size);
-        height: var(--size);
-        padding: 0;
-        border: none;
-        font-size: 0.7rem;
-    }
+.custom-controls {
+    position: relative;
+    z-index: 800;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+}
 
-    /* This line delete the UKR flag in the leaflet powered banner */
-    .my-map >>> .leaflet-control-attribution svg {
-        display: none !important;
-    }
+.zoom-wrapper {
+    display: flex;
+    gap: 8px;
+}
 
-    /* This line deletes additional padding-right of coderhub powered container after delete UKR flag */
-    .my-map >>> .leaflet-right > .leaflet-control:first-child {
-        padding-right: 0px;
-    }
-    .legend-container{
-        background:white;
-        padding-top: 8px;
-    }
-    .legend-lavel{
-        margin-left: 8px;
-        padding-bottom: 8px;
-        margin-right: 8px
-    }
-    .legend-title{
-        margin-left: 4px;
-        padding-bottom: 2px;
-    }
-    .legend-sublavel{
-        margin-left: 8px;
-        padding-bottom: 2px;
-        margin-right: 8px
-    }
-    .legend-icon{
-        width: 20px;
-        height: 20px;
-        float: left;
-        margin-right: 8px;
-        opacity: 1;
-    }
-    .legend-icon-color{
-        background:#0074BD;
-        width: 18px;
-        height: 18px;
-        float: left;
-        margin-right: 8px;
-        opacity: 0.7;
-    }
-    .legend-sublavel-container{
-        background:white;
-        padding-bottom: 6px;
-    }
-    .legend-metric-subtitle {
-        margin-left: 8px;
-        margin-right: 12px;
-        margin-top: 4px;
-        margin-bottom: 6px;
-        font-size: 0.9em;
-        color: #666;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .metric-name {
-        font-style: italic;
-        flex: 1;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        line-height: 1.3;
-    }
-    .metric-info-icon {
-        color: #0074BD;
-        font-size: 16px;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: color 0.2s ease;
-    }
-    .metric-info-icon:hover {
-        color: #005a94;
-        transform: scale(1.1);
-    }
-    :deep(.leaflet-control-container) .leaflet-bottom{
-        flex-flow: column;
-    }
-    :deep(.leaflet-control-container) .leaflet-bottom.leaflet-right{
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-    }
-    :deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend{
-        grid-column: 2;
-    }
-    
-    .search-and-quick-layer-container {
-        position: absolute;
-        width: 40%;
-        height: auto !important;
-        margin-top: 24px;
-        padding: 0 10px;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .btn-coordinate-format{
-        font-size: 9px;
-    }
-    
-    /* Asegurar que los popups de MapLibre GL vector tiles aparezcan sobre el canvas */
-    .my-map >>> .leaflet-popup-pane {
-        z-index: 10000 !important;
-        pointer-events: none; /* Permitir clicks a través del pane */
-    }
-    
-    .my-map >>> .leaflet-popup {
-        z-index: 10001 !important;
-        pointer-events: auto; /* Permitir interacción con el popup */
-        /* IMPORTANTE: No forzar position relative; Leaflet calcula top/left para que la punta (tip) apunte al punto */
-    }
-    
-    .my-map >>> .leaflet-popup-content-wrapper,
-    .my-map >>> .leaflet-popup-tip {
-        z-index: 10003 !important;
-        /* No alterar position aquí; Leaflet usa absolute en el contenedor principal */
-    }
+.horizontal-form-map-btn {
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding-right: 80px;
+}
 
-    /* Ajuste fino opcional: si la flecha queda unos pixeles abajo del punto, se puede subir ligeramente todo el popup
+.horizontal-form-map-btn .zoom-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-direction: column-reverse;
+}
+
+.custom-controls .zoom-btn {
+    background-color: var(--sh-map-zoom-button-background-color);
+    color: var(--sh-map-zoom-button-text-color);
+    border-radius: var(--sh-map-radius-multiplier);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    --size: 36px;
+    width: var(--size);
+    height: var(--size);
+    padding: 0;
+    border: none;
+    font-size: 0.7rem;
+}
+
+.custom-controls .zoom-btn:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+    color: #212529;
+}
+
+/* This line delete the UKR flag in the leaflet powered banner */
+.my-map :deep(.leaflet-control-attribution svg) {
+    display: none !important;
+}
+
+/* This line deletes additional padding-right of coderhub powered container after delete UKR flag */
+.my-map :deep(.leaflet-right > .leaflet-control:first-child) {
+    padding-right: 0px;
+}
+
+.legend-container {
+    background: white;
+    padding-top: 8px;
+}
+
+.legend-lavel {
+    margin-left: 8px;
+    padding-bottom: 8px;
+    margin-right: 8px;
+}
+
+.legend-title {
+    margin-left: 4px;
+    padding-bottom: 2px;
+}
+
+.legend-sublavel {
+    margin-left: 8px;
+    padding-bottom: 2px;
+    margin-right: 8px;
+}
+
+.legend-icon {
+    width: 20px;
+    height: 20px;
+    float: left;
+    margin-right: 8px;
+    opacity: 1;
+}
+
+.legend-icon-color {
+    background: #0074bd;
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
+
+.legend-sublavel-container {
+    background: white;
+    padding-bottom: 6px;
+}
+
+.legend-metric-subtitle {
+    margin-left: 8px;
+    margin-right: 12px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    font-size: 0.9em;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.metric-name {
+    font-style: italic;
+    flex: 1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.3;
+}
+
+.metric-info-icon {
+    color: #0074bd;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.metric-info-icon:hover {
+    color: #005a94;
+    transform: scale(1.1);
+}
+
+:deep(.leaflet-control-container) .leaflet-bottom {
+    flex-flow: column;
+}
+
+:deep(.leaflet-control-container) .leaflet-bottom.leaflet-right {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+}
+
+:deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend {
+    grid-column: 2;
+}
+
+.search-and-quick-layer-container {
+    position: absolute;
+    width: 40%;
+    height: auto !important;
+    margin-top: 24px;
+    padding: 0 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.btn-coordinate-format {
+    font-size: 9px;
+}
+
+/* Asegurar que los popups de MapLibre GL vector tiles aparezcan sobre el canvas */
+.my-map :deep(.leaflet-popup-pane) {
+    z-index: 10000 !important;
+    pointer-events: none;
+    /* Permitir clicks a través del pane */
+}
+
+.my-map :deep(.leaflet-popup) {
+    z-index: 10001 !important;
+    pointer-events: auto;
+    /* Permitir interacción con el popup */
+    /* IMPORTANTE: No forzar position relative; Leaflet calcula top/left para que la punta (tip) apunte al punto */
+}
+
+.my-map :deep(.leaflet-popup-content-wrapper),
+.my-map :deep(.leaflet-popup-tip) {
+    z-index: 10003 !important;
+    /* No alterar position aquí; Leaflet usa absolute en el contenedor principal */
+}
+
+/* Ajuste fino opcional: si la flecha queda unos pixeles abajo del punto, se puede subir ligeramente todo el popup
        descomentando la siguiente regla (probar sólo si aún queda desalineado) */
-    /*
+/*
     .my-map >>> .leaflet-popup.leaflet-zoom-animated {
         transform: translate3d(var(--leaflet-left), var(--leaflet-top), 0) translateY(-6px) !important;
     }
     */
-    
-    /* Asegurar que el canvas de MapLibre esté DEBAJO de los popups */
-    .my-map >>> .maplibregl-canvas-container,
-    .my-map >>> .maplibregl-canvas {
-        z-index: 1 !important;
-    }
 
+/* Asegurar que el canvas de MapLibre esté DEBAJO de los popups */
+.my-map :deep(.maplibregl-canvas-container),
+.my-map :deep(.maplibregl-canvas) {
+    z-index: 1 !important;
+}
 </style>
 <style>
-    /* Estilos globales para el popover (necesarios porque Bootstrap Vue renderiza fuera del componente) */
-    .metric-info-popover.popover {
-        max-width: 280px !important;
-    }
-    
-    .metric-info-popover .popover-body {
-        max-height: 200px !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        line-height: 1.4;
-        font-size: 0.85em;
-        padding: 0.75rem;
-    }
-    
-    .metric-info-popover .popover-header {
-        font-size: 0.9em;
-        padding: 0.5rem 0.75rem;
-        font-weight: 600;
-        background-color: #f7f7f7;
-        border-bottom: 1px solid #ebebeb;
-    }
-    
-    /* Estilos del scrollbar para el popover */
-    .metric-info-popover .popover-body::-webkit-scrollbar {
-        width: 6px;
-    }
-    
-    .metric-info-popover .popover-body::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-    }
-    
-    .metric-info-popover .popover-body::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 3px;
-    }
-    
-    .metric-info-popover .popover-body::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
+/* Estilos globales para el popover (necesarios porque Bootstrap Vue renderiza fuera del componente) */
+.metric-info-popover.popover {
+    max-width: 280px !important;
+}
 
+.metric-info-popover .popover-body {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+    font-size: 0.85em;
+    padding: 0.75rem;
+}
+
+.metric-info-popover .popover-header {
+    font-size: 0.9em;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #ebebeb;
+}
+
+/* Estilos del scrollbar para el popover */
+.metric-info-popover .popover-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.metric-info-popover .popover-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.metric-info-popover .popover-body::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.metric-info-popover .popover-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 </style>
