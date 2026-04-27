@@ -123,8 +123,8 @@ export default {
     font: var(--sh-map-marker-pop-up-title-font);
     color: var(--sh-map-marker-pop-up-title-color);
 }
-.my-map >>> .leaflet-popup-content-wrapper,
-.my-map >>> .leaflet-popup-tip {
+.my-map .leaflet-popup-content-wrapper,
+.my-map .leaflet-popup-tip {
     background-color: var(--sh-map-marker-pop-up-background);
     border-color: var(--sh-map-marker-pop-up-border-color);
     border-width: var(--sh-map-marker-pop-up-border-width);
