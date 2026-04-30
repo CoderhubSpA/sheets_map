@@ -2812,9 +2812,6 @@ export default {
             poweredByCoderhubLink.href = "https://www.coderhub.cl/";
             poweredByCoderhubLink.target = "_blank";
             poweredByCoderhubLink.style.paddingRight = "5px";
-            const poweredByVersionSpan = document.createElement("span");
-            poweredByVersionSpan.classList.add("sheets-map-version");
-            poweredByVersionSpan.textContent = `v${sheetsMapVersion}`;
             // Creating separator
             const poweredByCoderhubSpanSeparator = document.createElement("span");
             poweredByCoderhubSpanSeparator.ariaHidden = "true";
@@ -2825,8 +2822,6 @@ export default {
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpan);
             // Adding Coderhub link
             poweredByCoderhubDiv.appendChild(poweredByCoderhubLink);
-            // Adding current library version
-            poweredByCoderhubDiv.appendChild(poweredByVersionSpan);
             // Adding separator
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpanSeparator);
             // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
