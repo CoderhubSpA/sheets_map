@@ -63,19 +63,19 @@
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
                 <template v-if="!hide_base_layer">
-                    <l-tile-layer v-if="base_open_street_map" :url="base_open_street_map.sh_map_has_layer_url"
+                    <!-- <l-tile-layer v-if="base_open_street_map" :key="'base-osm-' + base_layer_key" :url="base_open_street_map.sh_map_has_layer_url"
                         :attribution="'&copy; ' +
                             base_open_street_map.sh_map_has_layer_url.match(
                                 '^.*?([^:/]/)',
                             )?.[0]
-                            "></l-tile-layer>
-                    <l-tile-layer v-else-if="base_google_map" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
+                            "></l-tile-layer> -->
+                    <l-tile-layer v-if="base_google_map" :key="'base-google-' + base_layer_key" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
                         "></l-tile-layer>
-                    <l-tile-layer v-else-if="base_map_guide" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
+                    <l-tile-layer v-else-if="base_map_guide" :key="'base-guide-' + base_layer_key" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
                         "></l-tile-layer>
-                    <l-tile-layer v-else :url="default_base_layer" :attribution="default_attribution"
+                    <l-tile-layer v-else :key="'base-default-' + base_layer_key" :url="default_base_layer" :attribution="default_attribution"
                         :options="{ maxNativeZoom: 19, maxZoom: 20 }"></l-tile-layer>
                 </template>
 
@@ -448,7 +448,9 @@ export default {
                 delete: false,
             },
             hide_base_layer: false,
+            base_layer_key: 0,
             _polygonFilterCallback: null,
+            _featureClickCallback: null,
         };
     },
     computed: {
@@ -678,6 +680,12 @@ export default {
                 onPolygonFilter: (cb) => {
                     this._polygonFilterCallback = cb;
                 },
+                /**
+                 * Registra un callback que se ejecuta cuando el usuario hace click en un feature del mapa.
+                 * @param {Function|null} cb - callback(data) donde data = { layer, properties, latlng, visible_columns }
+                 *                             Pasar null para desregistrar.
+                 */
+                onFeatureClick: (cb) => { this._featureClickCallback = cb || null; },
                 /** Verdadero si hay al menos un polígono dibujado en el mapa */
                 hasPolygons: () => {
                     const d = this.$refs.polygon_drafter;
@@ -1189,6 +1197,13 @@ export default {
         center() {
             this.centerParsed();
         },
+        hide_base_layer(newVal, oldVal) {
+            if (oldVal === true && newVal === false) {
+                // Re-evaluate which base layer is active, then force remount.
+                this.switchLayers();
+                this.base_layer_key++;
+            }
+        },
     },
     created() {
         // TO DO:
@@ -1330,6 +1345,11 @@ export default {
         switchLayers() {
             // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
+
+            // Reset base layer references so they are rebuilt from active_layers
+            this.base_open_street_map = undefined;
+            this.base_google_map = undefined;
+            this.base_map_guide = undefined;
 
             this.active_layers.forEach((l) => {
                 this.activeLayers(l);
@@ -2249,6 +2269,9 @@ export default {
                         }
 
                         this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                        if (data.sh_map_hide_base_layer) {
+                            this.hide_base_layer = true;
+                        }
                     } catch (error) {
                         console.error(error);
 
@@ -2361,6 +2384,16 @@ export default {
             if (this.point_mode === "draw-polygon") {
                 // Add the point to the polygon drafter
                 this.$refs.polygon_drafter.addPolygon(event);
+            }
+            // Propagate click to vector tile layers for tooltip handling
+            if (this.$refs.vectorTileLayers && this.$refs.vectorTileLayers.length > 0) {
+                for (let i = this.$refs.vectorTileLayers.length - 1; i >= 0; i--) {
+                    const vtLayer = this.$refs.vectorTileLayers[i];
+                    if (vtLayer && typeof vtLayer.tryHandleClick === 'function') {
+                        const handled = vtLayer.tryHandleClick(event);
+                        if (handled) break;
+                    }
+                }
             }
         },
         findBounds() {
@@ -3001,6 +3034,23 @@ export default {
                 layer_id: layer.id,
                 feature: { properties: properties },
             });
+
+            // Emitir evento de feature-click para el tooltip
+            this.$emit("feature-click", {
+                layer: layer,
+                properties: properties || {},
+                latlng: eventData.latlng || null,
+            });
+
+            // Llamar callback registrado via mapActions.onFeatureClick
+            if (typeof this._featureClickCallback === "function") {
+                this._featureClickCallback({
+                    layer: layer,
+                    properties: properties || {},
+                    latlng: eventData.latlng || null,
+                    visible_columns: [],
+                });
+            }
         },
     },
 };

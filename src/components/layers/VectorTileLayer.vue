@@ -149,6 +149,10 @@ export default {
 
             const renderState = await this.resolveRenderState(tileUrl);
 
+            // Orden de prioridad para sourceLayer:
+            // 1. Hint devuelto por el backend de leyenda semántica (layer_name en la respuesta)
+            // 2. Inferido desde el patrón /vector/tiles/{name} en la URL
+            // 3. Fallback 'default'
             this.sourceLayer =
                 renderState.sourceLayerHint ||
                 inferVectorTileLayerNameFromUrl(tileUrl) ||
@@ -195,12 +199,12 @@ export default {
                 }
             });
             
-            // Agregar la capa al mapa
-            this.vectorTileLayer.addTo(this.map);
-            
-            // Obtener MapLibre GL map instance
-            this.maplibreMap = this.vectorTileLayer.getMaplibreMap();
-            
+        // Agregar la capa al mapa
+        this.vectorTileLayer.addTo(this.map);
+
+        // Obtener MapLibre GL map instance
+        this.maplibreMap = this.vectorTileLayer.getMaplibreMap();
+
             // CRÍTICO: Esperar a que el estilo MapLibre se cargue completamente
             // Sin esto, queryRenderedFeatures() no funcionará
             this.maplibreMap.on('load', () => {
