@@ -62,20 +62,21 @@
 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
-                <template v-if="!hide_base_layer">
-                    <!-- <l-tile-layer v-if="base_open_street_map" :key="'base-osm-' + base_layer_key" :url="base_open_street_map.sh_map_has_layer_url"
-                        :attribution="'&copy; ' +
-                            base_open_street_map.sh_map_has_layer_url.match(
-                                '^.*?([^:/]/)',
-                            )?.[0]
-                            "></l-tile-layer> -->
+                <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
+                <!-- <l-tile-layer v-if="base_open_street_map" :key="'base-osm-' + base_layer_key" :url="base_open_street_map.sh_map_has_layer_url"
+                    :attribution="'&copy; ' +
+                        base_open_street_map.sh_map_has_layer_url.match(
+                            '^.*?([^:/]/)',
+                        )?.[0]
+                        "></l-tile-layer> -->
+                <template v-if="!toolbar_hide_base_layer">
                     <l-tile-layer v-if="base_google_map" :key="'base-google-' + base_layer_key" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
                         "></l-tile-layer>
                     <l-tile-layer v-else-if="base_map_guide" :key="'base-guide-' + base_layer_key" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
                         "></l-tile-layer>
-                    <l-tile-layer v-else :key="'base-default-' + base_layer_key" :url="default_base_layer" :attribution="default_attribution"
+                    <l-tile-layer v-else-if="!hide_base_layer" :key="'base-default-' + base_layer_key" :url="default_base_layer" :attribution="default_attribution"
                         :options="{ maxNativeZoom: 19, maxZoom: 20 }"></l-tile-layer>
                 </template>
 
@@ -448,6 +449,7 @@ export default {
                 delete: false,
             },
             hide_base_layer: false,
+            toolbar_hide_base_layer: false,
             base_layer_key: 0,
             _polygonFilterCallback: null,
             _featureClickCallback: null,
@@ -668,14 +670,14 @@ export default {
                 getLeafletMap: () => this.map,
                 /** Eliminar la capa base del mapa (fondo gris neutro, solo capas de datos visibles) */
                 removeBaseLayer: () => {
-                    this.hide_base_layer = true;
+                    this.toolbar_hide_base_layer = true;
                 },
                 /** Restaurar la capa base del mapa */
                 restoreBaseLayer: () => {
-                    this.hide_base_layer = false;
+                    this.toolbar_hide_base_layer = false;
                 },
                 /** Consultar si la capa base está oculta */
-                isBaseLayerHidden: () => this.hide_base_layer,
+                isBaseLayerHidden: () => this.toolbar_hide_base_layer,
                 /** Registrar callback para cuando cambian los polígonos dibujados. Recibe bounds_filters (array|null) */
                 onPolygonFilter: (cb) => {
                     this._polygonFilterCallback = cb;
@@ -1197,7 +1199,7 @@ export default {
         center() {
             this.centerParsed();
         },
-        hide_base_layer(newVal, oldVal) {
+        toolbar_hide_base_layer(newVal, oldVal) {
             if (oldVal === true && newVal === false) {
                 // Re-evaluate which base layer is active, then force remount.
                 this.switchLayers();
@@ -2269,9 +2271,7 @@ export default {
                         }
 
                         this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
-                        if (data.sh_map_hide_base_layer) {
-                            this.hide_base_layer = true;
-                        }
+                        this.hide_base_layer = !!data.sh_map_hide_base_layer;
                     } catch (error) {
                         console.error(error);
 
