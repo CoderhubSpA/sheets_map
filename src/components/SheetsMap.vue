@@ -120,7 +120,7 @@
                 <!-- Vector Tile Layers (MapLibre GL) -->
                 <!-- Las capas se renderizan en orden de array: primera = fondo, última = tope -->
                 <!-- El _uid asegura que Vue destruya y recree componentes correctamente -->
-                <vector-tile-layer v-for="vectorTile in operative_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
+                <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
@@ -316,6 +316,12 @@ import VectorTileLegend from "./layers/VectorTileLegend.vue";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
+import {
+    normalizePublicLayerDefinition,
+    applyPublicLayerPatch,
+    buildVectorTileLayerPayload,
+    DYNAMIC_LAYER_TYPES,
+} from "../utils/dynamicLayers";
 import axios from "axios";
 import HeatmapOverlay from "heatmap.js/plugins/leaflet-heatmap";
 import { BButton, BIcon, BPopover } from "bootstrap-vue";
@@ -427,6 +433,8 @@ export default {
             operative_geoserver_wms: [],
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
+            dynamic_layer_registry: {},
+            dynamic_layer_render_token: 0,
             end_map_move: false,
             end_map_pressure: false,
             bounds_filters: [],
@@ -705,6 +713,48 @@ export default {
                     if (d && d.buttons_pressed.delete !== active)
                         this.polygonAction("delete");
                 },
+                /** Agrega o reemplaza una capa dinámica usando una definición pública genérica */
+                addLayer: (definition) => this.addPublicLayer(definition),
+                /** Indica si una capa dinámica agregada por API existe */
+                hasLayer: (payload) =>
+                    this.hasPublicLayer(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Retorna la definición normalizada y payload renderizable de una capa dinámica */
+                getLayer: (payload) =>
+                    this.getPublicLayer(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Elimina una capa dinámica por id */
+                removeLayer: (payload) =>
+                    this.removePublicLayer(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Actualiza parcialmente una capa dinámica existente */
+                updateLayer: (payload) =>
+                    this.updatePublicLayer(payload?.layerId, payload?.patch || {}),
+                /** Aplica un renderState a una capa dinámica existente */
+                setLayerRenderState: (payload) =>
+                    this.setPublicLayerRenderState(payload?.layerId, payload?.renderState),
+                /** Controla visibilidad lógica de una capa dinámica existente */
+                setLayerVisibility: (payload) =>
+                    this.setPublicLayerVisibility(payload?.layerId, payload?.visible),
+                /** Controla opacidad lógica de una capa dinámica existente */
+                setLayerOpacity: (payload) =>
+                    this.setPublicLayerOpacity(payload?.layerId, payload?.opacity),
+                /** Establece orden relativo para capas dinámicas */
+                setLayerOrder: (payload) =>
+                    this.setPublicLayerOrder(payload?.layerId, payload?.order),
+                /** Envía una capa dinámica al fondo del stack dinámico */
+                sendLayerToBack: (payload) =>
+                    this.sendPublicLayerToBack(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Lleva una capa dinámica al frente del stack dinámico */
+                bringLayerToFront: (payload) =>
+                    this.bringPublicLayerToFront(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
             };
         },
         btn_style() {
@@ -1072,6 +1122,20 @@ export default {
 
             return active_layers;
         },
+        renderable_vector_tiles_xyz() {
+            return [...this.operative_vector_tiles_xyz]
+                .filter((entry) => entry && entry.visible !== false)
+                .sort((left, right) => {
+                    const leftOrder = Number.isFinite(left?.order)
+                        ? left.order
+                        : Number.MAX_SAFE_INTEGER;
+                    const rightOrder = Number.isFinite(right?.order)
+                        ? right.order
+                        : Number.MAX_SAFE_INTEGER;
+                    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+                    return 0;
+                });
+        },
         disabled_layers() {
             if (_.isEmpty(this.layers)) {
                 return [];
@@ -1204,6 +1268,144 @@ export default {
         this.poweredCoderhub();
     },
     methods: {
+        nextDynamicLayerOrder() {
+            const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
+            if (dynamicEntries.length === 0) return 0;
+            return dynamicEntries.reduce((maxOrder, entry) => {
+                const order = Number.isFinite(entry?.definition?.order)
+                    ? entry.definition.order
+                    : 0;
+                return Math.max(maxOrder, order);
+            }, 0) + 1;
+        },
+        hasPublicLayer(layerId) {
+            return Boolean(layerId && this.dynamic_layer_registry[layerId]);
+        },
+        getPublicLayer(layerId) {
+            return this.dynamic_layer_registry[layerId] || null;
+        },
+        rebuildDynamicVectorTileRegistryView() {
+            const staticEntries = this.operative_vector_tiles_xyz.filter(
+                (entry) => !entry || entry._dynamic !== true,
+            );
+            const dynamicEntries = Object.values(this.dynamic_layer_registry || {})
+                .filter((entry) => entry && entry.payload)
+                .map((entry) => entry.payload);
+            this.operative_vector_tiles_xyz = [...staticEntries, ...dynamicEntries];
+        },
+        upsertDynamicVectorTileLayer(normalizedDefinition) {
+            const safeDefinition = {
+                ...normalizedDefinition,
+                visible:
+                    typeof normalizedDefinition.visible === "boolean"
+                        ? normalizedDefinition.visible
+                        : true,
+                order:
+                    Number.isFinite(normalizedDefinition.order)
+                        ? normalizedDefinition.order
+                        : this.hasPublicLayer(normalizedDefinition.id)
+                            ? this.dynamic_layer_registry[normalizedDefinition.id].definition.order
+                            : this.nextDynamicLayerOrder(),
+            };
+            const payload = {
+                ...buildVectorTileLayerPayload(safeDefinition),
+                _uid: `${safeDefinition.id}-${Date.now()}-${Math.random()}`,
+            };
+            const nextRecord = {
+                definition: safeDefinition,
+                payload,
+                inserted_at: Date.now(),
+            };
+
+            this.$set(this.dynamic_layer_registry, safeDefinition.id, nextRecord);
+            this.rebuildDynamicVectorTileRegistryView();
+            return payload;
+        },
+        addPublicLayer(definition) {
+            const normalizedDefinition = normalizePublicLayerDefinition(definition);
+
+            switch (normalizedDefinition.type) {
+                case DYNAMIC_LAYER_TYPES.VECTOR_TILE:
+                    return this.upsertDynamicVectorTileLayer(normalizedDefinition);
+                default:
+                    throw new Error(
+                        `Tipo de capa no soportado por addLayer: ${normalizedDefinition.type}`,
+                    );
+            }
+        },
+        removePublicLayer(layerId) {
+            if (!this.hasPublicLayer(layerId)) {
+                return false;
+            }
+            const record = this.dynamic_layer_registry[layerId];
+            this.$delete(this.dynamic_layer_registry, layerId);
+            this.rebuildDynamicVectorTileRegistryView();
+            return record;
+        },
+        updatePublicLayer(layerId, patch) {
+            const record = this.getPublicLayer(layerId);
+            if (!record) {
+                throw new Error(`La capa dinámica ${layerId} no existe.`);
+            }
+
+            const nextDefinition = applyPublicLayerPatch(record.definition, patch);
+            switch (nextDefinition.type) {
+                case DYNAMIC_LAYER_TYPES.VECTOR_TILE:
+                    return this.upsertDynamicVectorTileLayer(nextDefinition);
+                default:
+                    throw new Error(
+                        `Tipo de capa no soportado por updateLayer: ${nextDefinition.type}`,
+                    );
+            }
+        },
+        setPublicLayerRenderState(layerId, renderState) {
+            const record = this.getPublicLayer(layerId);
+            if (!record) {
+                throw new Error(`La capa dinámica ${layerId} no existe.`);
+            }
+
+            const nextDefinition = {
+                ...record.definition,
+                renderState,
+            };
+            const nextPayload = {
+                ...record.payload,
+                layer: {
+                    ...record.payload.layer,
+                    sh_map_has_layer_render_state: renderState,
+                },
+            };
+
+            this.$set(this.dynamic_layer_registry, layerId, {
+                ...record,
+                definition: nextDefinition,
+                payload: nextPayload,
+            });
+            this.rebuildDynamicVectorTileRegistryView();
+            return nextPayload;
+        },
+        setPublicLayerVisibility(layerId, visible) {
+            return this.updatePublicLayer(layerId, { visible });
+        },
+        setPublicLayerOpacity(layerId, opacity) {
+            return this.updatePublicLayer(layerId, { opacity });
+        },
+        setPublicLayerOrder(layerId, order) {
+            return this.updatePublicLayer(layerId, { order });
+        },
+        bringPublicLayerToFront(layerId) {
+            return this.setPublicLayerOrder(layerId, this.nextDynamicLayerOrder());
+        },
+        sendPublicLayerToBack(layerId) {
+            const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
+            const minOrder = dynamicEntries.reduce((acc, entry) => {
+                const order = Number.isFinite(entry?.definition?.order)
+                    ? entry.definition.order
+                    : 0;
+                return Math.min(acc, order);
+            }, 0);
+            return this.setPublicLayerOrder(layerId, minOrder - 1);
+        },
         classification_icon(id = null) {
             let classification_icon;
             let classification_icon_info;
