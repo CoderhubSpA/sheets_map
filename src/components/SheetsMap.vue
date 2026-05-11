@@ -345,6 +345,13 @@ Icon.Default.mergeOptions({
 import ScreenshotButton from "./ScreenshotButton.vue";
 
 const sheetsMapVersion = packageInfo.version;
+const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
+const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
+
+function hasValidMapConfigValue(value) {
+    if (value === null || value === undefined) return false;
+    return !INVALID_MAP_CONFIG_VALUES.has(String(value).trim().toLowerCase());
+}
 
 export default {
     name: "SheetsMap",
@@ -406,8 +413,8 @@ export default {
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom: 7,
             external_view_override: false,
-            center_default: [-33.472, -70.769],
-            center: undefined,
+            center_default: [...DEFAULT_MAP_CENTER],
+            center: [...DEFAULT_MAP_CENTER],
             center_parsed: "",
             center_format: "latlng",
             col_lat: undefined,
@@ -436,6 +443,7 @@ export default {
             vector_tile_legends: {},
             dynamic_layer_registry: {},
             dynamic_layer_render_token: 0,
+            map_configuration_ready: false,
             end_map_move: false,
             end_map_pressure: false,
             bounds_filters: [],
@@ -640,32 +648,111 @@ export default {
          *   }
          *   // luego:  this.mapActions.zoomIn()
          */
-        mapActions() {
+        mapActionContracts() {
             return {
+                setZoom: {
+                    invocation: { type: "payload" },
+                    required: ["level"],
+                    payload: {
+                        level: "number",
+                        options: {
+                            externalOverride: "boolean",
+                        },
+                    },
+                },
+                flyTo: {
+                    invocation: { type: "payload" },
+                    required: ["latLng"],
+                    payload: {
+                        latLng: "LatLng",
+                        zoom: "number",
+                        options: {
+                            showMarker: "boolean",
+                            externalOverride: "boolean",
+                            leaflet: "object",
+                        },
+                    },
+                },
+                panTo: {
+                    invocation: { type: "payload" },
+                    required: ["latLng"],
+                    payload: {
+                        latLng: "LatLng",
+                        options: {
+                            externalOverride: "boolean",
+                            leaflet: "object",
+                        },
+                    },
+                },
+                drawShape: {
+                    invocation: { type: "payload" },
+                    required: ["shape"],
+                    payload: {
+                        shape: "polygon|circle|rectangle|delete|cancel|clear",
+                    },
+                },
+                setEraserMode: {
+                    invocation: { type: "payload" },
+                    required: ["active"],
+                    payload: {
+                        active: "boolean",
+                    },
+                },
+            };
+        },
+        mapActions() {
+            const contracts = this.mapActionContracts;
+
+            return {
+                contracts,
+                getContracts: () => contracts,
+                isConfigurationReady: () => this.map_configuration_ready,
                 /** Acercar el zoom del mapa en 1 nivel */
                 zoomIn: () => this.zoomMap("in"),
                 /** Alejar el zoom del mapa en 1 nivel */
                 zoomOut: () => this.zoomMap("out"),
                 /** Establecer un nivel de zoom específico (0-20) */
-                setZoom: (level) => {
+                setZoom: (payload = {}) => {
+                    const level = payload?.level;
+                    const options = payload?.options || {};
+                    if (typeof level !== "number") return;
+
                     const z = Math.max(0, Math.min(20, level));
-                    this.external_view_override = true;
+                    if (options.externalOverride !== false) {
+                        this.external_view_override = true;
+                    }
                     this.zoom = z;
                 },
                 /** Obtener el nivel de zoom actual */
                 getZoom: () => this.zoom,
                 /** Volar a una ubicación { lat, lng } con zoom opcional (default 12) */
-                flyTo: (latLng, zoom) => this.zoomToLocation(latLng, zoom),
+                flyTo: (payload = {}) =>
+                    payload?.latLng
+                        ? this.zoomToLocation(
+                              payload.latLng,
+                              payload?.zoom,
+                              payload?.options || {},
+                          )
+                        : undefined,
                 /** Centrar el mapa en { lat, lng } sin animación */
-                panTo: (latLng) => {
-                    this.external_view_override = true;
+                panTo: (payload = {}) => {
+                    const latLng = payload?.latLng;
+                    const options = payload?.options || {};
+                    if (!latLng) return;
+
+                    if (options.externalOverride !== false) {
+                        this.external_view_override = true;
+                    }
                     this.center = latLng;
-                    if (this.map) this.map.panTo(latLng);
+                    if (this.map) this.map.panTo(latLng, options.leaflet || {});
                 },
                 /** Filtrar por zona visible del mapa */
                 filterByBounds: () => this.filter(),
                 /** Iniciar trazo de polígono ('polygon', 'circle', 'rectangle') o 'delete' */
-                drawShape: (shape) => this.polygonAction(shape),
+                drawShape: (payload = {}) => {
+                    if (!payload?.shape) return;
+                    this.polygonAction(payload.shape);
+                },
                 /** Cambiar formato de coordenadas (latlng / UTM) */
                 toggleCoordinateFormat: () => this.changeCoordinateFormat(),
                 /** Obtener las coordenadas del centro actual */
@@ -712,7 +799,10 @@ export default {
                 /** Activar/desactivar el modo borrador (toggle) */
                 toggleEraserMode: () => this.polygonAction("delete"),
                 /** Activar o desactivar el modo borrador de forma idempotente */
-                setEraserMode: (active) => {
+                setEraserMode: (payload = {}) => {
+                    if (typeof payload?.active !== "boolean") return;
+
+                    const active = Boolean(payload?.active);
                     const d = this.$refs.polygon_drafter;
                     if (d && d.buttons_pressed.delete !== active)
                         this.polygonAction("delete");
@@ -1262,9 +1352,6 @@ export default {
         // TO DO:
         // Colocar primera capa base encontrada
 
-        //Alguna parte del mar del Pacifico Sur
-        this.center = [-45.7247315, -108.8552016];
-
         this.getMapConfiguration();
         // Cuando geo_json es construido, se instancia Supercluster
     },
@@ -1477,13 +1564,33 @@ export default {
 
             this.$delete(this.vector_tile_legends, layerId);
         },
-        zoomToLocation(latLng, zoom) {
-            this.external_view_override = true;
+        zoomToLocation(latLng, zoom, options = {}) {
+            if (options.externalOverride !== false) {
+                this.external_view_override = true;
+            }
             this.searchMarkerLatLng = latLng;
-            this.shouldShowSearchMarker = true;
-            this.center = latLng;
-            this.zoom = zoom || 12;
-            this.map.flyTo(latLng, zoom || 12);
+            this.shouldShowSearchMarker = options.showMarker !== false;
+
+            const targetZoom = zoom || 12;
+            if (!this.map || typeof this.map.flyTo !== "function") {
+                this.center = latLng;
+                this.zoom = targetZoom;
+                return;
+            }
+
+            this.map.once("moveend", () => {
+                this.center = latLng;
+                this.zoom = targetZoom;
+
+                if (this.map.getZoom() !== targetZoom) {
+                    this.map.setView(latLng, targetZoom, { animate: false });
+                }
+            });
+
+            this.map.flyTo(latLng, targetZoom, {
+                duration: 1.2,
+                ...(options.leaflet || {}),
+            });
         },
         zoomMap(zoom) {
             if (zoom === "out") this.zoom--;
@@ -2432,8 +2539,26 @@ export default {
         setTileLayer() {
             this.url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
         },
+        notifyMapConfigurationReady() {
+            this.map_configuration_ready = true;
+            this.$emit("map-configuration-ready", this.mapActions);
+        },
         getMapConfiguration() {
             //data
+            if (
+                !hasValidMapConfigValue(this.endpoint_config) ||
+                !hasValidMapConfigValue(this.config_entity_type_id) ||
+                !hasValidMapConfigValue(this.config_entity_id)
+            ) {
+                console.warn("[SheetsMap] getMapConfiguration skipped: invalid map configuration context", {
+                    endpoint_config: this.endpoint_config,
+                    config_entity_type_id: this.config_entity_type_id,
+                    config_entity_id: this.config_entity_id,
+                });
+                this.notifyMapConfigurationReady();
+                return;
+            }
+
             const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
 
             let all_data;
@@ -2464,13 +2589,16 @@ export default {
                         console.error(error);
 
                         // Coordenadas para Santiago de Chile - Chile
-                        this.center = this.center_default;
+                        if (!this.external_view_override) {
+                            this.center = this.center_default;
+                        }
                     }
                 })
                 .catch((error) => {
                     console.error(error);
                 })
                 .finally(() => {
+                    this.notifyMapConfigurationReady();
                     console.log("done data");
                 });
         },
