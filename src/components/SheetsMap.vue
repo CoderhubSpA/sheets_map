@@ -405,6 +405,7 @@ export default {
             default_attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom: 7,
+            external_view_override: false,
             center_default: [-33.472, -70.769],
             center: undefined,
             center_parsed: "",
@@ -648,6 +649,7 @@ export default {
                 /** Establecer un nivel de zoom específico (0-20) */
                 setZoom: (level) => {
                     const z = Math.max(0, Math.min(20, level));
+                    this.external_view_override = true;
                     this.zoom = z;
                 },
                 /** Obtener el nivel de zoom actual */
@@ -656,6 +658,8 @@ export default {
                 flyTo: (latLng, zoom) => this.zoomToLocation(latLng, zoom),
                 /** Centrar el mapa en { lat, lng } sin animación */
                 panTo: (latLng) => {
+                    this.external_view_override = true;
+                    this.center = latLng;
                     if (this.map) this.map.panTo(latLng);
                 },
                 /** Filtrar por zona visible del mapa */
@@ -1474,8 +1478,11 @@ export default {
             this.$delete(this.vector_tile_legends, layerId);
         },
         zoomToLocation(latLng, zoom) {
+            this.external_view_override = true;
             this.searchMarkerLatLng = latLng;
             this.shouldShowSearchMarker = true;
+            this.center = latLng;
+            this.zoom = zoom || 12;
             this.map.flyTo(latLng, zoom || 12);
         },
         zoomMap(zoom) {
@@ -2441,16 +2448,18 @@ export default {
                         this.col_lng = data.sh_map_column_longitude;
                         this.col_lat = data.sh_map_column_latitude;
 
-                        if (this.getCoordsFromUrlParams()) {
-                            this.center = this.getCoordsFromUrlParams();
-                        } else if (data.latitud_map_center && data.longitud_map_center) {
-                            this.center = [data.latitud_map_center, data.longitud_map_center];
-                        } else {
-                            // Coordenadas para Santiago de Chile - Chile\
-                            this.center = this.center_default;
-                        }
+                        if (!this.external_view_override) {
+                            if (this.getCoordsFromUrlParams()) {
+                                this.center = this.getCoordsFromUrlParams();
+                            } else if (data.latitud_map_center && data.longitud_map_center) {
+                                this.center = [data.latitud_map_center, data.longitud_map_center];
+                            } else {
+                                // Coordenadas para Santiago de Chile - Chile\
+                                this.center = this.center_default;
+                            }
 
-                        this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                            this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                        }
                     } catch (error) {
                         console.error(error);
 
