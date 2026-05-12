@@ -55,29 +55,26 @@
                         v-on:data-form="setForm" />
                     <ScreenshotButton target-id="my-map" filename="sheets-map-screenshot" :quality="1" />
                 </div>
-                <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng"></l-marker>
+
 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
-                <template v-if="!hide_base_layer">
-                    <l-tile-layer v-if="base_open_street_map" :key="`base-open-street-map-${base_tile_options_revision}`"
-                        :url="base_open_street_map.sh_map_has_layer_url"
-                        :attribution="'&copy; ' +
-                            base_open_street_map.sh_map_has_layer_url.match(
-                                '^.*?([^:/]/)',
-                            )?.[0]
-                            " :options="baseOpenStreetMapOptions"></l-tile-layer>
-                    <l-tile-layer v-else-if="base_google_map" :key="`base-google-map-${base_tile_options_revision}`"
-                        :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
+                <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
+                <!-- <l-tile-layer v-if="base_open_street_map" :key="'base-osm-' + base_layer_key" :url="base_open_street_map.sh_map_has_layer_url"
+                    :attribution="'&copy; ' +
+                        base_open_street_map.sh_map_has_layer_url.match(
+                            '^.*?([^:/]/)',
+                        )?.[0]
+                        "></l-tile-layer> -->
+                <template v-if="!toolbar_hide_base_layer">
+                    <l-tile-layer v-if="base_google_map" :key="'base-google-' + base_layer_key" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
-                        " :options="baseGoogleMapOptions"></l-tile-layer>
-                    <l-tile-layer v-else-if="base_map_guide" :key="`base-map-guide-${base_tile_options_revision}`"
-                        :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
+                        "></l-tile-layer>
+                    <l-tile-layer v-else-if="base_map_guide" :key="'base-guide-' + base_layer_key" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
-                        " :options="baseMapGuideOptions"></l-tile-layer>
-                    <l-tile-layer v-else :key="`default-base-layer-${base_tile_options_revision}`"
-                        :url="default_base_layer" :attribution="default_attribution"
-                        :options="defaultBaseLayerOptions"></l-tile-layer>
+                        "></l-tile-layer>
+                    <l-tile-layer v-else-if="!hide_base_layer" :key="'base-default-' + base_layer_key" :url="default_base_layer" :attribution="default_attribution"
+                        :options="{ maxNativeZoom: 19, maxZoom: 20 }"></l-tile-layer>
                 </template>
 
                 <supercluster-entity-type-layer v-for="layer in supercluster_by_entity_type_layers" :key="layer.id"
@@ -465,8 +462,7 @@ export default {
             num_zoom: false,
             bounds: [],
             h3,
-            shouldShowSearchMarker: false,
-            searchMarkerLatLng: null,
+
             classification_icon_column: false,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter: false, // Usada para no filtrar por los limites del mapa en analytic_geojson
@@ -480,7 +476,12 @@ export default {
                 delete: false,
             },
             hide_base_layer: false,
+            toolbar_hide_base_layer: false,
+            base_layer_key: 0,
             _polygonFilterCallback: null,
+            _featureClickCallback: null,
+            marker: null,
+            current_zoom: 7,
         };
     },
     computed: {
@@ -817,18 +818,24 @@ export default {
                 getLeafletMap: () => this.map,
                 /** Eliminar la capa base del mapa (fondo gris neutro, solo capas de datos visibles) */
                 removeBaseLayer: () => {
-                    this.hide_base_layer = true;
+                    this.toolbar_hide_base_layer = true;
                 },
                 /** Restaurar la capa base del mapa */
                 restoreBaseLayer: () => {
-                    this.hide_base_layer = false;
+                    this.toolbar_hide_base_layer = false;
                 },
                 /** Consultar si la capa base está oculta */
-                isBaseLayerHidden: () => this.hide_base_layer,
+                isBaseLayerHidden: () => this.toolbar_hide_base_layer,
                 /** Registrar callback para cuando cambian los polígonos dibujados. Recibe bounds_filters (array|null) */
                 onPolygonFilter: (cb) => {
                     this._polygonFilterCallback = cb;
                 },
+                /**
+                 * Registra un callback que se ejecuta cuando el usuario hace click en un feature del mapa.
+                 * @param {Function|null} cb - callback(data) donde data = { layer, properties, latlng, visible_columns }
+                 *                             Pasar null para desregistrar.
+                 */
+                onFeatureClick: (cb) => { this._featureClickCallback = cb || null; },
                 /** Verdadero si hay al menos un polígono dibujado en el mapa */
                 hasPolygons: () => {
                     const d = this.$refs.polygon_drafter;
@@ -1401,6 +1408,13 @@ export default {
         center() {
             this.centerParsed();
         },
+        toolbar_hide_base_layer(newVal, oldVal) {
+            if (oldVal === true && newVal === false) {
+                // Re-evaluate which base layer is active, then force remount.
+                this.switchLayers();
+                this.base_layer_key++;
+            }
+        },
     },
     created() {
         // TO DO:
@@ -1675,33 +1689,9 @@ export default {
 
             this.$delete(this.vector_tile_legends, layerId);
         },
-        zoomToLocation(latLng, zoom, options = {}) {
-            if (options.externalOverride !== false) {
-                this.external_view_override = true;
-            }
-            this.searchMarkerLatLng = latLng;
-            this.shouldShowSearchMarker = options.showMarker !== false;
-
-            const targetZoom = zoom || 12;
-            if (!this.map || typeof this.map.flyTo !== "function") {
-                this.center = latLng;
-                this.zoom = targetZoom;
-                return;
-            }
-
-            this.map.once("moveend", () => {
-                this.center = latLng;
-                this.zoom = targetZoom;
-
-                if (this.map.getZoom() !== targetZoom) {
-                    this.map.setView(latLng, targetZoom, { animate: false });
-                }
-            });
-
-            this.map.flyTo(latLng, targetZoom, {
-                duration: 1.2,
-                ...(options.leaflet || {}),
-            });
+        zoomToLocation(latLng, zoom) {
+            this.setMarker(latLng.lat, latLng.lng);
+            this.map.flyTo(latLng, zoom || 12);
         },
         zoomMap(zoom) {
             if (zoom === "out") this.zoom--;
@@ -1720,6 +1710,14 @@ export default {
                 this.map.invalidateSize(false);
             });
             resizeObserver.observe(this.$refs.map_container);
+
+            // Actualizar zoom y tamaño del marcador al hacer zoom
+            this.map.on("zoomend", () => {
+                this.current_zoom = this.map.getZoom();
+                if (this.marker) {
+                    this.updateMarkerSize();
+                }
+            });
 
             // Configurar handler centralizado para clicks en capas vectoriales
             this.setupVectorTileClickHandler();
@@ -1751,6 +1749,59 @@ export default {
             });
         },
 
+        /**
+         * Retorna { iconSize, iconAnchor } según el nivel de zoom.
+         * Devuelve el ícono L.divIcon apropiado según el nivel de zoom.
+         * zoom >= 15: mira/crosshair compacto 24x24
+         * zoom <  15: pin rojo clásico 32x40
+         */
+        getMarkerIconForZoom(zoom) {
+            if (zoom >= 15) {
+                return L.divIcon({
+                    className: "",
+                    html: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="red"><path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732Zm111 337q-35-35-35-85t35-85q35-35 85-35t85 35q35 35 35 85t-35 85q-35 35-85 35t-85-35ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82Z"/></svg>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12],
+                });
+            }
+            return L.divIcon({
+                className: "",
+                html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 40 50">
+                    <path d="M20 0C12.268 0 6 6.268 6 14c0 9.941 14 36 14 36s14-26.059 14-36C34 6.268 27.732 0 20 0z" fill="#e53935"/>
+                    <circle cx="20" cy="14" r="6" fill="white"/>
+                </svg>`,
+                iconSize: [32, 40],
+                iconAnchor: [16, 40],
+            });
+        },
+
+        /**
+         * Agrega (o reemplaza) el marcador en la posición indicada.
+         * El ícono cambia entre pin rojo (zoom < 15) y crosshair (zoom >= 15).
+         */
+        setMarker(lat, lng) {
+            if (this.marker) {
+                this.map.removeLayer(this.marker);
+                this.marker = null;
+            }
+
+            const zoom = this.map ? this.map.getZoom() : this.zoom;
+            const icon = this.getMarkerIconForZoom(zoom);
+
+            this.marker = L.marker([lat, lng], { icon }).addTo(this.map);
+        },
+
+        /**
+         * Actualiza el ícono del marcador existente según el zoom actual.
+         * No elimina ni vuelve a agregar el marcador.
+         */
+        updateMarkerSize() {
+            if (!this.marker) return;
+
+            const newIcon = this.getMarkerIconForZoom(this.current_zoom);
+            this.marker.setIcon(newIcon);
+        },
+
         filter() {
             this.findBounds();
         },
@@ -1758,6 +1809,11 @@ export default {
         switchLayers() {
             // Recalculamos siempre las operative_geoserver_wms activas
             this.operative_geoserver_wms = [];
+
+            // Reset base layer references so they are rebuilt from active_layers
+            this.base_open_street_map = undefined;
+            this.base_google_map = undefined;
+            this.base_map_guide = undefined;
 
             this.active_layers.forEach((l) => {
                 this.activeLayers(l);
@@ -2695,8 +2751,8 @@ export default {
                                 this.center = this.center_default;
                             }
 
-                            this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
-                        }
+                        this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                        this.hide_base_layer = !!data.sh_map_hide_base_layer;
                     } catch (error) {
                         console.error(error);
 
@@ -2812,6 +2868,16 @@ export default {
             if (this.point_mode === "draw-polygon") {
                 // Add the point to the polygon drafter
                 this.$refs.polygon_drafter.addPolygon(event);
+            }
+            // Propagate click to vector tile layers for tooltip handling
+            if (this.$refs.vectorTileLayers && this.$refs.vectorTileLayers.length > 0) {
+                for (let i = this.$refs.vectorTileLayers.length - 1; i >= 0; i--) {
+                    const vtLayer = this.$refs.vectorTileLayers[i];
+                    if (vtLayer && typeof vtLayer.tryHandleClick === 'function') {
+                        const handled = vtLayer.tryHandleClick(event);
+                        if (handled) break;
+                    }
+                }
             }
         },
         findBounds() {
@@ -3263,9 +3329,6 @@ export default {
             poweredByCoderhubLink.href = "https://www.coderhub.cl/";
             poweredByCoderhubLink.target = "_blank";
             poweredByCoderhubLink.style.paddingRight = "5px";
-            const poweredByVersionSpan = document.createElement("span");
-            poweredByVersionSpan.classList.add("sheets-map-version");
-            poweredByVersionSpan.textContent = `v${sheetsMapVersion}`;
             // Creating separator
             const poweredByCoderhubSpanSeparator = document.createElement("span");
             poweredByCoderhubSpanSeparator.ariaHidden = "true";
@@ -3276,8 +3339,6 @@ export default {
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpan);
             // Adding Coderhub link
             poweredByCoderhubDiv.appendChild(poweredByCoderhubLink);
-            // Adding current library version
-            poweredByCoderhubDiv.appendChild(poweredByVersionSpan);
             // Adding separator
             poweredByCoderhubDiv.appendChild(poweredByCoderhubSpanSeparator);
             // Adding before "Coderhub powered by" container to "Open Street Map attribution container"
@@ -3457,6 +3518,23 @@ export default {
                 layer_id: layer.id,
                 feature: { properties: properties },
             });
+
+            // Emitir evento de feature-click para el tooltip
+            this.$emit("feature-click", {
+                layer: layer,
+                properties: properties || {},
+                latlng: eventData.latlng || null,
+            });
+
+            // Llamar callback registrado via mapActions.onFeatureClick
+            if (typeof this._featureClickCallback === "function") {
+                this._featureClickCallback({
+                    layer: layer,
+                    properties: properties || {},
+                    latlng: eventData.latlng || null,
+                    visible_columns: [],
+                });
+            }
         },
     },
 };
