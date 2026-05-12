@@ -2864,9 +2864,6 @@ export default {
                 this._polygonFilterCallback(bounds_filters);
             }
         },
-        polygonFilter(bounds_filters) {
-            this.bounds_filters = bounds_filters;
-        },
         setButtonsPressed(buttons_pressed) {
             this.buttons_pressed = buttons_pressed;
         },
