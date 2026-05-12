@@ -22,11 +22,8 @@
             <!-- https://vue2-leaflet.netlify.app/ -->
             <!-- https://vue2-leaflet.netlify.app/components/LMap.html#demo -->
             <l-map ref="my_map" id="my-map" class="my-map" :zoom.sync="zoom" :center.sync="center"
-                :class="{ 'hide-cluster-labels': should_hide_cluster_labels }" :options="{
-                    zoomControl: false,
-                    trackResize: false,
-                    preferCanvas: true,
-                }" @ready="ready()" @moveend="onMapMoveEnd()" @click="onMapClick" @mouseup="onMapMouseUp()">
+                :class="{ 'hide-cluster-labels': should_hide_cluster_labels }" :options="mapOptions" @ready="ready()"
+                @moveend="onMapMoveEnd()" @click="onMapClick" @mouseup="onMapMouseUp()">
                 <div :class="btn_style">
                     <div class="zoom-wrapper">
                         <b-button class="zoom-btn" @click.capture.stop="zoomMap('out')" title="Alejar">
@@ -63,20 +60,24 @@
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
                 <template v-if="!hide_base_layer">
-                    <l-tile-layer v-if="base_open_street_map" :url="base_open_street_map.sh_map_has_layer_url"
+                    <l-tile-layer v-if="base_open_street_map" :key="`base-open-street-map-${base_tile_options_revision}`"
+                        :url="base_open_street_map.sh_map_has_layer_url"
                         :attribution="'&copy; ' +
                             base_open_street_map.sh_map_has_layer_url.match(
                                 '^.*?([^:/]/)',
                             )?.[0]
-                            "></l-tile-layer>
-                    <l-tile-layer v-else-if="base_google_map" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
+                            " :options="baseOpenStreetMapOptions"></l-tile-layer>
+                    <l-tile-layer v-else-if="base_google_map" :key="`base-google-map-${base_tile_options_revision}`"
+                        :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
-                        "></l-tile-layer>
-                    <l-tile-layer v-else-if="base_map_guide" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
+                        " :options="baseGoogleMapOptions"></l-tile-layer>
+                    <l-tile-layer v-else-if="base_map_guide" :key="`base-map-guide-${base_tile_options_revision}`"
+                        :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
-                        "></l-tile-layer>
-                    <l-tile-layer v-else :url="default_base_layer" :attribution="default_attribution"
-                        :options="{ maxNativeZoom: 19, maxZoom: 20 }"></l-tile-layer>
+                        " :options="baseMapGuideOptions"></l-tile-layer>
+                    <l-tile-layer v-else :key="`default-base-layer-${base_tile_options_revision}`"
+                        :url="default_base_layer" :attribution="default_attribution"
+                        :options="defaultBaseLayerOptions"></l-tile-layer>
                 </template>
 
                 <supercluster-entity-type-layer v-for="layer in supercluster_by_entity_type_layers" :key="layer.id"
@@ -346,11 +347,21 @@ import ScreenshotButton from "./ScreenshotButton.vue";
 
 const sheetsMapVersion = packageInfo.version;
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
+const DEFAULT_ACTION_MAX_ZOOM = 20;
+const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
+const DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM = 19;
 const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
 
 function hasValidMapConfigValue(value) {
     if (value === null || value === undefined) return false;
     return !INVALID_MAP_CONFIG_VALUES.has(String(value).trim().toLowerCase());
+}
+
+function toPositiveInteger(value) {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0) return undefined;
+
+    return parsed;
 }
 
 export default {
@@ -412,6 +423,10 @@ export default {
             default_attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom: 7,
+            map_max_zoom: undefined,
+            base_tile_options_revision: 0,
+            base_tile_max_zoom: undefined,
+            base_tile_max_native_zoom: undefined,
             external_view_override: false,
             center_default: [...DEFAULT_MAP_CENTER],
             center: [...DEFAULT_MAP_CENTER],
@@ -469,6 +484,34 @@ export default {
         };
     },
     computed: {
+        mapOptions() {
+            const options = {
+                zoomControl: false,
+                trackResize: false,
+                preferCanvas: true,
+            };
+
+            if (this.map_max_zoom !== undefined) {
+                options.maxZoom = this.map_max_zoom;
+            }
+
+            return options;
+        },
+        defaultBaseLayerOptions() {
+            return this.resolveBaseTileLayerOptions(undefined, {
+                maxZoom: DEFAULT_BASE_TILE_MAX_ZOOM,
+                maxNativeZoom: DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM,
+            });
+        },
+        baseOpenStreetMapOptions() {
+            return this.resolveBaseTileLayerOptions(this.base_open_street_map);
+        },
+        baseGoogleMapOptions() {
+            return this.resolveBaseTileLayerOptions(this.base_google_map);
+        },
+        baseMapGuideOptions() {
+            return this.resolveBaseTileLayerOptions(this.base_map_guide);
+        },
         css_vars() {
             let custom_styles = JSON.parse(this.custom_styles) || {};
             let content = {
@@ -698,6 +741,14 @@ export default {
                         active: "boolean",
                     },
                 },
+                configureMapZoom: {
+                    invocation: { type: "payload" },
+                    required: [],
+                    payload: {
+                        maxZoom: "number",
+                        maxNativeZoom: "number",
+                    },
+                },
             };
         },
         mapActions() {
@@ -717,7 +768,8 @@ export default {
                     const options = payload?.options || {};
                     if (typeof level !== "number") return;
 
-                    const z = Math.max(0, Math.min(20, level));
+                    const maxZoom = this.map_max_zoom ?? DEFAULT_ACTION_MAX_ZOOM;
+                    const z = Math.max(0, Math.min(maxZoom, level));
                     if (options.externalOverride !== false) {
                         this.external_view_override = true;
                     }
@@ -849,6 +901,8 @@ export default {
                     this.bringPublicLayerToFront(
                         typeof payload === "string" ? payload : payload?.layerId,
                     ),
+                /** Configura límites de zoom del mapa y overzoom de capas base. */
+                configureMapZoom: (payload = {}) => this.configureMapZoom(payload),
             };
         },
         btn_style() {
@@ -1359,6 +1413,63 @@ export default {
         this.poweredCoderhub();
     },
     methods: {
+        configureMapZoom(payload = {}) {
+            const nextMapMaxZoom = toPositiveInteger(payload.maxZoom);
+            const nextMaxNativeZoom = toPositiveInteger(payload.maxNativeZoom);
+
+            let shouldRefreshBaseTiles = false;
+
+            if (nextMapMaxZoom !== undefined) {
+                this.map_max_zoom = nextMapMaxZoom;
+                this.base_tile_max_zoom = nextMapMaxZoom;
+
+                if (this.map && typeof this.map.setMaxZoom === "function") {
+                    this.map.setMaxZoom(nextMapMaxZoom);
+                }
+
+                if (this.zoom > nextMapMaxZoom) {
+                    this.zoom = nextMapMaxZoom;
+                }
+
+                shouldRefreshBaseTiles = true;
+            }
+
+            if (nextMaxNativeZoom !== undefined) {
+                this.base_tile_max_native_zoom = nextMaxNativeZoom;
+                shouldRefreshBaseTiles = true;
+            }
+
+            if (shouldRefreshBaseTiles) {
+                this.base_tile_options_revision++;
+            }
+        },
+        resolveBaseTileLayerOptions(layer, defaults = {}) {
+            const configuredMaxZoom = toPositiveInteger(
+                layer?.sh_map_has_layer_max_zoom ?? layer?.maxZoom,
+            );
+            const configuredMaxNativeZoom = toPositiveInteger(
+                layer?.sh_map_has_layer_max_native_zoom ?? layer?.maxNativeZoom,
+            );
+
+            const maxZoom = configuredMaxZoom ?? this.base_tile_max_zoom ?? defaults.maxZoom;
+            const configuredOrRuntimeMaxNativeZoom =
+                configuredMaxNativeZoom ?? this.base_tile_max_native_zoom ?? defaults.maxNativeZoom;
+
+            const options = {};
+
+            if (maxZoom !== undefined) {
+                options.maxZoom = maxZoom;
+            }
+
+            if (configuredOrRuntimeMaxNativeZoom !== undefined) {
+                options.maxNativeZoom =
+                    maxZoom !== undefined
+                        ? Math.min(configuredOrRuntimeMaxNativeZoom, maxZoom)
+                        : configuredOrRuntimeMaxNativeZoom;
+            }
+
+            return options;
+        },
         nextDynamicLayerOrder() {
             const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
             if (dynamicEntries.length === 0) return 0;
@@ -1597,7 +1708,8 @@ export default {
             else if (zoom === "in") this.zoom++;
             else this.zoom++;
 
-            if (this.zoom > 20) this.zoom = 20;
+            const maxZoom = this.map_max_zoom ?? DEFAULT_ACTION_MAX_ZOOM;
+            if (this.zoom > maxZoom) this.zoom = maxZoom;
             if (this.zoom < 0) this.zoom = 0;
         },
         ready() {
