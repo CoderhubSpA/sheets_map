@@ -66,6 +66,12 @@ export default {
             if (!oldMap && newMap && !this.isInitialized) {
                 this.createVectorTileLayer();
             }
+        },
+        'layer.sh_map_has_layer_render_state': {
+            deep: true,
+            handler() {
+                this.applyRenderStateToLiveLayer();
+            }
         }
     },
     mounted() {
@@ -178,6 +184,15 @@ export default {
             };
 
             this.emitLegend(renderState.legend);
+
+            const requestHeaders =
+                this.layer.sh_map_request_headers && typeof this.layer.sh_map_request_headers === 'object'
+                    ? this.layer.sh_map_request_headers
+                    : {};
+            const requestAuthMode =
+                typeof this.layer.sh_map_request_auth_mode === 'string'
+                    ? this.layer.sh_map_request_auth_mode
+                    : '';
             
             // Crear la capa MapLibre GL como capa de Leaflet
             this.vectorTileLayer = L.maplibreGL({
@@ -192,7 +207,27 @@ export default {
                 canvasContextAttributes: {
                     preserveDrawingBuffer: true,  // CRÍTICO para html2canvas: Preservar buffer para permitir captura
                     antialias: true,  // Mejorar calidad del rendering
-                }
+                },
+                transformRequest: (url) => {
+                    const headers = {
+                        ...requestHeaders,
+                    };
+                    const runtimeAuth = window.__OGP_RUNTIME_AUTH__ || {};
+                    if (
+                        requestAuthMode === 'ogp-bearer' &&
+                        typeof runtimeAuth.getBearerToken === 'function'
+                    ) {
+                        const runtimeToken = runtimeAuth.getBearerToken();
+                        if (typeof runtimeToken === 'string' && runtimeToken.length > 0) {
+                            headers.Authorization = `Bearer ${runtimeToken}`;
+                        }
+                    }
+
+                    return {
+                        url,
+                        headers,
+                    };
+                },
             });
             
             // Agregar la capa al mapa
@@ -246,11 +281,25 @@ export default {
         },
 
         async resolveRenderState(tileUrl) {
+            const explicitRenderState = this.layer.sh_map_has_layer_render_state;
             const defaultRenderState = {
-                styleExpressions: buildDefaultVectorTilePaint(this.layer),
+                styleExpressions:
+                    explicitRenderState?.styleExpressions ||
+                    buildDefaultVectorTilePaint(this.layer),
                 legend: null,
-                sourceLayerHint: null,
+                sourceLayerHint:
+                    explicitRenderState?.sourceLayerHint ||
+                    this.layer.sh_map_has_layer_vector_source_layer ||
+                    null,
             };
+
+            if (explicitRenderState?.legend) {
+                defaultRenderState.legend = explicitRenderState.legend;
+            }
+
+            if (explicitRenderState?.styleExpressions) {
+                return defaultRenderState;
+            }
 
             const legendConfig = normalizeVectorTileLegendConfig(this.layer);
 
@@ -281,6 +330,11 @@ export default {
         },
 
         emitLegend(legend) {
+            const legendMode = this.layer.sh_map_has_layer_legend_mode || 'internal';
+            if (legendMode === 'external' || legendMode === 'none') {
+                this.$emit('legend-clear', this.layer.id);
+                return;
+            }
             if (!legend || legend.visible === false) {
                 this.$emit('legend-clear', this.layer.id);
                 return;
@@ -290,6 +344,90 @@ export default {
                 layerId: this.layer.id,
                 legend,
             });
+        },
+
+        resolveStylePaint(styleExpressions = null) {
+            const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
+            const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
+            const strokeColorExpression = resolvedStyleExpressions.strokeColorExpression;
+
+            return {
+                fillColorExpression,
+                strokeColorExpression,
+                pointRadiusExpression: resolvedStyleExpressions.pointRadiusExpression ?? 8,
+                pointStrokeWidthExpression: resolvedStyleExpressions.pointStrokeWidthExpression ?? 3,
+                polygonFillOpacityExpression: resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6,
+                polygonStrokeWidthExpression: resolvedStyleExpressions.polygonStrokeWidthExpression ?? 2,
+                polygonStrokeOpacityExpression: resolvedStyleExpressions.polygonStrokeOpacityExpression ?? 0.8,
+                lineWidthExpression: resolvedStyleExpressions.lineWidthExpression ?? 2.5,
+                lineOpacityExpression: resolvedStyleExpressions.lineOpacityExpression ?? 0.85,
+                useSymbolForPointShape: Boolean(
+                    resolvedStyleExpressions.useSymbolForPointShape && !this.layer.sh_map_has_layer_point_image
+                ),
+                legendItems: resolvedStyleExpressions.legendItems || [],
+                legendAttribute: resolvedStyleExpressions.legendAttribute,
+                defaultFillColor: resolvedStyleExpressions.defaultFillColor || '#3388ff',
+                defaultStrokeColor: resolvedStyleExpressions.defaultStrokeColor || '#3388ff',
+            };
+        },
+
+        setPaintPropertyIfExists(layerId, property, value) {
+            if (!this.maplibreMap || !this.maplibreMap.getLayer(layerId)) return;
+            this.maplibreMap.setPaintProperty(layerId, property, value);
+        },
+
+        setLayoutPropertyIfExists(layerId, property, value) {
+            if (!this.maplibreMap || !this.maplibreMap.getLayer(layerId)) return;
+            this.maplibreMap.setLayoutProperty(layerId, property, value);
+        },
+
+        applyStyleExpressionsToLiveLayer(styleExpressions = null) {
+            if (!this.maplibreMap) return;
+
+            const paint = this.resolveStylePaint(styleExpressions);
+
+            this.setPaintPropertyIfExists(`${this.layer.id}-fill`, 'fill-color', paint.fillColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-fill`, 'fill-opacity', paint.polygonFillOpacityExpression);
+
+            this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-color', paint.strokeColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-width', paint.polygonStrokeWidthExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-opacity', paint.polygonStrokeOpacityExpression);
+
+            this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-color', paint.fillColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-opacity', paint.lineOpacityExpression);
+
+            [`${this.layer.id}-circle`, `${this.layer.id}-circle-fallback`].forEach((layerId) => {
+                this.setPaintPropertyIfExists(layerId, 'circle-radius', paint.pointRadiusExpression);
+                this.setPaintPropertyIfExists(layerId, 'circle-color', paint.fillColorExpression);
+                this.setPaintPropertyIfExists(layerId, 'circle-stroke-width', paint.pointStrokeWidthExpression);
+                this.setPaintPropertyIfExists(layerId, 'circle-stroke-color', paint.strokeColorExpression);
+            });
+
+            if (paint.useSymbolForPointShape) {
+                this.setLayoutPropertyIfExists(
+                    `${this.layer.id}-symbol`,
+                    'icon-image',
+                    this.buildColoredShapeIconExpression(
+                        paint.legendAttribute,
+                        paint.legendItems,
+                        paint.defaultFillColor,
+                        paint.defaultStrokeColor
+                    )
+                );
+                this.setLayoutPropertyIfExists(`${this.layer.id}-symbol`, 'icon-size', ['/', paint.pointRadiusExpression, 32]);
+            }
+        },
+
+        async applyRenderStateToLiveLayer() {
+            if (!this.maplibreMap || !this.isInitialized) return;
+
+            const tileUrl = this.tileUrl || this.layer.sh_map_has_layer_url || '';
+            const renderState = await this.resolveRenderState(tileUrl);
+            if (this.isDestroyed()) return;
+
+            this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
+            this.emitLegend(renderState.legend);
         },
         
         /**
@@ -598,14 +736,7 @@ export default {
         
         createMapLibreLayers(styleExpressions = null) {
             const layers = [];
-            const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
-            const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
-            const strokeColorExpression = resolvedStyleExpressions.strokeColorExpression;
-            const pointRadiusExpression = resolvedStyleExpressions.pointRadiusExpression || 8;
-            const pointStrokeWidthExpression = resolvedStyleExpressions.pointStrokeWidthExpression || 3;
-            const useSymbolForPointShape = Boolean(
-                resolvedStyleExpressions.useSymbolForPointShape && !this.layer.sh_map_has_layer_point_image
-            );
+            const paint = this.resolveStylePaint(styleExpressions);
             
             // Capa para polígonos
             layers.push({
@@ -615,8 +746,8 @@ export default {
                 'source-layer': this.sourceLayer,
                 filter: ['==', '$type', 'Polygon'],
                 paint: {
-                    'fill-color': fillColorExpression,
-                    'fill-opacity': 0.6
+                    'fill-color': paint.fillColorExpression,
+                    'fill-opacity': paint.polygonFillOpacityExpression
                 }
             });
             
@@ -628,9 +759,9 @@ export default {
                 'source-layer': this.sourceLayer,
                 filter: ['==', '$type', 'Polygon'],
                 paint: {
-                    'line-color': strokeColorExpression,
-                    'line-width': 2,
-                    'line-opacity': 0.8
+                    'line-color': paint.strokeColorExpression,
+                    'line-width': paint.polygonStrokeWidthExpression,
+                    'line-opacity': paint.polygonStrokeOpacityExpression
                 }
             });
 
@@ -643,9 +774,9 @@ export default {
                 'source-layer': this.sourceLayer,
                 filter: ['==', '$type', 'LineString'],
                 paint: {
-                    'line-color': fillColorExpression,
-                    'line-width': 2.5,
-                    'line-opacity': 0.85
+                    'line-color': paint.fillColorExpression,
+                    'line-width': paint.lineWidthExpression,
+                    'line-opacity': paint.lineOpacityExpression
                 }
             });
             
@@ -680,14 +811,14 @@ export default {
                         'icon-ignore-placement': true
                     }
                 });
-            } else if (useSymbolForPointShape) {
+            } else if (paint.useSymbolForPointShape) {
                 // Formas custom via imágenes canvas con colores baked-in (NO SDF).
                 // Las imágenes se generan instantáneamente via styleimagemissing.
                 this.pointRenderMode = 'symbol';
-                const legendItems = resolvedStyleExpressions.legendItems || [];
-                const legendAttribute = resolvedStyleExpressions.legendAttribute;
-                const defaultFill = resolvedStyleExpressions.defaultFillColor || '#3388ff';
-                const defaultStroke = resolvedStyleExpressions.defaultStrokeColor || '#3388ff';
+                const legendItems = paint.legendItems;
+                const legendAttribute = paint.legendAttribute;
+                const defaultFill = paint.defaultFillColor;
+                const defaultStroke = paint.defaultStrokeColor;
 
                 // Symbol layer con iconos de formas coloreadas
                 layers.push({
@@ -700,7 +831,7 @@ export default {
                         'icon-image': this.buildColoredShapeIconExpression(
                             legendAttribute, legendItems, defaultFill, defaultStroke
                         ),
-                        'icon-size': ['/', pointRadiusExpression, 32],
+                        'icon-size': ['/', paint.pointRadiusExpression, 32],
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true,
                     }
@@ -715,10 +846,10 @@ export default {
                     'source-layer': this.sourceLayer,
                     filter: this.pointGeometryFilter(),
                     paint: {
-                        'circle-radius': pointRadiusExpression,
-                        'circle-color': fillColorExpression, // Color dinámico desde 'Fill'
-                        'circle-stroke-width': pointStrokeWidthExpression,
-                        'circle-stroke-color': strokeColorExpression, // Color dinámico desde 'Stroke'
+                        'circle-radius': paint.pointRadiusExpression,
+                        'circle-color': paint.fillColorExpression, // Color dinámico desde 'Fill'
+                        'circle-stroke-width': paint.pointStrokeWidthExpression,
+                        'circle-stroke-color': paint.strokeColorExpression, // Color dinámico desde 'Stroke'
                         'circle-opacity': 1.0
                     }
                 });

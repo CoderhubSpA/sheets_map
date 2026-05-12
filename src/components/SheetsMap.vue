@@ -120,7 +120,7 @@
                 <!-- Vector Tile Layers (MapLibre GL) -->
                 <!-- Las capas se renderizan en orden de array: primera = fondo, última = tope -->
                 <!-- El _uid asegura que Vue destruya y recree componentes correctamente -->
-                <vector-tile-layer v-for="vectorTile in operative_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
+                <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
@@ -316,6 +316,12 @@ import VectorTileLegend from "./layers/VectorTileLegend.vue";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
+import {
+    normalizePublicLayerDefinition,
+    applyPublicLayerPatch,
+    buildVectorTileLayerPayload,
+    DYNAMIC_LAYER_TYPES,
+} from "../utils/dynamicLayers";
 import axios from "axios";
 import HeatmapOverlay from "heatmap.js/plugins/leaflet-heatmap";
 import { BButton, BIcon, BPopover } from "bootstrap-vue";
@@ -339,6 +345,13 @@ Icon.Default.mergeOptions({
 import ScreenshotButton from "./ScreenshotButton.vue";
 
 const sheetsMapVersion = packageInfo.version;
+const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
+const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
+
+function hasValidMapConfigValue(value) {
+    if (value === null || value === undefined) return false;
+    return !INVALID_MAP_CONFIG_VALUES.has(String(value).trim().toLowerCase());
+}
 
 export default {
     name: "SheetsMap",
@@ -399,8 +412,9 @@ export default {
             default_attribution:
                 '&copy; <a target="_blank" href="http://osm.org/copyright">OpenStreetMap</a> contributors',
             zoom: 7,
-            center_default: [-33.472, -70.769],
-            center: undefined,
+            external_view_override: false,
+            center_default: [...DEFAULT_MAP_CENTER],
+            center: [...DEFAULT_MAP_CENTER],
             center_parsed: "",
             center_format: "latlng",
             col_lat: undefined,
@@ -427,6 +441,9 @@ export default {
             operative_geoserver_wms: [],
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
+            dynamic_layer_registry: {},
+            dynamic_layer_render_token: 0,
+            map_configuration_ready: false,
             end_map_move: false,
             end_map_pressure: false,
             bounds_filters: [],
@@ -631,29 +648,111 @@ export default {
          *   }
          *   // luego:  this.mapActions.zoomIn()
          */
-        mapActions() {
+        mapActionContracts() {
             return {
+                setZoom: {
+                    invocation: { type: "payload" },
+                    required: ["level"],
+                    payload: {
+                        level: "number",
+                        options: {
+                            externalOverride: "boolean",
+                        },
+                    },
+                },
+                flyTo: {
+                    invocation: { type: "payload" },
+                    required: ["latLng"],
+                    payload: {
+                        latLng: "LatLng",
+                        zoom: "number",
+                        options: {
+                            showMarker: "boolean",
+                            externalOverride: "boolean",
+                            leaflet: "object",
+                        },
+                    },
+                },
+                panTo: {
+                    invocation: { type: "payload" },
+                    required: ["latLng"],
+                    payload: {
+                        latLng: "LatLng",
+                        options: {
+                            externalOverride: "boolean",
+                            leaflet: "object",
+                        },
+                    },
+                },
+                drawShape: {
+                    invocation: { type: "payload" },
+                    required: ["shape"],
+                    payload: {
+                        shape: "polygon|circle|rectangle|delete|cancel|clear",
+                    },
+                },
+                setEraserMode: {
+                    invocation: { type: "payload" },
+                    required: ["active"],
+                    payload: {
+                        active: "boolean",
+                    },
+                },
+            };
+        },
+        mapActions() {
+            const contracts = this.mapActionContracts;
+
+            return {
+                contracts,
+                getContracts: () => contracts,
+                isConfigurationReady: () => this.map_configuration_ready,
                 /** Acercar el zoom del mapa en 1 nivel */
                 zoomIn: () => this.zoomMap("in"),
                 /** Alejar el zoom del mapa en 1 nivel */
                 zoomOut: () => this.zoomMap("out"),
                 /** Establecer un nivel de zoom específico (0-20) */
-                setZoom: (level) => {
+                setZoom: (payload = {}) => {
+                    const level = payload?.level;
+                    const options = payload?.options || {};
+                    if (typeof level !== "number") return;
+
                     const z = Math.max(0, Math.min(20, level));
+                    if (options.externalOverride !== false) {
+                        this.external_view_override = true;
+                    }
                     this.zoom = z;
                 },
                 /** Obtener el nivel de zoom actual */
                 getZoom: () => this.zoom,
                 /** Volar a una ubicación { lat, lng } con zoom opcional (default 12) */
-                flyTo: (latLng, zoom) => this.zoomToLocation(latLng, zoom),
+                flyTo: (payload = {}) =>
+                    payload?.latLng
+                        ? this.zoomToLocation(
+                              payload.latLng,
+                              payload?.zoom,
+                              payload?.options || {},
+                          )
+                        : undefined,
                 /** Centrar el mapa en { lat, lng } sin animación */
-                panTo: (latLng) => {
-                    if (this.map) this.map.panTo(latLng);
+                panTo: (payload = {}) => {
+                    const latLng = payload?.latLng;
+                    const options = payload?.options || {};
+                    if (!latLng) return;
+
+                    if (options.externalOverride !== false) {
+                        this.external_view_override = true;
+                    }
+                    this.center = latLng;
+                    if (this.map) this.map.panTo(latLng, options.leaflet || {});
                 },
                 /** Filtrar por zona visible del mapa */
                 filterByBounds: () => this.filter(),
                 /** Iniciar trazo de polígono ('polygon', 'circle', 'rectangle') o 'delete' */
-                drawShape: (shape) => this.polygonAction(shape),
+                drawShape: (payload = {}) => {
+                    if (!payload?.shape) return;
+                    this.polygonAction(payload.shape);
+                },
                 /** Cambiar formato de coordenadas (latlng / UTM) */
                 toggleCoordinateFormat: () => this.changeCoordinateFormat(),
                 /** Obtener las coordenadas del centro actual */
@@ -700,11 +799,56 @@ export default {
                 /** Activar/desactivar el modo borrador (toggle) */
                 toggleEraserMode: () => this.polygonAction("delete"),
                 /** Activar o desactivar el modo borrador de forma idempotente */
-                setEraserMode: (active) => {
+                setEraserMode: (payload = {}) => {
+                    if (typeof payload?.active !== "boolean") return;
+
+                    const active = Boolean(payload?.active);
                     const d = this.$refs.polygon_drafter;
                     if (d && d.buttons_pressed.delete !== active)
                         this.polygonAction("delete");
                 },
+                /** Agrega o reemplaza una capa dinámica usando una definición pública genérica */
+                addLayer: (definition) => this.addPublicLayer(definition),
+                /** Indica si una capa dinámica agregada por API existe */
+                hasLayer: (payload) =>
+                    this.hasPublicLayer(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Retorna la definición normalizada y payload renderizable de una capa dinámica */
+                getLayer: (payload) =>
+                    this.getPublicLayer(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Elimina una capa dinámica por id */
+                removeLayer: (payload) =>
+                    this.removePublicLayer(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Actualiza parcialmente una capa dinámica existente */
+                updateLayer: (payload) =>
+                    this.updatePublicLayer(payload?.layerId, payload?.patch || {}),
+                /** Aplica un renderState a una capa dinámica existente */
+                setLayerRenderState: (payload) =>
+                    this.setPublicLayerRenderState(payload?.layerId, payload?.renderState),
+                /** Controla visibilidad lógica de una capa dinámica existente */
+                setLayerVisibility: (payload) =>
+                    this.setPublicLayerVisibility(payload?.layerId, payload?.visible),
+                /** Controla opacidad lógica de una capa dinámica existente */
+                setLayerOpacity: (payload) =>
+                    this.setPublicLayerOpacity(payload?.layerId, payload?.opacity),
+                /** Establece orden relativo para capas dinámicas */
+                setLayerOrder: (payload) =>
+                    this.setPublicLayerOrder(payload?.layerId, payload?.order),
+                /** Envía una capa dinámica al fondo del stack dinámico */
+                sendLayerToBack: (payload) =>
+                    this.sendPublicLayerToBack(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
+                /** Lleva una capa dinámica al frente del stack dinámico */
+                bringLayerToFront: (payload) =>
+                    this.bringPublicLayerToFront(
+                        typeof payload === "string" ? payload : payload?.layerId,
+                    ),
             };
         },
         btn_style() {
@@ -1072,6 +1216,20 @@ export default {
 
             return active_layers;
         },
+        renderable_vector_tiles_xyz() {
+            return [...this.operative_vector_tiles_xyz]
+                .filter((entry) => entry && entry.visible !== false)
+                .sort((left, right) => {
+                    const leftOrder = Number.isFinite(left?.order)
+                        ? left.order
+                        : Number.MAX_SAFE_INTEGER;
+                    const rightOrder = Number.isFinite(right?.order)
+                        ? right.order
+                        : Number.MAX_SAFE_INTEGER;
+                    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+                    return 0;
+                });
+        },
         disabled_layers() {
             if (_.isEmpty(this.layers)) {
                 return [];
@@ -1194,9 +1352,6 @@ export default {
         // TO DO:
         // Colocar primera capa base encontrada
 
-        //Alguna parte del mar del Pacifico Sur
-        this.center = [-45.7247315, -108.8552016];
-
         this.getMapConfiguration();
         // Cuando geo_json es construido, se instancia Supercluster
     },
@@ -1204,6 +1359,144 @@ export default {
         this.poweredCoderhub();
     },
     methods: {
+        nextDynamicLayerOrder() {
+            const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
+            if (dynamicEntries.length === 0) return 0;
+            return dynamicEntries.reduce((maxOrder, entry) => {
+                const order = Number.isFinite(entry?.definition?.order)
+                    ? entry.definition.order
+                    : 0;
+                return Math.max(maxOrder, order);
+            }, 0) + 1;
+        },
+        hasPublicLayer(layerId) {
+            return Boolean(layerId && this.dynamic_layer_registry[layerId]);
+        },
+        getPublicLayer(layerId) {
+            return this.dynamic_layer_registry[layerId] || null;
+        },
+        rebuildDynamicVectorTileRegistryView() {
+            const staticEntries = this.operative_vector_tiles_xyz.filter(
+                (entry) => !entry || entry._dynamic !== true,
+            );
+            const dynamicEntries = Object.values(this.dynamic_layer_registry || {})
+                .filter((entry) => entry && entry.payload)
+                .map((entry) => entry.payload);
+            this.operative_vector_tiles_xyz = [...staticEntries, ...dynamicEntries];
+        },
+        upsertDynamicVectorTileLayer(normalizedDefinition) {
+            const safeDefinition = {
+                ...normalizedDefinition,
+                visible:
+                    typeof normalizedDefinition.visible === "boolean"
+                        ? normalizedDefinition.visible
+                        : true,
+                order:
+                    Number.isFinite(normalizedDefinition.order)
+                        ? normalizedDefinition.order
+                        : this.hasPublicLayer(normalizedDefinition.id)
+                            ? this.dynamic_layer_registry[normalizedDefinition.id].definition.order
+                            : this.nextDynamicLayerOrder(),
+            };
+            const payload = {
+                ...buildVectorTileLayerPayload(safeDefinition),
+                _uid: `${safeDefinition.id}-${Date.now()}-${Math.random()}`,
+            };
+            const nextRecord = {
+                definition: safeDefinition,
+                payload,
+                inserted_at: Date.now(),
+            };
+
+            this.$set(this.dynamic_layer_registry, safeDefinition.id, nextRecord);
+            this.rebuildDynamicVectorTileRegistryView();
+            return payload;
+        },
+        addPublicLayer(definition) {
+            const normalizedDefinition = normalizePublicLayerDefinition(definition);
+
+            switch (normalizedDefinition.type) {
+                case DYNAMIC_LAYER_TYPES.VECTOR_TILE:
+                    return this.upsertDynamicVectorTileLayer(normalizedDefinition);
+                default:
+                    throw new Error(
+                        `Tipo de capa no soportado por addLayer: ${normalizedDefinition.type}`,
+                    );
+            }
+        },
+        removePublicLayer(layerId) {
+            if (!this.hasPublicLayer(layerId)) {
+                return false;
+            }
+            const record = this.dynamic_layer_registry[layerId];
+            this.$delete(this.dynamic_layer_registry, layerId);
+            this.rebuildDynamicVectorTileRegistryView();
+            return record;
+        },
+        updatePublicLayer(layerId, patch) {
+            const record = this.getPublicLayer(layerId);
+            if (!record) {
+                throw new Error(`La capa dinámica ${layerId} no existe.`);
+            }
+
+            const nextDefinition = applyPublicLayerPatch(record.definition, patch);
+            switch (nextDefinition.type) {
+                case DYNAMIC_LAYER_TYPES.VECTOR_TILE:
+                    return this.upsertDynamicVectorTileLayer(nextDefinition);
+                default:
+                    throw new Error(
+                        `Tipo de capa no soportado por updateLayer: ${nextDefinition.type}`,
+                    );
+            }
+        },
+        setPublicLayerRenderState(layerId, renderState) {
+            const record = this.getPublicLayer(layerId);
+            if (!record) {
+                throw new Error(`La capa dinámica ${layerId} no existe.`);
+            }
+
+            const nextDefinition = {
+                ...record.definition,
+                renderState,
+            };
+            const nextPayload = {
+                ...record.payload,
+                layer: {
+                    ...record.payload.layer,
+                    sh_map_has_layer_render_state: renderState,
+                },
+            };
+
+            this.$set(this.dynamic_layer_registry, layerId, {
+                ...record,
+                definition: nextDefinition,
+                payload: nextPayload,
+            });
+            this.rebuildDynamicVectorTileRegistryView();
+            return nextPayload;
+        },
+        setPublicLayerVisibility(layerId, visible) {
+            return this.updatePublicLayer(layerId, { visible });
+        },
+        setPublicLayerOpacity(layerId, opacity) {
+            return this.updatePublicLayer(layerId, { opacity });
+        },
+        setPublicLayerOrder(layerId, order) {
+            return this.updatePublicLayer(layerId, { order });
+        },
+        bringPublicLayerToFront(layerId) {
+            return this.setPublicLayerOrder(layerId, this.nextDynamicLayerOrder());
+        },
+        sendPublicLayerToBack(layerId) {
+            const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
+            const minOrder = dynamicEntries.reduce((acc, entry) => {
+                const order = Number.isFinite(entry?.definition?.order)
+                    ? entry.definition.order
+                    : 0;
+                return Math.min(acc, order);
+            }, 0);
+            return this.setPublicLayerOrder(layerId, minOrder - 1);
+        },
         classification_icon(id = null) {
             let classification_icon;
             let classification_icon_info;
@@ -1271,10 +1564,33 @@ export default {
 
             this.$delete(this.vector_tile_legends, layerId);
         },
-        zoomToLocation(latLng, zoom) {
+        zoomToLocation(latLng, zoom, options = {}) {
+            if (options.externalOverride !== false) {
+                this.external_view_override = true;
+            }
             this.searchMarkerLatLng = latLng;
-            this.shouldShowSearchMarker = true;
-            this.map.flyTo(latLng, zoom || 12);
+            this.shouldShowSearchMarker = options.showMarker !== false;
+
+            const targetZoom = zoom || 12;
+            if (!this.map || typeof this.map.flyTo !== "function") {
+                this.center = latLng;
+                this.zoom = targetZoom;
+                return;
+            }
+
+            this.map.once("moveend", () => {
+                this.center = latLng;
+                this.zoom = targetZoom;
+
+                if (this.map.getZoom() !== targetZoom) {
+                    this.map.setView(latLng, targetZoom, { animate: false });
+                }
+            });
+
+            this.map.flyTo(latLng, targetZoom, {
+                duration: 1.2,
+                ...(options.leaflet || {}),
+            });
         },
         zoomMap(zoom) {
             if (zoom === "out") this.zoom--;
@@ -2223,8 +2539,26 @@ export default {
         setTileLayer() {
             this.url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
         },
+        notifyMapConfigurationReady() {
+            this.map_configuration_ready = true;
+            this.$emit("map-configuration-ready", this.mapActions);
+        },
         getMapConfiguration() {
             //data
+            if (
+                !hasValidMapConfigValue(this.endpoint_config) ||
+                !hasValidMapConfigValue(this.config_entity_type_id) ||
+                !hasValidMapConfigValue(this.config_entity_id)
+            ) {
+                console.warn("[SheetsMap] getMapConfiguration skipped: invalid map configuration context", {
+                    endpoint_config: this.endpoint_config,
+                    config_entity_type_id: this.config_entity_type_id,
+                    config_entity_id: this.config_entity_id,
+                });
+                this.notifyMapConfigurationReady();
+                return;
+            }
+
             const url = `${this.base_url}${this.endpoint_config}${this.config_entity_type_id}/${this.config_entity_id}?page=1&set_alias=alias`;
 
             let all_data;
@@ -2239,27 +2573,32 @@ export default {
                         this.col_lng = data.sh_map_column_longitude;
                         this.col_lat = data.sh_map_column_latitude;
 
-                        if (this.getCoordsFromUrlParams()) {
-                            this.center = this.getCoordsFromUrlParams();
-                        } else if (data.latitud_map_center && data.longitud_map_center) {
-                            this.center = [data.latitud_map_center, data.longitud_map_center];
-                        } else {
-                            // Coordenadas para Santiago de Chile - Chile\
-                            this.center = this.center_default;
-                        }
+                        if (!this.external_view_override) {
+                            if (this.getCoordsFromUrlParams()) {
+                                this.center = this.getCoordsFromUrlParams();
+                            } else if (data.latitud_map_center && data.longitud_map_center) {
+                                this.center = [data.latitud_map_center, data.longitud_map_center];
+                            } else {
+                                // Coordenadas para Santiago de Chile - Chile\
+                                this.center = this.center_default;
+                            }
 
-                        this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                            this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
+                        }
                     } catch (error) {
                         console.error(error);
 
                         // Coordenadas para Santiago de Chile - Chile
-                        this.center = this.center_default;
+                        if (!this.external_view_override) {
+                            this.center = this.center_default;
+                        }
                     }
                 })
                 .catch((error) => {
                     console.error(error);
                 })
                 .finally(() => {
+                    this.notifyMapConfigurationReady();
                     console.log("done data");
                 });
         },
