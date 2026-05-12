@@ -58,7 +58,7 @@
                         v-on:data-form="setForm" />
                     <ScreenshotButton target-id="my-map" filename="sheets-map-screenshot" :quality="1" />
                 </div>
-                <l-marker v-if="shouldShowSearchMarker" :latLng="searchMarkerLatLng"></l-marker>
+
 
                 <!-- https://vue2-leaflet.netlify.app/components/LTileLayer.html -->
                 <!-- <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer> -->
@@ -434,8 +434,7 @@ export default {
             num_zoom: false,
             bounds: [],
             h3,
-            shouldShowSearchMarker: false,
-            searchMarkerLatLng: null,
+
             classification_icon_column: false,
             // Usadas para las capas analiticas tipo analytic_geojson
             should_skip_bounds_filter: false, // Usada para no filtrar por los limites del mapa en analytic_geojson
@@ -453,6 +452,8 @@ export default {
             base_layer_key: 0,
             _polygonFilterCallback: null,
             _featureClickCallback: null,
+            marker: null,
+            current_zoom: 7,
         };
     },
     computed: {
@@ -1289,8 +1290,7 @@ export default {
             this.$delete(this.vector_tile_legends, layerId);
         },
         zoomToLocation(latLng, zoom) {
-            this.searchMarkerLatLng = latLng;
-            this.shouldShowSearchMarker = true;
+            this.setMarker(latLng.lat, latLng.lng);
             this.map.flyTo(latLng, zoom || 12);
         },
         zoomMap(zoom) {
@@ -1309,6 +1309,14 @@ export default {
                 this.map.invalidateSize(false);
             });
             resizeObserver.observe(this.$refs.map_container);
+
+            // Actualizar zoom y tamaño del marcador al hacer zoom
+            this.map.on("zoomend", () => {
+                this.current_zoom = this.map.getZoom();
+                if (this.marker) {
+                    this.updateMarkerSize();
+                }
+            });
 
             // Configurar handler centralizado para clicks en capas vectoriales
             this.setupVectorTileClickHandler();
@@ -1338,6 +1346,59 @@ export default {
                     }
                 }
             });
+        },
+
+        /**
+         * Retorna { iconSize, iconAnchor } según el nivel de zoom.
+         * Devuelve el ícono L.divIcon apropiado según el nivel de zoom.
+         * zoom >= 15: mira/crosshair compacto 24x24
+         * zoom <  15: pin rojo clásico 32x40
+         */
+        getMarkerIconForZoom(zoom) {
+            if (zoom >= 15) {
+                return L.divIcon({
+                    className: "",
+                    html: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="red"><path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732Zm111 337q-35-35-35-85t35-85q35-35 85-35t85 35q35 35 35 85t-35 85q-35 35-85 35t-85-35ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82Z"/></svg>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12],
+                });
+            }
+            return L.divIcon({
+                className: "",
+                html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 40 50">
+                    <path d="M20 0C12.268 0 6 6.268 6 14c0 9.941 14 36 14 36s14-26.059 14-36C34 6.268 27.732 0 20 0z" fill="#e53935"/>
+                    <circle cx="20" cy="14" r="6" fill="white"/>
+                </svg>`,
+                iconSize: [32, 40],
+                iconAnchor: [16, 40],
+            });
+        },
+
+        /**
+         * Agrega (o reemplaza) el marcador en la posición indicada.
+         * El ícono cambia entre pin rojo (zoom < 15) y crosshair (zoom >= 15).
+         */
+        setMarker(lat, lng) {
+            if (this.marker) {
+                this.map.removeLayer(this.marker);
+                this.marker = null;
+            }
+
+            const zoom = this.map ? this.map.getZoom() : this.zoom;
+            const icon = this.getMarkerIconForZoom(zoom);
+
+            this.marker = L.marker([lat, lng], { icon }).addTo(this.map);
+        },
+
+        /**
+         * Actualiza el ícono del marcador existente según el zoom actual.
+         * No elimina ni vuelve a agregar el marcador.
+         */
+        updateMarkerSize() {
+            if (!this.marker) return;
+
+            const newIcon = this.getMarkerIconForZoom(this.current_zoom);
+            this.marker.setIcon(newIcon);
         },
 
         filter() {
