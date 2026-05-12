@@ -71,11 +71,11 @@ export default {
     computed: {
         draft_style() {
             const style = {
-                color: this.styleVariables.polygon_draft_color,
-                weight: this.styleVariables.polygon_draft_weight,
-                opacity: this.styleVariables.polygon_draft_opacity,
-                fillColor: this.styleVariables.polygon_draft_fill_color,
-                fillOpacity: this.styleVariables.polygon_draft_fill_opacity,
+                color: this.styleVariables.draft_color,
+                weight: this.styleVariables.draft_weight,
+                opacity: this.styleVariables.draft_opacity,
+                fillColor: this.styleVariables.draft_fill_color,
+                fillOpacity: this.styleVariables.draft_fill_opacity,
             };
 
             return style;
