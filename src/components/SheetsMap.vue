@@ -2750,6 +2750,7 @@ export default {
                                 // Coordenadas para Santiago de Chile - Chile\
                                 this.center = this.center_default;
                             }
+                        }
 
                         this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
                         this.hide_base_layer = !!data.sh_map_hide_base_layer;
