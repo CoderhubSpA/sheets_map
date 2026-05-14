@@ -2750,6 +2750,7 @@ export default {
                                 // Coordenadas para Santiago de Chile - Chile\
                                 this.center = this.center_default;
                             }
+                        }
 
                         this.zoom = data.sh_map_zoom ? data.sh_map_zoom : 7;
                         this.hide_base_layer = !!data.sh_map_hide_base_layer;
@@ -3286,9 +3287,6 @@ export default {
             if (typeof this._polygonFilterCallback === "function") {
                 this._polygonFilterCallback(bounds_filters);
             }
-        },
-        polygonFilter(bounds_filters) {
-            this.bounds_filters = bounds_filters;
         },
         setButtonsPressed(buttons_pressed) {
             this.buttons_pressed = buttons_pressed;

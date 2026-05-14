@@ -130,7 +130,7 @@ export default {
             // SIEMPRE actualizar el z-index para reflejar el orden actual
             // z-index base para overlays es 400
             // Contar cuántos panes de vector tiles hay activos ANTES de este
-            const baseZIndex = 400;
+            const baseZIndex = 350;
             const vectorTilePanes = Object.keys(this.map._panes)
                 .filter(p => p.startsWith('vectorTilePane-') && p !== this.customPaneName)
                 .map(p => this.map._panes[p])
@@ -138,6 +138,7 @@ export default {
             
             const newZIndex = baseZIndex + vectorTilePanes.length;
             pane.style.zIndex = newZIndex;
+            pane.style.pointerEvents = 'none';
 
 
             // Preparar URL del tile con los parámetros {z}/{x}/{y}
