@@ -165,6 +165,8 @@ export default {
                 inferVectorTileLayerNameFromUrl(tileUrl) ||
                 'default';
 
+            const maxNativeZoom = this.resolveMaxNativeZoom();
+
             if (this.isDestroyed()) {
                 return;
             }
@@ -178,7 +180,7 @@ export default {
                         tiles: [tileUrl],
                         scheme: 'xyz',
                         minzoom: 0,
-                        maxzoom: 22
+                        maxzoom: maxNativeZoom
                     }
                 },
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -349,6 +351,19 @@ export default {
                 layerId: this.layer.id,
                 legend,
             });
+        },
+        resolveMaxNativeZoom() {
+            const rawValue =
+                this.layer.sh_map_has_layer_max_native_zoom ??
+                this.layer.maxNativeZoom ??
+                this.layer.maxzoom;
+            const parsed = Number(rawValue);
+
+            if (Number.isFinite(parsed) && parsed >= 0) {
+                return parsed;
+            }
+
+            return 22;
         },
 
         resolveStylePaint(styleExpressions = null) {
