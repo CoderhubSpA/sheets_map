@@ -30,7 +30,6 @@ function normalizeSource(definition) {
 
     return {
         tiles,
-        maxNativeZoom: normalizeNumber(source.maxNativeZoom ?? source.maxzoom, null),
     };
 }
 
@@ -147,7 +146,6 @@ function normalizeVectorTileDefinition(rawDefinition) {
         visible: normalizeBoolean(rawDefinition.visible, true),
         opacity: normalizeNumber(rawDefinition.opacity, null),
         order: normalizeNumber(rawDefinition.order, null),
-        maxNativeZoom: normalizeNumber(rawDefinition.maxNativeZoom, source.maxNativeZoom),
     };
 }
 
@@ -252,7 +250,6 @@ export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
             sh_map_has_layer_vector_source_layer: normalizedLayerDefinition.sourceLayer,
             sh_map_has_layer_legend_mode: normalizedLayerDefinition.legendMode,
             sh_map_has_layer_render_state: normalizedLayerDefinition.renderState,
-            sh_map_has_layer_max_native_zoom: normalizedLayerDefinition.maxNativeZoom,
             sh_map_request_headers: normalizedLayerDefinition.request?.headers || {},
             sh_map_request_auth_mode: normalizedLayerDefinition.auth?.mode || "",
             sh_map_has_layer_visible: normalizedLayerDefinition.visible,
