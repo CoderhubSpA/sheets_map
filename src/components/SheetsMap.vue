@@ -717,6 +717,18 @@ export default {
                         },
                     },
                 },
+                teleportTo: {
+                    invocation: { type: "payload" },
+                    required: ["latLng"],
+                    payload: {
+                        latLng: "LatLng",
+                        zoom: "number",
+                        options: {
+                            externalOverride: "boolean",
+                            leaflet: "object",
+                        },
+                    },
+                },
                 panTo: {
                     invocation: { type: "payload" },
                     required: ["latLng"],
@@ -787,6 +799,26 @@ export default {
                               payload?.options || {},
                           )
                         : undefined,
+                /** Teletransportar el mapa a { lat, lng } sin crear marcador de geolocalización */
+                teleportTo: (payload = {}) => {
+                    const latLng = payload?.latLng;
+                    const options = payload?.options || {};
+                    if (!latLng) return;
+
+                    const maxZoom = this.map_max_zoom ?? DEFAULT_ACTION_MAX_ZOOM;
+                    const requestedZoom = typeof payload?.zoom === "number" ? payload.zoom : this.zoom;
+                    const zoom = Math.max(0, Math.min(maxZoom, requestedZoom));
+
+                    if (options.externalOverride !== false) {
+                        this.external_view_override = true;
+                    }
+
+                    this.center = latLng;
+                    this.zoom = zoom;
+                    if (this.map) {
+                        this.map.setView(latLng, zoom, options.leaflet || {});
+                    }
+                },
                 /** Centrar el mapa en { lat, lng } sin animación */
                 panTo: (payload = {}) => {
                     const latLng = payload?.latLng;
