@@ -67,14 +67,14 @@
                         )?.[0]
                         "></l-tile-layer> -->
                 <template v-if="!toolbar_hide_base_layer">
-                    <l-tile-layer v-if="base_google_map" :key="'base-google-' + base_layer_key" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
+                    <l-tile-layer v-if="base_google_map" :key="'base-google-' + base_layer_key + '-' + base_tile_options_revision" :url="base_google_map.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_google_map.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
-                        "></l-tile-layer>
-                    <l-tile-layer v-else-if="base_map_guide" :key="'base-guide-' + base_layer_key" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
+                        " :options="baseGoogleMapOptions"></l-tile-layer>
+                    <l-tile-layer v-else-if="base_map_guide" :key="'base-guide-' + base_layer_key + '-' + base_tile_options_revision" :url="base_map_guide.sh_map_has_layer_url" :attribution="'&copy; ' +
                         base_map_guide.sh_map_has_layer_url.match('^.*?([^:/]/)')?.[0]
-                        "></l-tile-layer>
-                    <l-tile-layer v-else-if="!hide_base_layer" :key="'base-default-' + base_layer_key" :url="default_base_layer" :attribution="default_attribution"
-                        :options="{ maxNativeZoom: 19, maxZoom: 20 }"></l-tile-layer>
+                        " :options="baseMapGuideOptions"></l-tile-layer>
+                    <l-tile-layer v-else-if="!hide_base_layer" :key="'base-default-' + base_layer_key + '-' + base_tile_options_revision" :url="default_base_layer" :attribution="default_attribution"
+                        :options="defaultBaseLayerOptions"></l-tile-layer>
                 </template>
 
                 <supercluster-entity-type-layer v-for="layer in supercluster_by_entity_type_layers" :key="layer.id"

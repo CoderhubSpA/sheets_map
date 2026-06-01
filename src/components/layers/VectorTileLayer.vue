@@ -364,6 +364,7 @@ export default {
                 polygonFillOpacityExpression: resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6,
                 polygonStrokeWidthExpression: resolvedStyleExpressions.polygonStrokeWidthExpression ?? 2,
                 polygonStrokeOpacityExpression: resolvedStyleExpressions.polygonStrokeOpacityExpression ?? 0.8,
+                polygonBorderEnabled: resolvedStyleExpressions.polygonBorderEnabled !== false,
                 lineWidthExpression: resolvedStyleExpressions.lineWidthExpression ?? 2.5,
                 lineOpacityExpression: resolvedStyleExpressions.lineOpacityExpression ?? 0.85,
                 useSymbolForPointShape: Boolean(
@@ -374,6 +375,21 @@ export default {
                 defaultFillColor: resolvedStyleExpressions.defaultFillColor || '#3388ff',
                 defaultStrokeColor: resolvedStyleExpressions.defaultStrokeColor || '#3388ff',
             };
+        },
+
+        shouldRenderPolygonBorder(paint) {
+            if (!paint || paint.polygonBorderEnabled === false) return false;
+
+            if (typeof paint.polygonStrokeWidthExpression === 'number') {
+                return paint.polygonStrokeWidthExpression > 0;
+            }
+
+            if (typeof paint.polygonStrokeWidthExpression === 'string') {
+                const parsedStrokeWidth = Number(paint.polygonStrokeWidthExpression);
+                return !Number.isFinite(parsedStrokeWidth) || parsedStrokeWidth > 0;
+            }
+
+            return true;
         },
 
         setPaintPropertyIfExists(layerId, property, value) {
@@ -394,9 +410,14 @@ export default {
             this.setPaintPropertyIfExists(`${this.layer.id}-fill`, 'fill-color', paint.fillColorExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-fill`, 'fill-opacity', paint.polygonFillOpacityExpression);
 
-            this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-color', paint.strokeColorExpression);
-            this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-width', paint.polygonStrokeWidthExpression);
-            this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-opacity', paint.polygonStrokeOpacityExpression);
+            if (this.shouldRenderPolygonBorder(paint)) {
+                this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-color', paint.strokeColorExpression);
+                this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-width', paint.polygonStrokeWidthExpression);
+                this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-opacity', paint.polygonStrokeOpacityExpression);
+            } else {
+                this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-width', 0);
+                this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-opacity', 0);
+            }
 
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-color', paint.fillColorExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
@@ -756,19 +777,23 @@ export default {
                 }
             });
             
-            // Capa para bordes de polígonos
-            layers.push({
-                id: `${this.layer.id}-line-border`,
-                type: 'line',
-                source: 'vector-tiles',
-                'source-layer': this.sourceLayer,
-                filter: ['==', '$type', 'Polygon'],
-                paint: {
-                    'line-color': paint.strokeColorExpression,
-                    'line-width': paint.polygonStrokeWidthExpression,
-                    'line-opacity': paint.polygonStrokeOpacityExpression
-                }
-            });
+            // Capa para bordes de polígonos.
+            // Si se desactiva, no se agrega al estilo para evitar que se vean
+            // los cortes internos que produce el clipping de cada vector tile.
+            if (this.shouldRenderPolygonBorder(paint)) {
+                layers.push({
+                    id: `${this.layer.id}-line-border`,
+                    type: 'line',
+                    source: 'vector-tiles',
+                    'source-layer': this.sourceLayer,
+                    filter: ['==', '$type', 'Polygon'],
+                    paint: {
+                        'line-color': paint.strokeColorExpression,
+                        'line-width': paint.polygonStrokeWidthExpression,
+                        'line-opacity': paint.polygonStrokeOpacityExpression
+                    }
+                });
+            }
 
             // Capa para líneas standalone (calles, ríos, etc.)
             // Usa fillColorExpression para que coincida con la leyenda
