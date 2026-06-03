@@ -192,6 +192,7 @@ this.$refs.sheetsMap.mapActions.zoomIn();
 | `setZoom`                | `setZoom(level)`           | Establecer un nivel de zoom específico (0–20)                      |
 | `getZoom`                | `getZoom()`                | Obtener el nivel de zoom actual                                    |
 | `flyTo`                  | `flyTo(latLng, zoom?)`     | Volar a `{ lat, lng }` con zoom opcional (default 12)              |
+| `teleportTo`             | `teleportTo(latLng, zoom?)` | Centrar el mapa sin animación ni marcador de geolocalización       |
 | `panTo`                  | `panTo(latLng)`            | Centrar el mapa en `{ lat, lng }` sin animación                    |
 | `filterByBounds`         | `filterByBounds()`         | Filtrar datos por zona visible del mapa                            |
 | `toggleCoordinateFormat` | `toggleCoordinateFormat()` | Alternar formato de coordenadas (latlng / UTM)                     |
