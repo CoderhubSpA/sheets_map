@@ -790,7 +790,7 @@ export default {
                 },
                 /** Obtener el nivel de zoom actual */
                 getZoom: () => this.zoom,
-                /** Volar a una ubicación { lat, lng } con zoom opcional (default 12) */
+                /** Volar a una ubicación { lat, lng } con zoom opcional (default 12). No crea marcador salvo options.showMarker=true. */
                 flyTo: (payload = {}) =>
                     payload?.latLng
                         ? this.zoomToLocation(
@@ -813,6 +813,7 @@ export default {
                         this.external_view_override = true;
                     }
 
+                    this.clearLocationMarker();
                     this.center = latLng;
                     this.zoom = zoom;
                     if (this.map) {
@@ -1721,9 +1722,13 @@ export default {
 
             this.$delete(this.vector_tile_legends, layerId);
         },
-        zoomToLocation(latLng, zoom) {
-            this.setMarker(latLng.lat, latLng.lng);
-            this.map.flyTo(latLng, zoom || 12);
+        zoomToLocation(latLng, zoom, options = {}) {
+            if (options.showMarker === true) {
+                this.setMarker(latLng.lat, latLng.lng);
+            } else {
+                this.clearLocationMarker();
+            }
+            this.map.flyTo(latLng, zoom || 12, options.leaflet || {});
         },
         zoomMap(zoom) {
             if (zoom === "out") this.zoom--;
@@ -1812,15 +1817,18 @@ export default {
          * El ícono cambia entre pin rojo (zoom < 15) y crosshair (zoom >= 15).
          */
         setMarker(lat, lng) {
-            if (this.marker) {
-                this.map.removeLayer(this.marker);
-                this.marker = null;
-            }
+            this.clearLocationMarker();
 
             const zoom = this.map ? this.map.getZoom() : this.zoom;
             const icon = this.getMarkerIconForZoom(zoom);
 
             this.marker = L.marker([lat, lng], { icon }).addTo(this.map);
+        },
+
+        clearLocationMarker() {
+            if (!this.marker) return;
+            this.map.removeLayer(this.marker);
+            this.marker = null;
         },
 
         /**
