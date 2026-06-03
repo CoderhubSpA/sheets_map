@@ -24,9 +24,18 @@
 
 <script>
 import html2canvas from "html2canvas";
+import { BButton, BIcon, BModal, BForm, BFormGroup, BFormInput } from "bootstrap-vue";
 
 export default {
     name: "ScreenshotButton",
+    components: {
+        BButton,
+        BIcon,
+        BModal,
+        BForm,
+        BFormGroup,
+        BFormInput,
+    },
     props: {
         // ID del elemento a capturar (requerido)
         targetId: {
@@ -268,6 +277,12 @@ export default {
     padding: 0;
     border: none;
     font-size: 0.7rem;
+}
+
+.screenshot-button:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+    color: #212529;
 }
 
 .screenshot-capturing {

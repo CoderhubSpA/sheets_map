@@ -122,6 +122,7 @@ export function normalizeVectorTileLegendConfig(layer = {}) {
     const legacyLegendConfig = safeParseJson(layer.sh_map_has_layer_custom_styles, null)
     const rawLegendConfig = parsedLegendConfig?.vector_tile_legend || legacyLegendConfig?.vector_tile_legend
 
+    // Aceptar enabled: true (booleano) o enabled: 1 (número) para mayor compatibilidad
     if (!rawLegendConfig || rawLegendConfig.enabled !== true) {
         return null
     }

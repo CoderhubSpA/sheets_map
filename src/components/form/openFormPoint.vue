@@ -193,7 +193,7 @@ export default {
 
 <style>
 
-.my-map-container.drawing >>> .leaflet-interactive:not(.polygon_draft_circle_marker){
+.my-map-container.drawing .leaflet-interactive:not(.polygon_draft_circle_marker){
     cursor: crosshair !important;
 }
 button.get-point-btn {
@@ -209,5 +209,11 @@ button.get-point-btn {
     padding: 0;
     border: none;
     font-size: 0.7rem;
+}
+
+button.get-point-btn:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+    color: #212529;
 }
 </style>
