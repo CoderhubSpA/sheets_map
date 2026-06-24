@@ -320,9 +320,17 @@ export default {
         this._lastShape = this._prevShape;
         this._prevShape = null;
         this.setCursor("crosshair");
-        if (this.map && this.map.pm) {
-          this.map.pm.enableDraw(this._lastShape, this.draft_style);
-        }
+        // Diferir enableDraw a un macrotask: cuando el eraser se apaga porque
+        // se borró el último polígono, esto corre DENTRO del ciclo del click
+        // de borrado. Armar el dibujo sincrónico hace que geoman capture ese
+        // mismo click como primer vértice del nuevo polígono. Con setTimeout(0)
+        // el click termina antes de armar el draw -> queda activo sin vértice.
+        const shapeToDraw = this._lastShape;
+        setTimeout(() => {
+          if (this.map && this.map.pm && this.drawing && shapeToDraw) {
+            this.map.pm.enableDraw(shapeToDraw, this.draft_style);
+          }
+        }, 0);
       } else {
         // Desactivado por cancelación — limpiar sin retomar
         this._prevShape = null;
