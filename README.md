@@ -195,7 +195,7 @@ this.$refs.sheetsMap.mapActions.zoomIn();
 | `teleportTo`             | `teleportTo(latLng, zoom?)` | Centrar el mapa sin animación ni marcador de geolocalización       |
 | `panTo`                  | `panTo(latLng)`            | Centrar el mapa en `{ lat, lng }` sin animación                    |
 | `filterByBounds`         | `filterByBounds()`         | Filtrar datos por zona visible del mapa                            |
-| `toggleCoordinateFormat` | `toggleCoordinateFormat()` | Alternar formato de coordenadas (latlng / UTM)                     |
+| `toggleCoordinateFormat` | `toggleCoordinateFormat()` | Ciclar formato de coordenadas (WGS84 / UTM / Web Mercator / SIRGAS-Chile 2016) |
 | `getCenter`              | `getCenter()`              | Obtener coordenadas del centro actual                              |
 | `invalidateSize`         | `invalidateSize()`         | Recalcular tamaño del mapa (útil tras redimensionar el contenedor) |
 | `getLeafletMap`          | `getLeafletMap()`          | Acceso directo al objeto Leaflet `L.Map` (avanzado)                |

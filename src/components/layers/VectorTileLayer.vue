@@ -43,6 +43,26 @@ export default {
         base_url: {
             type: String,
             default: ''
+        },
+        opacity: {
+            type: Number,
+            default: 1
+        },
+        highlightColor: {
+            type: String,
+            default: '#FFEB3B'
+        },
+        highlightWeight: {
+            type: Number,
+            default: 4
+        },
+        filterAttribute: {
+            type: String,
+            default: ''
+        },
+        filterValue: {
+            type: [String, Number],
+            default: ''
         }
     },
     data() {
@@ -53,6 +73,7 @@ export default {
             tileUrl: null,
             pointRenderMode: 'circle',
             isInitialized: false,
+            currentStyleExpressions: null,
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
             // Nombre del pane personalizado para esta capa
@@ -72,6 +93,17 @@ export default {
             handler() {
                 this.applyRenderStateToLiveLayer();
             }
+        },
+        opacity() {
+            // Aplicación síncrona desde el cache: evita re-disparar resolveRenderState()
+            // (que puede refetchear la leyenda semántica) en cada tick del slider.
+            this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
+        },
+        filterAttribute() {
+            this.applyTileFilter();
+        },
+        filterValue() {
+            this.applyTileFilter();
         }
     },
     mounted() {
@@ -82,6 +114,11 @@ export default {
     },
     beforeDestroy() {
         this.cleanup();
+    },
+    computed: {
+        highlightSourceId() {
+            return `${this.layer.id}-highlight-source`;
+        }
     },
     methods: {
         async createVectorTileLayer() {
@@ -155,6 +192,7 @@ export default {
             this.tileUrl = tileUrl;
 
             const renderState = await this.resolveRenderState(tileUrl);
+            this.currentStyleExpressions = renderState.styleExpressions;
 
             // Orden de prioridad para sourceLayer:
             // 1. Hint devuelto por el backend de leyenda semántica (layer_name en la respuesta)
@@ -179,12 +217,18 @@ export default {
                         scheme: 'xyz',
                         minzoom: 0,
                         maxzoom: 22
+                    },
+                    [this.highlightSourceId]: {
+                        type: 'geojson',
+                        data: { type: 'FeatureCollection', features: [] }
                     }
                 },
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                 layers: [
                     // NO incluir capa de fondo - dejar completamente transparente
-                    ...this.createMapLibreLayers(renderState.styleExpressions)
+                    ...this.createMapLibreLayers(renderState.styleExpressions),
+                    // Capas de highlight del feature seleccionado, siempre al tope
+                    ...this.createHighlightLayers()
                 ]
             };
 
@@ -246,6 +290,11 @@ export default {
             this.maplibreMap.on('load', () => {
                 this.styleLoaded = true;
             });
+            // Cubre la carrera donde 'load' ya se disparó antes de registrar el listener
+            // de arriba (posible si el hilo se demora en llegar hasta acá).
+            if (this.maplibreMap.isStyleLoaded()) {
+                this.styleLoaded = true;
+            }
 
             // Generar imágenes de formas bajo demanda.
             // Cuando MapLibre necesita un icon-image 'vtl-shape-{shape}-{fill}-{stroke}'
@@ -351,6 +400,13 @@ export default {
             });
         },
 
+        // Escala una expresión de opacidad (número plano o expression array de MapLibre)
+        // por el factor de opacidad de la capa (prop `opacity`, 0-1).
+        scaleOpacity(expr) {
+            if (typeof expr === 'number') return expr * this.opacity;
+            return ['*', expr, this.opacity];
+        },
+
         resolveStylePaint(styleExpressions = null) {
             const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
             const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
@@ -361,12 +417,15 @@ export default {
                 strokeColorExpression,
                 pointRadiusExpression: resolvedStyleExpressions.pointRadiusExpression ?? 8,
                 pointStrokeWidthExpression: resolvedStyleExpressions.pointStrokeWidthExpression ?? 3,
-                polygonFillOpacityExpression: resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6,
+                polygonFillOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6),
                 polygonStrokeWidthExpression: resolvedStyleExpressions.polygonStrokeWidthExpression ?? 2,
-                polygonStrokeOpacityExpression: resolvedStyleExpressions.polygonStrokeOpacityExpression ?? 0.8,
+                polygonStrokeOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.polygonStrokeOpacityExpression ?? 0.8),
                 polygonBorderEnabled: resolvedStyleExpressions.polygonBorderEnabled !== false,
                 lineWidthExpression: resolvedStyleExpressions.lineWidthExpression ?? 2.5,
-                lineOpacityExpression: resolvedStyleExpressions.lineOpacityExpression ?? 0.85,
+                lineOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.lineOpacityExpression ?? 0.85),
+                circleOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.circleOpacityExpression ?? 1.0),
+                circleFallbackOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.circleFallbackOpacityExpression ?? 0.85),
+                iconOpacityExpression: this.scaleOpacity(1),
                 useSymbolForPointShape: Boolean(
                     resolvedStyleExpressions.useSymbolForPointShape && !this.layer.sh_map_has_layer_point_image
                 ),
@@ -402,6 +461,78 @@ export default {
             this.maplibreMap.setLayoutProperty(layerId, property, value);
         },
 
+        // Layers de highlight del feature clickeado: un line layer (polígonos/líneas) y un
+        // circle layer en modo anillo/halo (puntos, no tapa el ícono/símbolo original).
+        createHighlightLayers() {
+            return [
+                {
+                    id: `${this.layer.id}-highlight-line`,
+                    type: 'line',
+                    source: this.highlightSourceId,
+                    filter: ['in', '$type', 'Polygon', 'LineString'],
+                    paint: {
+                        'line-color': this.highlightColor,
+                        'line-width': this.highlightWeight
+                    }
+                },
+                {
+                    id: `${this.layer.id}-highlight-circle`,
+                    type: 'circle',
+                    source: this.highlightSourceId,
+                    filter: ['==', '$type', 'Point'],
+                    paint: {
+                        'circle-radius': 14,
+                        'circle-color': 'transparent',
+                        'circle-stroke-width': this.highlightWeight,
+                        'circle-stroke-color': this.highlightColor
+                    }
+                }
+            ];
+        },
+
+        // Marca visualmente el feature clickeado (geometría exacta de queryRenderedFeatures,
+        // sin necesitar id/promoteId en la fuente de tiles).
+        setHighlightFeature(feature) {
+            const source = this.maplibreMap && this.maplibreMap.getSource(this.highlightSourceId);
+            if (!source) return;
+
+            source.setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: feature.geometry, properties: {} }]
+            });
+        },
+
+        // Público: usado por SheetsMap.vue para limpiar el highlight de esta capa
+        // cuando se selecciona un feature de otra capa (u otro mecanismo, ej. GeoJSON).
+        clearHighlight() {
+            if (!this.maplibreMap || !this.styleLoaded) return;
+            const source = this.maplibreMap.getSource(this.highlightSourceId);
+            if (!source) return;
+
+            source.setData({ type: 'FeatureCollection', features: [] });
+        },
+
+        // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
+        // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
+        buildFilteredTileUrl() {
+            if (!this.filterAttribute || this.filterValue === '' || this.filterValue === null || this.filterValue === undefined) {
+                return this.tileUrl;
+            }
+
+            const attr = encodeURIComponent(this.filterAttribute);
+            const value = encodeURIComponent(this.filterValue);
+            return `${this.tileUrl}?filter.${attr}=eq.${value}`;
+        },
+
+        // Actualiza el template de tiles de la fuente en runtime (sin reconstruir el estilo)
+        // y fuerza a MapLibre a refetchear con el nuevo filtro.
+        applyTileFilter() {
+            const source = this.maplibreMap && this.maplibreMap.getSource('vector-tiles');
+            if (!source || typeof source.setTiles !== 'function') return;
+
+            source.setTiles([this.buildFilteredTileUrl()]);
+        },
+
         applyStyleExpressionsToLiveLayer(styleExpressions = null) {
             if (!this.maplibreMap) return;
 
@@ -423,12 +554,18 @@ export default {
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-opacity', paint.lineOpacityExpression);
 
-            [`${this.layer.id}-circle`, `${this.layer.id}-circle-fallback`].forEach((layerId) => {
+            [
+                [`${this.layer.id}-circle`, paint.circleOpacityExpression],
+                [`${this.layer.id}-circle-fallback`, paint.circleFallbackOpacityExpression],
+            ].forEach(([layerId, circleOpacity]) => {
                 this.setPaintPropertyIfExists(layerId, 'circle-radius', paint.pointRadiusExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-color', paint.fillColorExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-stroke-width', paint.pointStrokeWidthExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-stroke-color', paint.strokeColorExpression);
+                this.setPaintPropertyIfExists(layerId, 'circle-opacity', circleOpacity);
             });
+
+            this.setPaintPropertyIfExists(`${this.layer.id}-symbol`, 'icon-opacity', paint.iconOpacityExpression);
 
             if (paint.useSymbolForPointShape) {
                 this.setLayoutPropertyIfExists(
@@ -452,6 +589,7 @@ export default {
             const renderState = await this.resolveRenderState(tileUrl);
             if (this.isDestroyed()) return;
 
+            this.currentStyleExpressions = renderState.styleExpressions;
             this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
             this.emitLegend(renderState.legend);
         },
@@ -462,28 +600,27 @@ export default {
          */
         configureCanvas() {
             if (!this.maplibreMap || !this.vectorTileLayer) return;
-            
-            // Esperar a que MapLibre esté listo
-            this.maplibreMap.once('load', () => {
+
+            const applyCanvasStyles = () => {
                 // Obtener el canvas usando el método de L.maplibreGL
                 const canvas = this.vectorTileLayer.getCanvas();
                 if (canvas) {
                     // En modo no-interactivo, el canvas NO debe capturar eventos
                     canvas.style.pointerEvents = 'none';
-                    
+
                     // CRÍTICO: Hacer el canvas completamente transparente
                     canvas.style.backgroundColor = 'transparent';
                     canvas.style.opacity = '1';
-                    
+
                     // Usar mix-blend-mode para mezclar con las capas debajo
                     canvas.style.mixBlendMode = 'normal';
-                    
+
                     // Asegurar que el canvas esté posicionado correctamente
                     canvas.style.position = 'absolute';
                     canvas.style.top = '0';
                     canvas.style.left = '0';
                 }
-                
+
                 // También configurar el contenedor
                 const container = this.vectorTileLayer.getContainer();
                 if (container) {
@@ -491,7 +628,13 @@ export default {
                     container.style.backgroundColor = 'transparent';
                     container.style.opacity = '1';
                 }
-            });
+            };
+
+            // Esperar a que MapLibre esté listo (con respaldo síncrono por si 'load' ya se disparó)
+            this.maplibreMap.once('load', applyCanvasStyles);
+            if (this.maplibreMap.isStyleLoaded()) {
+                applyCanvasStyles();
+            }
         },
         
         /**
@@ -536,15 +679,16 @@ export default {
                 const feature = features[0];
                 const properties = feature.properties;
                 
-                // Crear y mostrar el popup
-                this.showPopup(properties, [e.latlng.lat, e.latlng.lng]);
-                
+                // Resaltar el feature clickeado
+                this.setHighlightFeature(feature);
+
                 // Emitir evento para que el padre pueda reaccionar si necesita
                 this.$emit('feature-click', {
                     layer: this.layer,
                     feature: feature,
                     properties: properties,
-                    latlng: [e.latlng.lat, e.latlng.lng]
+                    latlng: [e.latlng.lat, e.latlng.lng],
+                    visible_columns: this.visible_columns
                 });
                 
                 return true; // Click manejado
@@ -820,11 +964,11 @@ export default {
                     'source-layer': this.sourceLayer,
                     filter: this.pointGeometryFilter(),
                     paint: {
-                        'circle-radius': pointRadiusExpression,
-                        'circle-color': fillColorExpression,
-                        'circle-stroke-width': pointStrokeWidthExpression,
-                        'circle-stroke-color': strokeColorExpression,
-                        'circle-opacity': 0.85
+                        'circle-radius': paint.pointRadiusExpression,
+                        'circle-color': paint.fillColorExpression,
+                        'circle-stroke-width': paint.pointStrokeWidthExpression,
+                        'circle-stroke-color': paint.strokeColorExpression,
+                        'circle-opacity': paint.circleFallbackOpacityExpression
                     }
                 });
                 // Layer tipo SYMBOL con icono personalizado
@@ -839,6 +983,9 @@ export default {
                         'icon-size': 0.8,
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true
+                    },
+                    paint: {
+                        'icon-opacity': paint.iconOpacityExpression
                     }
                 });
             } else if (paint.useSymbolForPointShape) {
@@ -864,6 +1011,9 @@ export default {
                         'icon-size': ['/', paint.pointRadiusExpression, 32],
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true,
+                    },
+                    paint: {
+                        'icon-opacity': paint.iconOpacityExpression
                     }
                 });
             } else {
@@ -880,130 +1030,12 @@ export default {
                         'circle-color': paint.fillColorExpression, // Color dinámico desde 'Fill'
                         'circle-stroke-width': paint.pointStrokeWidthExpression,
                         'circle-stroke-color': paint.strokeColorExpression, // Color dinámico desde 'Stroke'
-                        'circle-opacity': 1.0
+                        'circle-opacity': paint.circleOpacityExpression
                     }
                 });
             }
             
             return layers;
-        },
-        
-        /**
-         * Muestra el popup con la información del feature
-         */
-        showPopup(properties, latlng) {
-            // Cerrar popup previo
-            this.map.closePopup();
-            
-            // Convertir propiedades a formato de marker
-            const marker = {
-                has_data: true,
-                id: properties.id || null,
-                data: properties
-            };
-            
-            // Generar HTML del contenido
-            const content = this.generatePopupContent(marker);
-            
-            // Crear y abrir popup
-            L.popup({
-                maxWidth: 300,
-                minWidth: 300,
-                maxHeight: 300,
-                closeButton: true,
-                autoClose: false,
-                closeOnClick: false,
-                autoPan: false,
-                className: 'popupCustom'
-            })
-                .setContent(content)
-                .setLatLng(latlng)
-                .openOn(this.map);
-            
-            // Aplicar z-index para estar sobre MapLibre canvas
-            setTimeout(() => {
-                const popupElement = document.querySelector('.leaflet-popup');
-                if (popupElement) {
-                    popupElement.style.zIndex = '10000';
-                    const closeBtn = popupElement.querySelector('.leaflet-popup-close-button');
-                    if (closeBtn) closeBtn.style.zIndex = '10001';
-                }
-            }, 10);
-        },
-        
-        /**
-         * Genera el HTML del contenido del popup
-         * Replica EXACTAMENTE la estructura de PopUpMarker.vue
-         */
-        generatePopupContent(marker) {
-            if (!marker.has_data) {
-                return '<div class="marker-pop-up-single-info">Cargando...</div>';
-            }
-            
-            let info = [];
-            
-            // Si hay visible_columns configuradas, mostrar solo esas
-            if (this.visible_columns && this.visible_columns.length > 0) {
-                info = this.visible_columns.map(col => {
-                    const value = marker.data[col.id] === 'NULL' || marker.data[col.id] === null 
-                        ? 'Sin información disponible' 
-                        : marker.data[col.id];
-                    
-                    const formattedValue = (value === 'Sin información disponible') 
-                        ? value 
-                        : (isNaN(value) ? value : Number(value).toLocaleString('es-ES'));
-                    
-                    // Si es URL, crear enlace
-                    const content = (col.format === 'URL' && value !== 'Sin información disponible')
-                        ? `<a href="${formattedValue}">${formattedValue}</a>`
-                        : formattedValue;
-                    
-                    return `
-                        <div class="marker-pop-up-single-info">
-                            <span class="marker-pop-up-info-title"><b>${col.name}</b></span>
-                            <br />
-                            <span class="marker-pop-up-info-content">${content}</span>
-                        </div>
-                    `;
-                });
-            } else {
-                // Si NO hay visible_columns, mostrar todas las propiedades
-                info = Object.entries(marker.data).map(([key, value]) => {
-                    const title = this.formatKeyToHumanText(key);
-                    const formattedValue = (value == null || value === 'NULL') 
-                        ? 'Sin información disponible' 
-                        : (isNaN(value) ? value : Number(value).toLocaleString('es-ES'));
-                    
-                    // Detectar URLs automáticamente
-                    const content = (typeof value === 'string' && 
-                                    (value.startsWith('http://') || value.startsWith('https://')))
-                        ? `<a href="${formattedValue}">${formattedValue}</a>`
-                        : formattedValue;
-                    
-                    return `
-                        <div class="marker-pop-up-single-info">
-                            <span class="marker-pop-up-info-title"><b>${title}</b></span>
-                            <br />
-                            <span class="marker-pop-up-info-content">${content}</span>
-                        </div>
-                    `;
-                });
-            }
-            
-            // Envolver en el div container con clase CSS correcta
-            return `<div class="marker-pop-up-content">${info.join('')}</div>`;
-        },
-        
-        /**
-         * Formatea un key de propiedad a texto legible
-         */
-        formatKeyToHumanText(text) {
-            let textFormated = text.replace(/_/g, " ");
-            textFormated = textFormated.toLowerCase();
-            textFormated = textFormated.replace(/(?:^|\s)\S/g, a => a.toUpperCase());
-            textFormated = textFormated.replace(/([a-z])([0-9])/i, '$1 $2');
-            textFormated = textFormated.replace(/([0-9])([a-z])/i, '$1 $2');
-            return textFormated;
         },
         
         // debugVectorTiles() {

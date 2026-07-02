@@ -121,6 +121,11 @@
                 <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
+                    :opacity="getLayerOpacity(vectorTile.layer.id)"
+                    :highlight-color="style_variables['feature-highlight-color']"
+                    :highlight-weight="style_variables['feature-highlight-weight']"
+                    :filter-attribute="getLayerFilter(vectorTile.layer.id).attribute"
+                    :filter-value="getLayerFilter(vectorTile.layer.id).value"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
                     @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
@@ -136,6 +141,7 @@
                     :base-url="layer.sh_map_has_layer_url" :layers="layer.sh_map_has_layer_geoserver_layer"
                     :name="layer.sh_map_has_layer_geoserver_layer" :transparent="true"
                     :format="layer.sh_map_has_layer_wms_format || 'image/png'"
+                    :opacity="getLayerOpacity(layer.id)"
                     :options="{ maxNativeZoom: 20, maxZoom: 20 }" layer-type="base" service="WMS" />
 
                 <l-control class="sheets-map-legend" position="bottomright"
@@ -289,6 +295,7 @@
                 <l-control-scale class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
         </div>
+        <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
     </div>
 </template>
 <script>
@@ -341,6 +348,7 @@ Icon.Default.mergeOptions({
     shadowUrl: markerShadowUrl,
 });
 import ScreenshotButton from "./ScreenshotButton.vue";
+import FeatureDetailModal from "./FeatureDetailModal.vue";
 
 const sheetsMapVersion = packageInfo.version;
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
@@ -383,10 +391,17 @@ export default {
         LControl,
         LControlScale,
         ScreenshotButton,
+        FeatureDetailModal,
     },
     props: {
         // Propiedades de componentes
         id: String,
+        // Si es true, Sheets Map no muestra su modal interno de detalle de feature al hacer
+        // click (útil para consumidores que ya tienen su propio modal escuchando feature-click).
+        disable_feature_modal: {
+            type: Boolean,
+            default: false,
+        },
         entity_type_id: String,
         config_entity_id: String,
         config_entity_type_id: String,
@@ -447,6 +462,9 @@ export default {
             scale_sensitive_layers: [],
             multicolor_geojson_legend: {},
             color_layer_opacity: {},
+            selectedGeojsonLayer: null,
+            selectedFeatureModalVisible: false,
+            selectedFeatureModalData: null,
             base_google_map: undefined,
             base_map_guide: undefined,
             base_open_street_map: undefined,
@@ -603,6 +621,11 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
+                // Highlight de feature seleccionado al hacer click (GeoJSON + vector tiles)
+                "feature-highlight-color":
+                    custom_styles["feature-highlight-color"] || "#FFEB3B",
+                "feature-highlight-weight":
+                    custom_styles["feature-highlight-weight"] || 4,
                 // Hexagonal Clusters Style
                 "hexagonal-cluster-small-color":
                     custom_styles["hexagonal-cluster-small-color"] || "#F9E79F",
@@ -1029,66 +1052,24 @@ export default {
                         layer.off(); // Quita eventos si los hubiese
                     } else {
                         // Eventos normales si se ve
-                        layer.on("click", () => {
-                            console.log("click en:", feature.properties.name);
-                        });
-                    }
+                        layer.on("click", (clickEvent) => {
+                            // Evita que el click también dispare onMapClick (nivel de mapa) en el mismo
+                            // tick, lo que borraría el highlight recién puesto en setSelectedGeojsonLayer.
+                            L.DomEvent.stopPropagation(clickEvent);
 
-                    layer.bindPopup(
-                        (layer) => {
-                            //Obtenemos la configuración de la capa a la que pertenece
                             const active_layer = this.active_layers.find((l) => {
-                                return layer.feature.layer_id == l.id;
+                                return feature.layer_id == l.id;
                             });
 
-                            let info = ["Sin información disponible"]; //Información a retornar en el popup
-                            const property_configuration =
-                                active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
-
-                            // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
-                            // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
-                            if (property_configuration == null) {
-                                switch (active_layer.sh_map_has_layer_code) {
-                                    case "analytic_geojson": {
-                                        //Almacenamos el calculo hecho entre el Bi y el feature
-                                        const [metric_value] = Object.values(
-                                            layer.feature.properties.metric_data,
-                                        );
-                                        const total =
-                                            metric_value == null
-                                                ? "Sin información disponible"
-                                                : metric_value.toLocaleString("es-ES");
-
-                                        return `<span class="marker-pop-up-info-content"> ${total} </span>`;
-                                    }
-                                    case "operative_geoserver_wfs_point": {
-                                        info = this.infoGeojsonWithKeys(layer, false);
-                                        break;
-                                    }
-                                }
-                            } else {
-                                //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
-                                if (property_configuration.charAt(0) == "*") {
-                                    const human_keys =
-                                        property_configuration == "*" ? true : false;
-                                    info = this.infoGeojsonWithKeys(layer, human_keys);
-                                }
-
-                                // Si la configuración proporcionada es un json entonces retorna la configuración + alias proporcionado por la configuración
-                                if (this.isJson(property_configuration)) {
-                                    let property_keys = JSON.parse(property_configuration);
-                                    info = this.infoGeojsonWithAlias(layer, property_keys);
-                                }
-                            }
-
-                            return `${info.join("<br>")}`;
-                        },
-                        {
-                            permanent: false,
-                            direction: "center",
-                            className: "marker-pop-up-content",
-                        },
-                    );
+                            this.emitFeatureClick({
+                                layer: active_layer,
+                                properties: feature.properties,
+                                latlng: [clickEvent.latlng.lat, clickEvent.latlng.lng],
+                                visible_columns: active_layer.visible_columns || [],
+                            });
+                            this.setSelectedGeojsonLayer(layer);
+                        });
+                    }
                 },
             };
         },
@@ -1237,9 +1218,12 @@ export default {
                         : color;
 
                 // Creamos el objeto de estilo base
+                const opacityFactor = this.getLayerOpacity(layer?.id);
                 let style = {
                     color: color,
                     fillColor: fill_color,
+                    opacity: opacityFactor,
+                    fillOpacity: opacityFactor,
                 };
 
                 // Determinamos el tipo de feature para la leyenda y filtrado
@@ -1388,6 +1372,11 @@ export default {
         },
     },
     watch: {
+        // Cerrar el modal interno de detalle (click afuera, botón X) limpia el highlight
+        // del feature seleccionado — ambos viven en este componente, no hace falta más wiring.
+        selectedFeatureModalVisible(visible) {
+            if (!visible) this.clearAllHighlightsExcept({});
+        },
         analytic_cluster() {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
@@ -1515,7 +1504,55 @@ export default {
                         : configuredOrRuntimeMaxNativeZoom;
             }
 
+            options.opacity = this.getLayerOpacity(layer?.id);
+
             return options;
+        },
+        // Devuelve el nivel de opacidad (0-1) configurado para una capa desde el panel de herramientas.
+        // Usado por render de GeoJSON, vector tiles, WMS y capas base.
+        getLayerOpacity(layerId) {
+            return this.working_layers.find((wl) => wl.key == layerId)?.opacity ?? 1;
+        },
+        // Devuelve el filtro de atributo (REQ-706.1) configurado para una capa vector-tile
+        // desde el panel de herramientas. { attribute: '', value: '' } si no hay filtro activo.
+        getLayerFilter(layerId) {
+            const wl = this.working_layers.find((wl) => wl.key == layerId);
+            return {
+                attribute: wl?.filterAttribute || '',
+                value: wl?.filterValue ?? '',
+            };
+        },
+        // Resalta la capa GeoJSON (instancia real de Leaflet) clickeada, restaurando la anterior
+        // a su estilo base. Imperativo (setStyle directo), no reactivo, para que sea O(1) por click.
+        setSelectedGeojsonLayer(leafletLayer) {
+            // clearAllHighlightsExcept ya resetea el estilo del feature GeoJSON previamente
+            // seleccionado (si distinto) y limpia el highlight de cualquier vector-tile activo.
+            this.clearAllHighlightsExcept({ geojson: leafletLayer });
+
+            leafletLayer.setStyle({
+                weight: this.style_variables["feature-highlight-weight"],
+                color: this.style_variables["feature-highlight-color"],
+            });
+            leafletLayer.bringToFront();
+
+            this.selectedGeojsonLayer = leafletLayer;
+        },
+        // Asegura que solo haya un feature resaltado a la vez en todo el mapa (GeoJSON + vector tiles).
+        clearAllHighlightsExcept({ vtLayerComponent = null, geojson = null } = {}) {
+            (this.$refs.vectorTileLayers || []).forEach((instance) => {
+                if (instance !== vtLayerComponent && typeof instance.clearHighlight === "function") {
+                    instance.clearHighlight();
+                }
+            });
+
+            if (!geojson || this.selectedGeojsonLayer !== geojson) {
+                if (this.selectedGeojsonLayer) {
+                    this.selectedGeojsonLayer.setStyle(
+                        this.operative_geojson_style(this.selectedGeojsonLayer.feature),
+                    );
+                }
+                this.selectedGeojsonLayer = null;
+            }
         },
         nextDynamicLayerOrder() {
             const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
@@ -1756,34 +1793,8 @@ export default {
                 }
             });
 
-            // Configurar handler centralizado para clicks en capas vectoriales
-            this.setupVectorTileClickHandler();
-
             // Emitir API pública para consumidores externos
             this.$emit("map-actions-ready", this.mapActions);
-        },
-
-        /**
-         * Configura un handler centralizado para clicks en capas vectoriales
-         * Este handler consulta las capas en orden de z-index descendente (de arriba hacia abajo)
-         * y para en la primera capa que encuentre un feature
-         */
-        setupVectorTileClickHandler() {
-            this.map.on("click", (e) => {
-                // Obtener capas vectoriales en orden inverso (mayor z-index primero)
-                const layers = [...(this.$refs.vectorTileLayers || [])].reverse();
-
-                // Buscar en cada capa, empezando por la de arriba
-                for (const layerComponent of layers) {
-                    if (layerComponent && layerComponent.tryHandleClick) {
-                        const handled = layerComponent.tryHandleClick(e);
-                        if (handled) {
-                            // Si esta capa manejó el click, no procesar más
-                            break;
-                        }
-                    }
-                }
-            });
         },
 
         /**
@@ -2910,15 +2921,28 @@ export default {
                 // Add the point to the polygon drafter
                 this.$refs.polygon_drafter.addPolygon(event);
             }
-            // Propagate click to vector tile layers for tooltip handling
+            // Propagate click to vector tile layers for tooltip handling.
+            // Un click sobre un feature GeoJSON hace stopPropagation antes de llegar acá
+            // (ver geojson_options().onEachFeature), así que si este handler corre es porque
+            // el click fue sobre un feature vector-tile o sobre un área vacía del mapa.
+            let handledByVectorTile = false;
             if (this.$refs.vectorTileLayers && this.$refs.vectorTileLayers.length > 0) {
                 for (let i = this.$refs.vectorTileLayers.length - 1; i >= 0; i--) {
                     const vtLayer = this.$refs.vectorTileLayers[i];
                     if (vtLayer && typeof vtLayer.tryHandleClick === 'function') {
                         const handled = vtLayer.tryHandleClick(event);
-                        if (handled) break;
+                        if (handled) {
+                            handledByVectorTile = true;
+                            this.clearAllHighlightsExcept({ vtLayerComponent: vtLayer });
+                            break;
+                        }
                     }
                 }
+            }
+
+            if (!handledByVectorTile) {
+                // Click en área vacía del mapa: limpiar cualquier highlight activo.
+                this.clearAllHighlightsExcept({});
             }
         },
         findBounds() {
@@ -3159,19 +3183,6 @@ export default {
         //----------------------------------------------------------------------------------------------
         // Helpers
         //----------------------------------------------------------------------------------------------
-        // format text with "_" to text legible for humans,
-        // set all on lowercase but first letter to uppercase and each after "_" or " " to uppercase,
-        // separe letter from numbers
-        formatKeyToHumanText(text) {
-            let textFormated = text.replace(/_/g, " ");
-            textFormated = textFormated.toLowerCase();
-            textFormated = textFormated.replace(/(?:^|\s)\S/g, function (a) {
-                return a.toUpperCase();
-            });
-            textFormated = textFormated.replace(/([a-z])([0-9])/i, "$1 $2");
-            textFormated = textFormated.replace(/([0-9])([a-z])/i, "$1 $2");
-            return textFormated;
-        },
         // calc hexadecimal between two colors by ratio (0.0 - 1.0)
         calcColor(color1, color2, ratio) {
             const hex = function (x) {
@@ -3205,14 +3216,6 @@ export default {
             const ratio = (max - value) / (max - min);
             return this.calcColor(color_min, color_max, ratio);
         },
-        isJson(str) {
-            try {
-                JSON.parse(str);
-            } catch (e) {
-                return false;
-            }
-            return true;
-        },
         isInt(value) {
             return (
                 !isNaN(value) &&
@@ -3238,76 +3241,6 @@ export default {
             }
 
             return { is_empty: is_empty, is_new_layer: is_new_layer };
-        },
-        infoGeojsonWithAlias(layer, property_keys) {
-            //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
-            let info = Object.entries(property_keys)
-                .map(([key, property]) => {
-                    let value = null;
-                    if (key.includes(".")) {
-                        /* Busca hacia adentro cada propiedad separada por `.`
-                         * Ejemplo:
-                         * "key.prop1.key2" => layer.feature.properties['key']['prop1']['key2']
-                         */
-                        let keys = key.split(".");
-                        value = layer.feature.properties;
-                        for (let i in keys) {
-                            if (keys[i] == "*" && value != null && typeof value == "object") {
-                                [value] = Object.values(value);
-                                continue;
-                            }
-                            value = value[keys[i]];
-                            // Si es asterisco, tomamos todos los valores
-                        }
-                    } else {
-                        value =
-                            layer.feature.properties[key] == null
-                                ? "Sin información disponible"
-                                : layer.feature.properties[key]; // parseamos el valor resultante
-                    }
-
-                    // Para soportar alias de mulitples metricas
-                    // y que no nos aparezca una lista de metricas vacias,
-                    // ignoramos las metricas no encontradas
-                    if (value == null && key.includes("metric_data")) {
-                        return null;
-                    }
-                    value = isNaN(value) ? value : value.toLocaleString("es-ES"); // Si el valor resultante es un número nos aseguramos que quede puntuado
-
-                    return `
-                    <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
-                    <span class="marker-pop-up-info-content"> ${value} </span>
-                `;
-                })
-                .filter((i) => i);
-
-            return info;
-        },
-        //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
-        //o puede retornarse justo como la presenta el GeoJson
-        infoGeojsonWithKeys(layer, human_keys) {
-            let info = Object.entries(layer.feature.properties).map(
-                ([property, value]) => {
-                    // Deconstruímos las propiedades reservadas
-                    if (property === "metric_data") {
-                        /* Ejemplo de contenido la variable `value` cuando la property es `metric_data`:
-                         * {'total_casos': 387.123}
-                         */
-                        [[property, value]] = Object.entries(value);
-                    }
-                    let title = human_keys
-                        ? this.formatKeyToHumanText(property)
-                        : property; // Tomamos la clave de la propiedad
-                    value = value == null ? "Sin información disponible" : value; // parseamos el valor resultante
-                    value = isNaN(value) ? value : value.toLocaleString("es-ES"); // Si el valor resultante es un número nos aseguramos que quede puntuado
-                    return `
-                    <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
-                    <span class="marker-pop-up-info-content"> ${value} </span>
-                `;
-                },
-            );
-
-            return info;
         },
         // END HELPERS
         // Polygon Action: draw or delete
@@ -3470,15 +3403,58 @@ export default {
                 2,
             )}'${eastWest} - Huso: ${specificZone}${northSouth}`;
         },
+        // REQ-706.3: alcance acotado a extender este toggle (no reproyecta tiles/capas).
+        // Sistemas soportados, confirmados con negocio: EPSG:4326, EPSG:32718/32719 (UTM,
+        // huso auto-detectado por convertToUTM), EPSG:3857, EPSG:9153 (SIRGAS-Chile 2016).
         changeCoordinateFormat() {
-            this.center_format = this.center_format == "latlng" ? "UTM" : "latlng";
+            const formats = ["latlng", "UTM", "3857", "9153"];
+            const nextIndex = (formats.indexOf(this.center_format) + 1) % formats.length;
+            this.center_format = formats[nextIndex];
             this.centerParsed();
         },
         centerParsed() {
-            this.center_parsed =
-                this.center_format == "latlng"
-                    ? this.center["lat"] + ", " + this.center["lng"]
-                    : this.convertToUTM();
+            const converters = {
+                latlng: () => this.center["lat"] + ", " + this.center["lng"],
+                UTM: () => this.convertToUTM(),
+                "3857": () => this.convertToWebMercator(),
+                "9153": () => this.convertToSIRGAS(),
+            };
+            this.center_parsed = converters[this.center_format]();
+        },
+        convertToWebMercator() {
+            let keys = Object.keys(this.center);
+            let lat = keys.includes("lat") ? "lat" : 1;
+            let lng = keys.includes("lng") ? "lng" : 0;
+
+            if (!proj4.defs["EPSG:3857"]) {
+                proj4.defs(
+                    "EPSG:3857",
+                    "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +no_defs",
+                );
+            }
+
+            const [x, y] = proj4(proj4.WGS84, "EPSG:3857", [
+                this.center[lng],
+                this.center[lat],
+            ]);
+
+            return `Web Mercator: ${x.toFixed(2)}, ${y.toFixed(2)}`;
+        },
+        convertToSIRGAS() {
+            let keys = Object.keys(this.center);
+            let lat = keys.includes("lat") ? "lat" : 1;
+            let lng = keys.includes("lng") ? "lng" : 0;
+
+            if (!proj4.defs["EPSG:9153"]) {
+                proj4.defs("EPSG:9153", "+proj=longlat +ellps=GRS80 +no_defs +type=crs");
+            }
+
+            const [lon, sirgasLat] = proj4(proj4.WGS84, "EPSG:9153", [
+                this.center[lng],
+                this.center[lat],
+            ]);
+
+            return `SIRGAS-Chile 2016: ${sirgasLat.toFixed(6)}, ${lon.toFixed(6)}`;
         },
         sumCoordinates(layer_list) {
             let coordinates_raw = layer_list
@@ -3549,8 +3525,12 @@ export default {
         // ================================================================================
 
         handleVectorTileFeatureClick(eventData) {
-            const { layer, properties } = eventData;
+            this.emitFeatureClick(eventData);
+        },
 
+        // Punto único de emisión de feature-click, usado tanto por vector tiles como por GeoJSON,
+        // para que ambos flujos entreguen el mismo shape al consumidor (modal de detalle).
+        emitFeatureClick({ layer, properties, latlng, visible_columns }) {
             // Emitir evento para que el componente padre pueda reaccionar
             this.$emit("set_layer", {
                 layer_id: layer.id,
@@ -3561,7 +3541,7 @@ export default {
             this.$emit("feature-click", {
                 layer: layer,
                 properties: properties || {},
-                latlng: eventData.latlng || null,
+                latlng: latlng || null,
             });
 
             // Llamar callback registrado via mapActions.onFeatureClick
@@ -3569,9 +3549,20 @@ export default {
                 this._featureClickCallback({
                     layer: layer,
                     properties: properties || {},
-                    latlng: eventData.latlng || null,
-                    visible_columns: [],
+                    latlng: latlng || null,
+                    visible_columns: visible_columns || [],
                 });
+            }
+
+            // Modal interno de detalle: opt-out via disable_feature_modal para consumidores
+            // (como Sheets hoy) que ya renderizan su propio modal escuchando feature-click.
+            if (!this.disable_feature_modal) {
+                this.selectedFeatureModalData = {
+                    layer: { name: layer.sh_map_has_layer_name || layer.name || "" },
+                    properties: properties || {},
+                    visible_columns: visible_columns || [],
+                };
+                this.selectedFeatureModalVisible = true;
             }
         },
     },
@@ -3629,9 +3620,11 @@ li {
 
 .horizontal-form-map-btn {
     flex-direction: column;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: flex-end;
-    padding-right: 80px;
+    padding-right: 40px;
+    height: calc(100dvh - 80px);
+
 }
 
 .horizontal-form-map-btn .zoom-wrapper {

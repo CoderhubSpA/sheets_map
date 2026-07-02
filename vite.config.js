@@ -21,8 +21,18 @@ function renameCssPlugin() {
   }
 }
 
+// Dev vía https://sheets.local/map-dev/ (proxeado por Apache) en vez de localhost:5173 directo.
+// Necesario pa' que servicios externos con whitelist de CORS por origin (ej. geoserver) acepten
+// las peticiones del visor en desarrollo. Activar con: VITE_BASE_PATH=/map-dev/ npm run serve
+const basePath = process.env.VITE_BASE_PATH || '/'
+
 export default defineConfig({
   plugins: [vue()],
+  base: basePath,
+  server: {
+    host: '127.0.0.1',
+    origin: basePath !== '/' ? 'https://sheets.local' : undefined,
+  },
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/main.js'),
