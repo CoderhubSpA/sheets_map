@@ -43,6 +43,10 @@ export default {
         base_url: {
             type: String,
             default: ''
+        },
+        opacity: {
+            type: Number,
+            default: 1
         }
     },
     data() {
@@ -53,6 +57,7 @@ export default {
             tileUrl: null,
             pointRenderMode: 'circle',
             isInitialized: false,
+            currentStyleExpressions: null,
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
             // Nombre del pane personalizado para esta capa
@@ -72,6 +77,11 @@ export default {
             handler() {
                 this.applyRenderStateToLiveLayer();
             }
+        },
+        opacity() {
+            // Aplicación síncrona desde el cache: evita re-disparar resolveRenderState()
+            // (que puede refetchear la leyenda semántica) en cada tick del slider.
+            this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
         }
     },
     mounted() {
@@ -155,6 +165,7 @@ export default {
             this.tileUrl = tileUrl;
 
             const renderState = await this.resolveRenderState(tileUrl);
+            this.currentStyleExpressions = renderState.styleExpressions;
 
             // Orden de prioridad para sourceLayer:
             // 1. Hint devuelto por el backend de leyenda semántica (layer_name en la respuesta)
@@ -351,6 +362,13 @@ export default {
             });
         },
 
+        // Escala una expresión de opacidad (número plano o expression array de MapLibre)
+        // por el factor de opacidad de la capa (prop `opacity`, 0-1).
+        scaleOpacity(expr) {
+            if (typeof expr === 'number') return expr * this.opacity;
+            return ['*', expr, this.opacity];
+        },
+
         resolveStylePaint(styleExpressions = null) {
             const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
             const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
@@ -361,12 +379,15 @@ export default {
                 strokeColorExpression,
                 pointRadiusExpression: resolvedStyleExpressions.pointRadiusExpression ?? 8,
                 pointStrokeWidthExpression: resolvedStyleExpressions.pointStrokeWidthExpression ?? 3,
-                polygonFillOpacityExpression: resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6,
+                polygonFillOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6),
                 polygonStrokeWidthExpression: resolvedStyleExpressions.polygonStrokeWidthExpression ?? 2,
-                polygonStrokeOpacityExpression: resolvedStyleExpressions.polygonStrokeOpacityExpression ?? 0.8,
+                polygonStrokeOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.polygonStrokeOpacityExpression ?? 0.8),
                 polygonBorderEnabled: resolvedStyleExpressions.polygonBorderEnabled !== false,
                 lineWidthExpression: resolvedStyleExpressions.lineWidthExpression ?? 2.5,
-                lineOpacityExpression: resolvedStyleExpressions.lineOpacityExpression ?? 0.85,
+                lineOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.lineOpacityExpression ?? 0.85),
+                circleOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.circleOpacityExpression ?? 1.0),
+                circleFallbackOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.circleFallbackOpacityExpression ?? 0.85),
+                iconOpacityExpression: this.scaleOpacity(1),
                 useSymbolForPointShape: Boolean(
                     resolvedStyleExpressions.useSymbolForPointShape && !this.layer.sh_map_has_layer_point_image
                 ),
@@ -423,12 +444,18 @@ export default {
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-opacity', paint.lineOpacityExpression);
 
-            [`${this.layer.id}-circle`, `${this.layer.id}-circle-fallback`].forEach((layerId) => {
+            [
+                [`${this.layer.id}-circle`, paint.circleOpacityExpression],
+                [`${this.layer.id}-circle-fallback`, paint.circleFallbackOpacityExpression],
+            ].forEach(([layerId, circleOpacity]) => {
                 this.setPaintPropertyIfExists(layerId, 'circle-radius', paint.pointRadiusExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-color', paint.fillColorExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-stroke-width', paint.pointStrokeWidthExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-stroke-color', paint.strokeColorExpression);
+                this.setPaintPropertyIfExists(layerId, 'circle-opacity', circleOpacity);
             });
+
+            this.setPaintPropertyIfExists(`${this.layer.id}-symbol`, 'icon-opacity', paint.iconOpacityExpression);
 
             if (paint.useSymbolForPointShape) {
                 this.setLayoutPropertyIfExists(
@@ -452,6 +479,7 @@ export default {
             const renderState = await this.resolveRenderState(tileUrl);
             if (this.isDestroyed()) return;
 
+            this.currentStyleExpressions = renderState.styleExpressions;
             this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
             this.emitLegend(renderState.legend);
         },
@@ -820,11 +848,11 @@ export default {
                     'source-layer': this.sourceLayer,
                     filter: this.pointGeometryFilter(),
                     paint: {
-                        'circle-radius': pointRadiusExpression,
-                        'circle-color': fillColorExpression,
-                        'circle-stroke-width': pointStrokeWidthExpression,
-                        'circle-stroke-color': strokeColorExpression,
-                        'circle-opacity': 0.85
+                        'circle-radius': paint.pointRadiusExpression,
+                        'circle-color': paint.fillColorExpression,
+                        'circle-stroke-width': paint.pointStrokeWidthExpression,
+                        'circle-stroke-color': paint.strokeColorExpression,
+                        'circle-opacity': paint.circleFallbackOpacityExpression
                     }
                 });
                 // Layer tipo SYMBOL con icono personalizado
@@ -839,6 +867,9 @@ export default {
                         'icon-size': 0.8,
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true
+                    },
+                    paint: {
+                        'icon-opacity': paint.iconOpacityExpression
                     }
                 });
             } else if (paint.useSymbolForPointShape) {
@@ -864,6 +895,9 @@ export default {
                         'icon-size': ['/', paint.pointRadiusExpression, 32],
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true,
+                    },
+                    paint: {
+                        'icon-opacity': paint.iconOpacityExpression
                     }
                 });
             } else {
@@ -880,7 +914,7 @@ export default {
                         'circle-color': paint.fillColorExpression, // Color dinámico desde 'Fill'
                         'circle-stroke-width': paint.pointStrokeWidthExpression,
                         'circle-stroke-color': paint.strokeColorExpression, // Color dinámico desde 'Stroke'
-                        'circle-opacity': 1.0
+                        'circle-opacity': paint.circleOpacityExpression
                     }
                 });
             }

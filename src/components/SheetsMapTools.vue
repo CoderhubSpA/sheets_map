@@ -67,15 +67,36 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
-                                    <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click="download_layer(option.download_url, option.value)"></b-icon>
+                                    <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value)"></b-icon>
+                                    <b-icon icon="gear-fill" :id="'layer-opacity-' + option.key" @click.stop></b-icon>
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
                                 </div>
                             </div>
+                            <b-popover
+                                :target="'layer-opacity-' + option.key"
+                                triggers="click blur"
+                                placement="left"
+                                boundary="viewport"
+                                custom-class="layer-opacity-popover"
+                            >
+                                <div class="layer-opacity-slider" :style="css_vars">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        :value="option.opacity"
+                                        @click.stop
+                                        @input="setLayerOpacity(option.key, $event.target.value)"
+                                    >
+                                    <span>{{ Math.round(option.opacity * 100) }}%</span>
+                                </div>
+                            </b-popover>
                         </div>
                     </div>
-                    <div v-else 
+                    <div v-else
                         class="layer-subgroup" >
                         <!-- Para las capas subagrupadas
                         Se representan desde elementos colapsables -->
@@ -173,7 +194,7 @@
 </template>
 <script>
 import _ from "lodash";
-import { BIcon, BModal, BFormGroup, BFormRadio } from 'bootstrap-vue';
+import { BIcon, BModal, BFormGroup, BFormRadio, BPopover } from 'bootstrap-vue';
 import SheetsTooltip from "./SheetsTooltip.vue";
 import axios from 'axios';
 
@@ -184,6 +205,7 @@ export default {
         BModal,
         BFormGroup,
         BFormRadio,
+        BPopover,
         SheetsTooltip
     },
     props: {
@@ -209,6 +231,7 @@ export default {
     data() {
         return {
             active_layers: {},
+            layer_opacity: {},
             active_base_layers: '',
             active_groups: {},
             disabled_layers: {},
@@ -245,6 +268,7 @@ export default {
                         icon: layer['sh_map_has_layer_point_image'],
                         quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
                         download_url: layer["sh_map_has_layer_type_download_url"],
+                        opacity: this.layer_opacity[layer.id] ?? 1,
                     };
                 }
             ).sort(
@@ -370,6 +394,18 @@ export default {
         clusterize(state) {
             this.$emit('clusterize', state);
         },
+        css_vars: {
+            immediate: true,
+            handler(vars) {
+                // Bootstrap Vue renderiza los popovers fuera de .layers-dropdown (ver comentario
+                // en el <style> global más abajo), así que las custom properties no les llegan por
+                // cascada normal. Las reflejamos en :root para que cualquier elemento del documento
+                // (incluidos los popovers) respete el theming configurado en Sheets.
+                Object.entries(vars).forEach(([key, value]) => {
+                    document.documentElement.style.setProperty(key, value);
+                });
+            },
+        },
     },
     methods: {
         toggleLayer(layer, group, subgroup) {
@@ -389,6 +425,10 @@ export default {
             }
 
             this.checkSelectedLayers(layer, group, subgroup);
+        },
+
+        setLayerOpacity(layerKey, value) {
+            this.$set(this.layer_opacity, layerKey, Number(value));
         },
 
         // This method toggles the state of a group of layers and filters the layers in the group
@@ -1141,5 +1181,77 @@ export default {
         border-color: #2a6f76;
         color: #FFFFFF !important;
     }
+}
+</style>
+<style>
+/* Estilos globales para el popover de opacidad (necesarios porque Bootstrap Vue renderiza fuera del componente).
+   Los valores var(--...) los define css_vars() y se inyectan via :style en .layer-opacity-slider (el elemento
+   que Bootstrap Vue mueve fuera de .layers-dropdown), para que respeten el theming de Sheets. */
+.layer-opacity-popover.popover {
+    max-width: 220px !important;
+    background-color: var(--option-color, #001D09);
+    border-color: var(--option-active-color, #002f0f);
+    border-radius: var(--global-radius, 8px);
+}
+
+.layer-opacity-popover .popover-body {
+    background-color: transparent;
+    border-radius: var(--global-radius, 8px);
+    padding: 0.75rem 1rem 0.75rem 0.75rem;
+}
+
+/* Flecha del popover: Bootstrap dibuja 2 triángulos superpuestos (borde + relleno) por lado */
+.layer-opacity-popover.bs-popover-left > .arrow::before,
+.layer-opacity-popover.bs-popover-auto[x-placement^="left"] > .arrow::before {
+    border-left-color: var(--option-active-color, #7EF0A6);
+}
+.layer-opacity-popover.bs-popover-left > .arrow::after,
+.layer-opacity-popover.bs-popover-auto[x-placement^="left"] > .arrow::after {
+    border-left-color: var(--option-color, #001D09);
+}
+.layer-opacity-popover.bs-popover-right > .arrow::before,
+.layer-opacity-popover.bs-popover-auto[x-placement^="right"] > .arrow::before {
+    border-right-color: var(--option-active-color, #7EF0A6);
+}
+.layer-opacity-popover.bs-popover-right > .arrow::after,
+.layer-opacity-popover.bs-popover-auto[x-placement^="right"] > .arrow::after {
+    border-right-color: var(--option-color, #001D09);
+}
+.layer-opacity-popover.bs-popover-top > .arrow::before,
+.layer-opacity-popover.bs-popover-auto[x-placement^="top"] > .arrow::before {
+    border-top-color: var(--option-active-color, #7EF0A6);
+}
+.layer-opacity-popover.bs-popover-top > .arrow::after,
+.layer-opacity-popover.bs-popover-auto[x-placement^="top"] > .arrow::after {
+    border-top-color: var(--option-color, #001D09);
+}
+.layer-opacity-popover.bs-popover-bottom > .arrow::before,
+.layer-opacity-popover.bs-popover-auto[x-placement^="bottom"] > .arrow::before {
+    border-bottom-color: var(--option-active-color, #7EF0A6);
+}
+.layer-opacity-popover.bs-popover-bottom > .arrow::after,
+.layer-opacity-popover.bs-popover-auto[x-placement^="bottom"] > .arrow::after {
+    border-bottom-color: var(--option-color, #001D09);
+}
+
+.layer-opacity-slider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 180px;
+    color: var(--tooltip-text-color, white);
+    accent-color: var(--option-active-color, #7EF0A6);
+}
+
+.layer-opacity-slider input[type="range"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.layer-opacity-slider span {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding-right: 4px;
+    text-align: right;
 }
 </style>

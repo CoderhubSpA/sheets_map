@@ -121,6 +121,7 @@
                 <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
+                    :opacity="getLayerOpacity(vectorTile.layer.id)"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
                     @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
@@ -136,6 +137,7 @@
                     :base-url="layer.sh_map_has_layer_url" :layers="layer.sh_map_has_layer_geoserver_layer"
                     :name="layer.sh_map_has_layer_geoserver_layer" :transparent="true"
                     :format="layer.sh_map_has_layer_wms_format || 'image/png'"
+                    :opacity="getLayerOpacity(layer.id)"
                     :options="{ maxNativeZoom: 20, maxZoom: 20 }" layer-type="base" service="WMS" />
 
                 <l-control class="sheets-map-legend" position="bottomright"
@@ -1237,9 +1239,12 @@ export default {
                         : color;
 
                 // Creamos el objeto de estilo base
+                const opacityFactor = this.getLayerOpacity(layer?.id);
                 let style = {
                     color: color,
                     fillColor: fill_color,
+                    opacity: opacityFactor,
+                    fillOpacity: opacityFactor,
                 };
 
                 // Determinamos el tipo de feature para la leyenda y filtrado
@@ -1515,7 +1520,14 @@ export default {
                         : configuredOrRuntimeMaxNativeZoom;
             }
 
+            options.opacity = this.getLayerOpacity(layer?.id);
+
             return options;
+        },
+        // Devuelve el nivel de opacidad (0-1) configurado para una capa desde el panel de herramientas.
+        // Usado por render de GeoJSON, vector tiles, WMS y capas base.
+        getLayerOpacity(layerId) {
+            return this.working_layers.find((wl) => wl.key == layerId)?.opacity ?? 1;
         },
         nextDynamicLayerOrder() {
             const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
@@ -3629,9 +3641,11 @@ li {
 
 .horizontal-form-map-btn {
     flex-direction: column;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: flex-end;
-    padding-right: 80px;
+    padding-right: 40px;
+    height: calc(100% - 80px);
+
 }
 
 .horizontal-form-map-btn .zoom-wrapper {
