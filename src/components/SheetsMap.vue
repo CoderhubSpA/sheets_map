@@ -122,6 +122,8 @@
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
+                    :highlight-color="style_variables['feature-highlight-color']"
+                    :highlight-weight="style_variables['feature-highlight-weight']"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
                     @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
@@ -449,6 +451,7 @@ export default {
             scale_sensitive_layers: [],
             multicolor_geojson_legend: {},
             color_layer_opacity: {},
+            selectedGeojsonLayer: null,
             base_google_map: undefined,
             base_map_guide: undefined,
             base_open_street_map: undefined,
@@ -605,6 +608,11 @@ export default {
             let custom_styles = JSON.parse(this.custom_styles) || {};
 
             return {
+                // Highlight de feature seleccionado al hacer click (GeoJSON + vector tiles)
+                "feature-highlight-color":
+                    custom_styles["feature-highlight-color"] || "#FFEB3B",
+                "feature-highlight-weight":
+                    custom_styles["feature-highlight-weight"] || 4,
                 // Hexagonal Clusters Style
                 "hexagonal-cluster-small-color":
                     custom_styles["hexagonal-cluster-small-color"] || "#F9E79F",
@@ -1031,8 +1039,21 @@ export default {
                         layer.off(); // Quita eventos si los hubiese
                     } else {
                         // Eventos normales si se ve
-                        layer.on("click", () => {
-                            console.log("click en:", feature.properties.name);
+                        layer.on("click", (clickEvent) => {
+                            // Evita que el click también dispare onMapClick (nivel de mapa) en el mismo
+                            // tick, lo que borraría el highlight recién puesto en setSelectedGeojsonLayer.
+                            L.DomEvent.stopPropagation(clickEvent);
+
+                            const active_layer = this.active_layers.find((l) => {
+                                return feature.layer_id == l.id;
+                            });
+
+                            this.emitFeatureClick({
+                                layer: active_layer,
+                                properties: feature.properties,
+                                latlng: [clickEvent.latlng.lat, clickEvent.latlng.lng],
+                            });
+                            this.setSelectedGeojsonLayer(layer);
                         });
                     }
 
@@ -1529,6 +1550,38 @@ export default {
         getLayerOpacity(layerId) {
             return this.working_layers.find((wl) => wl.key == layerId)?.opacity ?? 1;
         },
+        // Resalta la capa GeoJSON (instancia real de Leaflet) clickeada, restaurando la anterior
+        // a su estilo base. Imperativo (setStyle directo), no reactivo, para que sea O(1) por click.
+        setSelectedGeojsonLayer(leafletLayer) {
+            // clearAllHighlightsExcept ya resetea el estilo del feature GeoJSON previamente
+            // seleccionado (si distinto) y limpia el highlight de cualquier vector-tile activo.
+            this.clearAllHighlightsExcept({ geojson: leafletLayer });
+
+            leafletLayer.setStyle({
+                weight: this.style_variables["feature-highlight-weight"],
+                color: this.style_variables["feature-highlight-color"],
+            });
+            leafletLayer.bringToFront();
+
+            this.selectedGeojsonLayer = leafletLayer;
+        },
+        // Asegura que solo haya un feature resaltado a la vez en todo el mapa (GeoJSON + vector tiles).
+        clearAllHighlightsExcept({ vtLayerComponent = null, geojson = null } = {}) {
+            (this.$refs.vectorTileLayers || []).forEach((instance) => {
+                if (instance !== vtLayerComponent && typeof instance.clearHighlight === "function") {
+                    instance.clearHighlight();
+                }
+            });
+
+            if (!geojson || this.selectedGeojsonLayer !== geojson) {
+                if (this.selectedGeojsonLayer) {
+                    this.selectedGeojsonLayer.setStyle(
+                        this.operative_geojson_style(this.selectedGeojsonLayer.feature),
+                    );
+                }
+                this.selectedGeojsonLayer = null;
+            }
+        },
         nextDynamicLayerOrder() {
             const dynamicEntries = Object.values(this.dynamic_layer_registry || {});
             if (dynamicEntries.length === 0) return 0;
@@ -1768,34 +1821,8 @@ export default {
                 }
             });
 
-            // Configurar handler centralizado para clicks en capas vectoriales
-            this.setupVectorTileClickHandler();
-
             // Emitir API pública para consumidores externos
             this.$emit("map-actions-ready", this.mapActions);
-        },
-
-        /**
-         * Configura un handler centralizado para clicks en capas vectoriales
-         * Este handler consulta las capas en orden de z-index descendente (de arriba hacia abajo)
-         * y para en la primera capa que encuentre un feature
-         */
-        setupVectorTileClickHandler() {
-            this.map.on("click", (e) => {
-                // Obtener capas vectoriales en orden inverso (mayor z-index primero)
-                const layers = [...(this.$refs.vectorTileLayers || [])].reverse();
-
-                // Buscar en cada capa, empezando por la de arriba
-                for (const layerComponent of layers) {
-                    if (layerComponent && layerComponent.tryHandleClick) {
-                        const handled = layerComponent.tryHandleClick(e);
-                        if (handled) {
-                            // Si esta capa manejó el click, no procesar más
-                            break;
-                        }
-                    }
-                }
-            });
         },
 
         /**
@@ -2922,15 +2949,28 @@ export default {
                 // Add the point to the polygon drafter
                 this.$refs.polygon_drafter.addPolygon(event);
             }
-            // Propagate click to vector tile layers for tooltip handling
+            // Propagate click to vector tile layers for tooltip handling.
+            // Un click sobre un feature GeoJSON hace stopPropagation antes de llegar acá
+            // (ver geojson_options().onEachFeature), así que si este handler corre es porque
+            // el click fue sobre un feature vector-tile o sobre un área vacía del mapa.
+            let handledByVectorTile = false;
             if (this.$refs.vectorTileLayers && this.$refs.vectorTileLayers.length > 0) {
                 for (let i = this.$refs.vectorTileLayers.length - 1; i >= 0; i--) {
                     const vtLayer = this.$refs.vectorTileLayers[i];
                     if (vtLayer && typeof vtLayer.tryHandleClick === 'function') {
                         const handled = vtLayer.tryHandleClick(event);
-                        if (handled) break;
+                        if (handled) {
+                            handledByVectorTile = true;
+                            this.clearAllHighlightsExcept({ vtLayerComponent: vtLayer });
+                            break;
+                        }
                     }
                 }
+            }
+
+            if (!handledByVectorTile) {
+                // Click en área vacía del mapa: limpiar cualquier highlight activo.
+                this.clearAllHighlightsExcept({});
             }
         },
         findBounds() {
@@ -3561,8 +3601,12 @@ export default {
         // ================================================================================
 
         handleVectorTileFeatureClick(eventData) {
-            const { layer, properties } = eventData;
+            this.emitFeatureClick(eventData);
+        },
 
+        // Punto único de emisión de feature-click, usado tanto por vector tiles como por GeoJSON,
+        // para que ambos flujos entreguen el mismo shape al consumidor (modal de detalle).
+        emitFeatureClick({ layer, properties, latlng }) {
             // Emitir evento para que el componente padre pueda reaccionar
             this.$emit("set_layer", {
                 layer_id: layer.id,
@@ -3573,7 +3617,7 @@ export default {
             this.$emit("feature-click", {
                 layer: layer,
                 properties: properties || {},
-                latlng: eventData.latlng || null,
+                latlng: latlng || null,
             });
 
             // Llamar callback registrado via mapActions.onFeatureClick
@@ -3581,7 +3625,7 @@ export default {
                 this._featureClickCallback({
                     layer: layer,
                     properties: properties || {},
-                    latlng: eventData.latlng || null,
+                    latlng: latlng || null,
                     visible_columns: [],
                 });
             }

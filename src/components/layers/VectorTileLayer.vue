@@ -47,6 +47,14 @@ export default {
         opacity: {
             type: Number,
             default: 1
+        },
+        highlightColor: {
+            type: String,
+            default: '#FFEB3B'
+        },
+        highlightWeight: {
+            type: Number,
+            default: 4
         }
     },
     data() {
@@ -92,6 +100,11 @@ export default {
     },
     beforeDestroy() {
         this.cleanup();
+    },
+    computed: {
+        highlightSourceId() {
+            return `${this.layer.id}-highlight-source`;
+        }
     },
     methods: {
         async createVectorTileLayer() {
@@ -190,12 +203,18 @@ export default {
                         scheme: 'xyz',
                         minzoom: 0,
                         maxzoom: 22
+                    },
+                    [this.highlightSourceId]: {
+                        type: 'geojson',
+                        data: { type: 'FeatureCollection', features: [] }
                     }
                 },
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                 layers: [
                     // NO incluir capa de fondo - dejar completamente transparente
-                    ...this.createMapLibreLayers(renderState.styleExpressions)
+                    ...this.createMapLibreLayers(renderState.styleExpressions),
+                    // Capas de highlight del feature seleccionado, siempre al tope
+                    ...this.createHighlightLayers()
                 ]
             };
 
@@ -423,6 +442,57 @@ export default {
             this.maplibreMap.setLayoutProperty(layerId, property, value);
         },
 
+        // Layers de highlight del feature clickeado: un line layer (polígonos/líneas) y un
+        // circle layer en modo anillo/halo (puntos, no tapa el ícono/símbolo original).
+        createHighlightLayers() {
+            return [
+                {
+                    id: `${this.layer.id}-highlight-line`,
+                    type: 'line',
+                    source: this.highlightSourceId,
+                    filter: ['in', '$type', 'Polygon', 'LineString'],
+                    paint: {
+                        'line-color': this.highlightColor,
+                        'line-width': this.highlightWeight
+                    }
+                },
+                {
+                    id: `${this.layer.id}-highlight-circle`,
+                    type: 'circle',
+                    source: this.highlightSourceId,
+                    filter: ['==', '$type', 'Point'],
+                    paint: {
+                        'circle-radius': 14,
+                        'circle-color': 'transparent',
+                        'circle-stroke-width': this.highlightWeight,
+                        'circle-stroke-color': this.highlightColor
+                    }
+                }
+            ];
+        },
+
+        // Marca visualmente el feature clickeado (geometría exacta de queryRenderedFeatures,
+        // sin necesitar id/promoteId en la fuente de tiles).
+        setHighlightFeature(feature) {
+            const source = this.maplibreMap && this.maplibreMap.getSource(this.highlightSourceId);
+            if (!source) return;
+
+            source.setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: feature.geometry, properties: {} }]
+            });
+        },
+
+        // Público: usado por SheetsMap.vue para limpiar el highlight de esta capa
+        // cuando se selecciona un feature de otra capa (u otro mecanismo, ej. GeoJSON).
+        clearHighlight() {
+            if (!this.maplibreMap || !this.styleLoaded) return;
+            const source = this.maplibreMap.getSource(this.highlightSourceId);
+            if (!source) return;
+
+            source.setData({ type: 'FeatureCollection', features: [] });
+        },
+
         applyStyleExpressionsToLiveLayer(styleExpressions = null) {
             if (!this.maplibreMap) return;
 
@@ -566,7 +636,10 @@ export default {
                 
                 // Crear y mostrar el popup
                 this.showPopup(properties, [e.latlng.lat, e.latlng.lng]);
-                
+
+                // Resaltar el feature clickeado
+                this.setHighlightFeature(feature);
+
                 // Emitir evento para que el padre pueda reaccionar si necesita
                 this.$emit('feature-click', {
                     layer: this.layer,
