@@ -67,19 +67,21 @@
           return {
               // - URL base
               // IMPORTANTE: ELIMINAR EL "/" AL FINAL DE LA RUTA
-              // MAL  -> http://sheetsmock.local/ 
-              // BIEN -> http://sheetsmock.local
-              base_url: "http://127.0.0.1:8000",
+              // MAL  -> https://sheetsmock.local/
+              // BIEN -> https://sheetsmock.local
+              // Debe ir por HTTPS: Sheets Map corre embebido en sheets.local (HTTPS),
+              // pedir a http://127.0.0.1:8000 directo dispara bloqueo por mixed-content.
+              base_url: "https://sheetsmock.local",
               // 
-              id: "99863740-4c01-11ed-b21a-f23c9240db0f",
+              id: "d87643c8-4235-420d-8c6b-ad74b324302e",
               // - Id del tipo de entidad
               //entity_type_id: "5de8c40a-6ff0-43a7-9437-ba6261787fc6",
               //entity_type_id: "1882340b-38f0-11ed-80a0-f23c9240db0f",
-              entity_type_id: "66364d80-9516-45ae-bed1-09f7604e8740",
+              entity_type_id: "6a2906e7-3ce2-433d-9b4d-4498e68ad05e",
               // - Registro de configuracion (ID del mapa)
               //config_entity_id: "2ce5123b-3e58-43ac-ba68-baf0c0b297b5",
               //config_entity_id: "92b468fb-257c-407a-951f-16aaf57e1885",
-              config_entity_id: "453d6632-ecc2-49fd-90c8-75e417ebf16c",
+              config_entity_id: "f126d3ac-a700-44c4-b806-e9df663ae0cd",
               // Tipo de entidad de configuracion
               config_entity_type_id: "0482f39a-7615-47f4-9d7a-dabadcc38b38",
               // Endpoint de configuracion

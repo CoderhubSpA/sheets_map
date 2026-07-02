@@ -1,9 +1,10 @@
 {
   "name": "coderhubspa_sheets_map",
-  "version": "1.53.0",
+  "version": "1.53.1",
   "private": false,
   "scripts": {
     "serve": "vite",
+    "serve:proxy": "cross-env VITE_BASE_PATH=/map-dev/ vite --port 5173 --strictPort",
     "build:lib": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .vue,.js"
@@ -33,6 +34,7 @@
     "@babel/core": "^7.18.5",
     "@babel/eslint-parser": "^7.18.2",
     "@vitejs/plugin-vue2": "^2.3.4",
+    "cross-env": "^10.1.0",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "sass": "^1.97.3",
