@@ -80,20 +80,23 @@
                                 placement="left"
                                 boundary="viewport"
                                 custom-class="layer-opacity-popover"
-                                title="Nivel de transparencia"
+                                title="Configuraciones de capa"
                                 @show="ensureAttributesLoaded(option)"
                             >
-                                <div class="layer-opacity-slider" :style="css_vars">
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.05"
-                                        :value="option.opacity"
-                                        @click.stop
-                                        @input="setLayerOpacity(option.key, $event.target.value)"
-                                    >
-                                    <span>{{ Math.round(option.opacity * 100) }}%</span>
+                                <div class="layer-opacity-section" :style="css_vars">
+                                    <span class="layer-attribute-filter__label">Nivel de transparencia</span>
+                                    <div class="layer-opacity-slider">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.05"
+                                            :value="option.opacity"
+                                            @click.stop
+                                            @input="setLayerOpacity(option.key, $event.target.value)"
+                                        >
+                                        <span>{{ Math.round(option.opacity * 100) }}%</span>
+                                    </div>
                                 </div>
                                 <div class="layer-attribute-filter" :style="css_vars">
                                     <span class="layer-attribute-filter__label">Filtrar por atributo</span>
@@ -1326,11 +1329,19 @@ export default {
     border-bottom-color: var(--option-color, #001D09);
 }
 
+.layer-opacity-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 180px;
+    color: var(--tooltip-text-color, white);
+}
+
 .layer-opacity-slider {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 180px;
+    width: 100%;
     color: var(--tooltip-text-color, white);
     accent-color: var(--option-active-color, #7EF0A6);
 }
@@ -1399,9 +1410,9 @@ export default {
 }
 
 .layer-attribute-filter__clear {
-    background: transparent;
-    color: inherit;
+    width: 100%;
     white-space: normal;
-    text-align: left;
+    text-align: center;
+    font-weight: 600;
 }
 </style>
