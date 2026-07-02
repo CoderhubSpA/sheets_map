@@ -3403,15 +3403,58 @@ export default {
                 2,
             )}'${eastWest} - Huso: ${specificZone}${northSouth}`;
         },
+        // REQ-706.3: alcance acotado a extender este toggle (no reproyecta tiles/capas).
+        // Sistemas soportados, confirmados con negocio: EPSG:4326, EPSG:32718/32719 (UTM,
+        // huso auto-detectado por convertToUTM), EPSG:3857, EPSG:9153 (SIRGAS-Chile 2016).
         changeCoordinateFormat() {
-            this.center_format = this.center_format == "latlng" ? "UTM" : "latlng";
+            const formats = ["latlng", "UTM", "3857", "9153"];
+            const nextIndex = (formats.indexOf(this.center_format) + 1) % formats.length;
+            this.center_format = formats[nextIndex];
             this.centerParsed();
         },
         centerParsed() {
-            this.center_parsed =
-                this.center_format == "latlng"
-                    ? this.center["lat"] + ", " + this.center["lng"]
-                    : this.convertToUTM();
+            const converters = {
+                latlng: () => this.center["lat"] + ", " + this.center["lng"],
+                UTM: () => this.convertToUTM(),
+                "3857": () => this.convertToWebMercator(),
+                "9153": () => this.convertToSIRGAS(),
+            };
+            this.center_parsed = converters[this.center_format]();
+        },
+        convertToWebMercator() {
+            let keys = Object.keys(this.center);
+            let lat = keys.includes("lat") ? "lat" : 1;
+            let lng = keys.includes("lng") ? "lng" : 0;
+
+            if (!proj4.defs["EPSG:3857"]) {
+                proj4.defs(
+                    "EPSG:3857",
+                    "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +no_defs",
+                );
+            }
+
+            const [x, y] = proj4(proj4.WGS84, "EPSG:3857", [
+                this.center[lng],
+                this.center[lat],
+            ]);
+
+            return `Web Mercator: ${x.toFixed(2)}, ${y.toFixed(2)}`;
+        },
+        convertToSIRGAS() {
+            let keys = Object.keys(this.center);
+            let lat = keys.includes("lat") ? "lat" : 1;
+            let lng = keys.includes("lng") ? "lng" : 0;
+
+            if (!proj4.defs["EPSG:9153"]) {
+                proj4.defs("EPSG:9153", "+proj=longlat +ellps=GRS80 +no_defs +type=crs");
+            }
+
+            const [lon, sirgasLat] = proj4(proj4.WGS84, "EPSG:9153", [
+                this.center[lng],
+                this.center[lat],
+            ]);
+
+            return `SIRGAS-Chile 2016: ${sirgasLat.toFixed(6)}, ${lon.toFixed(6)}`;
         },
         sumCoordinates(layer_list) {
             let coordinates_raw = layer_list

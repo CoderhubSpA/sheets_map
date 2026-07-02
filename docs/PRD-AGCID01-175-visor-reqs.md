@@ -86,50 +86,42 @@ Estado actual del código (grounding, ver referencias por punto):
 
 ### 706.2 — Extracción/exportación de geometrías seleccionadas
 
+**Estado: cerrado, no se implementa** (decisión del usuario, 2026-07-02).
+
 **Objetivo:** exportar exclusivamente las geometrías seleccionadas por el usuario, no la capa completa.
 
 **Nota de grounding:** hoy solo existe descarga de capa completa (`SheetsMapTools.vue:download_layer()`). No existe mecanismo de selección múltiple de features ni exportación parcial.
-
-**Requerimiento:**
-- Permitir selección de una o más geometrías en el mapa (mecanismo de selección múltiple — a definir: click+shift, herramienta de selección por área, checkbox en resultados de búsqueda, etc.).
-- Botón de exportación que genere un archivo (formato a definir: GeoJSON como mínimo, evaluar shapefile) conteniendo únicamente las geometrías seleccionadas.
-
-**Preguntas abiertas:**
-- ¿Mecanismo de selección múltiple (click individual + modificador, selección por polígono/rectángulo, selección desde resultados de 706.1)?
-- ¿Formato(s) de exportación requeridos (GeoJSON, Shapefile, KML)?
-
-**Criterios de aceptación (sujeto a definición):**
-- Con N features seleccionados, exportar genera un archivo con exactamente esos N features y sus atributos.
-- Sin selección, el botón de exportar está deshabilitado o no visible.
 
 ---
 
 ### 706.3 — Cambio de proyección para visualización
 
-**Estado:** **aún por definir** (según lo indicado explícitamente en el requerimiento original).
+**Estado: ✅ implementado** (2026-07-02).
 
-**Nota de grounding:** el visor ya maneja WGS84 y conversión a UTM (`convertToUTM()`, `SheetsMap.vue:3430-3472`) para mostrar coordenadas en un toggle de formato, pero esto es solo *display* de coordenadas del cursor/punto, no un cambio de proyección de la visualización completa del mapa (reproyección de tiles/capas).
+**Nota de grounding:** el visor ya manejaba WGS84 y conversión a UTM (`convertToUTM()`, `SheetsMap.vue:3363-3405`) para mostrar coordenadas en un toggle de formato, pero era *display* de coordenadas del cursor/punto, no un cambio de proyección de la visualización completa del mapa (reproyección de tiles/capas).
 
-**Pendiente de definir con negocio:**
-- ¿Se requiere reproyectar el mapa completo (tiles + capas) a otro EPSG, o basta con extender el toggle de coordenadas actual a más sistemas?
-- Lista de proyecciones objetivo requeridas.
+**Decisión de alcance (confirmada con el usuario):** se extiende el toggle de coordenadas existente — **no** se reproyecta el render del mapa (tiles/capas siguen en Web Mercator EPSG:3857 vía Leaflet/MapLibre). Descarta el trabajo de reproyección completa (proj4leaflet, incompatibilidad de basemaps externos con otro CRS, etc.).
 
-**Acción:** no estimar ni desarrollar hasta recibir definición. Se recomienda levantar como spike/investigación separado.
+**Sistemas soportados en el toggle** (`SheetsMap.vue`, botón `.btn-coordinate-format`, cicla con cada click):
+- EPSG:4326 — WGS84 lat/lng (formato `"latlng"`, ya existente).
+- EPSG:32718 / EPSG:32719 — UTM huso 18S/19S, auto-detectado según longitud (formato `"UTM"`, `convertToUTM()`, ya existente).
+- EPSG:3857 — Web Mercator / Pseudo-Mercator (formato `"3857"`, `convertToWebMercator()`, nuevo).
+- EPSG:9153 — SIRGAS-Chile 2016, geográfico GRS80 (formato `"9153"`, `convertToSIRGAS()`, nuevo).
+
+**Implementación:** cada formato usa `proj4` para convertir desde WGS84 (`this.center`); `changeCoordinateFormat()` cicla un array de 4 estados en vez del toggle binario anterior. Verificado en navegador que cada estado del ciclo produce coordenadas correctas para el centro del mapa.
 
 ---
 
 ## Resumen de esfuerzo relativo (cualitativo)
 
-| Req | Complejidad | Motivo |
-|---|---|---|
-| 704.1 Transparencia | Baja-Media | UI simple, pero debe cubrir 2 motores de render (Leaflet + MapLibre) |
-| 704.2 Click→Modal | Media | Flujo de click ya existe; trabajo es reutilizar modal + highlight |
-| 706.1 Búsqueda atributo | Media-Alta | No existe base; requiere definir alcance de filtro |
-| 706.2 Exportación selección | Alta | Requiere mecanismo de selección múltiple nuevo + exportación |
-| 706.3 Cambio proyección | Sin definir | Bloqueado por definición de negocio |
+| Req | Complejidad | Motivo | Estado |
+|---|---|---|---|
+| 704.1 Transparencia | Baja-Media | UI simple, pero debe cubrir 2 motores de render (Leaflet + MapLibre) | ✅ Implementado |
+| 704.2 Click→Modal | Media | Flujo de click ya existe; trabajo es reutilizar modal + highlight | ✅ Implementado |
+| 706.1 Búsqueda atributo | Media-Alta | No existe base; requiere definir alcance de filtro | ✅ Implementado |
+| 706.2 Exportación selección | Alta | Requiere mecanismo de selección múltiple nuevo + exportación | ❌ Cerrado, no se implementa |
+| 706.3 Cambio proyección | Baja (alcance acotado a extender el toggle) | Lista de EPSG confirmada por negocio: 4326, 32718/32719, 3857, 9153 | ✅ Implementado |
 
 ## Siguientes pasos
 
-1. Validar con negocio las preguntas abiertas de 706.1, 706.2 y 706.3 antes de pasar a diseño técnico/tasks.
-2. Definir con diseño UX si el modal de 704.2 reemplaza o convive con el popup actual.
-3. Una vez cerradas definiciones, continuar con spec técnica (`/sdd-spec`) y diseño (`/sdd-design`) por cada REQ.
+Todos los requerimientos de este PRD están cerrados (implementados o descartados). Sin pendientes.
