@@ -81,6 +81,7 @@
                                 boundary="viewport"
                                 custom-class="layer-opacity-popover"
                                 title="Nivel de transparencia"
+                                @show="ensureAttributesLoaded(option)"
                             >
                                 <div class="layer-opacity-slider" :style="css_vars">
                                     <input
@@ -93,6 +94,39 @@
                                         @input="setLayerOpacity(option.key, $event.target.value)"
                                     >
                                     <span>{{ Math.round(option.opacity * 100) }}%</span>
+                                </div>
+                                <div class="layer-attribute-filter" :style="css_vars">
+                                    <span class="layer-attribute-filter__label">Filtrar por atributo</span>
+                                    <select
+                                        v-model="filterDraftAttribute[option.key]"
+                                        @click.stop
+                                    >
+                                        <option value="">Seleccionar atributo...</option>
+                                        <option
+                                            v-for="attr in availableAttributesByLayer[option.key] || []"
+                                            :key="attr"
+                                            :value="attr"
+                                        >{{ attr }}</option>
+                                    </select>
+                                    <div class="layer-attribute-filter__value-row">
+                                        <input
+                                            type="text"
+                                            placeholder="Valor"
+                                            v-model="filterDraftValue[option.key]"
+                                            @click.stop
+                                            @keyup.enter="applyLayerFilter(option.key, filterDraftAttribute[option.key], filterDraftValue[option.key])"
+                                        >
+                                        <button
+                                            type="button"
+                                            @click.stop="applyLayerFilter(option.key, filterDraftAttribute[option.key], filterDraftValue[option.key])"
+                                        >Buscar</button>
+                                    </div>
+                                    <button
+                                        v-if="option.filterAttribute"
+                                        type="button"
+                                        class="layer-attribute-filter__clear"
+                                        @click.stop="clearLayerFilter(option.key)"
+                                    >Limpiar filtro ({{ option.filterAttribute }}: {{ option.filterValue }})</button>
                                 </div>
                             </b-popover>
                         </div>
@@ -198,6 +232,8 @@ import _ from "lodash";
 import { BIcon, BModal, BFormGroup, BFormRadio, BPopover } from 'bootstrap-vue';
 import SheetsTooltip from "./SheetsTooltip.vue";
 import axios from 'axios';
+import { fetchVectorTileAttributes } from "../services/vectorTileAttributesService";
+import { inferVectorTileLayerNameFromUrl } from "../utils/vectorTileLegend/config";
 
 export default {
     name: 'SheetsMapTools',
@@ -233,6 +269,12 @@ export default {
         return {
             active_layers: {},
             layer_opacity: {},
+            // REQ-706.1: filtro de atributo aplicado por capa ({attribute, value}) y borradores
+            // del formulario (antes de aplicar) y cache de atributos disponibles por capa.
+            layer_filters: {},
+            filterDraftAttribute: {},
+            filterDraftValue: {},
+            availableAttributesByLayer: {},
             active_base_layers: '',
             active_groups: {},
             disabled_layers: {},
@@ -270,6 +312,9 @@ export default {
                         quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
                         download_url: layer["sh_map_has_layer_type_download_url"],
                         opacity: this.layer_opacity[layer.id] ?? 1,
+                        url: layer["sh_map_has_layer_url"],
+                        filterAttribute: this.layer_filters[layer.id]?.attribute || '',
+                        filterValue: this.layer_filters[layer.id]?.value ?? '',
                     };
                 }
             ).sort(
@@ -430,6 +475,44 @@ export default {
 
         setLayerOpacity(layerKey, value) {
             this.$set(this.layer_opacity, layerKey, Number(value));
+        },
+
+        // REQ-706.1: carga (una sola vez, con cache) los atributos disponibles de una capa
+        // vector-tile desde el geoserver, para poblar el dropdown del filtro.
+        async ensureAttributesLoaded(option) {
+            if (!option?.url || this.availableAttributesByLayer[option.key]) return;
+
+            const layerName = inferVectorTileLayerNameFromUrl(option.url);
+            if (!layerName) return;
+
+            // Inicializar el borrador explícitamente para que el <select> quede en el
+            // placeholder ("Seleccionar atributo...") y no en el primer <option> real
+            // (v-model con valor undefined no siempre matchea el value="" del placeholder).
+            if (!(option.key in this.filterDraftAttribute)) {
+                this.$set(this.filterDraftAttribute, option.key, '');
+            }
+            if (!(option.key in this.filterDraftValue)) {
+                this.$set(this.filterDraftValue, option.key, '');
+            }
+
+            try {
+                const result = await fetchVectorTileAttributes({ tileUrl: option.url, layerName });
+                this.$set(this.availableAttributesByLayer, option.key, result?.attributes || []);
+            } catch (e) {
+                console.warn('No fue posible cargar los atributos de la capa', option.key, e);
+                this.$set(this.availableAttributesByLayer, option.key, []);
+            }
+        },
+
+        applyLayerFilter(layerKey, attribute, value) {
+            if (!attribute || value === '' || value === null || value === undefined) return;
+            this.$set(this.layer_filters, layerKey, { attribute, value });
+        },
+
+        clearLayerFilter(layerKey) {
+            this.$delete(this.layer_filters, layerKey);
+            this.$delete(this.filterDraftAttribute, layerKey);
+            this.$delete(this.filterDraftValue, layerKey);
         },
 
         // This method toggles the state of a group of layers and filters the layers in the group
@@ -1262,5 +1345,63 @@ export default {
     white-space: nowrap;
     padding-right: 4px;
     text-align: right;
+}
+
+/* REQ-706.1: filtro de atributo, dentro del mismo popover del slider de opacidad */
+.layer-attribute-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 180px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--option-active-color, #7EF0A6);
+    color: var(--tooltip-text-color, white);
+}
+
+.layer-attribute-filter__label {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+.layer-attribute-filter select,
+.layer-attribute-filter input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 4px;
+    border: 1px solid var(--option-active-color, #7EF0A6);
+    background: transparent;
+    color: inherit;
+    padding: 4px 6px;
+    font-size: 0.85rem;
+}
+
+.layer-attribute-filter__value-row {
+    display: flex;
+    gap: 6px;
+}
+
+.layer-attribute-filter__value-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.layer-attribute-filter__value-row button,
+.layer-attribute-filter__clear {
+    border-radius: 4px;
+    border: 1px solid var(--option-active-color, #7EF0A6);
+    background: var(--option-active-color, #7EF0A6);
+    color: var(--option-color, #001D09);
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.layer-attribute-filter__clear {
+    background: transparent;
+    color: inherit;
+    white-space: normal;
+    text-align: left;
 }
 </style>

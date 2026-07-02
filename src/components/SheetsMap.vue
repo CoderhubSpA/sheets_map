@@ -124,6 +124,8 @@
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
                     :highlight-color="style_variables['feature-highlight-color']"
                     :highlight-weight="style_variables['feature-highlight-weight']"
+                    :filter-attribute="getLayerFilter(vectorTile.layer.id).attribute"
+                    :filter-value="getLayerFilter(vectorTile.layer.id).value"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
                     @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
@@ -1510,6 +1512,15 @@ export default {
         // Usado por render de GeoJSON, vector tiles, WMS y capas base.
         getLayerOpacity(layerId) {
             return this.working_layers.find((wl) => wl.key == layerId)?.opacity ?? 1;
+        },
+        // Devuelve el filtro de atributo (REQ-706.1) configurado para una capa vector-tile
+        // desde el panel de herramientas. { attribute: '', value: '' } si no hay filtro activo.
+        getLayerFilter(layerId) {
+            const wl = this.working_layers.find((wl) => wl.key == layerId);
+            return {
+                attribute: wl?.filterAttribute || '',
+                value: wl?.filterValue ?? '',
+            };
         },
         // Resalta la capa GeoJSON (instancia real de Leaflet) clickeada, restaurando la anterior
         // a su estilo base. Imperativo (setStyle directo), no reactivo, para que sea O(1) por click.

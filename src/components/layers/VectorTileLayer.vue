@@ -55,6 +55,14 @@ export default {
         highlightWeight: {
             type: Number,
             default: 4
+        },
+        filterAttribute: {
+            type: String,
+            default: ''
+        },
+        filterValue: {
+            type: [String, Number],
+            default: ''
         }
     },
     data() {
@@ -90,6 +98,12 @@ export default {
             // Aplicación síncrona desde el cache: evita re-disparar resolveRenderState()
             // (que puede refetchear la leyenda semántica) en cada tick del slider.
             this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
+        },
+        filterAttribute() {
+            this.applyTileFilter();
+        },
+        filterValue() {
+            this.applyTileFilter();
         }
     },
     mounted() {
@@ -496,6 +510,27 @@ export default {
             if (!source) return;
 
             source.setData({ type: 'FeatureCollection', features: [] });
+        },
+
+        // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
+        // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
+        buildFilteredTileUrl() {
+            if (!this.filterAttribute || this.filterValue === '' || this.filterValue === null || this.filterValue === undefined) {
+                return this.tileUrl;
+            }
+
+            const attr = encodeURIComponent(this.filterAttribute);
+            const value = encodeURIComponent(this.filterValue);
+            return `${this.tileUrl}?filter.${attr}=eq.${value}`;
+        },
+
+        // Actualiza el template de tiles de la fuente en runtime (sin reconstruir el estilo)
+        // y fuerza a MapLibre a refetchear con el nuevo filtro.
+        applyTileFilter() {
+            const source = this.maplibreMap && this.maplibreMap.getSource('vector-tiles');
+            if (!source || typeof source.setTiles !== 'function') return;
+
+            source.setTiles([this.buildFilteredTileUrl()]);
         },
 
         applyStyleExpressionsToLiveLayer(styleExpressions = null) {
