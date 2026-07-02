@@ -31,3 +31,5 @@ Implementación de AGCID01-175: funcionalidades específicas del visor.
 
 - CORS entre Sheets Map y Sheets Mock al consultar capas (causado por mixed content HTTPS→HTTP, no
   por configuración CORS del backend).
+- El popover de "Configuraciones de capa" (opacidad + filtro por atributo) no aparecía para capas
+  dentro de un subgrupo colapsable, solo para capas sueltas.
