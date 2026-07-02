@@ -183,9 +183,68 @@
                                         <div>
                                             <span class="layer-download-btn">
                                                 <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value)"></b-icon>
+                                                <b-icon icon="gear-fill" :id="'layer-opacity-' + option.key" @click.stop></b-icon>
                                             </span>
                                         </div>
                                     </div>
+                                    <b-popover
+                                        :target="'layer-opacity-' + option.key"
+                                        triggers="click blur"
+                                        placement="left"
+                                        boundary="viewport"
+                                        custom-class="layer-opacity-popover"
+                                        title="Configuraciones de capa"
+                                        @show="ensureAttributesLoaded(option)"
+                                    >
+                                        <div class="layer-opacity-section" :style="css_vars">
+                                            <span class="layer-attribute-filter__label">Nivel de transparencia</span>
+                                            <div class="layer-opacity-slider">
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.05"
+                                                    :value="option.opacity"
+                                                    @click.stop
+                                                    @input="setLayerOpacity(option.key, $event.target.value)"
+                                                >
+                                                <span>{{ Math.round(option.opacity * 100) }}%</span>
+                                            </div>
+                                        </div>
+                                        <div class="layer-attribute-filter" :style="css_vars">
+                                            <span class="layer-attribute-filter__label">Filtrar por atributo</span>
+                                            <select
+                                                v-model="filterDraftAttribute[option.key]"
+                                                @click.stop
+                                            >
+                                                <option value="">Seleccionar atributo...</option>
+                                                <option
+                                                    v-for="attr in availableAttributesByLayer[option.key] || []"
+                                                    :key="attr"
+                                                    :value="attr"
+                                                >{{ attr }}</option>
+                                            </select>
+                                            <div class="layer-attribute-filter__value-row">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Valor"
+                                                    v-model="filterDraftValue[option.key]"
+                                                    @click.stop
+                                                    @keyup.enter="applyLayerFilter(option.key, filterDraftAttribute[option.key], filterDraftValue[option.key])"
+                                                >
+                                                <button
+                                                    type="button"
+                                                    @click.stop="applyLayerFilter(option.key, filterDraftAttribute[option.key], filterDraftValue[option.key])"
+                                                >Buscar</button>
+                                            </div>
+                                            <button
+                                                v-if="option.filterAttribute"
+                                                type="button"
+                                                class="layer-attribute-filter__clear"
+                                                @click.stop="clearLayerFilter(option.key)"
+                                            >Limpiar filtro ({{ option.filterAttribute }}: {{ option.filterValue }})</button>
+                                        </div>
+                                    </b-popover>
                                 </li>
                             </ul>
                         </fieldset>
@@ -1101,6 +1160,9 @@ export default {
                             align-items: center;
 
                             .layer-download-btn {
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
                                 cursor: pointer;
                             }
                         }
