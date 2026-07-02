@@ -115,7 +115,10 @@ export default {
     max-width: 90vw;
     height: fit-content;
     max-height: 90dvh;
-    overflow-y: auto;
+    // El header queda fijo (no scrollea); solo &__body scrollea internamente.
+    // Sin esto, con muchas propiedades el título y el botón de cerrar se
+    // scrollean fuera de vista junto con el resto del contenido.
+    overflow: hidden;
     background-color: #ffffff;
     padding: 24px;
     border-radius: 12px;
@@ -125,6 +128,7 @@ export default {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-shrink: 0;
     }
 
     &__title {
@@ -159,6 +163,10 @@ export default {
         display: flex;
         flex-direction: column;
         gap: 0;
+        overflow-y: auto;
+        // min-height: 0 es necesario para que un hijo flex pueda encogerse
+        // y scrollear en vez de forzar al padre a crecer indefinidamente.
+        min-height: 0;
     }
 
     // ── Fields ──────────────────────────────────────────────────────
