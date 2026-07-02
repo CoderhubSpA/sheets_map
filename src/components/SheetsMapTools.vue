@@ -80,6 +80,7 @@
                                 placement="left"
                                 boundary="viewport"
                                 custom-class="layer-opacity-popover"
+                                title="Nivel de transparencia"
                             >
                                 <div class="layer-opacity-slider" :style="css_vars">
                                     <input
@@ -1192,6 +1193,14 @@ export default {
     background-color: var(--option-color, #001D09);
     border-color: var(--option-active-color, #002f0f);
     border-radius: var(--global-radius, 8px);
+}
+
+.layer-opacity-popover .popover-header {
+    background-color: transparent;
+    color: var(--tooltip-text-color, white);
+    border-bottom-color: var(--option-active-color, #002f0f);
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .layer-opacity-popover .popover-body {
