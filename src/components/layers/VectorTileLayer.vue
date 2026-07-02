@@ -644,9 +644,6 @@ export default {
                 const feature = features[0];
                 const properties = feature.properties;
                 
-                // Crear y mostrar el popup
-                this.showPopup(properties, [e.latlng.lat, e.latlng.lng]);
-
                 // Resaltar el feature clickeado
                 this.setHighlightFeature(feature);
 
@@ -1004,124 +1001,6 @@ export default {
             }
             
             return layers;
-        },
-        
-        /**
-         * Muestra el popup con la información del feature
-         */
-        showPopup(properties, latlng) {
-            // Cerrar popup previo
-            this.map.closePopup();
-            
-            // Convertir propiedades a formato de marker
-            const marker = {
-                has_data: true,
-                id: properties.id || null,
-                data: properties
-            };
-            
-            // Generar HTML del contenido
-            const content = this.generatePopupContent(marker);
-            
-            // Crear y abrir popup
-            L.popup({
-                maxWidth: 300,
-                minWidth: 300,
-                maxHeight: 300,
-                closeButton: true,
-                autoClose: false,
-                closeOnClick: false,
-                autoPan: false,
-                className: 'popupCustom'
-            })
-                .setContent(content)
-                .setLatLng(latlng)
-                .openOn(this.map);
-            
-            // Aplicar z-index para estar sobre MapLibre canvas
-            setTimeout(() => {
-                const popupElement = document.querySelector('.leaflet-popup');
-                if (popupElement) {
-                    popupElement.style.zIndex = '10000';
-                    const closeBtn = popupElement.querySelector('.leaflet-popup-close-button');
-                    if (closeBtn) closeBtn.style.zIndex = '10001';
-                }
-            }, 10);
-        },
-        
-        /**
-         * Genera el HTML del contenido del popup
-         * Replica EXACTAMENTE la estructura de PopUpMarker.vue
-         */
-        generatePopupContent(marker) {
-            if (!marker.has_data) {
-                return '<div class="marker-pop-up-single-info">Cargando...</div>';
-            }
-            
-            let info = [];
-            
-            // Si hay visible_columns configuradas, mostrar solo esas
-            if (this.visible_columns && this.visible_columns.length > 0) {
-                info = this.visible_columns.map(col => {
-                    const value = marker.data[col.id] === 'NULL' || marker.data[col.id] === null 
-                        ? 'Sin información disponible' 
-                        : marker.data[col.id];
-                    
-                    const formattedValue = (value === 'Sin información disponible') 
-                        ? value 
-                        : (isNaN(value) ? value : Number(value).toLocaleString('es-ES'));
-                    
-                    // Si es URL, crear enlace
-                    const content = (col.format === 'URL' && value !== 'Sin información disponible')
-                        ? `<a href="${formattedValue}">${formattedValue}</a>`
-                        : formattedValue;
-                    
-                    return `
-                        <div class="marker-pop-up-single-info">
-                            <span class="marker-pop-up-info-title"><b>${col.name}</b></span>
-                            <br />
-                            <span class="marker-pop-up-info-content">${content}</span>
-                        </div>
-                    `;
-                });
-            } else {
-                // Si NO hay visible_columns, mostrar todas las propiedades
-                info = Object.entries(marker.data).map(([key, value]) => {
-                    const title = this.formatKeyToHumanText(key);
-                    const formattedValue = (value == null || value === 'NULL') 
-                        ? 'Sin información disponible' 
-                        : (isNaN(value) ? value : Number(value).toLocaleString('es-ES'));
-                    
-                    // Detectar URLs automáticamente
-                    const content = (typeof value === 'string' && 
-                                    (value.startsWith('http://') || value.startsWith('https://')))
-                        ? `<a href="${formattedValue}">${formattedValue}</a>`
-                        : formattedValue;
-                    
-                    return `
-                        <div class="marker-pop-up-single-info">
-                            <span class="marker-pop-up-info-title"><b>${title}</b></span>
-                            <br />
-                            <span class="marker-pop-up-info-content">${content}</span>
-                        </div>
-                    `;
-                });
-            }
-            
-            // Envolver en el div container con clase CSS correcta
-            return `<div class="marker-pop-up-content">${info.join('')}</div>`;
-        },
-        
-        /**
-         * Formatea un key de propiedad a texto legible
-         */
-        formatKeyToHumanText(text) {
-            let textFormated = text.replace(/_/g, " ");
-            textFormated = textFormated.toLowerCase();
-            textFormated = textFormated.replace(/(?:^|\s)\S/g, a => a.toUpperCase());
-            textFormated = textFormated.replace(/([a-z])([0-9])/i, '$1 $2');
-            textFormated = textFormated.replace(/([0-9])([a-z])/i, '$1 $2');
-            return textFormated;
         },
         
         // debugVectorTiles() {

@@ -1068,62 +1068,6 @@ export default {
                             this.setSelectedGeojsonLayer(layer);
                         });
                     }
-
-                    layer.bindPopup(
-                        (layer) => {
-                            //Obtenemos la configuración de la capa a la que pertenece
-                            const active_layer = this.active_layers.find((l) => {
-                                return layer.feature.layer_id == l.id;
-                            });
-
-                            let info = ["Sin información disponible"]; //Información a retornar en el popup
-                            const property_configuration =
-                                active_layer.sh_map_has_layer_property_keys; //obtiene la configuración dada pera las columnas del popup
-
-                            // Revisamos si la capa tiene alguna configuración especial para mostrar los datos almacenados en property
-                            // Si no los tiene retornamos solo el valor calculado entre el Bi y feature
-                            if (property_configuration == null) {
-                                switch (active_layer.sh_map_has_layer_code) {
-                                    case "analytic_geojson": {
-                                        //Almacenamos el calculo hecho entre el Bi y el feature
-                                        const [metric_value] = Object.values(
-                                            layer.feature.properties.metric_data,
-                                        );
-                                        const total =
-                                            metric_value == null
-                                                ? "Sin información disponible"
-                                                : metric_value.toLocaleString("es-ES");
-
-                                        return `<span class="marker-pop-up-info-content"> ${total} </span>`;
-                                    }
-                                    case "operative_geoserver_wfs_point": {
-                                        info = this.infoGeojsonWithKeys(layer, false);
-                                        break;
-                                    }
-                                }
-                            } else {
-                                //Si sh_map_has_layer_property_keys esta configurada como * entonces agregamos la info existente en properties con llaves más amigables
-                                if (property_configuration.charAt(0) == "*") {
-                                    const human_keys =
-                                        property_configuration == "*" ? true : false;
-                                    info = this.infoGeojsonWithKeys(layer, human_keys);
-                                }
-
-                                // Si la configuración proporcionada es un json entonces retorna la configuración + alias proporcionado por la configuración
-                                if (this.isJson(property_configuration)) {
-                                    let property_keys = JSON.parse(property_configuration);
-                                    info = this.infoGeojsonWithAlias(layer, property_keys);
-                                }
-                            }
-
-                            return `${info.join("<br>")}`;
-                        },
-                        {
-                            permanent: false,
-                            direction: "center",
-                            className: "marker-pop-up-content",
-                        },
-                    );
                 },
             };
         },
@@ -3228,19 +3172,6 @@ export default {
         //----------------------------------------------------------------------------------------------
         // Helpers
         //----------------------------------------------------------------------------------------------
-        // format text with "_" to text legible for humans,
-        // set all on lowercase but first letter to uppercase and each after "_" or " " to uppercase,
-        // separe letter from numbers
-        formatKeyToHumanText(text) {
-            let textFormated = text.replace(/_/g, " ");
-            textFormated = textFormated.toLowerCase();
-            textFormated = textFormated.replace(/(?:^|\s)\S/g, function (a) {
-                return a.toUpperCase();
-            });
-            textFormated = textFormated.replace(/([a-z])([0-9])/i, "$1 $2");
-            textFormated = textFormated.replace(/([0-9])([a-z])/i, "$1 $2");
-            return textFormated;
-        },
         // calc hexadecimal between two colors by ratio (0.0 - 1.0)
         calcColor(color1, color2, ratio) {
             const hex = function (x) {
@@ -3274,14 +3205,6 @@ export default {
             const ratio = (max - value) / (max - min);
             return this.calcColor(color_min, color_max, ratio);
         },
-        isJson(str) {
-            try {
-                JSON.parse(str);
-            } catch (e) {
-                return false;
-            }
-            return true;
-        },
         isInt(value) {
             return (
                 !isNaN(value) &&
@@ -3307,76 +3230,6 @@ export default {
             }
 
             return { is_empty: is_empty, is_new_layer: is_new_layer };
-        },
-        infoGeojsonWithAlias(layer, property_keys) {
-            //Si sh_map_has_layer_property_keys tiene configuraciones procesamos las propiedades
-            let info = Object.entries(property_keys)
-                .map(([key, property]) => {
-                    let value = null;
-                    if (key.includes(".")) {
-                        /* Busca hacia adentro cada propiedad separada por `.`
-                         * Ejemplo:
-                         * "key.prop1.key2" => layer.feature.properties['key']['prop1']['key2']
-                         */
-                        let keys = key.split(".");
-                        value = layer.feature.properties;
-                        for (let i in keys) {
-                            if (keys[i] == "*" && value != null && typeof value == "object") {
-                                [value] = Object.values(value);
-                                continue;
-                            }
-                            value = value[keys[i]];
-                            // Si es asterisco, tomamos todos los valores
-                        }
-                    } else {
-                        value =
-                            layer.feature.properties[key] == null
-                                ? "Sin información disponible"
-                                : layer.feature.properties[key]; // parseamos el valor resultante
-                    }
-
-                    // Para soportar alias de mulitples metricas
-                    // y que no nos aparezca una lista de metricas vacias,
-                    // ignoramos las metricas no encontradas
-                    if (value == null && key.includes("metric_data")) {
-                        return null;
-                    }
-                    value = isNaN(value) ? value : value.toLocaleString("es-ES"); // Si el valor resultante es un número nos aseguramos que quede puntuado
-
-                    return `
-                    <span class="marker-pop-up-info-title"> <b>${property} : </b> </span> 
-                    <span class="marker-pop-up-info-content"> ${value} </span>
-                `;
-                })
-                .filter((i) => i);
-
-            return info;
-        },
-        //Se le retorna toda la informacion de las properties existentes al usuario la cual puede venir con keys amigables
-        //o puede retornarse justo como la presenta el GeoJson
-        infoGeojsonWithKeys(layer, human_keys) {
-            let info = Object.entries(layer.feature.properties).map(
-                ([property, value]) => {
-                    // Deconstruímos las propiedades reservadas
-                    if (property === "metric_data") {
-                        /* Ejemplo de contenido la variable `value` cuando la property es `metric_data`:
-                         * {'total_casos': 387.123}
-                         */
-                        [[property, value]] = Object.entries(value);
-                    }
-                    let title = human_keys
-                        ? this.formatKeyToHumanText(property)
-                        : property; // Tomamos la clave de la propiedad
-                    value = value == null ? "Sin información disponible" : value; // parseamos el valor resultante
-                    value = isNaN(value) ? value : value.toLocaleString("es-ES"); // Si el valor resultante es un número nos aseguramos que quede puntuado
-                    return `
-                    <span class="marker-pop-up-info-title"> <b>${title} : </b> </span> 
-                    <span class="marker-pop-up-info-content"> ${value} </span>
-                `;
-                },
-            );
-
-            return info;
         },
         // END HELPERS
         // Polygon Action: draw or delete
