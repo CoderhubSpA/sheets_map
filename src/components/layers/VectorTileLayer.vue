@@ -276,6 +276,11 @@ export default {
             this.maplibreMap.on('load', () => {
                 this.styleLoaded = true;
             });
+            // Cubre la carrera donde 'load' ya se disparó antes de registrar el listener
+            // de arriba (posible si el hilo se demora en llegar hasta acá).
+            if (this.maplibreMap.isStyleLoaded()) {
+                this.styleLoaded = true;
+            }
 
             // Generar imágenes de formas bajo demanda.
             // Cuando MapLibre necesita un icon-image 'vtl-shape-{shape}-{fill}-{stroke}'
@@ -560,28 +565,27 @@ export default {
          */
         configureCanvas() {
             if (!this.maplibreMap || !this.vectorTileLayer) return;
-            
-            // Esperar a que MapLibre esté listo
-            this.maplibreMap.once('load', () => {
+
+            const applyCanvasStyles = () => {
                 // Obtener el canvas usando el método de L.maplibreGL
                 const canvas = this.vectorTileLayer.getCanvas();
                 if (canvas) {
                     // En modo no-interactivo, el canvas NO debe capturar eventos
                     canvas.style.pointerEvents = 'none';
-                    
+
                     // CRÍTICO: Hacer el canvas completamente transparente
                     canvas.style.backgroundColor = 'transparent';
                     canvas.style.opacity = '1';
-                    
+
                     // Usar mix-blend-mode para mezclar con las capas debajo
                     canvas.style.mixBlendMode = 'normal';
-                    
+
                     // Asegurar que el canvas esté posicionado correctamente
                     canvas.style.position = 'absolute';
                     canvas.style.top = '0';
                     canvas.style.left = '0';
                 }
-                
+
                 // También configurar el contenedor
                 const container = this.vectorTileLayer.getContainer();
                 if (container) {
@@ -589,7 +593,13 @@ export default {
                     container.style.backgroundColor = 'transparent';
                     container.style.opacity = '1';
                 }
-            });
+            };
+
+            // Esperar a que MapLibre esté listo (con respaldo síncrono por si 'load' ya se disparó)
+            this.maplibreMap.once('load', applyCanvasStyles);
+            if (this.maplibreMap.isStyleLoaded()) {
+                applyCanvasStyles();
+            }
         },
         
         /**
@@ -645,7 +655,8 @@ export default {
                     layer: this.layer,
                     feature: feature,
                     properties: properties,
-                    latlng: [e.latlng.lat, e.latlng.lng]
+                    latlng: [e.latlng.lat, e.latlng.lng],
+                    visible_columns: this.visible_columns
                 });
                 
                 return true; // Click manejado

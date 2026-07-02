@@ -293,6 +293,7 @@
                 <l-control-scale class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
         </div>
+        <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
     </div>
 </template>
 <script>
@@ -345,6 +346,7 @@ Icon.Default.mergeOptions({
     shadowUrl: markerShadowUrl,
 });
 import ScreenshotButton from "./ScreenshotButton.vue";
+import FeatureDetailModal from "./FeatureDetailModal.vue";
 
 const sheetsMapVersion = packageInfo.version;
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
@@ -387,10 +389,17 @@ export default {
         LControl,
         LControlScale,
         ScreenshotButton,
+        FeatureDetailModal,
     },
     props: {
         // Propiedades de componentes
         id: String,
+        // Si es true, Sheets Map no muestra su modal interno de detalle de feature al hacer
+        // click (útil para consumidores que ya tienen su propio modal escuchando feature-click).
+        disable_feature_modal: {
+            type: Boolean,
+            default: false,
+        },
         entity_type_id: String,
         config_entity_id: String,
         config_entity_type_id: String,
@@ -452,6 +461,8 @@ export default {
             multicolor_geojson_legend: {},
             color_layer_opacity: {},
             selectedGeojsonLayer: null,
+            selectedFeatureModalVisible: false,
+            selectedFeatureModalData: null,
             base_google_map: undefined,
             base_map_guide: undefined,
             base_open_street_map: undefined,
@@ -1052,6 +1063,7 @@ export default {
                                 layer: active_layer,
                                 properties: feature.properties,
                                 latlng: [clickEvent.latlng.lat, clickEvent.latlng.lng],
+                                visible_columns: active_layer.visible_columns || [],
                             });
                             this.setSelectedGeojsonLayer(layer);
                         });
@@ -1414,6 +1426,11 @@ export default {
         },
     },
     watch: {
+        // Cerrar el modal interno de detalle (click afuera, botón X) limpia el highlight
+        // del feature seleccionado — ambos viven en este componente, no hace falta más wiring.
+        selectedFeatureModalVisible(visible) {
+            if (!visible) this.clearAllHighlightsExcept({});
+        },
         analytic_cluster() {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
@@ -3606,7 +3623,7 @@ export default {
 
         // Punto único de emisión de feature-click, usado tanto por vector tiles como por GeoJSON,
         // para que ambos flujos entreguen el mismo shape al consumidor (modal de detalle).
-        emitFeatureClick({ layer, properties, latlng }) {
+        emitFeatureClick({ layer, properties, latlng, visible_columns }) {
             // Emitir evento para que el componente padre pueda reaccionar
             this.$emit("set_layer", {
                 layer_id: layer.id,
@@ -3626,8 +3643,19 @@ export default {
                     layer: layer,
                     properties: properties || {},
                     latlng: latlng || null,
-                    visible_columns: [],
+                    visible_columns: visible_columns || [],
                 });
+            }
+
+            // Modal interno de detalle: opt-out via disable_feature_modal para consumidores
+            // (como Sheets hoy) que ya renderizan su propio modal escuchando feature-click.
+            if (!this.disable_feature_modal) {
+                this.selectedFeatureModalData = {
+                    layer: { name: layer.sh_map_has_layer_name || layer.name || "" },
+                    properties: properties || {},
+                    visible_columns: visible_columns || [],
+                };
+                this.selectedFeatureModalVisible = true;
             }
         },
     },
@@ -3688,7 +3716,7 @@ li {
     justify-content: center;
     align-items: flex-end;
     padding-right: 40px;
-    height: calc(100% - 80px);
+    height: calc(100dvh - 80px);
 
 }
 
