@@ -33,3 +33,5 @@ Implementación de AGCID01-175: funcionalidades específicas del visor.
   por configuración CORS del backend).
 - El popover de "Configuraciones de capa" (opacidad + filtro por atributo) no aparecía para capas
   dentro de un subgrupo colapsable, solo para capas sueltas.
+- Las opciones del selector de atributo (`Filtrar por atributo`) eran ilegibles: texto blanco
+  sobre el fondo blanco fijo que el navegador usa para el listado nativo de `<option>`.
