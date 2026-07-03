@@ -1444,9 +1444,17 @@ export default {
     border-radius: 4px;
     border: 1px solid var(--option-active-color, #7EF0A6);
     background: transparent;
-    color: inherit;
+    color: var(--tooltip-text-color, #000);
     padding: 4px 6px;
     font-size: 0.85rem;
+}
+
+/* El listado nativo de <option> lo pinta el sistema operativo/navegador con fondo claro
+   fijo, sin heredar el theming del popover — si el texto queda blanco (color heredado
+   del select) es ilegible sobre ese fondo. Se fuerza un color oscuro solo en <option>. */
+.layer-attribute-filter select option {
+    color: #212121;
+    background-color: #ffffff;
 }
 
 .layer-attribute-filter__value-row {
