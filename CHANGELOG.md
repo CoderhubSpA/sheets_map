@@ -3,6 +3,14 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 versionado según [SemVer](https://semver.org/lang/es/).
 
+## [1.54.1] - 2026-07-02
+
+### Fixed
+
+- Las opciones del selector de atributo (`Filtrar por atributo`) eran ilegibles: texto blanco
+  sobre el fondo blanco fijo que el navegador usa para el listado nativo de `<option>`. Este fix
+  no alcanzó a entrar en el publish de 1.54.0.
+
 ## [1.54.0] - 2026-07-02
 
 Implementación de AGCID01-175: funcionalidades específicas del visor.
@@ -33,5 +41,3 @@ Implementación de AGCID01-175: funcionalidades específicas del visor.
   por configuración CORS del backend).
 - El popover de "Configuraciones de capa" (opacidad + filtro por atributo) no aparecía para capas
   dentro de un subgrupo colapsable, solo para capas sueltas.
-- Las opciones del selector de atributo (`Filtrar por atributo`) eran ilegibles: texto blanco
-  sobre el fondo blanco fijo que el navegador usa para el listado nativo de `<option>`.
