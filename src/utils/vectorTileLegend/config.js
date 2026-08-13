@@ -1,12 +1,13 @@
-import { deriveStrokeColor, normalizeColorValue } from './palette'
+import { deriveStrokeColor, normalizeColorValue } from './palette.js'
 
 const DEFAULT_FALLBACK_COLOR = '#3388FF'
 const DEFAULT_NULL_COLOR = '#BDBDBD'
-const DEFAULT_POINT_SIZE = 8
+const DEFAULT_POINT_SIZE = 3
 const DEFAULT_POINT_STROKE_WIDTH = 3
 const SUPPORTED_POINT_SHAPES = ['circle', 'square', 'triangle', 'diamond']
 
 function safeParseJson(value, fallbackValue = {}) {
+    if (value && typeof value === 'object') return value
     if (!value || typeof value !== 'string') return fallbackValue
 
     try {
@@ -26,6 +27,40 @@ function normalizeNumber(value, fallbackValue, minValue = 0) {
     return fallbackValue
 }
 
+function normalizeOptionalNumber(value) {
+    if (value === '' || value === null || value === undefined) return undefined
+    const parsedValue = Number(value)
+    return Number.isFinite(parsedValue) ? parsedValue : undefined
+}
+
+function normalizeOptionalBoundedNumber(value, minValue, maxValue) {
+    const normalized = normalizeOptionalNumber(value)
+    if (normalized === undefined) return undefined
+    return Math.min(maxValue, Math.max(minValue, normalized))
+}
+
+function normalizeItemStyle(rawStyle = {}) {
+    if (!rawStyle || typeof rawStyle !== 'object') return {}
+    const style = {}
+    const fillOpacity = normalizeOptionalBoundedNumber(rawStyle.fill_opacity ?? rawStyle.fillOpacity, 0, 1)
+    const strokeWidth = normalizeOptionalBoundedNumber(rawStyle.stroke_width ?? rawStyle.strokeWidth, 0, 20)
+    const strokeOpacity = normalizeOptionalBoundedNumber(rawStyle.stroke_opacity ?? rawStyle.strokeOpacity, 0, 1)
+    const lineWidth = normalizeOptionalBoundedNumber(rawStyle.line_width ?? rawStyle.lineWidth, 0, 20)
+    const lineOpacity = normalizeOptionalBoundedNumber(rawStyle.line_opacity ?? rawStyle.lineOpacity, 0, 1)
+    const dashStyle = rawStyle.dash_style ?? rawStyle.dashStyle
+
+    if (fillOpacity !== undefined) style.fillOpacity = fillOpacity
+    if (rawStyle.border_enabled !== undefined || rawStyle.borderEnabled !== undefined) {
+        style.borderEnabled = (rawStyle.border_enabled ?? rawStyle.borderEnabled) !== false
+    }
+    if (strokeWidth !== undefined) style.strokeWidth = strokeWidth
+    if (strokeOpacity !== undefined) style.strokeOpacity = strokeOpacity
+    if (lineWidth !== undefined) style.lineWidth = lineWidth
+    if (lineOpacity !== undefined) style.lineOpacity = lineOpacity
+    if (['solid', 'dashed', 'dotted'].includes(dashStyle)) style.dashStyle = dashStyle
+    return style
+}
+
 function normalizePointShape(shape, fallbackShape = 'circle') {
     const normalizedShape = String(shape || '').trim().toLowerCase()
     if (SUPPORTED_POINT_SHAPES.includes(normalizedShape)) {
@@ -40,15 +75,19 @@ function normalizePointStyle(rawPointStyle = {}, fallbackPointStyle = null) {
         return fallbackPointStyle
     }
 
+    const hasFallback = fallbackPointStyle !== null
     const fallbackSize = fallbackPointStyle?.size ?? DEFAULT_POINT_SIZE
     const fallbackStrokeWidth = fallbackPointStyle?.strokeWidth ?? DEFAULT_POINT_STROKE_WIDTH
     const fallbackShape = fallbackPointStyle?.shape ?? 'circle'
+    const rawSize = rawPointStyle.size ?? rawPointStyle.point_size
+    const rawStrokeWidth = rawPointStyle.stroke_width ?? rawPointStyle.strokeWidth ?? rawPointStyle.point_stroke_width
+    const rawShape = rawPointStyle.shape ?? rawPointStyle.point_shape
+    const point = {}
 
-    return {
-        size: normalizeNumber(rawPointStyle.size ?? rawPointStyle.point_size, fallbackSize, 1),
-        strokeWidth: normalizeNumber(rawPointStyle.stroke_width ?? rawPointStyle.strokeWidth ?? rawPointStyle.point_stroke_width, fallbackStrokeWidth, 0),
-        shape: normalizePointShape(rawPointStyle.shape ?? rawPointStyle.point_shape, fallbackShape),
-    }
+    if (rawSize !== undefined || hasFallback) point.size = normalizeNumber(rawSize, fallbackSize, 1)
+    if (rawStrokeWidth !== undefined || hasFallback) point.strokeWidth = normalizeNumber(rawStrokeWidth, fallbackStrokeWidth, 0)
+    if (rawShape !== undefined || hasFallback) point.shape = normalizePointShape(rawShape, fallbackShape)
+    return point
 }
 
 function normalizeLegacyColorItems(legacyColors = {}) {
@@ -86,13 +125,18 @@ function normalizePaletteItems(paletteItems = {}, legacyColors = {}) {
 
         const fillColor = normalizeColorValue(item.fill || item.color || item.background)
         const strokeColor = normalizeColorValue(item.stroke, fillColor ? deriveStrokeColor(fillColor) : null)
-        const point = normalizePointStyle(item.point || item)
+        const point = item.point && typeof item.point === 'object'
+            ? normalizePointStyle(item.point)
+            : null
 
         accumulator[String(key)] = {
             fill: fillColor,
             stroke: strokeColor || fillColor,
             label: item.label || String(key),
             point,
+            style: normalizeItemStyle(item.style),
+            minValue: normalizeOptionalNumber(item.min_value ?? item.minValue),
+            maxValue: normalizeOptionalNumber(item.max_value ?? item.maxValue),
         }
 
         return accumulator
@@ -153,7 +197,21 @@ export function normalizeVectorTileLegendConfig(layer = {}) {
         layerName: rawLegendConfig.layer_name || inferVectorTileLayerNameFromUrl(layer.sh_map_has_layer_url),
         attribute: rawLegendConfig.attribute || null,
         legendTitle: rawLegendConfig.legend_title || layer.name || null,
+        description: rawLegendConfig.description || '',
+        geometryType: rawLegendConfig.geometry_type || null,
+        rangesContinuous: rawLegendConfig.ranges_continuous === true,
         pointStyle,
+        style: {
+            fillOpacity: normalizeNumber(rawLegendConfig.style?.fill_opacity, 0.6, 0),
+            borderEnabled: rawLegendConfig.style?.border_enabled !== false,
+            strokeWidth: normalizeNumber(rawLegendConfig.style?.stroke_width, 2, 0),
+            strokeOpacity: normalizeNumber(rawLegendConfig.style?.stroke_opacity, 0.8, 0),
+            lineWidth: normalizeNumber(rawLegendConfig.style?.line_width, 2.5, 0),
+            lineOpacity: normalizeNumber(rawLegendConfig.style?.line_opacity, 0.85, 0),
+            dashStyle: ['solid', 'dashed', 'dotted'].includes(rawLegendConfig.style?.dash_style)
+                ? rawLegendConfig.style.dash_style
+                : 'solid',
+        },
         palette: {
             type: rawPalette.type || rawLegendConfig.palette_type || 'categorical',
             strategy: rawPalette.strategy || (Object.keys(paletteItems).length > 0 ? 'manual' : 'auto'),

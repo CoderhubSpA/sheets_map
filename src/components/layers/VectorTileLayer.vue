@@ -11,6 +11,9 @@ import '@maplibre/maplibre-gl-leaflet';
 import { normalizeVectorTileLegendConfig, inferVectorTileLayerNameFromUrl } from '../../utils/vectorTileLegend/config';
 import { buildDefaultVectorTilePaint, buildVectorTileSemanticRenderState } from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
+import { buildFilteredVectorTileUrl, buildVectorTileTemplateUrl } from '../../utils/vectorTileUrl';
+import { buildPointShapeIconExpression, parsePointShapeImageId } from '../../utils/vectorTileLegend/icon';
+import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../../utils/vectorTileLegend/canvas';
 
 export default {
     name: 'VectorTileLayer',
@@ -74,6 +77,7 @@ export default {
             pointRenderMode: 'circle',
             isInitialized: false,
             currentStyleExpressions: null,
+            renderStateRequestId: 0,
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
             // Nombre del pane personalizado para esta capa
@@ -93,6 +97,9 @@ export default {
             handler() {
                 this.applyRenderStateToLiveLayer();
             }
+        },
+        'layer.sh_map_has_layer_legend_config'() {
+            this.applyRenderStateToLiveLayer();
         },
         opacity() {
             // Aplicación síncrona desde el cache: evita re-disparar resolveRenderState()
@@ -173,21 +180,21 @@ export default {
                 .map(p => this.map._panes[p])
                 .filter(p => p.parentNode); // Solo panes que están actualmente en el DOM
             
-            const newZIndex = baseZIndex + vectorTilePanes.length;
+            const configuredOrder = Number(
+                this.layer.sh_map_runtime_order ?? this.layer.sh_map_has_layer_order,
+            );
+            const existingZIndex = pane.style.zIndex === '' ? null : Number(pane.style.zIndex);
+            const newZIndex = Number.isFinite(existingZIndex)
+                ? existingZIndex
+                : baseZIndex + (
+                    Number.isFinite(configuredOrder) ? configuredOrder : vectorTilePanes.length
+                );
             pane.style.zIndex = newZIndex;
             pane.style.pointerEvents = 'none';
 
 
             // Preparar URL del tile con los parámetros {z}/{x}/{y}
-            let tileUrl = this.layer.sh_map_has_layer_url;
-            
-            // Agregar parámetros {z}/{x}/{y} si no están presentes
-            if (!tileUrl.includes('{z}') && !tileUrl.includes('{x}') && !tileUrl.includes('{y}')) {
-                if (!tileUrl.endsWith('/')) {
-                    tileUrl += '/';
-                }
-                tileUrl += '{z}/{x}/{y}.pbf';
-            }
+            const tileUrl = buildVectorTileTemplateUrl(this.layer.sh_map_has_layer_url);
 
             this.tileUrl = tileUrl;
 
@@ -213,7 +220,7 @@ export default {
                 sources: {
                     'vector-tiles': {
                         type: 'vector',
-                        tiles: [tileUrl],
+                        tiles: [buildFilteredVectorTileUrl(tileUrl, this.filterAttribute, this.filterValue)],
                         scheme: 'xyz',
                         minzoom: 0,
                         maxzoom: 22
@@ -301,15 +308,16 @@ export default {
             // que aún no existe, este handler lo genera en canvas con colores baked-in.
             this.maplibreMap.on('styleimagemissing', (e) => {
                 const id = e.id;
-                if (id && id.startsWith('vtl-shape-')) {
-                    // Formato: vtl-shape-{shape}-{fillHex}-{strokeHex}-{strokeWidth}
-                    const rest = id.substring('vtl-shape-'.length);
-                    const parts = rest.split('-');
-                    const shape = parts[0] || 'circle';
-                    const fill = '#' + (parts[1] || '3388ff');
-                    const stroke = '#' + (parts[2] || parts[1] || '3388ff');
-                    const sw = Number(parts[3]) || 3;
-                    this.generateColoredShapeImage(id, shape, fill, stroke, sw);
+                const imageConfig = parsePointShapeImageId(id);
+                if (imageConfig) {
+                    this.generateColoredShapeImage(
+                        id,
+                        imageConfig.shape,
+                        imageConfig.fill,
+                        imageConfig.stroke,
+                        imageConfig.strokeWidth,
+                        imageConfig.dashStyle,
+                    );
                 }
             });
             
@@ -357,9 +365,19 @@ export default {
 
             const legendConfig = normalizeVectorTileLegendConfig(this.layer);
 
-            if (!legendConfig || legendConfig.mode !== 'semantic' || !legendConfig.layerName || !legendConfig.attribute) {
+            if (!legendConfig) {
                 return defaultRenderState;
             }
+
+            if (legendConfig.mode === 'manual') {
+                return buildVectorTileSemanticRenderState({
+                    layer: this.layer,
+                    config: legendConfig,
+                    semanticLegend: {},
+                });
+            }
+
+            if (!legendConfig.layerName || !legendConfig.attribute) return defaultRenderState;
 
             try {
                 const semanticLegend = await fetchVectorTileSemanticLegend({
@@ -415,7 +433,7 @@ export default {
             return {
                 fillColorExpression,
                 strokeColorExpression,
-                pointRadiusExpression: resolvedStyleExpressions.pointRadiusExpression ?? 8,
+                pointRadiusExpression: resolvedStyleExpressions.pointRadiusExpression ?? 3,
                 pointStrokeWidthExpression: resolvedStyleExpressions.pointStrokeWidthExpression ?? 3,
                 polygonFillOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.polygonFillOpacityExpression ?? 0.6),
                 polygonStrokeWidthExpression: resolvedStyleExpressions.polygonStrokeWidthExpression ?? 2,
@@ -423,9 +441,11 @@ export default {
                 polygonBorderEnabled: resolvedStyleExpressions.polygonBorderEnabled !== false,
                 lineWidthExpression: resolvedStyleExpressions.lineWidthExpression ?? 2.5,
                 lineOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.lineOpacityExpression ?? 0.85),
+                lineDashArray: resolvedStyleExpressions.lineDashArray || [1, 0],
                 circleOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.circleOpacityExpression ?? 1.0),
+                pointStrokeOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.pointStrokeOpacityExpression ?? 1.0),
                 circleFallbackOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.circleFallbackOpacityExpression ?? 0.85),
-                iconOpacityExpression: this.scaleOpacity(1),
+                iconOpacityExpression: this.scaleOpacity(resolvedStyleExpressions.iconOpacityExpression ?? 1),
                 useSymbolForPointShape: Boolean(
                     resolvedStyleExpressions.useSymbolForPointShape && !this.layer.sh_map_has_layer_point_image
                 ),
@@ -433,6 +453,7 @@ export default {
                 legendAttribute: resolvedStyleExpressions.legendAttribute,
                 defaultFillColor: resolvedStyleExpressions.defaultFillColor || '#3388ff',
                 defaultStrokeColor: resolvedStyleExpressions.defaultStrokeColor || '#3388ff',
+                pointDashStyle: resolvedStyleExpressions.pointDashStyle || 'solid',
             };
         },
 
@@ -515,13 +536,7 @@ export default {
         // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
         // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
         buildFilteredTileUrl() {
-            if (!this.filterAttribute || this.filterValue === '' || this.filterValue === null || this.filterValue === undefined) {
-                return this.tileUrl;
-            }
-
-            const attr = encodeURIComponent(this.filterAttribute);
-            const value = encodeURIComponent(this.filterValue);
-            return `${this.tileUrl}?filter.${attr}=eq.${value}`;
+            return buildFilteredVectorTileUrl(this.tileUrl, this.filterAttribute, this.filterValue);
         },
 
         // Actualiza el template de tiles de la fuente en runtime (sin reconstruir el estilo)
@@ -537,6 +552,9 @@ export default {
             if (!this.maplibreMap) return;
 
             const paint = this.resolveStylePaint(styleExpressions);
+            this.pointRenderMode = this.layer.sh_map_has_layer_point_image || paint.useSymbolForPointShape
+                ? 'symbol'
+                : 'circle';
 
             this.setPaintPropertyIfExists(`${this.layer.id}-fill`, 'fill-color', paint.fillColorExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-fill`, 'fill-opacity', paint.polygonFillOpacityExpression);
@@ -545,6 +563,7 @@ export default {
                 this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-color', paint.strokeColorExpression);
                 this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-width', paint.polygonStrokeWidthExpression);
                 this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-opacity', paint.polygonStrokeOpacityExpression);
+                this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-dasharray', paint.lineDashArray);
             } else {
                 this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-width', 0);
                 this.setPaintPropertyIfExists(`${this.layer.id}-line-border`, 'line-opacity', 0);
@@ -553,19 +572,32 @@ export default {
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-color', paint.fillColorExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-opacity', paint.lineOpacityExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-dasharray', paint.lineDashArray);
 
             [
-                [`${this.layer.id}-circle`, paint.circleOpacityExpression],
-                [`${this.layer.id}-circle-fallback`, paint.circleFallbackOpacityExpression],
-            ].forEach(([layerId, circleOpacity]) => {
+                [
+                    `${this.layer.id}-circle`,
+                    paint.useSymbolForPointShape ? 0 : paint.circleOpacityExpression,
+                    paint.useSymbolForPointShape ? 0 : paint.pointStrokeOpacityExpression,
+                ],
+                [
+                    `${this.layer.id}-circle-fallback`,
+                    paint.circleFallbackOpacityExpression,
+                    paint.pointStrokeOpacityExpression,
+                ],
+            ].forEach(([layerId, circleOpacity, circleStrokeOpacity]) => {
                 this.setPaintPropertyIfExists(layerId, 'circle-radius', paint.pointRadiusExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-color', paint.fillColorExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-stroke-width', paint.pointStrokeWidthExpression);
                 this.setPaintPropertyIfExists(layerId, 'circle-stroke-color', paint.strokeColorExpression);
+                this.setPaintPropertyIfExists(layerId, 'circle-stroke-opacity', circleStrokeOpacity);
                 this.setPaintPropertyIfExists(layerId, 'circle-opacity', circleOpacity);
             });
 
-            this.setPaintPropertyIfExists(`${this.layer.id}-symbol`, 'icon-opacity', paint.iconOpacityExpression);
+            const symbolOpacity = this.layer.sh_map_has_layer_point_image || paint.useSymbolForPointShape
+                ? paint.iconOpacityExpression
+                : 0;
+            this.setPaintPropertyIfExists(`${this.layer.id}-symbol`, 'icon-opacity', symbolOpacity);
 
             if (paint.useSymbolForPointShape) {
                 this.setLayoutPropertyIfExists(
@@ -575,7 +607,8 @@ export default {
                         paint.legendAttribute,
                         paint.legendItems,
                         paint.defaultFillColor,
-                        paint.defaultStrokeColor
+                        paint.defaultStrokeColor,
+                        paint.pointDashStyle
                     )
                 );
                 this.setLayoutPropertyIfExists(`${this.layer.id}-symbol`, 'icon-size', ['/', paint.pointRadiusExpression, 32]);
@@ -585,9 +618,10 @@ export default {
         async applyRenderStateToLiveLayer() {
             if (!this.maplibreMap || !this.isInitialized) return;
 
+            const requestId = ++this.renderStateRequestId;
             const tileUrl = this.tileUrl || this.layer.sh_map_has_layer_url || '';
             const renderState = await this.resolveRenderState(tileUrl);
-            if (this.isDestroyed()) return;
+            if (this.isDestroyed() || requestId !== this.renderStateRequestId) return;
 
             this.currentStyleExpressions = renderState.styleExpressions;
             this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
@@ -789,11 +823,11 @@ export default {
          * @param {string} strokeColor — color de borde hex (#3A5A80)
          * @param {number} strokeWidth — grosor del borde en píxeles de canvas
          */
-        generateColoredShapeImage(imageId, shape, fillColor, strokeColor, strokeWidth) {
+        generateColoredShapeImage(imageId, shape, fillColor, strokeColor, strokeWidth, dashStyle = 'solid') {
             if (this.maplibreMap.hasImage(imageId)) return;
 
             const size = 128;
-            const sw = Math.max(1, Math.min(12, strokeWidth || 3));
+            const sw = normalizePointCanvasStrokeWidth(strokeWidth);
             // Escalar al canvas de 128px: un strokeWidth de 3 lógico → ~6px en canvas
             const scaledSw = Math.round(sw * 2);
             const padding = scaledSw + 2;
@@ -836,10 +870,14 @@ export default {
 
             ctx.fillStyle = fillColor;
             ctx.fill();
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = scaledSw;
-            ctx.lineJoin = 'miter';
-            ctx.stroke();
+            if (scaledSw > 0) {
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = scaledSw;
+                ctx.lineJoin = 'miter';
+                ctx.lineCap = dashStyle === 'dotted' ? 'round' : 'butt';
+                ctx.setLineDash(pointCanvasDashPattern(dashStyle, 2));
+                ctx.stroke();
+            }
 
             const imageData = ctx.getImageData(0, 0, size, size);
             this.maplibreMap.addImage(imageId, {
@@ -859,30 +897,14 @@ export default {
          * @param {string} fallbackStroke — color stroke para el fallback
          * @returns {string|Array} — ID de imagen o expresión match
          */
-        buildColoredShapeIconExpression(attribute, legendItems, fallbackFill, fallbackStroke) {
-            const makeImageId = (shape, fill, stroke, sw) => {
-                const f = (fill || '#3388ff').replace('#', '');
-                const s = (stroke || f).replace('#', '');
-                const w = Math.round(Number(sw) || 3);
-                return `vtl-shape-${shape || 'circle'}-${f}-${s}-${w}`;
-            };
-
-            if (!attribute || !Array.isArray(legendItems) || legendItems.length === 0) {
-                return makeImageId('circle', fallbackFill, fallbackStroke, 3);
-            }
-
-            const expression = [
-                'match',
-                ['to-string', ['coalesce', ['get', attribute], '__VECTOR_TILE_NULL__']],
-            ];
-
-            legendItems.forEach(item => {
-                expression.push(item.expressionKey);
-                expression.push(makeImageId(item.pointShape, item.fill, item.stroke, item.pointStrokeWidth));
-            });
-
-            expression.push(makeImageId('circle', fallbackFill, fallbackStroke, 3));
-            return expression;
+        buildColoredShapeIconExpression(attribute, legendItems, fallbackFill, fallbackStroke, fallbackDashStyle = 'solid') {
+            return buildPointShapeIconExpression(
+                attribute,
+                legendItems,
+                fallbackFill,
+                fallbackStroke,
+                fallbackDashStyle,
+            );
         },
 
         pointGeometryFilter() {
@@ -894,14 +916,14 @@ export default {
          * Se usa para queryRenderedFeatures (click/hover).
          */
         getPointLayerIds() {
-            if (this.pointRenderMode === 'symbol') {
-                return [
+            const candidates = this.pointRenderMode === 'symbol'
+                ? [
                     `${this.layer.id}-symbol`,
                     `${this.layer.id}-circle-fallback`,
-                ];
-            }
+                ]
+                : [`${this.layer.id}-circle`];
 
-            return [`${this.layer.id}-circle`];
+            return candidates.filter(layerId => this.maplibreMap?.getLayer(layerId));
         },
         
         createMapLibreLayers(styleExpressions = null) {
@@ -934,7 +956,8 @@ export default {
                     paint: {
                         'line-color': paint.strokeColorExpression,
                         'line-width': paint.polygonStrokeWidthExpression,
-                        'line-opacity': paint.polygonStrokeOpacityExpression
+                        'line-opacity': paint.polygonStrokeOpacityExpression,
+                        'line-dasharray': paint.lineDashArray
                     }
                 });
             }
@@ -950,7 +973,8 @@ export default {
                 paint: {
                     'line-color': paint.fillColorExpression,
                     'line-width': paint.lineWidthExpression,
-                    'line-opacity': paint.lineOpacityExpression
+                    'line-opacity': paint.lineOpacityExpression,
+                    'line-dasharray': paint.lineDashArray
                 }
             });
             
@@ -968,6 +992,7 @@ export default {
                         'circle-color': paint.fillColorExpression,
                         'circle-stroke-width': paint.pointStrokeWidthExpression,
                         'circle-stroke-color': paint.strokeColorExpression,
+                        'circle-stroke-opacity': paint.pointStrokeOpacityExpression,
                         'circle-opacity': paint.circleFallbackOpacityExpression
                     }
                 });
@@ -988,37 +1013,15 @@ export default {
                         'icon-opacity': paint.iconOpacityExpression
                     }
                 });
-            } else if (paint.useSymbolForPointShape) {
-                // Formas custom via imágenes canvas con colores baked-in (NO SDF).
-                // Las imágenes se generan instantáneamente via styleimagemissing.
-                this.pointRenderMode = 'symbol';
+            } else {
+                // Se mantienen disponibles ambas capas para poder alternar en vivo
+                // entre círculo y formas canvas sin reconstruir el source de tiles.
+                this.pointRenderMode = paint.useSymbolForPointShape ? 'symbol' : 'circle';
                 const legendItems = paint.legendItems;
                 const legendAttribute = paint.legendAttribute;
                 const defaultFill = paint.defaultFillColor;
                 const defaultStroke = paint.defaultStrokeColor;
 
-                // Symbol layer con iconos de formas coloreadas
-                layers.push({
-                    id: `${this.layer.id}-symbol`,
-                    type: 'symbol',
-                    source: 'vector-tiles',
-                    'source-layer': this.sourceLayer,
-                    filter: this.pointGeometryFilter(),
-                    layout: {
-                        'icon-image': this.buildColoredShapeIconExpression(
-                            legendAttribute, legendItems, defaultFill, defaultStroke
-                        ),
-                        'icon-size': ['/', paint.pointRadiusExpression, 32],
-                        'icon-allow-overlap': true,
-                        'icon-ignore-placement': true,
-                    },
-                    paint: {
-                        'icon-opacity': paint.iconOpacityExpression
-                    }
-                });
-            } else {
-                this.pointRenderMode = 'circle';
-                // Layer tipo CIRCLE (sin icono) - también usa colores dinámicos
                 layers.push({
                     id: `${this.layer.id}-circle`,
                     type: 'circle',
@@ -1027,10 +1030,30 @@ export default {
                     filter: this.pointGeometryFilter(),
                     paint: {
                         'circle-radius': paint.pointRadiusExpression,
-                        'circle-color': paint.fillColorExpression, // Color dinámico desde 'Fill'
+                        'circle-color': paint.fillColorExpression,
                         'circle-stroke-width': paint.pointStrokeWidthExpression,
-                        'circle-stroke-color': paint.strokeColorExpression, // Color dinámico desde 'Stroke'
-                        'circle-opacity': paint.circleOpacityExpression
+                        'circle-stroke-color': paint.strokeColorExpression,
+                        'circle-stroke-opacity': paint.useSymbolForPointShape ? 0 : paint.pointStrokeOpacityExpression,
+                        'circle-opacity': paint.useSymbolForPointShape ? 0 : paint.circleOpacityExpression,
+                    }
+                });
+
+                layers.push({
+                    id: `${this.layer.id}-symbol`,
+                    type: 'symbol',
+                    source: 'vector-tiles',
+                    'source-layer': this.sourceLayer,
+                    filter: this.pointGeometryFilter(),
+                    layout: {
+                        'icon-image': this.buildColoredShapeIconExpression(
+                            legendAttribute, legendItems, defaultFill, defaultStroke, paint.pointDashStyle
+                        ),
+                        'icon-size': ['/', paint.pointRadiusExpression, 32],
+                        'icon-allow-overlap': true,
+                        'icon-ignore-placement': true,
+                    },
+                    paint: {
+                        'icon-opacity': paint.useSymbolForPointShape ? paint.iconOpacityExpression : 0
                     }
                 });
             }
