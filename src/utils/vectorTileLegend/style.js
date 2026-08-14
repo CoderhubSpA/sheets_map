@@ -137,7 +137,13 @@ function createNumericRangeExpression(attribute, items, expressionKey, fallbackE
         return fallbackExpression
     }
 
-    const valueExpression = ['to-number', ['get', attribute]]
+    const rawValueExpression = ['get', attribute]
+    const hasClassifiableValue = [
+        '!=',
+        ['coalesce', rawValueExpression, NULL_CLASS_KEY],
+        NULL_CLASS_KEY,
+    ]
+    const valueExpression = ['to-number', rawValueExpression]
     const expression = ['case']
     let hasAnyRangeCondition = false
 
@@ -161,12 +167,12 @@ function createNumericRangeExpression(attribute, items, expressionKey, fallbackE
 
         if (hasMin && hasMax) {
             rangeCondition = item.includeMax
-                ? ['all', ['>=', valueExpression, minValue], ['<=', valueExpression, maxValue]]
-                : ['all', ['>=', valueExpression, minValue], ['<', valueExpression, maxValue]]
+                ? ['all', hasClassifiableValue, ['>=', valueExpression, minValue], ['<=', valueExpression, maxValue]]
+                : ['all', hasClassifiableValue, ['>=', valueExpression, minValue], ['<', valueExpression, maxValue]]
         } else if (hasMin) {
-            rangeCondition = ['>=', valueExpression, minValue]
+            rangeCondition = ['all', hasClassifiableValue, ['>=', valueExpression, minValue]]
         } else {
-            rangeCondition = ['<=', valueExpression, maxValue]
+            rangeCondition = ['all', hasClassifiableValue, ['<=', valueExpression, maxValue]]
         }
 
         expression.push(rangeCondition)
@@ -510,6 +516,14 @@ export function buildVectorTileSemanticRenderState({ layer, config, semanticLege
         item.pointShape && item.pointShape !== 'circle'
     ) || item.dashStyle !== 'solid')
     const configuredStyle = applyConfiguredStyle(defaultPaint, config)
+    const showUnclassified = config.visibility?.showUnclassified !== false
+    const transparent = 'rgba(0, 0, 0, 0)'
+    const unclassifiedFill = showUnclassified
+        ? (config.palette.nullColor || config.palette.fallbackColor || defaultPaint.defaultFillColor)
+        : transparent
+    const unclassifiedStroke = showUnclassified ? deriveStrokeColor(unclassifiedFill) : transparent
+    const visibleFallback = value => (showUnclassified ? value : 0)
+    const pointStyle = config.pointStyle || {}
     const itemExpression = (key, fallback, transform) => buildItemStyleExpression({
         attribute: config.attribute,
         fallback,
@@ -523,22 +537,22 @@ export function buildVectorTileSemanticRenderState({ layer, config, semanticLege
     return {
         styleExpressions: {
             ...defaultPaint,
-            fillColorExpression: itemExpression('fill', defaultPaint.fillColorExpression),
-            strokeColorExpression: itemExpression('stroke', defaultPaint.strokeColorExpression),
-            polygonFillOpacityExpression: itemExpression('fillOpacity', configuredStyle.polygonFillOpacityExpression),
+            fillColorExpression: itemExpression('fill', unclassifiedFill),
+            strokeColorExpression: itemExpression('stroke', unclassifiedStroke),
+            polygonFillOpacityExpression: itemExpression('fillOpacity', visibleFallback(configuredStyle.polygonFillOpacityExpression)),
             polygonBorderEnabled: items.some(item => item.borderEnabled),
-            polygonStrokeWidthExpression: itemExpression('strokeWidth', configuredStyle.polygonStrokeWidthExpression),
-            polygonStrokeOpacityExpression: itemExpression('strokeOpacity', configuredStyle.polygonStrokeOpacityExpression),
-            lineWidthExpression: itemExpression('lineWidth', configuredStyle.lineWidthExpression),
-            lineOpacityExpression: itemExpression('lineOpacity', configuredStyle.lineOpacityExpression),
+            polygonStrokeWidthExpression: itemExpression('strokeWidth', visibleFallback(configuredStyle.polygonStrokeWidthExpression)),
+            polygonStrokeOpacityExpression: itemExpression('strokeOpacity', visibleFallback(configuredStyle.polygonStrokeOpacityExpression)),
+            lineWidthExpression: itemExpression('lineWidth', visibleFallback(configuredStyle.lineWidthExpression)),
+            lineOpacityExpression: itemExpression('lineOpacity', visibleFallback(configuredStyle.lineOpacityExpression)),
             lineDashArray: itemExpression('lineDashArray', configuredStyle.lineDashArray, value => ['literal', value]),
-            pointRadiusExpression: itemExpression('pointSize', defaultPaint.pointRadiusExpression),
-            pointStrokeWidthExpression: itemExpression('pointStrokeWidth', defaultPaint.pointStrokeWidthExpression),
-            pointShapeExpression: itemExpression('pointShape', defaultPaint.pointShapeExpression),
+            pointRadiusExpression: itemExpression('pointSize', visibleFallback(pointStyle.size ?? defaultPaint.pointRadiusExpression)),
+            pointStrokeWidthExpression: itemExpression('pointStrokeWidth', visibleFallback(pointStyle.strokeWidth ?? defaultPaint.pointStrokeWidthExpression)),
+            pointShapeExpression: itemExpression('pointShape', pointStyle.shape || defaultPaint.pointShapeExpression),
             pointDashStyle: config.style?.dashStyle || 'solid',
-            circleOpacityExpression: itemExpression('fillOpacity', configuredStyle.circleOpacityExpression),
-            pointStrokeOpacityExpression: itemExpression('pointStrokeOpacity', configuredStyle.pointStrokeOpacityExpression),
-            iconOpacityExpression: itemExpression('fillOpacity', configuredStyle.iconOpacityExpression),
+            circleOpacityExpression: itemExpression('fillOpacity', visibleFallback(configuredStyle.circleOpacityExpression)),
+            pointStrokeOpacityExpression: itemExpression('pointStrokeOpacity', visibleFallback(configuredStyle.pointStrokeOpacityExpression)),
+            iconOpacityExpression: itemExpression('fillOpacity', visibleFallback(configuredStyle.iconOpacityExpression)),
             useSymbolForPointShape: hasCustomPointShape,
             legendItems: items,
             legendAttribute: config.attribute,

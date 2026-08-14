@@ -131,6 +131,66 @@ test('preserva rangos numéricos editables', () => {
     assert.equal(config.vector_tile_legend.palette.items['0 a 10'].max_value, 10)
 })
 
+test('mantiene independientes rangos numéricos con etiquetas redondeadas repetidas', () => {
+    const semanticLegend = {
+        attribute: 'lat',
+        legend_type: 'numeric',
+        geometry_type: 'Point',
+        ranges: [
+            { min_value: -22.5002, max_value: -22.5001, label: '-22.5 - -22.5' },
+            { min_value: -22.5001, max_value: -22.5, label: '-22.5 - -22.5' },
+        ],
+    }
+    const draft = applySemanticLegendToDraft({
+        ...createVectorTileLegendDraft(layer),
+        attribute: 'lat',
+    }, semanticLegend)
+
+    assert.equal(new Set(draft.items.map(item => item.key)).size, 2)
+    assert.equal(
+        Object.keys(serializeVectorTileLegendDraft(draft).vector_tile_legend.palette.items).length,
+        2,
+    )
+})
+
+test('actualiza colores numéricos por clase y usa sin clasificación como fallback del preview', () => {
+    const semanticLegend = {
+        attribute: 'lat',
+        legend_type: 'numeric',
+        geometry_type: 'Point',
+        ranges: [
+            { min_value: -22.5002, max_value: -22.5001, label: '-22.5 - -22.5' },
+            { min_value: -22.5001, max_value: -22.5, label: '-22.5 - -22.5' },
+        ],
+    }
+    let draft = applySemanticLegendToDraft({
+        ...createVectorTileLegendDraft(layer),
+        attribute: 'lat',
+        nullColor: '#BD0000',
+    }, semanticLegend)
+    draft = {
+        ...draft,
+        items: draft.items.map((item, index) => ({
+            ...item,
+            fill: index === 0 ? '#112233' : '#FFFFFF',
+        })),
+    }
+
+    const renderState = buildVectorTilePreviewRenderState(draft, layer, semanticLegend)
+    const fillExpression = renderState.styleExpressions.fillColorExpression
+
+    assert.equal(fillExpression[0], 'case')
+    assert.match(JSON.stringify(fillExpression), /#112233/)
+    assert.match(JSON.stringify(fillExpression), /#FFFFFF/)
+    assert.equal(fillExpression.at(-1), '#BD0000')
+
+    const hiddenFallback = buildVectorTilePreviewRenderState({
+        ...draft,
+        showUnclassified: false,
+    }, layer, semanticLegend)
+    assert.equal(hiddenFallback.styleExpressions.circleOpacityExpression.at(-1), 0)
+})
+
 test('serializa JSON determinista con opacidad, borde, dash y punto', () => {
     const draft = {
         ...createVectorTileLegendDraft(layer), mode: 'simple', title: 'Comunas', fillOpacity: 0.45,

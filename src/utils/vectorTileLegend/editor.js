@@ -112,14 +112,30 @@ export function applySemanticLegendToDraft(draft, semanticLegend = {}) {
     if (previousItems.has(LEGACY_TEXT_CLASS_KEY) && !previousItems.has(TEXT_CLASS_KEY)) {
         previousItems.set(TEXT_CLASS_KEY, previousItems.get(LEGACY_TEXT_CLASS_KEY))
     }
+    const numericRangeKeyOccurrences = new Map()
     let sourceItems = legendType === 'numeric' || legendType === 'numerical'
-        ? (semanticLegend.ranges || []).map((range, index) => ({
-            key: String(range.label || `${range.min_value}-${range.max_value}-${index}`),
-            label: range.label || `${range.min_value} - ${range.max_value}`,
-            minValue: Number(range.min_value),
-            maxValue: Number(range.max_value),
-            count: range.count,
-        }))
+        ? (semanticLegend.ranges || []).map((range, index) => {
+            const baseKey = String(range.key ?? range.label ?? `${range.min_value}-${range.max_value}`)
+            const occurrence = numericRangeKeyOccurrences.get(baseKey) || 0
+            numericRangeKeyOccurrences.set(baseKey, occurrence + 1)
+
+            // GeoServer redondea los labels visibles. En capas con poca
+            // dispersión, dos rangos distintos pueden terminar con el mismo
+            // texto; la clave interna debe seguir siendo única para no perder
+            // colores ni overrides durante la serialización.
+            const key = occurrence === 0
+                ? baseKey
+                : `${baseKey}__range_${index}_${range.min_value}_${range.max_value}`
+
+            return {
+                key,
+                legacyKey: baseKey,
+                label: range.label || `${range.min_value} - ${range.max_value}`,
+                minValue: Number(range.min_value),
+                maxValue: Number(range.max_value),
+                count: range.count,
+            }
+        })
         : (semanticLegend.classes || []).map(item => ({
             key: String(item.key),
             label: item.label || String(item.key),
@@ -142,10 +158,11 @@ export function applySemanticLegendToDraft(draft, semanticLegend = {}) {
         ))
     }
     next.items = sourceItems.map((item, index) => {
-        const previous = previousItems.get(item.key)
+        const previous = previousItems.get(item.key) || previousItems.get(item.legacyKey)
         const fill = previous?.fill || DEFAULT_COLORS[index % DEFAULT_COLORS.length]
+        const { legacyKey, ...sourceItem } = item
         return {
-            ...item,
+            ...sourceItem,
             label: previous?.label || item.label,
             fill,
             stroke: previous?.stroke || (isPointGeometry ? deriveStrokeColor(fill) : next.strokeColor),

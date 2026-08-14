@@ -298,7 +298,7 @@ En polígonos, el color y `fill_opacity` controlan el relleno; `border_enabled`,
 
 Los inputs visuales aplican límites al escribir, no solo al usar las flechas: opacidades `0–1`, anchos de línea/borde `0–20`, tamaño de punto `1–64` y borde de punto `0–16`. El preview entra nuevamente por el serializador, normalizador y constructor de expresiones de producción, por lo que ancho, opacidad, colores y clases se actualizan en vivo con el mismo contrato del mapa principal.
 
-El preview usa un mapa base raster y la fuente XYZ real. Inicializa la cámara con `centroid` y ejecuta `fitBounds` sobre `bbox`, de modo que capas nacionales o dispersas —como APC— aparecen centradas sin depender de que el sector inicial contenga elementos. MapLibre solicita únicamente los tiles visibles para ese encuadre y conserva una caché máxima de seis tiles; no descarga la tabla completa ni crea una capa por categoría. Para servicios antiguos que todavía no entreguen contexto espacial se mantiene, como degradación, el autoencuadre sobre un máximo de 200 features ya cargadas. Las expresiones `match` o `case` resuelven las clases en GPU y el preview observa el borrador más la respuesta semántica para aplicar colores y rangos al finalizar la selección. El mapa y el bloque de leyenda usan separación inferior equivalente a sus márgenes laterales.
+El preview usa un mapa base raster y la fuente XYZ real. Inicializa la cámara con `centroid` y ejecuta `fitBounds` sobre `bbox`, de modo que capas nacionales o dispersas —como APC— aparecen centradas sin depender de que el sector inicial contenga elementos. MapLibre solicita únicamente los tiles visibles para ese encuadre y conserva una caché máxima de seis tiles; no descarga la tabla completa ni crea una capa por categoría. Para servicios antiguos que todavía no entreguen contexto espacial se mantiene, como degradación, el autoencuadre sobre un máximo de 200 features ya cargadas. Las expresiones `match` o `case` resuelven las clases en GPU y el preview observa el borrador más la respuesta semántica para aplicar colores y rangos al finalizar la selección. Los rangos numéricos conservan claves internas únicas aunque el servicio entregue etiquetas redondeadas iguales; así cada clase mantiene su propio estilo. Los valores nulos o fuera de los rangos usan el color **sin clasificación** y, si esa opción está desactivada, permanecen ocultos en vez de recuperar el azul general de la capa. El mapa y el bloque de leyenda usan separación inferior equivalente a sus márgenes laterales.
 
 ### Ejemplo categórico para puntos
 
@@ -515,7 +515,7 @@ Resultados verificados:
 
 | Validación | Resultado |
 | --- | --- |
-| Unitarios `sheets_map` | 41/41 correctos, incluidos merge de conteos, rangos y orden render-antes-de-request. |
+| Unitarios `sheets_map` | 43/43 correctos, incluidos merge de conteos, rangos con etiquetas repetidas, fallback sin clasificación y orden render-antes-de-request. |
 | Unitarios dirigidos `ch_geoserver_v2` | 24/24 correctos. |
 | Suite completa `ch_geoserver_v2` | 961 correctos y 81 fallos de baseline ajenos al cambio, concentrados en OGC WFS no registrado y un default de settings. |
 | Build de librería | Correcto. |

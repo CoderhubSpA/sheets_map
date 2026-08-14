@@ -64,6 +64,7 @@ function semanticLegendFromDraft(draft = {}, semanticLegend = null) {
             count: item.count ?? null,
         })),
         ranges: numeric ? items.map(item => ({
+            key: String(item.key),
             min_value: item.minValue,
             max_value: item.maxValue,
             label: item.label || String(item.key),
