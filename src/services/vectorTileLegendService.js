@@ -36,13 +36,13 @@ export function buildVectorTileLegendUrl(tileUrl, layerName, attribute) {
     return url.toString()
 }
 
-export async function fetchVectorTileSemanticLegend({ tileUrl, layerName, attribute }) {
+export async function fetchVectorTileSemanticLegend({ tileUrl, layerName, attribute, signal }) {
     const legendUrl = buildVectorTileLegendUrl(tileUrl, layerName, attribute)
 
     if (!legendUrl) {
         return null
     }
 
-    const response = await axios.get(legendUrl)
+    const response = await axios.get(legendUrl, { signal })
     return response?.data || null
 }

@@ -32,13 +32,13 @@ export function buildVectorTileAttributesUrl(tileUrl, layerName) {
     return url.toString()
 }
 
-export async function fetchVectorTileAttributes({ tileUrl, layerName }) {
+export async function fetchVectorTileAttributes({ tileUrl, layerName, signal }) {
     const attributesUrl = buildVectorTileAttributesUrl(tileUrl, layerName)
 
     if (!attributesUrl) {
         return null
     }
 
-    const response = await axios.get(attributesUrl)
+    const response = await axios.get(attributesUrl, { signal })
     return response?.data || null
 }

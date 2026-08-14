@@ -7,7 +7,8 @@
     "serve:proxy": "cross-env VITE_BASE_PATH=/map-dev/ vite --port 5173 --strictPort",
     "build:lib": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .vue,.js"
+    "lint": "eslint src --ext .vue,.js",
+    "test": "node --experimental-default-type=module --test tests"
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.15.0",

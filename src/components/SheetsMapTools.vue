@@ -68,13 +68,20 @@
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
                                     <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value)"></b-icon>
-                                    <b-icon icon="gear-fill" :id="'layer-opacity-' + option.key" @click.stop></b-icon>
+                                    <button
+                                        type="button"
+                                        class="layer-settings-button"
+                                        :id="'layer-opacity-' + option.key"
+                                        :aria-label="`Configurar capa ${option.value}`"
+                                        @click.stop="handleSettingsClick(option)"
+                                    ><b-icon icon="gear-fill" aria-hidden="true"></b-icon></button>
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
                                 </div>
                             </div>
                             <b-popover
+                                v-if="!isVectorTileLayer(option)"
                                 :target="'layer-opacity-' + option.key"
                                 triggers="click blur"
                                 placement="left"
@@ -183,11 +190,18 @@
                                         <div>
                                             <span class="layer-download-btn">
                                                 <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value)"></b-icon>
-                                                <b-icon icon="gear-fill" :id="'layer-opacity-' + option.key" @click.stop></b-icon>
+                                                <button
+                                                    type="button"
+                                                    class="layer-settings-button"
+                                                    :id="'layer-opacity-' + option.key"
+                                                    :aria-label="`Configurar capa ${option.value}`"
+                                                    @click.stop="handleSettingsClick(option)"
+                                                ><b-icon icon="gear-fill" aria-hidden="true"></b-icon></button>
                                             </span>
                                         </div>
                                     </div>
                                     <b-popover
+                                        v-if="!isVectorTileLayer(option)"
                                         :target="'layer-opacity-' + option.key"
                                         triggers="click blur"
                                         placement="left"
@@ -263,6 +277,12 @@
             </div>
         </menu>
 
+        <vector-tile-layer-settings-modal
+            :visible.sync="showVectorTileSettings"
+            :layer="selectedVectorTileLayer"
+            @apply="applyVectorTileSettings"
+        />
+
         <!-- Modal para selección de formato de descarga -->
         <b-modal
             v-model="showFormatModal"
@@ -296,6 +316,8 @@ import SheetsTooltip from "./SheetsTooltip.vue";
 import axios from 'axios';
 import { fetchVectorTileAttributes } from "../services/vectorTileAttributesService";
 import { inferVectorTileLayerNameFromUrl } from "../utils/vectorTileLegend/config";
+import { isVectorTileSymbologyEligible } from "../utils/vectorTileLegend/editor";
+import VectorTileLayerSettingsModal from "./VectorTileLayerSettingsModal.vue";
 
 export default {
     name: 'SheetsMapTools',
@@ -305,7 +327,8 @@ export default {
         BFormGroup,
         BFormRadio,
         BPopover,
-        SheetsTooltip
+        SheetsTooltip,
+        VectorTileLayerSettingsModal,
     },
     props: {
         // Propiedades de componentes
@@ -337,6 +360,10 @@ export default {
             filterDraftAttribute: {},
             filterDraftValue: {},
             availableAttributesByLayer: {},
+            runtimeLegendConfigs: {},
+            legendRevisions: {},
+            selectedVectorTileLayer: null,
+            showVectorTileSettings: false,
             active_base_layers: '',
             active_groups: {},
             disabled_layers: {},
@@ -358,6 +385,7 @@ export default {
                         key: layer.id,
                         value: layer.name,
                         type: layer["sh_map_has_layer_type"],
+                        code: layer["sh_map_has_layer_code"],
                         image: layer["sh_map_has_layer_image"],
                         group: layer["sh_map_has_layer_group"],
                         subgroup: layer["sh_map_has_layer_subgroup"],
@@ -371,10 +399,18 @@ export default {
                         color: layer['sh_map_has_layer_color'],
                         text_color: layer['sh_map_has_layer_text_color'],
                         icon: layer['sh_map_has_layer_point_image'],
+                        pointImage: layer['sh_map_has_layer_point_image'],
+                        sh_map_has_layer_point_image: layer['sh_map_has_layer_point_image'],
                         quickLayer: layer["sh_map_has_layer_quick_layer"] ? layer["sh_map_has_layer_quick_layer"] : 0,
                         download_url: layer["sh_map_has_layer_type_download_url"],
                         opacity: this.layer_opacity[layer.id] ?? 1,
                         url: layer["sh_map_has_layer_url"],
+                        geoserverLayer: layer["sh_map_has_layer_geoserver_layer"],
+                        sh_map_has_layer_code: layer["sh_map_has_layer_code"],
+                        sh_map_has_layer_url: layer["sh_map_has_layer_url"],
+                        sh_map_has_layer_geoserver_layer: layer["sh_map_has_layer_geoserver_layer"],
+                        sh_map_has_layer_legend_config: this.runtimeLegendConfigs[layer.id] ?? layer["sh_map_has_layer_legend_config"],
+                        legendRevision: this.legendRevisions[layer.id] || 0,
                         filterAttribute: this.layer_filters[layer.id]?.attribute || '',
                         filterValue: this.layer_filters[layer.id]?.value ?? '',
                     };
@@ -516,6 +552,30 @@ export default {
         },
     },
     methods: {
+        isVectorTileLayer(layer) {
+            return isVectorTileSymbologyEligible(layer);
+        },
+
+        handleSettingsClick(layer) {
+            if (!this.isVectorTileLayer(layer)) return;
+            this.selectedVectorTileLayer = { ...layer };
+            this.showVectorTileSettings = true;
+        },
+
+        applyVectorTileSettings(settings) {
+            this.$set(this.layer_opacity, settings.layerKey, Number(settings.opacity));
+            if (settings.filterAttribute && settings.filterValue !== '') {
+                this.$set(this.layer_filters, settings.layerKey, {
+                    attribute: settings.filterAttribute,
+                    value: settings.filterValue,
+                });
+            } else {
+                this.$delete(this.layer_filters, settings.layerKey);
+            }
+            this.$set(this.runtimeLegendConfigs, settings.layerKey, settings.legendConfig);
+            this.$set(this.legendRevisions, settings.layerKey, (this.legendRevisions[settings.layerKey] || 0) + 1);
+        },
+
         toggleLayer(layer, group, subgroup) {
             // If the layer is a base layer, toggle it on or off
             if (layer.type == "base") {
@@ -544,7 +604,7 @@ export default {
         async ensureAttributesLoaded(option) {
             if (!option?.url || this.availableAttributesByLayer[option.key]) return;
 
-            const layerName = inferVectorTileLayerNameFromUrl(option.url);
+            const layerName = option.geoserverLayer || inferVectorTileLayerNameFromUrl(option.url);
             if (!layerName) return;
 
             // Inicializar el borrador explícitamente para que el <select> quede en el
@@ -937,6 +997,21 @@ export default {
 // Estos pueden ser activados luego por alguna plantilla del orquestador de componentes
 .hidden-by-default{
     display: none;   
+}
+
+.layer-settings-button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.layer-settings-button:focus-visible {
+    outline: 2px solid var(--option-active-color);
+    outline-offset: 2px;
 }
 
 .subgroup-container {

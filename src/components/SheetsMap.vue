@@ -471,6 +471,8 @@ export default {
             operative_geoserver_wms: [],
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
+            viewport_resize_handler: null,
+            map_resize_observer: null,
             dynamic_layer_registry: {},
             dynamic_layer_render_token: 0,
             map_configuration_ready: false,
@@ -1297,6 +1299,22 @@ export default {
         renderable_vector_tiles_xyz() {
             return [...this.operative_vector_tiles_xyz]
                 .filter((entry) => entry && entry.visible !== false)
+                .map((entry) => {
+                    const workingLayer = (this.working_layers || []).find((item) => item.key == entry.layer?.id);
+                    if (!workingLayer) return entry;
+                    return {
+                        ...entry,
+                        _uid: `${entry._uid}-legend-${workingLayer.legendRevision || 0}`,
+                        layer: {
+                            ...entry.layer,
+                            sh_map_runtime_order:
+                                entry.order ?? entry.layer.sh_map_has_layer_order,
+                            sh_map_has_layer_legend_config:
+                                workingLayer.sh_map_has_layer_legend_config ??
+                                entry.layer.sh_map_has_layer_legend_config,
+                        },
+                    };
+                })
                 .sort((left, right) => {
                     const leftOrder = Number.isFinite(left?.order)
                         ? left.order
@@ -1447,8 +1465,26 @@ export default {
     },
     mounted() {
         this.poweredCoderhub();
+        this.viewport_resize_handler = () => this.updateMapViewportHeight();
+        window.addEventListener("resize", this.viewport_resize_handler, { passive: true });
+        this.$nextTick(this.viewport_resize_handler);
+    },
+    beforeDestroy() {
+        if (this.viewport_resize_handler) {
+            window.removeEventListener("resize", this.viewport_resize_handler);
+        }
+        this.map_resize_observer?.disconnect();
     },
     methods: {
+        updateMapViewportHeight() {
+            const container = this.$refs.map_container;
+            if (!container || typeof window === "undefined") return;
+
+            const top = Math.max(0, container.getBoundingClientRect().top);
+            const availableHeight = Math.max(320, window.innerHeight - top);
+            container.style.setProperty("--sh-map-available-height", `${availableHeight}px`);
+            this.$nextTick(() => this.map?.invalidateSize(false));
+        },
         configureMapZoom(payload = {}) {
             const nextMapMaxZoom = toPositiveInteger(payload.maxZoom);
             const nextMaxNativeZoom = toPositiveInteger(payload.maxNativeZoom);
@@ -1779,11 +1815,12 @@ export default {
         ready() {
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
+            this.updateMapViewportHeight();
 
-            const resizeObserver = new ResizeObserver(() => {
+            this.map_resize_observer = new ResizeObserver(() => {
                 this.map.invalidateSize(false);
             });
-            resizeObserver.observe(this.$refs.map_container);
+            this.map_resize_observer.observe(this.$refs.map_container);
 
             // Actualizar zoom y tamaño del marcador al hacer zoom
             this.map.on("zoomend", () => {
@@ -3576,7 +3613,8 @@ export default {
 }
 
 .my-map {
-    min-height: 96dvh;
+    min-height: 320px;
+    height: var(--sh-map-available-height, 96dvh);
 }
 
 .my-map :deep(.my-labels) {
@@ -3666,7 +3704,8 @@ li {
 
 .legend-container {
     background: white;
-    padding-top: 8px;
+    max-width: 100%;
+    padding: 0;
 }
 
 .legend-lavel {
@@ -3752,6 +3791,32 @@ li {
 
 :deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend {
     grid-column: 2;
+    max-width: min(320px, calc(100vw - 24px));
+    max-height: min(48dvh, calc(var(--sh-map-available-height, 96dvh) - 24px));
+    margin: 0 10px 10px 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 9px;
+    scrollbar-color: #aebdca transparent;
+    scrollbar-width: thin;
+    overscroll-behavior: contain;
+}
+
+:deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend::-webkit-scrollbar {
+    width: 6px;
+}
+
+:deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #aebdca;
+}
+
+@media (max-width: 700px), (max-height: 700px) {
+    :deep(.leaflet-control-container) .leaflet-bottom.leaflet-right .sheets-map-legend {
+        max-width: min(260px, calc(100vw - 18px));
+        max-height: min(42dvh, calc(var(--sh-map-available-height, 96dvh) - 18px));
+        margin: 0 6px 6px 0;
+    }
 }
 
 .search-and-quick-layer-container {
