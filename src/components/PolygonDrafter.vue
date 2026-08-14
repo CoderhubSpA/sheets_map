@@ -251,6 +251,7 @@ export default {
       this.bounds_filters = bounds_filters;
     },
     beginDraw(shape) {
+      if (!this.map || !this.map.pm) return;
       //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
       this.map.eachLayer((layer) => {
         layer.closePopup();
@@ -337,13 +338,20 @@ export default {
       }
     },
     cancelDraw() {
+      if (!this.map || !this.map.pm) {
+        this._cancelling = false;
+        return;
+      }
       this._cancelling = true;
-      this.map.pm.disableDraw();
-      this.drawing = false;
-      this._lastShape = null;
-      this._prevShape = null;
-      this.setCursor("");
-      this._cancelling = false;
+      try {
+        this.map.pm.disableDraw();
+        this.drawing = false;
+        this._lastShape = null;
+        this._prevShape = null;
+        this.setCursor("");
+      } finally {
+        this._cancelling = false;
+      }
     },
     // pm:drawend se dispara después de pm:create Y al desactivar eraser mode.
     // Solo re-habilitamos el draw si drawing sigue activo (polígono completado, no cancelado).
