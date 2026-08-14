@@ -35,7 +35,7 @@
                 <div v-if="error" class="editor-status editor-status--error" role="alert">{{ error }}</div>
             </section>
 
-            <section class="editor-card">
+            <section v-if="!hasSelectedAttribute" class="editor-card editor-card--general-style">
                 <div class="editor-card__heading">
                     <div>
                         <h5>Estilo de la geometría</h5>
@@ -153,6 +153,133 @@
 
             </section>
 
+            <section v-if="hasSelectedAttribute" class="editor-card editor-card--classes" :aria-busy="String(loading)">
+                <div class="editor-card__heading">
+                    <div><h5>Estilo de la geometría</h5><p>Configura colores, transparencias y trazos para las clases de {{ geometryDescription }}.</p></div>
+                    <span v-if="draft.items.length" class="class-count">{{ draft.items.length }} clases</span>
+                </div>
+
+                <template v-if="draft.items.length">
+                <div class="class-section-heading">
+                    <h6>Clases</h6>
+                    <p>Personaliza la simbología de cada valor del atributo seleccionado.</p>
+                </div>
+
+                <div class="class-tabs-shell">
+                    <button
+                        type="button"
+                        class="class-tabs__navigation"
+                        :disabled="activeClassIndex === 0"
+                        aria-label="Clase anterior"
+                        @click="moveClass(-1)"
+                    >
+                        <svg class="class-tabs__navigation-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                            <path d="m12.5 4.5-5 5.5 5 5.5" />
+                        </svg>
+                    </button>
+                    <div ref="classTabs" class="class-tabs" role="tablist" aria-label="Clases de simbología">
+                        <button
+                            v-for="(item, index) in draft.items"
+                            :key="item.key"
+                            :ref="`classTab-${index}`"
+                            type="button"
+                            class="class-tab"
+                            :class="{ 'class-tab--active': activeClassIndex === index }"
+                            role="tab"
+                            :aria-selected="String(activeClassIndex === index)"
+                            :aria-controls="`class-panel-${index}`"
+                            :tabindex="activeClassIndex === index ? 0 : -1"
+                            @click="selectClass(index)"
+                        >
+                            <span class="class-tab__swatch" :style="{ backgroundColor: item.fill }" aria-hidden="true"></span>
+                            <span class="class-tab__text"><strong>Clase {{ index + 1 }}</strong><small>{{ item.label || rangeLabel(item) }}</small></span>
+                        </button>
+                    </div>
+                    <button
+                        type="button"
+                        class="class-tabs__navigation"
+                        :disabled="activeClassIndex >= draft.items.length - 1"
+                        aria-label="Clase siguiente"
+                        @click="moveClass(1)"
+                    >
+                        <svg class="class-tabs__navigation-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                            <path d="m7.5 4.5 5 5.5-5 5.5" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="class-list">
+                    <article
+                        v-if="activeClass"
+                        :id="`class-panel-${activeClassIndex}`"
+                        :key="activeClass.key"
+                        class="class-row"
+                        role="tabpanel"
+                    >
+                        <header class="class-row__header">
+                            <div><span>Clase {{ activeClassIndex + 1 }}</span><strong :title="rangeLabel(activeClass)">{{ rangeLabel(activeClass) }}</strong></div>
+                            <small v-if="activeClass.count !== null && activeClass.count !== undefined">{{ activeClass.count }} elementos</small>
+                        </header>
+                        <div class="class-settings-grid class-settings-grid--label">
+                            <label class="field-control"><span>Etiqueta</span><input aria-label="Nombre de clase" :value="activeClass.label" @input="updateItem(activeClassIndex, 'label', $event.target.value)"></label>
+                        </div>
+                        <div v-if="isNumericLegend" class="class-settings-grid class-settings-grid--two class-range-grid">
+                            <label class="field-control"><span>Mínimo</span><input aria-label="Mínimo" type="number" :value="activeClass.minValue" @input="updateItem(activeClassIndex, 'minValue', optionalNumber($event.target.value))"></label>
+                            <label class="field-control"><span>Máximo</span><input aria-label="Máximo" type="number" :value="activeClass.maxValue" @input="updateItem(activeClassIndex, 'maxValue', optionalNumber($event.target.value))"></label>
+                        </div>
+
+                        <div v-if="!isLineGeometry" class="class-control-group">
+                            <h6>Relleno</h6>
+                            <div class="class-settings-grid class-settings-grid--two">
+                                <label class="field-control"><span>Color de relleno</span><span class="color-control"><input aria-label="Color de clase" type="color" :value="activeClass.fill" @input="updateItem(activeClassIndex, 'fill', $event.target.value)"><code>{{ activeClass.fill }}</code></span></label>
+                                <label class="field-control"><span>Opacidad del relleno</span><span class="number-control"><input aria-label="Opacidad del relleno de clase" type="number" min="0" max="1" step="0.05" :value="itemStyleValue(activeClass, 'fillOpacity')" @input="updateBoundedItemStyle(activeClassIndex, 'fillOpacity', $event)"><small>0 – 1</small></span></label>
+                            </div>
+                        </div>
+
+                        <div v-if="!isLineGeometry" class="class-control-group">
+                            <h6>Borde</h6>
+                            <div class="class-settings-grid class-settings-grid--three">
+                                <label class="field-control"><span>Color del borde</span><span class="color-control"><input aria-label="Color de borde" type="color" :value="activeClass.stroke" @input="updateItem(activeClassIndex, 'stroke', $event.target.value)"><code>{{ activeClass.stroke }}</code></span></label>
+                                <label class="field-control"><span>Opacidad del borde</span><span class="number-control"><input aria-label="Opacidad del borde de clase" type="number" min="0" max="1" step="0.05" :disabled="!itemStyleValue(activeClass, 'borderEnabled')" :value="itemStyleValue(activeClass, 'strokeOpacity')" @input="updateBoundedItemStyle(activeClassIndex, 'strokeOpacity', $event)"><small>0 – 1</small></span></label>
+                                <label class="field-control"><span>Ancho del borde</span><span class="number-control"><input aria-label="Ancho del borde de clase" type="number" min="0" :max="isPointGeometry ? 16 : 20" step="0.5" :disabled="!itemStyleValue(activeClass, 'borderEnabled') || (isPointGeometry && Boolean(draft.pointImage))" :value="isPointGeometry ? itemPointValue(activeClass, 'strokeWidth') : itemStyleValue(activeClass, 'strokeWidth')" @input="isPointGeometry ? updateBoundedItemPoint(activeClassIndex, 'strokeWidth', 'pointStrokeWidth', $event) : updateBoundedItemStyle(activeClassIndex, 'strokeWidth', $event)"><small>px</small></span></label>
+                                <label v-if="isPointGeometry" class="field-control"><span>Tipo de borde</span><select aria-label="Tipo de borde de clase" :value="itemStyleValue(activeClass, 'dashStyle')" :disabled="Boolean(draft.pointImage) || !itemStyleValue(activeClass, 'borderEnabled')" @change="updateItemStyle(activeClassIndex, 'dashStyle', $event.target.value)"><option v-for="option in dashOptions" :key="option.value" :value="option.value">{{ option.symbol }}&nbsp;&nbsp;{{ option.label }}</option></select></label>
+                            </div>
+                            <label class="toggle-control class-row__toggle"><input type="checkbox" :checked="itemStyleValue(activeClass, 'borderEnabled')" @change="updateItemStyle(activeClassIndex, 'borderEnabled', $event.target.checked)"><span><strong>Mostrar borde</strong><small>Esta configuración se aplica únicamente a la clase activa.</small></span></label>
+                        </div>
+
+                        <div v-if="isPointGeometry" class="class-control-group">
+                            <h6>Marcador</h6>
+                            <div class="class-settings-grid class-settings-grid--two">
+                                <label class="field-control"><span>Forma</span><select aria-label="Forma del punto" :value="itemPointValue(activeClass, 'shape')" :disabled="Boolean(draft.pointImage)" @change="updateItemPoint(activeClassIndex, 'shape', $event.target.value)"><option v-for="option in pointShapeOptions" :key="option.value" :value="option.value">{{ option.symbol }}&nbsp;&nbsp;{{ option.label }}</option></select></label>
+                                <label class="field-control"><span>Tamaño</span><span class="number-control"><input aria-label="Tamaño del punto" type="number" min="1" max="64" :value="itemPointValue(activeClass, 'size')" :disabled="Boolean(draft.pointImage)" @input="updateBoundedItemPoint(activeClassIndex, 'size', 'pointSize', $event)"><small>px</small></span></label>
+                            </div>
+                        </div>
+
+                        <div v-if="isPolygonGeometry" class="class-control-group">
+                            <h6>Línea del borde</h6>
+                            <div class="class-settings-grid">
+                                <label class="field-control"><span>Tipo de línea</span><select aria-label="Tipo de línea de clase" :value="itemStyleValue(activeClass, 'dashStyle')" :disabled="!itemStyleValue(activeClass, 'borderEnabled')" @change="updateItemStyle(activeClassIndex, 'dashStyle', $event.target.value)"><option v-for="option in dashOptions" :key="option.value" :value="option.value">{{ option.symbol }}&nbsp;&nbsp;{{ option.label }}</option></select></label>
+                            </div>
+                        </div>
+
+                        <div v-if="isLineGeometry" class="class-control-group">
+                            <h6>Línea</h6>
+                            <div class="class-settings-grid class-settings-grid--three">
+                                <label class="field-control"><span>Color de línea</span><span class="color-control"><input aria-label="Color de clase" type="color" :value="activeClass.fill" @input="updateItem(activeClassIndex, 'fill', $event.target.value)"><code>{{ activeClass.fill }}</code></span></label>
+                                <label class="field-control"><span>Opacidad de línea</span><span class="number-control"><input aria-label="Opacidad de línea de clase" type="number" min="0" max="1" step="0.05" :value="itemStyleValue(activeClass, 'lineOpacity')" @input="updateBoundedItemStyle(activeClassIndex, 'lineOpacity', $event)"><small>0 – 1</small></span></label>
+                                <label class="field-control"><span>Ancho de línea</span><span class="number-control"><input aria-label="Ancho de línea de clase" type="number" min="0" max="20" step="0.5" :value="itemStyleValue(activeClass, 'lineWidth')" @input="updateBoundedItemStyle(activeClassIndex, 'lineWidth', $event)"><small>px</small></span></label>
+                                <label class="field-control"><span>Tipo de línea</span><select aria-label="Tipo de línea de clase" :value="itemStyleValue(activeClass, 'dashStyle')" @change="updateItemStyle(activeClassIndex, 'dashStyle', $event.target.value)"><option v-for="option in dashOptions" :key="option.value" :value="option.value">{{ option.symbol }}&nbsp;&nbsp;{{ option.label }}</option></select></label>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                </template>
+                <div v-else-if="loading" class="class-loading-placeholder" aria-hidden="true"></div>
+                <div v-else class="class-empty-state" role="status">
+                    No hay clases configurables para el atributo seleccionado.
+                </div>
+            </section>
+
             <section class="editor-card">
                 <div class="editor-card__heading">
                     <div><h5>Leyenda</h5><p>Controla qué información se presenta a quienes consultan el mapa.</p></div>
@@ -178,41 +305,7 @@
                 </div>
             </section>
 
-            <section v-if="draft.mode === 'thematic' && draft.items.length" class="editor-card editor-card--classes">
-                <div class="editor-card__heading">
-                    <div><h5>Clases</h5><p>Personaliza cada clase. Sus valores tienen prioridad sobre el estilo general.</p></div>
-                    <span class="class-count">{{ draft.items.length }} clases</span>
-                </div>
-                <div class="class-list">
-                    <article v-for="(item, index) in draft.items" :key="item.key" class="class-row">
-                        <header class="class-row__header">
-                            <div><span>Clase {{ index + 1 }}</span><strong :title="rangeLabel(item)">{{ rangeLabel(item) }}</strong></div>
-                            <small v-if="item.count !== null && item.count !== undefined">{{ item.count }} elementos</small>
-                        </header>
-                        <div class="class-settings-grid">
-                            <label class="field-control"><span>Etiqueta</span><input aria-label="Nombre de clase" :value="item.label" @input="updateItem(index, 'label', $event.target.value)"></label>
-                            <label v-if="isNumericLegend" class="field-control"><span>Mínimo</span><input aria-label="Mínimo" type="number" :value="item.minValue" @input="updateItem(index, 'minValue', optionalNumber($event.target.value))"></label>
-                            <label v-if="isNumericLegend" class="field-control"><span>Máximo</span><input aria-label="Máximo" type="number" :value="item.maxValue" @input="updateItem(index, 'maxValue', optionalNumber($event.target.value))"></label>
 
-                            <label class="field-control"><span>{{ isLineGeometry ? 'Color de línea' : 'Color principal' }}</span><span class="color-control"><input aria-label="Color de clase" type="color" :value="item.fill" @input="updateItem(index, 'fill', $event.target.value)"><code>{{ item.fill }}</code></span></label>
-                            <label v-if="!isLineGeometry" class="field-control"><span>Opacidad del relleno</span><span class="number-control"><input aria-label="Opacidad del relleno de clase" type="number" min="0" max="1" step="0.05" :value="itemStyleValue(item, 'fillOpacity')" @input="updateBoundedItemStyle(index, 'fillOpacity', $event)"><small>0 – 1</small></span></label>
-                            <label v-if="!isLineGeometry" class="field-control"><span>Color del borde</span><span class="color-control"><input aria-label="Color de borde" type="color" :value="item.stroke" @input="updateItem(index, 'stroke', $event.target.value)"><code>{{ item.stroke }}</code></span></label>
-
-                            <label v-if="isPolygonGeometry" class="field-control"><span>Ancho del borde</span><span class="number-control"><input aria-label="Ancho del borde de clase" type="number" min="0" max="20" step="0.5" :disabled="!itemStyleValue(item, 'borderEnabled')" :value="itemStyleValue(item, 'strokeWidth')" @input="updateBoundedItemStyle(index, 'strokeWidth', $event)"><small>px</small></span></label>
-                            <label v-if="!isLineGeometry" class="field-control"><span>Opacidad del borde</span><span class="number-control"><input aria-label="Opacidad del borde de clase" type="number" min="0" max="1" step="0.05" :disabled="!itemStyleValue(item, 'borderEnabled')" :value="itemStyleValue(item, 'strokeOpacity')" @input="updateBoundedItemStyle(index, 'strokeOpacity', $event)"><small>0 – 1</small></span></label>
-
-                            <label v-if="isLineGeometry" class="field-control"><span>Ancho de línea</span><span class="number-control"><input aria-label="Ancho de línea de clase" type="number" min="0" max="20" step="0.5" :value="itemStyleValue(item, 'lineWidth')" @input="updateBoundedItemStyle(index, 'lineWidth', $event)"><small>px</small></span></label>
-                            <label v-if="isLineGeometry" class="field-control"><span>Opacidad de línea</span><span class="number-control"><input aria-label="Opacidad de línea de clase" type="number" min="0" max="1" step="0.05" :value="itemStyleValue(item, 'lineOpacity')" @input="updateBoundedItemStyle(index, 'lineOpacity', $event)"><small>0 – 1</small></span></label>
-                            <label v-if="isLineGeometry || isPolygonGeometry || isPointGeometry" class="field-control"><span>{{ isPointGeometry ? 'Tipo de borde' : 'Tipo de línea' }}</span><select :aria-label="isPointGeometry ? 'Tipo de borde de clase' : 'Tipo de línea de clase'" :value="itemStyleValue(item, 'dashStyle')" :disabled="isPointGeometry && (Boolean(draft.pointImage) || !itemStyleValue(item, 'borderEnabled'))" @change="updateItemStyle(index, 'dashStyle', $event.target.value)"><option v-for="option in dashOptions" :key="option.value" :value="option.value">{{ option.symbol }}&nbsp;&nbsp;{{ option.label }}</option></select></label>
-
-                            <label v-if="isPointGeometry" class="field-control"><span>Forma</span><select aria-label="Forma del punto" :value="itemPointValue(item, 'shape')" :disabled="Boolean(draft.pointImage)" @change="updateItemPoint(index, 'shape', $event.target.value)"><option v-for="option in pointShapeOptions" :key="option.value" :value="option.value">{{ option.symbol }}&nbsp;&nbsp;{{ option.label }}</option></select></label>
-                            <label v-if="isPointGeometry" class="field-control"><span>Tamaño</span><span class="number-control"><input aria-label="Tamaño del punto" type="number" min="1" max="64" :value="itemPointValue(item, 'size')" :disabled="Boolean(draft.pointImage)" @input="updateBoundedItemPoint(index, 'size', 'pointSize', $event)"><small>px</small></span></label>
-                            <label v-if="isPointGeometry" class="field-control"><span>Ancho de borde</span><span class="number-control"><input aria-label="Ancho del borde del punto" type="number" min="0" max="16" :value="itemPointValue(item, 'strokeWidth')" :disabled="Boolean(draft.pointImage) || !itemStyleValue(item, 'borderEnabled')" @input="updateBoundedItemPoint(index, 'strokeWidth', 'pointStrokeWidth', $event)"><small>px</small></span></label>
-                        </div>
-                        <label v-if="!isLineGeometry" class="toggle-control class-row__toggle"><input type="checkbox" :checked="itemStyleValue(item, 'borderEnabled')" @change="updateItemStyle(index, 'borderEnabled', $event.target.checked)"><span><strong>Mostrar borde</strong><small>Esta clase sobrescribe la configuración general.</small></span></label>
-                    </article>
-                </div>
-            </section>
         </div>
 
         <vector-tile-symbology-preview
@@ -242,6 +335,7 @@ export default {
     },
     data() {
         return {
+            activeClassIndex: 0,
             dashOptions: [
                 { value: 'solid', label: 'Continua', symbol: '━' },
                 { value: 'dashed', label: 'Segmentada', symbol: '┄' },
@@ -261,11 +355,27 @@ export default {
         isLineGeometry() { return this.geometryType.includes('line') },
         isPolygonGeometry() { return this.geometryType.includes('polygon') },
         isNumericLegend() { return ['numeric', 'numerical'].includes(String(this.draft.legendType || '').toLowerCase()) },
+        hasSelectedAttribute() {
+            return this.draft.mode === 'thematic' && Boolean(String(this.draft.attribute || '').trim())
+        },
+        activeClass() {
+            return this.draft.items[this.activeClassIndex] || null
+        },
         geometryDescription() {
             if (this.isPolygonGeometry) return 'polígonos'
             if (this.isLineGeometry) return 'líneas'
             if (this.isPointGeometry) return 'puntos'
             return 'la capa'
+        },
+    },
+    watch: {
+        'draft.attribute'() {
+            this.activeClassIndex = 0
+            this.$nextTick(this.scrollActiveClassTab)
+        },
+        'draft.items.length'(length) {
+            this.activeClassIndex = Math.max(0, Math.min(this.activeClassIndex, length - 1))
+            this.$nextTick(this.scrollActiveClassTab)
         },
     },
     methods: {
@@ -319,6 +429,18 @@ export default {
             const normalized = normalizeVectorTileStyleValue(styleKey, rawValue, currentValue)
             if (normalized !== Number(rawValue)) event.target.value = String(normalized)
             this.updateItemPoint(index, key, normalized)
+        },
+        selectClass(index) {
+            this.activeClassIndex = Math.max(0, Math.min(index, this.draft.items.length - 1))
+            this.$nextTick(this.scrollActiveClassTab)
+        },
+        moveClass(direction) {
+            this.selectClass(this.activeClassIndex + direction)
+        },
+        scrollActiveClassTab() {
+            const reference = this.$refs[`classTab-${this.activeClassIndex}`]
+            const tab = Array.isArray(reference) ? reference[0] : reference
+            if (tab?.scrollIntoView) tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
         },
         rangeLabel(item) {
             if (Number.isFinite(item.minValue) || Number.isFinite(item.maxValue)) return `${item.minValue} – ${item.maxValue}`
@@ -375,6 +497,24 @@ input:disabled, select:disabled { color: #82909d; background-color: #eef2f5; cur
 .editor-status--error { color: #842029; background: #f8d7da; }
 .editor-notice { margin: 0 0 16px; color: #664d03; background: #fff3cd; }
 .class-count { flex: 0 0 auto; padding: 5px 9px; border-radius: 999px; color: #536472; background: #eef2f5; font-size: .7rem; font-weight: 700; }
+.class-section-heading { margin-bottom: 12px; }
+.class-section-heading h6, .class-control-group h6 { margin: 0; color: #4c5d6c; font-size: .77rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.class-section-heading p { margin: 4px 0 0; color: #677786; font-size: .75rem; line-height: 1.4; }
+.class-tabs-shell { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: stretch; gap: 8px; margin-bottom: 16px; }
+.class-tabs { display: flex; min-width: 0; gap: 8px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; }
+.class-tabs::-webkit-scrollbar { display: none; }
+.class-tabs__navigation { display: inline-flex; width: 38px; min-height: 48px; align-items: center; justify-content: center; padding: 0; border: 1px solid #cbd6df; border-radius: 8px; color: #7a8792; background: #fff; line-height: 1; cursor: pointer; }
+.class-tabs__navigation-icon { display: block; width: 20px; height: 20px; flex: 0 0 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.class-tabs__navigation:hover:not(:disabled), .class-tabs__navigation:focus-visible:not(:disabled) { border-color: #1473c9; color: #0b5cad; background: #edf6ff; }
+.class-tabs__navigation:disabled { color: #a6b1ba; background: #f2f4f6; cursor: default; }
+.class-tab { display: flex; min-width: 150px; max-width: 210px; min-height: 48px; flex: 0 0 auto; align-items: center; gap: 9px; padding: 8px 11px; border: 1px solid #d5dee6; border-radius: 8px 8px 0 0; color: #526372; background: #f8fafc; text-align: left; cursor: pointer; }
+.class-tab:hover { border-color: #91b8da; background: #f3f8fd; }
+.class-tab--active { border-color: #1473c9; color: #0b5cad; background: #edf6ff; box-shadow: inset 0 -3px 0 #1473c9; }
+.class-tab__swatch { width: 18px; height: 18px; flex: 0 0 18px; border: 2px solid rgba(38, 55, 70, .35); border-radius: 4px; }
+.class-tab__text { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.class-tab__text strong, .class-tab__text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.class-tab__text strong { font-size: .75rem; }
+.class-tab__text small { font-size: .68rem; font-weight: 400; }
 .class-list { display: flex; flex-direction: column; gap: 14px; }
 .class-row { padding: 16px; border: 1px solid #dfe7ee; border-radius: 9px; background: #fbfcfd; }
 .class-row__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e7edf2; }
@@ -383,11 +523,20 @@ input:disabled, select:disabled { color: #82909d; background-color: #eef2f5; cur
 .class-row__header strong { overflow: hidden; color: #263746; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
 .class-row__header small { flex: 0 0 auto; color: #70808e; font-size: .7rem; }
 .class-settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.class-settings-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.class-settings-grid--label { grid-template-columns: minmax(0, 1fr); margin-bottom: 18px; }
+.class-range-grid { margin: -4px 0 18px; }
+.class-control-group { padding-top: 16px; border-top: 1px solid #e4eaf0; }
+.class-control-group + .class-control-group { margin-top: 18px; }
+.class-control-group h6 { margin-bottom: 13px; }
 .class-row__toggle { margin-top: 14px; }
+.class-loading-placeholder { min-height: 230px; }
+.class-empty-state { padding: 18px; border: 1px solid #e2e8ee; border-radius: 9px; color: #687887; background: #f8fafc; font-size: .8rem; }
 @media (max-width: 1050px) { .symbology-workspace { grid-template-columns: 1fr; } }
 @media (max-width: 760px) {
     .editor-card { padding: 16px; }
     .form-grid--two, .form-grid--three, .form-grid--four, .toggle-row--two, .dash-style-picker { grid-template-columns: 1fr; }
-    .class-settings-grid { grid-template-columns: 1fr; }
+    .class-settings-grid, .class-settings-grid--two { grid-template-columns: 1fr; }
+    .class-tab { min-width: 132px; }
 }
 </style>

@@ -17,7 +17,10 @@ import {
     buildVectorTilePreviewRenderState,
     normalizeVectorTileSpatialContext,
 } from '../src/utils/vectorTileLegend/preview.js'
-import { buildVectorTileSemanticRenderState } from '../src/utils/vectorTileLegend/style.js'
+import {
+    buildVectorTileSemanticRenderState,
+    mergeVectorTileLegendCounts,
+} from '../src/utils/vectorTileLegend/style.js'
 import { buildPointShapeIconExpression, parsePointShapeImageId } from '../src/utils/vectorTileLegend/icon.js'
 import { buildFilteredVectorTileUrl } from '../src/utils/vectorTileUrl.js'
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../src/utils/vectorTileLegend/canvas.js'
@@ -191,7 +194,6 @@ test('aplica colores categóricos al contrato MapLibre', () => {
     const state = buildVectorTileSemanticRenderState({
         layer: runtimeLayer,
         config: normalizeVectorTileLegendConfig(runtimeLayer),
-        semanticLegend,
     })
     assert.equal(state.styleExpressions.fillColorExpression[0], 'match')
     assert.equal(state.legend.items.length, 2)
@@ -209,7 +211,6 @@ test('aplica rangos numéricos configurados a las expresiones', () => {
     const state = buildVectorTileSemanticRenderState({
         layer: runtimeLayer,
         config: normalizeVectorTileLegendConfig(runtimeLayer),
-        semanticLegend,
     })
     assert.equal(state.legend.items[0].maxValue, 12)
     assert.equal(state.styleExpressions.fillColorExpression[0], 'case')
@@ -258,7 +259,6 @@ test('usa color y label editados para high_cardinality_text y acepta la clave le
     const state = buildVectorTileSemanticRenderState({
         layer: runtimeLayer,
         config: normalizeVectorTileLegendConfig(runtimeLayer),
-        semanticLegend,
     })
     assert.equal(state.legend.items[0].label, 'Descripción propia')
     assert.equal(state.legend.items[0].fill, '#123456')
@@ -631,6 +631,84 @@ test('el preview temático sin atributo reacciona al estilo general sin inventar
     assert.deepEqual(renderState.styleExpressions.lineDashArray, [3, 2])
 })
 
+test('enriquece solo las cantidades sin reemplazar estilos ni etiquetas visibles', () => {
+    const baseLegend = {
+        title: 'Leyenda persistida',
+        items: [
+            { key: 'A', label: 'Etiqueta editada', fill: '#112233', stroke: '#010203', count: null },
+            { key: 'B', label: 'Sin respuesta', fill: '#445566', count: null },
+        ],
+        nullCount: 0,
+    }
+    const countedLegend = {
+        title: 'Título del backend que no debe reemplazar al persistido',
+        items: [
+            { key: 'A', label: 'Etiqueta del backend', fill: '#ffffff', count: 1250 },
+            { key: 'C', label: 'Clase no configurada', count: 99 },
+        ],
+        nullCount: 7,
+    }
+
+    const enriched = mergeVectorTileLegendCounts(baseLegend, countedLegend)
+
+    assert.equal(enriched.title, 'Leyenda persistida')
+    assert.deepEqual(enriched.items[0], {
+        key: 'A',
+        label: 'Etiqueta editada',
+        fill: '#112233',
+        stroke: '#010203',
+        count: 1250,
+    })
+    assert.strictEqual(enriched.items[1], baseLegend.items[1])
+    assert.equal(enriched.items.length, 2)
+    assert.equal(enriched.nullCount, 7)
+    assert.equal(baseLegend.items[0].count, null)
+})
+
+test('asocia cantidades numéricas por límites cuando la clave del backend difiere', () => {
+    const baseLegend = {
+        items: [{ key: 'Rango personalizado', minValue: 0, maxValue: 10, fill: '#123456', count: null }],
+    }
+    const countedLegend = {
+        items: [{ key: '0.0 - 10.0', minValue: 0, maxValue: 10, count: 42 }],
+    }
+
+    const enriched = mergeVectorTileLegendCounts(baseLegend, countedLegend)
+
+    assert.equal(enriched.items[0].count, 42)
+    assert.equal(enriched.items[0].key, 'Rango personalizado')
+    assert.equal(enriched.items[0].fill, '#123456')
+})
+
+test('activar una capa muestra primero legend_config y luego enriquece sus cantidades', () => {
+    const liveLayer = readFileSync(
+        new URL('../src/components/layers/VectorTileLayer.vue', import.meta.url),
+        'utf8',
+    )
+    const settingsModal = readFileSync(
+        new URL('../src/components/VectorTileLayerSettingsModal.vue', import.meta.url),
+        'utf8',
+    )
+    const legendComponent = readFileSync(
+        new URL('../src/components/layers/VectorTileLegend.vue', import.meta.url),
+        'utf8',
+    )
+
+    assert.match(liveLayer, /fetchVectorTileSemanticLegend/)
+    assert.match(liveLayer, /buildVectorTileSemanticRenderState\(\{[\s\S]*?config: legendConfig,[\s\S]*?\}\)/)
+    assert.ok(
+        liveLayer.indexOf('this.emitLegend(renderState.legend);') <
+            liveLayer.indexOf('this.scheduleLegendCountEnrichment(renderState.legend);'),
+        'La leyenda persistida debe emitirse antes de programar la consulta de cantidades',
+    )
+    assert.match(liveLayer, /scheduleLegendCountEnrichment\(baseLegend\)[\s\S]*this\.\$nextTick/s)
+    assert.match(liveLayer, /legendConfig\.mode === 'manual'/)
+    assert.match(liveLayer, /mergeVectorTileLegendCounts\([\s\S]*baseLegend,[\s\S]*countedRenderState\.legend/s)
+    assert.match(liveLayer, /Ante cualquier error se conserva la leyenda que ya está visible/)
+    assert.match(legendComponent, /\(\{\{ formatCount\(item\.count\) \}\}\)/)
+    assert.match(settingsModal, /fetchVectorTileSemanticLegend/)
+})
+
 test('el preview carga solamente tiles visibles y reacciona al completar la leyenda', () => {
     const preview = readFileSync(
         new URL('../src/components/VectorTileSymbologyPreview.vue', import.meta.url),
@@ -739,13 +817,45 @@ test('el editor profesional separa pestañas, preview, trazos y colores de clase
     assert.match(editor, /select\s*\{[^}]*padding-right:\s*38px[^}]*background-position:\s*right 12px center/s)
     assert.match(modal, /\.filter-control select\s*\{[^}]*padding-right:\s*38px[^}]*background-position:\s*right 12px center/s)
     assert.match(editor, /class-settings-grid/)
-    assert.match(editor, /Personaliza cada clase\. Sus valores tienen prioridad sobre el estilo general\./)
+    assert.match(editor, /Personaliza la simbología de cada valor del atributo seleccionado\./)
+    assert.match(editor, /<section class="editor-card">[\s\S]*?<h5>Definición de simbología<\/h5>/)
+    assert.match(editor, /<section v-if="!hasSelectedAttribute" class="editor-card editor-card--general-style">[\s\S]*?<h5>Estilo de la geometría<\/h5>/)
+    assert.match(editor, /<section v-if="hasSelectedAttribute" class="editor-card editor-card--classes" :aria-busy="String\(loading\)">/)
+    assert.match(editor, /v-if="hasSelectedAttribute"[\s\S]*?<h5>Estilo de la geometría<\/h5>[\s\S]*?para las clases de \{\{ geometryDescription \}\}/)
+    assert.match(editor, /<template v-if="draft\.items\.length">/)
+    assert.match(editor, /v-else-if="loading" class="class-loading-placeholder" aria-hidden="true"/)
+    assert.match(editor, /\.class-loading-placeholder\s*\{[^}]*min-height:\s*230px/s)
+    assert.doesNotMatch(editor, /class-loading-placeholder__(tabs|panel|title)/)
+    assert.doesNotMatch(editor, /class-placeholder-pulse/)
+    assert.match(editor, /class="class-section-heading"[\s\S]*?<h6>Clases<\/h6>/)
+    assert.match(editor, /role="tablist" aria-label="Clases de simbología"/)
+    assert.doesNotMatch(editor, /title="Clase (anterior|siguiente)"/)
+    assert.match(editor, /\.class-tabs__navigation\s*\{[^}]*color:\s*#7a8792/s)
+    assert.match(editor, /\.class-tabs__navigation:hover:not\(:disabled\)[^{]*\{[^}]*color:\s*#0b5cad/s)
+    assert.match(editor, /aria-label="Clase anterior"/)
+    assert.match(editor, /aria-label="Clase siguiente"/)
+    assert.match(editor, /class="class-tabs__navigation-icon"[\s\S]*?<path d="m12\.5 4\.5-5 5\.5 5 5\.5"/)
+    assert.match(editor, /\.class-tabs__navigation-icon\s*\{[^}]*display:\s*block;[^}]*width:\s*20px;[^}]*height:\s*20px/s)
+    assert.match(editor, /\.class-tabs__navigation:disabled\s*\{[^}]*cursor:\s*default/s)
+    assert.ok(
+        editor.indexOf('class="editor-card editor-card--classes"') < editor.indexOf('<h5>Leyenda</h5>'),
+        'El estilo específico por clases debe reemplazar visualmente al estilo general antes de la leyenda',
+    )
+    assert.match(editor, /v-if="activeClass"[\s\S]*role="tabpanel"/)
+    assert.match(editor, /moveClass\(direction\)[\s\S]*selectClass\(this\.activeClassIndex \+ direction\)/)
+    assert.match(editor, /scrollIntoView\(\{ behavior: 'smooth', block: 'nearest', inline: 'center' \}\)/)
     assert.doesNotMatch(editor, /<h5>Símbolo de puntos<\/h5>/)
     assert.match(editor, /<h6>Relleno<\/h6>/)
     assert.match(editor, /<h6>Borde<\/h6>/)
     assert.match(editor, /<h6>Marcador<\/h6>/)
+    assert.match(editor, /class="class-settings-grid class-settings-grid--label">[\s\S]*?<span>Etiqueta<\/span>[\s\S]*?<div v-if="!isLineGeometry" class="class-control-group">[\s\S]*?<h6>Relleno<\/h6>/)
+    assert.match(editor, /<div v-if="!isLineGeometry" class="class-control-group">[\s\S]*?<h6>Borde<\/h6>/)
+    assert.match(editor, /<div v-if="isPointGeometry" class="class-control-group">[\s\S]*?<h6>Marcador<\/h6>/)
+    assert.match(editor, /<div v-if="isPolygonGeometry" class="class-control-group">[\s\S]*?<h6>Línea del borde<\/h6>/)
+    assert.match(editor, /<div v-if="isLineGeometry" class="class-control-group">[\s\S]*?<h6>Línea<\/h6>/)
     assert.match(editor, /<span>Tipo de borde<\/span>[\s\S]*option\.symbol/)
-    assert.match(editor, /isPointGeometry \? 'Tipo de borde' : 'Tipo de línea'/)
+    assert.match(editor, /aria-label="Tipo de borde de clase"/)
+    assert.match(editor, /aria-label="Tipo de línea de clase"/)
     assert.match(editor, /isPolygonGeometry \? 'Línea del borde' : 'Línea'/)
     assert.doesNotMatch(editor, /Relleno y borde/)
     assert.doesNotMatch(editor, /Cargando definición de leyenda/)

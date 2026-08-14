@@ -9,7 +9,11 @@ import L from 'leaflet';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@maplibre/maplibre-gl-leaflet';
 import { normalizeVectorTileLegendConfig, inferVectorTileLayerNameFromUrl } from '../../utils/vectorTileLegend/config';
-import { buildDefaultVectorTilePaint, buildVectorTileSemanticRenderState } from '../../utils/vectorTileLegend/style';
+import {
+    buildDefaultVectorTilePaint,
+    buildVectorTileSemanticRenderState,
+    mergeVectorTileLegendCounts,
+} from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
 import { buildFilteredVectorTileUrl, buildVectorTileTemplateUrl } from '../../utils/vectorTileUrl';
 import { buildPointShapeIconExpression, parsePointShapeImageId } from '../../utils/vectorTileLegend/icon';
@@ -78,6 +82,8 @@ export default {
             isInitialized: false,
             currentStyleExpressions: null,
             renderStateRequestId: 0,
+            legendCountRequestId: 0,
+            legendCountAbortController: null,
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
             // Nombre del pane personalizado para esta capa
@@ -102,8 +108,8 @@ export default {
             this.applyRenderStateToLiveLayer();
         },
         opacity() {
-            // Aplicación síncrona desde el cache: evita re-disparar resolveRenderState()
-            // (que puede refetchear la leyenda semántica) en cada tick del slider.
+            // Aplicación síncrona desde el cache: evita reconstruir el estado
+            // de render en cada tick del slider.
             this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
         },
         filterAttribute() {
@@ -198,11 +204,11 @@ export default {
 
             this.tileUrl = tileUrl;
 
-            const renderState = await this.resolveRenderState(tileUrl);
+            const renderState = await this.resolveRenderState();
             this.currentStyleExpressions = renderState.styleExpressions;
 
             // Orden de prioridad para sourceLayer:
-            // 1. Hint devuelto por el backend de leyenda semántica (layer_name en la respuesta)
+            // 1. Hint persistido en legend_config
             // 2. Inferido desde el patrón /vector/tiles/{name} en la URL
             // 3. Fallback 'default'
             this.sourceLayer =
@@ -336,13 +342,14 @@ export default {
             this.setupMouseMoveHandler();
             
             this.isInitialized = true;
+            this.scheduleLegendCountEnrichment(renderState.legend);
         },
 
         isDestroyed() {
             return this._isBeingDestroyed || this._isDestroyed;
         },
 
-        async resolveRenderState(tileUrl) {
+        resolveRenderState() {
             const explicitRenderState = this.layer.sh_map_has_layer_render_state;
             const defaultRenderState = {
                 styleExpressions:
@@ -369,36 +376,14 @@ export default {
                 return defaultRenderState;
             }
 
-            if (legendConfig.mode === 'manual') {
-                return buildVectorTileSemanticRenderState({
-                    layer: this.layer,
-                    config: legendConfig,
-                    semanticLegend: {},
-                });
-            }
-
-            if (!legendConfig.layerName || !legendConfig.attribute) return defaultRenderState;
-
-            try {
-                const semanticLegend = await fetchVectorTileSemanticLegend({
-                    tileUrl,
-                    layerName: legendConfig.layerName,
-                    attribute: legendConfig.attribute,
-                });
-
-                if (!semanticLegend || this.isDestroyed()) {
-                    return defaultRenderState;
-                }
-
-                return buildVectorTileSemanticRenderState({
-                    layer: this.layer,
-                    config: legendConfig,
-                    semanticLegend,
-                });
-            } catch (error) {
-                console.warn(`VectorTileLayer: No fue posible cargar la leyenda semántica para capa ${this.layer.id}`, error);
+            if (legendConfig.mode !== 'manual' && (!legendConfig.layerName || !legendConfig.attribute)) {
                 return defaultRenderState;
             }
+
+            return buildVectorTileSemanticRenderState({
+                layer: this.layer,
+                config: legendConfig,
+            });
         },
 
         emitLegend(legend) {
@@ -416,6 +401,93 @@ export default {
                 layerId: this.layer.id,
                 legend,
             });
+        },
+
+        scheduleLegendCountEnrichment(baseLegend) {
+            // El siguiente tick garantiza que la leyenda persistida se haya
+            // pintado antes de iniciar el request de cantidades.
+            this.$nextTick(() => {
+                if (!this.isDestroyed() && this.isInitialized) {
+                    this.enrichLegendCounts(baseLegend);
+                }
+            });
+        },
+
+        cancelLegendCountEnrichment() {
+            this.legendCountRequestId += 1;
+            if (this.legendCountAbortController) {
+                this.legendCountAbortController.abort();
+                this.legendCountAbortController = null;
+            }
+        },
+
+        async enrichLegendCounts(baseLegend) {
+            const legendMode = this.layer.sh_map_has_layer_legend_mode || 'internal';
+            const legendConfig = normalizeVectorTileLegendConfig(this.layer);
+
+            if (
+                !baseLegend ||
+                baseLegend.visible === false ||
+                legendMode !== 'internal' ||
+                !legendConfig ||
+                legendConfig.mode === 'manual' ||
+                !legendConfig.layerName ||
+                !legendConfig.attribute
+            ) {
+                return;
+            }
+
+            this.cancelLegendCountEnrichment();
+            const requestId = this.legendCountRequestId;
+            const controller = typeof AbortController !== 'undefined'
+                ? new AbortController()
+                : null;
+            this.legendCountAbortController = controller;
+
+            try {
+                const semanticLegend = await fetchVectorTileSemanticLegend({
+                    tileUrl: this.tileUrl || this.layer.sh_map_has_layer_url,
+                    layerName: legendConfig.layerName,
+                    attribute: legendConfig.attribute,
+                    signal: controller?.signal,
+                });
+
+                if (
+                    !semanticLegend ||
+                    this.isDestroyed() ||
+                    requestId !== this.legendCountRequestId ||
+                    String(semanticLegend.attribute || '') !== String(legendConfig.attribute)
+                ) {
+                    return;
+                }
+
+                const countedRenderState = buildVectorTileSemanticRenderState({
+                    layer: this.layer,
+                    config: legendConfig,
+                    semanticLegend,
+                });
+                const enrichedLegend = mergeVectorTileLegendCounts(
+                    baseLegend,
+                    countedRenderState.legend,
+                );
+
+                if (enrichedLegend) {
+                    this.emitLegend(enrichedLegend);
+                }
+            } catch (error) {
+                const isCancelled = error?.name === 'AbortError' ||
+                    error?.name === 'CanceledError' ||
+                    error?.code === 'ERR_CANCELED';
+
+                if (!isCancelled) {
+                    console.warn('VectorTileLayer: No fue posible enriquecer las cantidades de la leyenda', error);
+                }
+                // Ante cualquier error se conserva la leyenda que ya está visible.
+            } finally {
+                if (requestId === this.legendCountRequestId) {
+                    this.legendCountAbortController = null;
+                }
+            }
         },
 
         // Escala una expresión de opacidad (número plano o expression array de MapLibre)
@@ -618,14 +690,15 @@ export default {
         async applyRenderStateToLiveLayer() {
             if (!this.maplibreMap || !this.isInitialized) return;
 
+            this.cancelLegendCountEnrichment();
             const requestId = ++this.renderStateRequestId;
-            const tileUrl = this.tileUrl || this.layer.sh_map_has_layer_url || '';
-            const renderState = await this.resolveRenderState(tileUrl);
+            const renderState = await this.resolveRenderState();
             if (this.isDestroyed() || requestId !== this.renderStateRequestId) return;
 
             this.currentStyleExpressions = renderState.styleExpressions;
             this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
             this.emitLegend(renderState.legend);
+            this.scheduleLegendCountEnrichment(renderState.legend);
         },
         
         /**
@@ -1073,6 +1146,7 @@ export default {
         },
         
         cleanup() {
+            this.cancelLegendCountEnrichment();
             // Cerrar popups
             if (this.map) {
                 this.map.closePopup();

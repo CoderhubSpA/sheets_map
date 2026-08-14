@@ -6,6 +6,105 @@ const SUPPORTED_LEGEND_TYPES = ['categorical', 'boolean', 'numeric', 'numerical'
 const DEFAULT_POINT_SIZE = 3
 const DEFAULT_POINT_STROKE_WIDTH = 3
 
+function buildSemanticLegendFromConfig(config) {
+    const legendType = String(config?.palette?.type || '').toLowerCase()
+    const configuredItems = Object.entries(config?.palette?.items || {})
+        .filter(([key]) => key !== '__SIMPLE__')
+    const ranges = ['numeric', 'numerical'].includes(legendType)
+        ? configuredItems
+            .filter(([, item]) => Number.isFinite(item.minValue) && Number.isFinite(item.maxValue))
+            .map(([key, item]) => ({
+                key,
+                label: item.label || key,
+                min_value: item.minValue,
+                max_value: item.maxValue,
+                count: null,
+            }))
+        : []
+    const classes = ranges.length === 0 && legendType !== 'text'
+        ? configuredItems.map(([key, item]) => ({
+            key,
+            label: item.label || key,
+            count: null,
+        }))
+        : []
+
+    return {
+        layer_name: config?.layerName || null,
+        geometry_type: config?.geometryType || null,
+        attribute: config?.attribute || null,
+        legend_type: legendType,
+        classes,
+        ranges,
+        null_count: 0,
+        sample_size: null,
+    }
+}
+
+function legendItemRangeKey(item) {
+    const minValue = Number(item?.minValue)
+    const maxValue = Number(item?.maxValue)
+
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+        return null
+    }
+
+    return `${minValue}::${maxValue}`
+}
+
+/**
+ * Enriquece una leyenda ya visible con cantidades obtenidas en segundo plano.
+ *
+ * El contenido persistido sigue siendo la fuente de verdad para etiquetas y
+ * estilos. Del endpoint solo se incorporan cantidades, por lo que la leyenda
+ * no cambia de estructura ni desaparece mientras llega la respuesta.
+ */
+export function mergeVectorTileLegendCounts(baseLegend, countedLegend) {
+    if (!baseLegend || !Array.isArray(baseLegend.items) || !countedLegend) {
+        return baseLegend
+    }
+
+    const countedItems = Array.isArray(countedLegend.items) ? countedLegend.items : []
+    const countsByKey = new Map()
+    const countsByRange = new Map()
+
+    countedItems.forEach(item => {
+        if (item?.key !== null && item?.key !== undefined) {
+            countsByKey.set(String(item.key), item.count)
+        }
+
+        const rangeKey = legendItemRangeKey(item)
+        if (rangeKey) {
+            countsByRange.set(rangeKey, item.count)
+        }
+    })
+
+    const items = baseLegend.items.map(item => {
+        const itemKey = item?.key !== null && item?.key !== undefined
+            ? String(item.key)
+            : null
+        const rangeKey = legendItemRangeKey(item)
+        const hasKeyCount = itemKey !== null && countsByKey.has(itemKey)
+        const hasRangeCount = rangeKey !== null && countsByRange.has(rangeKey)
+
+        if (!hasKeyCount && !hasRangeCount) {
+            return item
+        }
+
+        return {
+            ...item,
+            count: hasKeyCount ? countsByKey.get(itemKey) : countsByRange.get(rangeKey),
+        }
+    })
+
+    return {
+        ...baseLegend,
+        items,
+        nullCount: countedLegend.nullCount ?? baseLegend.nullCount,
+        sampleSize: countedLegend.sampleSize ?? baseLegend.sampleSize,
+    }
+}
+
 function createFeatureColorExpression(propertyNames, fallbackColor) {
     return [
         'coalesce',
@@ -178,7 +277,7 @@ function buildResolvedNumericLegendItems(config, semanticLegend) {
     )
 
     const items = ranges.reduce((accumulator, range, index) => {
-        const rangeKey = String(range.label || `${range.min_value}-${range.max_value}-${index}`)
+        const rangeKey = String(range.key || range.label || `${range.min_value}-${range.max_value}-${index}`)
         const configItem = config.palette.items[rangeKey]
         const colors = resolveLegendItemColor({
             configItem,
@@ -371,9 +470,10 @@ export function buildDefaultVectorTilePaint(layer = {}) {
 
 export function buildVectorTileSemanticRenderState({ layer, config, semanticLegend }) {
     const defaultPaint = buildDefaultVectorTilePaint(layer)
-    const legendType = String(semanticLegend?.legend_type || '').toLowerCase()
+    const resolvedSemanticLegend = semanticLegend || buildSemanticLegendFromConfig(config)
+    const legendType = String(resolvedSemanticLegend?.legend_type || '').toLowerCase()
 
-    if (!config || !semanticLegend) {
+    if (!config) {
         return {
             styleExpressions: defaultPaint,
             legend: null,
@@ -394,10 +494,10 @@ export function buildVectorTileSemanticRenderState({ layer, config, semanticLege
     const isNumericLegend = legendType === 'numeric' || legendType === 'numerical'
     const isTextLegend = legendType === 'text'
     const items = isNumericLegend
-        ? buildResolvedNumericLegendItems(config, semanticLegend)
+        ? buildResolvedNumericLegendItems(config, resolvedSemanticLegend)
         : (isTextLegend
-            ? buildResolvedTextLegendItems(layer, config, semanticLegend, defaultPaint)
-            : buildResolvedLegendItems(config, semanticLegend))
+            ? buildResolvedTextLegendItems(layer, config, resolvedSemanticLegend, defaultPaint)
+            : buildResolvedLegendItems(config, resolvedSemanticLegend))
 
     if (items.length === 0) {
         return {
@@ -446,15 +546,15 @@ export function buildVectorTileSemanticRenderState({ layer, config, semanticLege
         legend: {
             title: config.legendTitle || layer.name,
             description: config.description || '',
-            attribute: semanticLegend.attribute || config.attribute,
+            attribute: resolvedSemanticLegend.attribute || config.attribute,
             legendType,
-            geometryType: semanticLegend.geometry_type,
+            geometryType: resolvedSemanticLegend.geometry_type,
             dashStyle: config.style?.dashStyle || 'solid',
             items,
-            nullCount: semanticLegend.null_count,
-            sampleSize: semanticLegend.sample_size,
+            nullCount: resolvedSemanticLegend.null_count,
+            sampleSize: resolvedSemanticLegend.sample_size,
             visible: config.visibility.showInMapLegend !== false,
         },
-        sourceLayerHint: semanticLegend.layer_name || config.layerName || null,
+        sourceLayerHint: resolvedSemanticLegend.layer_name || config.layerName || null,
     }
 }

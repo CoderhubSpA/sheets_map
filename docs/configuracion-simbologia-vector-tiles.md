@@ -9,7 +9,7 @@ El engranaje de una capa Vector Tiles XYZ abre un modal responsive con dos pesta
 1. **Simbología y leyenda**, que permite elegir simbología simple o temática, editar su representación y revisar una vista previa cartográfica en vivo.
 2. **Filtros**, que conserva las capacidades previas de transparencia y filtrado; el control de transparencia ocupa una columna y, en la fila siguiente, el atributo queda alineado junto al valor del filtro.
 
-El editor usa tarjetas, espaciado y alineación uniformes; ubica los interruptores al final de cada grupo, presenta muestras visuales para línea continua, segmentada y punteada, y mantiene visibles los selectores de relleno y borde de cada clase. La vista previa permanece alineada con el inicio del primer recuadro de configuración y fija en la parte superior de su columna durante el desplazamiento. La leyenda y la altura del mapa se ajustan al viewport para no depender del zoom del navegador.
+El editor usa tarjetas, espaciado y alineación uniformes; ubica los interruptores al final de cada grupo, presenta muestras visuales para línea continua, segmentada y punteada, y mantiene visibles los selectores de relleno y borde de cada clase. Las clases se presentan como pestañas horizontales con color identificador y controles anterior/siguiente, de modo que solo se edita una a la vez y no se genera una página excesivamente larga. Las flechas usan íconos SVG centrados, se muestran grises en reposo y cambian a azul con hover o foco; conservan `aria-label` para accesibilidad, pero no usan `title` ni muestran texto emergente nativo. Cuando no existe otra clase en una dirección, el botón permanece inactivo sin mostrar un cursor de bloqueo. Cuando existe un atributo seleccionado, la tarjeta de clases conserva el encabezado **Estilo de la geometría**, ocupa el lugar del bloque general antes de **Leyenda** y comunica que los controles pertenecen a la simbología específica. Mientras se obtiene la clasificación, la tarjeta reserva un espacio en blanco sin controles ni indicadores visuales; así **Leyenda** no sube ni aparece fugazmente antes de las clases. La etiqueta se edita primero, sin subsección, y los controles restantes se agrupan por **Relleno**, **Borde**, **Marcador**, **Línea del borde** o **Línea**, según la geometría. La vista previa permanece alineada con el inicio del primer recuadro de configuración y fija en la parte superior de su columna durante el desplazamiento. La leyenda y la altura del mapa se ajustan al viewport para no depender del zoom del navegador.
 
 La edición admite:
 
@@ -42,7 +42,11 @@ La edición admite:
 
 ```mermaid
 flowchart TD
-    A[Administrador abre el Visor Maestro] --> B[Abre el selector de capas]
+    A[Administrador abre el Visor Maestro] --> A1[Activa una capa]
+    A1 --> A2[Renderiza inmediatamente el legend_config recibido]
+    A2 --> A3[Consulta legend en segundo plano]
+    A3 --> A4[Añade solo cantidades por clase]
+    A4 --> B[Abre el selector de capas]
     B --> C[Pulsa el engranaje]
     C --> D{Código operative_vector_tiles_xyz}
     D -- No --> E[Conserva el popover de filtros]
@@ -90,9 +94,11 @@ La aplicación sigue este canal verificado:
 working_layers → Vuex → SheetsMap → VectorTileLayer → MapLibre
 ```
 
-`SheetsMapTools` conserva `runtimeLegendConfigs` y un `legendRevision` por capa. `SheetsMap` combina ese borrador con la capa renderizable y actualiza su identidad de render. `VectorTileLayer` normaliza el nuevo JSON y aplica el estado vivo. Las respuestas asíncronas anteriores se descartan mediante un identificador de solicitud para evitar condiciones de carrera.
+`SheetsMapTools` conserva `runtimeLegendConfigs` y un `legendRevision` por capa. `SheetsMap` combina ese borrador con la capa renderizable y actualiza su identidad de render. Al activar una capa, `VectorTileLayer` normaliza el JSON ya recibido en `legend_config`, aplica el estilo y emite inmediatamente la leyenda persistida. En el siguiente ciclo de render consulta `/legend?attribute=...` en segundo plano y combina únicamente los conteos con los elementos ya visibles; no reemplaza colores, etiquetas ni estructura. Las solicitudes anteriores se abortan o descartan mediante identificadores para evitar condiciones de carrera.
 
 Cerrar o cancelar el modal no emite `apply`, por lo que el mapa conserva la configuración anterior.
+
+> **Regla de carga progresiva:** la leyenda nunca espera al servicio para aparecer. El `GET /legend?attribute=...` comienza después del primer render y solo añade cantidades entre paréntesis. Si la solicitud falla, se cancela o devuelve otro atributo, la leyenda existente permanece sin cambios y no se emite un estado vacío intermedio. Las simbologías simples no realizan esta consulta.
 
 ## Integración con el servicio vectorial
 
@@ -358,7 +364,7 @@ En puntos, el tamaño inicial es `3`. **Estilo de la geometría** se organiza en
 
 El preview y la capa productiva mantienen disponibles las capas alternativas `circle` y `symbol`, pero solo una queda visible. Al seleccionar una forma no circular o un borde segmentado/punteado se usa un símbolo canvas cuyo identificador codifica forma, colores, ancho y tipo de borde. Se llevan a cero tanto `circle-opacity` como `circle-stroke-opacity`; esto evita que el borde del círculo quede dibujado debajo del símbolo. Al crear clases de puntos, su borde parte del color de relleno oscurecido para asegurar contraste, sin reemplazar personalizaciones existentes.
 
-Los controles generales actualizan inmediatamente el mapa, incluso en modo temático antes de seleccionar un atributo. Las clases heredan los valores generales mientras no tengan un override; al personalizar una propiedad de clase, ese valor conserva prioridad sobre el global. Las opciones de forma muestran glifos negros (círculo, cuadrado, triángulo y rombo), los límites `0 – 1` y las tipografías de color/opacidad usan una presentación uniforme.
+Los controles generales actualizan inmediatamente el mapa, incluso en modo temático antes de seleccionar un atributo, y explican visualmente el estilo inicial de la capa. Al seleccionar un atributo, la configuración general es reemplazada en la misma posición —antes de **Leyenda**— por la tarjeta **Estilo de la geometría** específica para las clases; si el atributo se deselecciona, vuelve a mostrarse el bloque general. En cada clase, **Etiqueta** aparece primero y sin agrupación; los campos visuales se separan en **Relleno**, **Borde**, **Marcador**, **Línea del borde** o **Línea**, de acuerdo con la geometría. Las clases parten de los valores generales y cada propiedad personalizada conserva prioridad. Las opciones de forma muestran glifos negros (círculo, cuadrado, triángulo y rombo), los límites `0 – 1` y las tipografías de color/opacidad usan una presentación uniforme.
 
 ### Ejemplo numérico para líneas
 
@@ -481,17 +487,18 @@ El resultado esperado es `LinkType: Junction` y un `Target` que apunte a `sheets
 1. Abrir `https://agcid01-datos-espaciales.test/entity/gen_visor_maestro`.
 2. Iniciar sesión con un administrador, sin registrar las credenciales en evidencias.
 3. Activar una capa Vector Tiles XYZ.
-4. Abrir el engranaje y confirmar que aparece el modal, no el popover anterior.
-5. Verificar que carga la configuración actual desde `legend_config`.
-6. Confirmar que el selector de atributos se completa desde `attributes`.
-7. Seleccionar `ciudad` en APC y verificar geometría de punto, tipo categórico y 10 clases.
-8. Modificar color, etiqueta, forma de punto, transparencia o línea según corresponda.
-9. Pulsar **Aplicar en el visor** y comprobar el cambio inmediato en mapa y leyenda.
-10. Reabrir el modal, modificar el borrador y pulsar **Cancelar**. Confirmar que el mapa no cambia.
-11. Confirmar que el título aparece completado con el nombre visible de la capa. Después de resolver la geometría y, en modo temático, seleccionar un atributo válido, pulsar **Copiar JSON**, pegar en un editor y validar que sea JSON parseable y contenga los estilos editados.
-12. Si el navegador bloquea el portapapeles, confirmar que aparece el JSON visible, `readonly` y seleccionable.
-13. Revisar Network y confirmar que el flujo solo ejecuta `GET`; no debe haber `POST`, `PUT`, `PATCH` ni `DELETE`.
-14. Recargar la página y confirmar que el cambio temporal desaparece si no se persistió manualmente.
+4. Confirmar que la leyenda aparece inmediatamente desde `legend_config` y que las cantidades se agregan después entre paréntesis, sin ocultarla ni reconstruir sus estilos.
+5. Abrir el engranaje y confirmar que aparece el modal, no el popover anterior.
+6. Verificar que carga la configuración actual desde `legend_config`.
+7. Confirmar que el selector de atributos se completa desde `attributes`.
+8. Seleccionar `ciudad` en APC y verificar geometría de punto, tipo categórico y 10 clases.
+9. Modificar color, etiqueta, forma de punto, transparencia o línea según corresponda.
+10. Pulsar **Aplicar en el visor** y comprobar el cambio inmediato en mapa y leyenda.
+11. Reabrir el modal, modificar el borrador y pulsar **Cancelar**. Confirmar que el mapa no cambia.
+12. Confirmar que el título aparece completado con el nombre visible de la capa. Después de resolver la geometría y, en modo temático, seleccionar un atributo válido, pulsar **Copiar JSON**, pegar en un editor y validar que sea JSON parseable y contenga los estilos editados.
+13. Si el navegador bloquea el portapapeles, confirmar que aparece el JSON visible, `readonly` y seleccionable.
+14. Revisar Network y confirmar que el flujo solo ejecuta `GET`; no debe haber `POST`, `PUT`, `PATCH` ni `DELETE`.
+15. Recargar la página y confirmar que el cambio temporal desaparece si no se persistió manualmente.
 
 ### Pruebas automatizadas y compilación
 
@@ -508,7 +515,7 @@ Resultados verificados:
 
 | Validación | Resultado |
 | --- | --- |
-| Unitarios `sheets_map` | 38/38 correctos. |
+| Unitarios `sheets_map` | 41/41 correctos, incluidos merge de conteos, rangos y orden render-antes-de-request. |
 | Unitarios dirigidos `ch_geoserver_v2` | 24/24 correctos. |
 | Suite completa `ch_geoserver_v2` | 961 correctos y 81 fallos de baseline ajenos al cambio, concentrados en OGC WFS no registrado y un default de settings. |
 | Build de librería | Correcto. |
