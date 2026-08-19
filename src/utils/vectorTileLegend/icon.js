@@ -1,5 +1,7 @@
 import { TEXT_CLASS_KEYS } from './constants.js'
 
+const POINT_ICON_BASE_SIZE = 32
+
 function imageId(item, fallbackFill, fallbackStroke, fallbackDashStyle = 'solid') {
     const fill = (item?.fill || fallbackFill || '#3388ff').replace('#', '')
     const stroke = (item?.stroke || fallbackStroke || fill).replace('#', '')
@@ -65,4 +67,35 @@ export function buildPointShapeIconExpression(attribute, items, fallbackFill, fa
     safeItems.forEach(item => expression.push(item.expressionKey, imageId(item, fallbackFill, fallbackStroke, fallbackDashStyle)))
     expression.push(fallback)
     return expression
+}
+
+export function buildPointIconSizeExpression(pointRadiusExpression) {
+    const scaleOutput = value => typeof value === 'number'
+        ? value / POINT_ICON_BASE_SIZE
+        : ['/', value, POINT_ICON_BASE_SIZE]
+
+    if (!Array.isArray(pointRadiusExpression)) {
+        return scaleOutput(pointRadiusExpression)
+    }
+
+    const [operator, curveOrInput, inputOrDefault, ...stops] = pointRadiusExpression
+    if (operator === 'interpolate' && inputOrDefault?.[0] === 'zoom') {
+        return [
+            operator,
+            curveOrInput,
+            inputOrDefault,
+            ...stops.map((value, index) => index % 2 === 0 ? value : scaleOutput(value)),
+        ]
+    }
+
+    if (operator === 'step' && curveOrInput?.[0] === 'zoom') {
+        return [
+            operator,
+            curveOrInput,
+            scaleOutput(inputOrDefault),
+            ...stops.map((value, index) => index % 2 === 0 ? value : scaleOutput(value)),
+        ]
+    }
+
+    return scaleOutput(pointRadiusExpression)
 }

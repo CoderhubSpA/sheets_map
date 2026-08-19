@@ -21,7 +21,11 @@ import {
     buildVectorTileSemanticRenderState,
     mergeVectorTileLegendCounts,
 } from '../src/utils/vectorTileLegend/style.js'
-import { buildPointShapeIconExpression, parsePointShapeImageId } from '../src/utils/vectorTileLegend/icon.js'
+import {
+    buildPointIconSizeExpression,
+    buildPointShapeIconExpression,
+    parsePointShapeImageId,
+} from '../src/utils/vectorTileLegend/icon.js'
 import { buildFilteredVectorTileUrl } from '../src/utils/vectorTileUrl.js'
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../src/utils/vectorTileLegend/canvas.js'
 import {
@@ -372,6 +376,53 @@ test('construye símbolos no circulares para simple, categórico, numérico y te
     ], '#000000', '#000000')
     assert.equal(typeof text, 'string')
     assert.match(text, /square/)
+})
+
+test('mantiene zoom como entrada superior al escalar el tamaño de iconos', () => {
+    const radiusExpression = [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        14,
+        1.5,
+        18,
+        3,
+    ]
+    const original = structuredClone(radiusExpression)
+    const iconSizeExpression = buildPointIconSizeExpression(radiusExpression)
+
+    assert.deepEqual(iconSizeExpression, [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        14,
+        1.5 / 32,
+        18,
+        3 / 32,
+    ])
+    assert.deepEqual(radiusExpression, original)
+
+    const layers = buildVectorTilePreviewLayers('puntos', {
+        fillColorExpression: '#112233',
+        strokeColorExpression: '#445566',
+        pointRadiusExpression: radiusExpression,
+    })
+    assert.deepEqual(
+        layers.find(candidate => candidate.id === 'preview-point-symbol').layout['icon-size'],
+        iconSizeExpression,
+    )
+})
+
+test('escala radios constantes, por atributo y step sin cambiar su semántica', () => {
+    assert.equal(buildPointIconSizeExpression(12), 12 / 32)
+    assert.deepEqual(
+        buildPointIconSizeExpression(['get', 'point_size']),
+        ['/', ['get', 'point_size'], 32],
+    )
+    assert.deepEqual(
+        buildPointIconSizeExpression(['step', ['zoom'], 2, 15, 4, 18, 8]),
+        ['step', ['zoom'], 2 / 32, 15, 4 / 32, 18, 8 / 32],
+    )
 })
 
 test('preserva ancho de borde cero en el icon id y canvas', () => {
