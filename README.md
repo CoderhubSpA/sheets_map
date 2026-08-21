@@ -189,11 +189,12 @@ this.$refs.sheetsMap.mapActions.zoomIn();
 | ------------------------ | -------------------------- | ------------------------------------------------------------------ |
 | `zoomIn`                 | `zoomIn()`                 | Acercar el zoom en 1 nivel                                         |
 | `zoomOut`                | `zoomOut()`                | Alejar el zoom en 1 nivel                                          |
-| `setZoom`                | `setZoom(level)`           | Establecer un nivel de zoom específico (0–20)                      |
+| `setZoom`                | `setZoom({ level, options? })` | Establecer un nivel de zoom dentro de los límites configurados  |
 | `getZoom`                | `getZoom()`                | Obtener el nivel de zoom actual                                    |
-| `flyTo`                  | `flyTo(latLng, zoom?)`     | Volar a `{ lat, lng }` con zoom opcional (default 12)              |
-| `teleportTo`             | `teleportTo(latLng, zoom?)` | Centrar el mapa sin animación ni marcador de geolocalización       |
-| `panTo`                  | `panTo(latLng)`            | Centrar el mapa en `{ lat, lng }` sin animación                    |
+| `flyTo`                  | `flyTo({ latLng, zoom?, options? })` | Volar a `{ lat, lng }` con zoom opcional (default 12)     |
+| `teleportTo`             | `teleportTo({ latLng, zoom?, options? })` | Centrar el mapa sin animación ni marcador         |
+| `panTo`                  | `panTo({ latLng, options? })` | Centrar el mapa en `{ lat, lng }` sin animación                 |
+| `configureMapZoom`       | `configureMapZoom({ minZoom?, maxZoom?, maxNativeZoom? })` | Configurar límites de navegación y overzoom |
 | `filterByBounds`         | `filterByBounds()`         | Filtrar datos por zona visible del mapa                            |
 | `toggleCoordinateFormat` | `toggleCoordinateFormat()` | Ciclar formato de coordenadas (WGS84 / UTM / Web Mercator / SIRGAS-Chile 2016) |
 | `getCenter`              | `getCenter()`              | Obtener coordenadas del centro actual                              |
