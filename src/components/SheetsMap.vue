@@ -332,6 +332,12 @@ import {
     normalizeMapZoomLimit,
     resolveMapZoomBounds,
 } from "../utils/mapZoom";
+import { MAP_ACTION_CONTRACTS } from "../utils/mapActionContracts";
+import {
+    applyMapRuntimeSnapshot,
+    cloneMapRuntimeValue,
+    createMapRuntimeSnapshot,
+} from "../utils/mapRuntimeState";
 import axios from "axios";
 import HeatmapOverlay from "heatmap.js/plugins/leaflet-heatmap";
 import { BButton, BIcon, BPopover } from "bootstrap-vue";
@@ -719,77 +725,7 @@ export default {
          *   // luego:  this.mapActions.zoomIn()
          */
         mapActionContracts() {
-            return {
-                setZoom: {
-                    invocation: { type: "payload" },
-                    required: ["level"],
-                    payload: {
-                        level: "number",
-                        options: {
-                            externalOverride: "boolean",
-                        },
-                    },
-                },
-                flyTo: {
-                    invocation: { type: "payload" },
-                    required: ["latLng"],
-                    payload: {
-                        latLng: "LatLng",
-                        zoom: "number",
-                        options: {
-                            showMarker: "boolean",
-                            externalOverride: "boolean",
-                            leaflet: "object",
-                        },
-                    },
-                },
-                teleportTo: {
-                    invocation: { type: "payload" },
-                    required: ["latLng"],
-                    payload: {
-                        latLng: "LatLng",
-                        zoom: "number",
-                        options: {
-                            externalOverride: "boolean",
-                            leaflet: "object",
-                        },
-                    },
-                },
-                panTo: {
-                    invocation: { type: "payload" },
-                    required: ["latLng"],
-                    payload: {
-                        latLng: "LatLng",
-                        options: {
-                            externalOverride: "boolean",
-                            leaflet: "object",
-                        },
-                    },
-                },
-                drawShape: {
-                    invocation: { type: "payload" },
-                    required: ["shape"],
-                    payload: {
-                        shape: "polygon|circle|rectangle|delete|cancel|clear",
-                    },
-                },
-                setEraserMode: {
-                    invocation: { type: "payload" },
-                    required: ["active"],
-                    payload: {
-                        active: "boolean",
-                    },
-                },
-                configureMapZoom: {
-                    invocation: { type: "payload" },
-                    required: [],
-                    payload: {
-                        minZoom: "number",
-                        maxZoom: "number",
-                        maxNativeZoom: "number",
-                    },
-                },
-            };
+            return MAP_ACTION_CONTRACTS;
         },
         mapActions() {
             const contracts = this.mapActionContracts;
@@ -798,6 +734,9 @@ export default {
                 contracts,
                 getContracts: () => contracts,
                 isConfigurationReady: () => this.map_configuration_ready,
+                isRuntimeReady: () => this.map_configuration_ready && Boolean(this.map),
+                snapshotRuntimeState: () => this.snapshotRuntimeState(),
+                restoreRuntimeState: (snapshot) => this.restoreRuntimeState(snapshot),
                 /** Acercar el zoom del mapa en 1 nivel */
                 zoomIn: () => this.zoomMap("in"),
                 /** Alejar el zoom del mapa en 1 nivel */
@@ -825,10 +764,10 @@ export default {
                           )
                         : undefined,
                 /** Teletransportar el mapa a { lat, lng } sin crear marcador de geolocalización */
-                teleportTo: (payload = {}) => {
+                teleportTo: (payload = {}) => this.applyMapRuntimeMutation(() => {
                     const latLng = payload?.latLng;
                     const options = payload?.options || {};
-                    if (!latLng) return;
+                    if (!latLng) return false;
 
                     const requestedZoom = typeof payload?.zoom === "number" ? payload.zoom : this.zoom;
                     const zoom = this.clampMapZoom(requestedZoom);
@@ -843,7 +782,8 @@ export default {
                     if (this.map) {
                         this.map.setView(latLng, zoom, options.leaflet || {});
                     }
-                },
+                    return true;
+                }),
                 /** Centrar el mapa en { lat, lng } sin animación */
                 panTo: (payload = {}) => {
                     const latLng = payload?.latLng;
@@ -924,7 +864,8 @@ export default {
                         this.polygonAction("delete");
                 },
                 /** Agrega o reemplaza una capa dinámica usando una definición pública genérica */
-                addLayer: (definition) => this.addPublicLayer(definition),
+                addLayer: (definition) =>
+                    this.applyMapRuntimeMutation(() => this.addPublicLayer(definition)),
                 /** Indica si una capa dinámica agregada por API existe */
                 hasLayer: (payload) =>
                     this.hasPublicLayer(
@@ -937,18 +878,24 @@ export default {
                     ),
                 /** Elimina una capa dinámica por id */
                 removeLayer: (payload) =>
-                    this.removePublicLayer(
-                        typeof payload === "string" ? payload : payload?.layerId,
+                    this.applyMapRuntimeMutation(
+                        () => this.removePublicLayer(
+                            typeof payload === "string" ? payload : payload?.layerId,
+                        ),
                     ),
                 /** Actualiza parcialmente una capa dinámica existente */
                 updateLayer: (payload) =>
                     this.updatePublicLayer(payload?.layerId, payload?.patch || {}),
                 /** Aplica un renderState a una capa dinámica existente */
                 setLayerRenderState: (payload) =>
-                    this.setPublicLayerRenderState(payload?.layerId, payload?.renderState),
+                    this.applyMapRuntimeMutation(
+                        () => this.setPublicLayerRenderState(payload?.layerId, payload?.renderState),
+                    ),
                 /** Controla visibilidad lógica de una capa dinámica existente */
                 setLayerVisibility: (payload) =>
-                    this.setPublicLayerVisibility(payload?.layerId, payload?.visible),
+                    this.applyMapRuntimeMutation(
+                        () => this.setPublicLayerVisibility(payload?.layerId, payload?.visible),
+                    ),
                 /** Controla opacidad lógica de una capa dinámica existente */
                 setLayerOpacity: (payload) =>
                     this.setPublicLayerOpacity(payload?.layerId, payload?.opacity),
@@ -966,7 +913,8 @@ export default {
                         typeof payload === "string" ? payload : payload?.layerId,
                     ),
                 /** Configura límites de zoom del mapa y overzoom de capas base. */
-                configureMapZoom: (payload = {}) => this.configureMapZoom(payload),
+                configureMapZoom: (payload = {}) =>
+                    this.applyMapRuntimeMutation(() => this.configureMapZoom(payload)),
             };
         },
         btn_style() {
@@ -1475,6 +1423,54 @@ export default {
         this.map_resize_observer?.disconnect();
     },
     methods: {
+        async applyMapRuntimeMutation(mutation) {
+            const result = mutation();
+            await this.$nextTick();
+            return result;
+        },
+        snapshotRuntimeState() {
+            const snapshot = createMapRuntimeSnapshot(this);
+            const markerLatLng = this.marker && typeof this.marker.getLatLng === "function"
+                ? this.marker.getLatLng()
+                : null;
+
+            return {
+                ...snapshot,
+                locationMarker: cloneMapRuntimeValue(markerLatLng),
+            };
+        },
+        async restoreRuntimeState(snapshot) {
+            applyMapRuntimeSnapshot(this, snapshot);
+            this.rebuildDynamicVectorTileRegistryView();
+
+            if (this.map) {
+                if (typeof this.map.setMinZoom === "function") {
+                    this.map.setMinZoom(this.map_min_zoom);
+                }
+                if (typeof this.map.setMaxZoom === "function") {
+                    this.map.setMaxZoom(this.map_max_zoom);
+                }
+                if (typeof this.map.setView === "function") {
+                    this.map.setView(this.center, this.zoom, { animate: false });
+                }
+            }
+
+            if (this.marker) {
+                if (!this.map) {
+                    throw new Error("Cannot restore the map location marker without a map runtime.");
+                }
+                this.clearLocationMarker();
+            }
+            if (snapshot.locationMarker) {
+                if (!this.map) {
+                    throw new Error("Cannot restore the map location marker without a map runtime.");
+                }
+                this.setMarker(snapshot.locationMarker.lat, snapshot.locationMarker.lng);
+            }
+
+            await this.$nextTick();
+            return true;
+        },
         updateMapViewportHeight() {
             const container = this.$refs.map_container;
             if (!container || typeof window === "undefined") return;
