@@ -189,11 +189,12 @@ this.$refs.sheetsMap.mapActions.zoomIn();
 | ------------------------ | -------------------------- | ------------------------------------------------------------------ |
 | `zoomIn`                 | `zoomIn()`                 | Acercar el zoom en 1 nivel                                         |
 | `zoomOut`                | `zoomOut()`                | Alejar el zoom en 1 nivel                                          |
-| `setZoom`                | `setZoom(level)`           | Establecer un nivel de zoom específico (0–20)                      |
+| `setZoom`                | `setZoom({ level, options? })` | Establecer un nivel de zoom dentro de los límites configurados  |
 | `getZoom`                | `getZoom()`                | Obtener el nivel de zoom actual                                    |
-| `flyTo`                  | `flyTo(latLng, zoom?)`     | Volar a `{ lat, lng }` con zoom opcional (default 12)              |
-| `teleportTo`             | `teleportTo(latLng, zoom?)` | Centrar el mapa sin animación ni marcador de geolocalización       |
-| `panTo`                  | `panTo(latLng)`            | Centrar el mapa en `{ lat, lng }` sin animación                    |
+| `flyTo`                  | `flyTo({ latLng, zoom?, options? })` | Volar a `{ lat, lng }` con zoom opcional (default 12)     |
+| `teleportTo`             | `teleportTo({ latLng, zoom?, options? })` | Centrar el mapa sin animación ni marcador         |
+| `panTo`                  | `panTo({ latLng, options? })` | Centrar el mapa en `{ lat, lng }` sin animación                 |
+| `configureMapZoom`       | `configureMapZoom({ minZoom?, maxZoom?, maxNativeZoom? })` | Configurar límites de navegación y overzoom |
 | `filterByBounds`         | `filterByBounds()`         | Filtrar datos por zona visible del mapa                            |
 | `toggleCoordinateFormat` | `toggleCoordinateFormat()` | Ciclar formato de coordenadas (WGS84 / UTM / Web Mercator / SIRGAS-Chile 2016) |
 | `getCenter`              | `getCenter()`              | Obtener coordenadas del centro actual                              |
@@ -203,17 +204,45 @@ this.$refs.sheetsMap.mapActions.zoomIn();
 | `restoreBaseLayer`       | `restoreBaseLayer()`       | Restaurar la capa base                                             |
 | `isBaseLayerHidden`      | `isBaseLayerHidden()`      | `true` si la capa base está oculta                                 |
 
+Las acciones mutadoras públicas, incluyendo `teleportTo`, `addLayer`, `removeLayer`,
+`setLayerRenderState`, `setLayerVisibility` y `configureMapZoom`, conservan retornos
+síncronos. Un consumidor puede usar `await` sobre esos resultados, pero la librería no
+reemplaza el valor retornado por una `Promise`.
+
+Cuando no se configuran límites explícitos, la navegación usa el rango histórico
+`0..20`. Los valores vacíos, booleanos y arreglos no se interpretan como zoom `0`.
+
+### Estado y recuperación del runtime
+
+| Método | Firma | Descripción |
+| --- | --- | --- |
+| `isConfigurationReady` | `isConfigurationReady(): boolean` | Indica si la configuración inicial está disponible. |
+| `isRuntimeReady` | `isRuntimeReady(): boolean` | Exige configuración y una instancia de mapa activa. |
+| `snapshotRuntimeState` | `snapshotRuntimeState(): object` | Captura una instantánea aislada del estado actual. |
+| `restoreRuntimeState` | `restoreRuntimeState(snapshot): Promise<boolean>` | Valida y restaura una instantánea antes de esperar el siguiente render. |
+| `getContracts` | `getContracts(): object` | Retorna contratos inmutables de acciones remotas de bootstrap. |
+
+Las instantáneas son valores opacos: deben provenir de `snapshotRuntimeState` y volver a
+`restoreRuntimeState` sin modificaciones. Los métodos de lifecycle no forman parte de
+`MAP_ACTION_CONTRACTS`, porque no son acciones remotas ejecutables desde un payload OGP.
+Las acciones de dibujo `drawShape` y `setEraserMode` tienen contrato de payload, pero no
+participan en rutas transaccionales porque el estado interno de Geoman no forma parte de
+la instantánea del mapa.
+La transacción que agrupa varias acciones pertenece al consumidor; Sheets Map aporta una
+captura aislada y una restauración prevalidada. Si una integración externa falla durante
+la restauración, el consumidor debe tratar el rollback como no recuperable.
+
 ---
 
 ### Métodos de dibujo de polígonos
 
 | Método                | Firma                   | Descripción                                                                                              |
 | --------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------- |
-| `drawShape`           | `drawShape(shape)`      | Iniciar dibujo: `'polygon'`, `'circle'`, `'rectangle'`. También acepta `'delete'`, `'cancel'`, `'clear'` |
+| `drawShape`           | `drawShape({ shape })`  | Iniciar dibujo: `'polygon'`, `'circle'`, `'rectangle'`. También acepta `'delete'`, `'cancel'`, `'clear'` |
 | `cancelDraw`          | `cancelDraw()`          | Cancelar el dibujo en progreso sin eliminar polígonos ya completados                                     |
 | `clearPolygons`       | `clearPolygons()`       | Eliminar todos los polígonos dibujados                                                                   |
 | `toggleEraserMode`    | `toggleEraserMode()`    | Activar/desactivar el modo borrador (toggle)                                                             |
-| `setEraserMode`       | `setEraserMode(active)` | Activar o desactivar el modo borrador de forma idempotente                                               |
+| `setEraserMode`       | `setEraserMode({ active })` | Activar o desactivar el modo borrador de forma idempotente                                           |
 | `hasPolygons`         | `hasPolygons()`         | `true` si hay al menos un polígono dibujado                                                              |
 | `isEraserActive`      | `isEraserActive()`      | `true` si el modo borrador está activo                                                                   |
 | `isDrawingInProgress` | `isDrawingInProgress()` | `true` si hay un dibujo en progreso (sin confirmar)                                                      |
@@ -227,7 +256,7 @@ this.$refs.sheetsMap.mapActions.zoomIn();
 
 ```js
 // Activa el cursor crosshair y habilita el dibujo continuo
-mapActions.drawShape("polygon"); // o 'circle' / 'rectangle'
+mapActions.drawShape({ shape: "polygon" }); // o 'circle' / 'rectangle'
 
 // Escuchar cambios en los polígonos dibujados
 mapActions.onPolygonFilter((bounds_filters) => {
@@ -245,8 +274,8 @@ Mientras el modo dibujo está activo, **al completar un polígono el modo se re-
 mapActions.toggleEraserMode();
 
 // O de forma idempotente
-mapActions.setEraserMode(true); // activar
-mapActions.setEraserMode(false); // desactivar
+mapActions.setEraserMode({ active: true }); // activar
+mapActions.setEraserMode({ active: false }); // desactivar
 
 // Consultar estado actual
 const erasing = mapActions.isEraserActive();
@@ -273,7 +302,7 @@ mapActions.onPolygonFilter(null);
 
 ```js
 // Activar
-mapActions.drawShape("polygon");
+mapActions.drawShape({ shape: "polygon" });
 mapActions.onPolygonFilter((bounds_filters) => {
   this.polygonDrawn = bounds_filters !== null;
 });

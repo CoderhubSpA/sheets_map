@@ -16,7 +16,11 @@ import {
 } from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
 import { buildFilteredVectorTileUrl, buildVectorTileTemplateUrl } from '../../utils/vectorTileUrl';
-import { buildPointShapeIconExpression, parsePointShapeImageId } from '../../utils/vectorTileLegend/icon';
+import {
+    buildPointIconSizeExpression,
+    buildPointShapeIconExpression,
+    parsePointShapeImageId,
+} from '../../utils/vectorTileLegend/icon';
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../../utils/vectorTileLegend/canvas';
 
 export default {
@@ -683,7 +687,11 @@ export default {
                         paint.pointDashStyle
                     )
                 );
-                this.setLayoutPropertyIfExists(`${this.layer.id}-symbol`, 'icon-size', ['/', paint.pointRadiusExpression, 32]);
+                this.setLayoutPropertyIfExists(
+                    `${this.layer.id}-symbol`,
+                    'icon-size',
+                    buildPointIconSizeExpression(paint.pointRadiusExpression),
+                );
             }
         },
 
@@ -1121,7 +1129,7 @@ export default {
                         'icon-image': this.buildColoredShapeIconExpression(
                             legendAttribute, legendItems, defaultFill, defaultStroke, paint.pointDashStyle
                         ),
-                        'icon-size': ['/', paint.pointRadiusExpression, 32],
+                        'icon-size': buildPointIconSizeExpression(paint.pointRadiusExpression),
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true,
                     },

@@ -1,0 +1,11 @@
+flowchart TB
+  A[Sheets consumer] --> B[Read action contracts]
+  B --> C[Snapshot map runtime]
+  C --> D[Configure zoom limits]
+  D --> E[Apply dynamic layers]
+  E --> F{Bootstrap succeeds?}
+  F -->|Yes| G[Commit visible map state]
+  F -->|No| H[Restore layers, view and limits]
+  H --> I[Keep previous map state]
+  J[Vector point style] --> K[Scale icon size by zoom]
+  K --> G

@@ -1,6 +1,6 @@
 {
   "name": "coderhubspa_sheets_map",
-  "version": "1.55.1",
+  "version": "1.56.0",
   "private": false,
   "scripts": {
     "serve": "vite",
@@ -55,7 +55,8 @@
       "eslint:recommended"
     ],
     "parserOptions": {
-      "parser": "@babel/eslint-parser"
+      "parser": "@babel/eslint-parser",
+      "requireConfigFile": false
     },
     "rules": {}
   },

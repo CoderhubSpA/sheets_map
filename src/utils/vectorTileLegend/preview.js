@@ -1,6 +1,6 @@
 import { normalizeVectorTileLegendConfig } from './config.js'
 import { serializeVectorTileLegendDraft } from './editor.js'
-import { buildPointShapeIconExpression } from './icon.js'
+import { buildPointIconSizeExpression, buildPointShapeIconExpression } from './icon.js'
 import { buildVectorTileSemanticRenderState } from './style.js'
 
 export const VECTOR_TILE_PREVIEW_SOURCE_ID = 'vector-tile-preview-source'
@@ -212,7 +212,7 @@ export function buildVectorTilePreviewLayers(sourceLayer, paint, sourceId = VECT
                     resolvedPaint.defaultStrokeColor,
                     resolvedPaint.pointDashStyle,
                 ),
-                'icon-size': ['/', resolvedPaint.pointRadiusExpression, 32],
+                'icon-size': buildPointIconSizeExpression(resolvedPaint.pointRadiusExpression),
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
             },
