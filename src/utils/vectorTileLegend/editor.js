@@ -160,7 +160,8 @@ export function applySemanticLegendToDraft(draft, semanticLegend = {}) {
     next.items = sourceItems.map((item, index) => {
         const previous = previousItems.get(item.key) || previousItems.get(item.legacyKey)
         const fill = previous?.fill || DEFAULT_COLORS[index % DEFAULT_COLORS.length]
-        const { legacyKey, ...sourceItem } = item
+        const sourceItem = { ...item }
+        delete sourceItem.legacyKey
         return {
             ...sourceItem,
             label: previous?.label || item.label,

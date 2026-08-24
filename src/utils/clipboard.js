@@ -10,6 +10,7 @@ export async function copyText(
     _documentObject = typeof document === 'undefined' ? null : document,
     timeoutMs = CLIPBOARD_WRITE_TIMEOUT_MS,
 ) {
+    void _documentObject
     let timeoutId = null
     try {
         if (!navigatorObject?.clipboard?.writeText) throw new Error('CLIPBOARD_UNAVAILABLE')
