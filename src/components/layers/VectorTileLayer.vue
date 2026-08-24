@@ -74,6 +74,10 @@ export default {
         filterValue: {
             type: [String, Number],
             default: ''
+        },
+        disableFeatureClick: {
+            type: Boolean,
+            default: false
         }
     },
     data() {
@@ -759,6 +763,8 @@ export default {
          * @returns {boolean} - True si se manejó el click, false si no
          */
         tryHandleClick(e) {
+            if (this.disableFeatureClick) return false;
+
             // Verificaciones previas
             if (!this.maplibreMap) return false;
             
@@ -822,6 +828,8 @@ export default {
             
             // Handler de mousemove para cambiar cursor
             this.leafletMouseMoveHandler = function(e) {
+                if (self.disableFeatureClick) return;
+
                 if (!self.maplibreMap || !self.styleLoaded) {
                     // Si el estilo no está cargado, no hacer nada
                     return;

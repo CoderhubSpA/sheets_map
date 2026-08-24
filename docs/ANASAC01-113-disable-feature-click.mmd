@@ -1,0 +1,6 @@
+flowchart LR
+  A[Feature click] --> B{Feature click disabled?}
+  B -->|Yes| C[Ignore interaction]
+  B -->|No| D[Resolve feature]
+  D --> E[Highlight feature]
+  D --> F[Emit feature-click]
