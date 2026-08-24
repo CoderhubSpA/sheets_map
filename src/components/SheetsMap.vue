@@ -307,7 +307,6 @@ import * as h3 from "h3-js";
 import {
     LMap,
     LTileLayer,
-    LMarker,
     LGeoJson,
     LWMSTileLayer,
     LControl,
@@ -334,9 +333,10 @@ import {
 } from "../utils/mapZoom";
 import { MAP_ACTION_CONTRACTS } from "../utils/mapActionContracts";
 import {
-    applyMapRuntimeSnapshot,
     cloneMapRuntimeValue,
+    createMapBootstrapActions,
     createMapRuntimeSnapshot,
+    restoreMapRuntimeState,
 } from "../utils/mapRuntimeState";
 import axios from "axios";
 import HeatmapOverlay from "heatmap.js/plugins/leaflet-heatmap";
@@ -350,7 +350,6 @@ import QuickLayers from "./layers/QuickLayers.vue";
 import markerIcon2xUrl from "leaflet/dist/images/marker-icon-2x.png";
 import markerIconUrl from "leaflet/dist/images/marker-icon.png";
 import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
-import packageInfo from "../../package.json";
 
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
@@ -361,7 +360,6 @@ Icon.Default.mergeOptions({
 import ScreenshotButton from "./ScreenshotButton.vue";
 import FeatureDetailModal from "./FeatureDetailModal.vue";
 
-const sheetsMapVersion = packageInfo.version;
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
 const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
 const DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM = 19;
@@ -377,7 +375,6 @@ export default {
     components: {
         LMap,
         LTileLayer,
-        LMarker,
         LGeoJson,
         "l-wms-tile-layer": LWMSTileLayer,
         BButton,
@@ -502,8 +499,8 @@ export default {
             hide_base_layer: false,
             toolbar_hide_base_layer: false,
             base_layer_key: 0,
-            _polygonFilterCallback: null,
-            _featureClickCallback: null,
+            polygon_filter_callback: null,
+            feature_click_callback: null,
             marker: null,
             current_zoom: 7,
         };
@@ -729,6 +726,7 @@ export default {
         },
         mapActions() {
             const contracts = this.mapActionContracts;
+            const bootstrapActions = createMapBootstrapActions(this);
 
             return {
                 contracts,
@@ -764,26 +762,7 @@ export default {
                           )
                         : undefined,
                 /** Teletransportar el mapa a { lat, lng } sin crear marcador de geolocalización */
-                teleportTo: (payload = {}) => this.applyMapRuntimeMutation(() => {
-                    const latLng = payload?.latLng;
-                    const options = payload?.options || {};
-                    if (!latLng) return false;
-
-                    const requestedZoom = typeof payload?.zoom === "number" ? payload.zoom : this.zoom;
-                    const zoom = this.clampMapZoom(requestedZoom);
-
-                    if (options.externalOverride !== false) {
-                        this.external_view_override = true;
-                    }
-
-                    this.clearLocationMarker();
-                    this.center = latLng;
-                    this.zoom = zoom;
-                    if (this.map) {
-                        this.map.setView(latLng, zoom, options.leaflet || {});
-                    }
-                    return true;
-                }),
+                teleportTo: bootstrapActions.teleportTo,
                 /** Centrar el mapa en { lat, lng } sin animación */
                 panTo: (payload = {}) => {
                     const latLng = payload?.latLng;
@@ -825,14 +804,14 @@ export default {
                 isBaseLayerHidden: () => this.toolbar_hide_base_layer,
                 /** Registrar callback para cuando cambian los polígonos dibujados. Recibe bounds_filters (array|null) */
                 onPolygonFilter: (cb) => {
-                    this._polygonFilterCallback = cb;
+                    this.polygon_filter_callback = cb;
                 },
                 /**
                  * Registra un callback que se ejecuta cuando el usuario hace click en un feature del mapa.
                  * @param {Function|null} cb - callback(data) donde data = { layer, properties, latlng, visible_columns }
                  *                             Pasar null para desregistrar.
                  */
-                onFeatureClick: (cb) => { this._featureClickCallback = cb || null; },
+                onFeatureClick: (cb) => { this.feature_click_callback = cb || null; },
                 /** Verdadero si hay al menos un polígono dibujado en el mapa */
                 hasPolygons: () => {
                     const d = this.$refs.polygon_drafter;
@@ -864,8 +843,7 @@ export default {
                         this.polygonAction("delete");
                 },
                 /** Agrega o reemplaza una capa dinámica usando una definición pública genérica */
-                addLayer: (definition) =>
-                    this.applyMapRuntimeMutation(() => this.addPublicLayer(definition)),
+                addLayer: bootstrapActions.addLayer,
                 /** Indica si una capa dinámica agregada por API existe */
                 hasLayer: (payload) =>
                     this.hasPublicLayer(
@@ -877,25 +855,14 @@ export default {
                         typeof payload === "string" ? payload : payload?.layerId,
                     ),
                 /** Elimina una capa dinámica por id */
-                removeLayer: (payload) =>
-                    this.applyMapRuntimeMutation(
-                        () => this.removePublicLayer(
-                            typeof payload === "string" ? payload : payload?.layerId,
-                        ),
-                    ),
+                removeLayer: bootstrapActions.removeLayer,
                 /** Actualiza parcialmente una capa dinámica existente */
                 updateLayer: (payload) =>
                     this.updatePublicLayer(payload?.layerId, payload?.patch || {}),
                 /** Aplica un renderState a una capa dinámica existente */
-                setLayerRenderState: (payload) =>
-                    this.applyMapRuntimeMutation(
-                        () => this.setPublicLayerRenderState(payload?.layerId, payload?.renderState),
-                    ),
+                setLayerRenderState: bootstrapActions.setLayerRenderState,
                 /** Controla visibilidad lógica de una capa dinámica existente */
-                setLayerVisibility: (payload) =>
-                    this.applyMapRuntimeMutation(
-                        () => this.setPublicLayerVisibility(payload?.layerId, payload?.visible),
-                    ),
+                setLayerVisibility: bootstrapActions.setLayerVisibility,
                 /** Controla opacidad lógica de una capa dinámica existente */
                 setLayerOpacity: (payload) =>
                     this.setPublicLayerOpacity(payload?.layerId, payload?.opacity),
@@ -913,8 +880,7 @@ export default {
                         typeof payload === "string" ? payload : payload?.layerId,
                     ),
                 /** Configura límites de zoom del mapa y overzoom de capas base. */
-                configureMapZoom: (payload = {}) =>
-                    this.applyMapRuntimeMutation(() => this.configureMapZoom(payload)),
+                configureMapZoom: bootstrapActions.configureMapZoom,
             };
         },
         btn_style() {
@@ -1423,11 +1389,6 @@ export default {
         this.map_resize_observer?.disconnect();
     },
     methods: {
-        async applyMapRuntimeMutation(mutation) {
-            const result = mutation();
-            await this.$nextTick();
-            return result;
-        },
         snapshotRuntimeState() {
             const snapshot = createMapRuntimeSnapshot(this);
             const markerLatLng = this.marker && typeof this.marker.getLatLng === "function"
@@ -1440,36 +1401,21 @@ export default {
             };
         },
         async restoreRuntimeState(snapshot) {
-            applyMapRuntimeSnapshot(this, snapshot);
-            this.rebuildDynamicVectorTileRegistryView();
+            const currentLocationMarker = this.marker && typeof this.marker.getLatLng === "function"
+                ? this.marker.getLatLng()
+                : null;
 
-            if (this.map) {
-                if (typeof this.map.setMinZoom === "function") {
-                    this.map.setMinZoom(this.map_min_zoom);
-                }
-                if (typeof this.map.setMaxZoom === "function") {
-                    this.map.setMaxZoom(this.map_max_zoom);
-                }
-                if (typeof this.map.setView === "function") {
-                    this.map.setView(this.center, this.zoom, { animate: false });
-                }
-            }
-
-            if (this.marker) {
-                if (!this.map) {
-                    throw new Error("Cannot restore the map location marker without a map runtime.");
-                }
-                this.clearLocationMarker();
-            }
-            if (snapshot.locationMarker) {
-                if (!this.map) {
-                    throw new Error("Cannot restore the map location marker without a map runtime.");
-                }
-                this.setMarker(snapshot.locationMarker.lat, snapshot.locationMarker.lng);
-            }
-
-            await this.$nextTick();
-            return true;
+            return restoreMapRuntimeState({
+                runtime: this,
+                snapshot,
+                map: this.map,
+                hasLocationMarker: Boolean(this.marker),
+                currentLocationMarker,
+                rebuildDynamicLayers: () => this.rebuildDynamicVectorTileRegistryView(),
+                clearLocationMarker: () => this.clearLocationMarker(),
+                setLocationMarker: ({ lat, lng }) => this.setMarker(lat, lng),
+                nextTick: () => this.$nextTick(),
+            });
         },
         updateMapViewportHeight() {
             const container = this.$refs.map_container;
@@ -1825,6 +1771,9 @@ export default {
                 currentMinZoom: this.map_min_zoom,
                 currentMaxZoom: this.map_max_zoom,
             });
+            if (!bounds) {
+                throw new RangeError("Map minimum zoom cannot exceed maximum zoom.");
+            }
             return clampMapZoomLevel(zoom, bounds.minZoom, bounds.maxZoom);
         },
         ready() {
@@ -3309,8 +3258,8 @@ export default {
         },
         polygonFilter(bounds_filters) {
             this.bounds_filters = bounds_filters;
-            if (typeof this._polygonFilterCallback === "function") {
-                this._polygonFilterCallback(bounds_filters);
+            if (typeof this.polygon_filter_callback === "function") {
+                this.polygon_filter_callback(bounds_filters);
             }
         },
         setButtonsPressed(buttons_pressed) {
@@ -3597,8 +3546,8 @@ export default {
             });
 
             // Llamar callback registrado via mapActions.onFeatureClick
-            if (typeof this._featureClickCallback === "function") {
-                this._featureClickCallback({
+            if (typeof this.feature_click_callback === "function") {
+                this.feature_click_callback({
                     layer: layer,
                     properties: properties || {},
                     latlng: latlng || null,

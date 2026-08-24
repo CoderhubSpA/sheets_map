@@ -44,10 +44,32 @@ test('rechaza rangos invertidos y limita navegación en ambos extremos', () => {
     assert.equal(clampMapZoomLevel(22, 11, 19), 19)
 })
 
-test('conserva la coerción histórica de límites enteros no negativos', () => {
+test('acepta enteros y cadenas numéricas sin convertir valores vacíos a cero', () => {
     assert.equal(normalizeMapZoomLimit('11'), 11)
-    assert.equal(normalizeMapZoomLimit(null), 0)
+    assert.equal(normalizeMapZoomLimit(11), 11)
+    assert.equal(normalizeMapZoomLimit(null), undefined)
     assert.equal(normalizeMapZoomLimit(undefined), undefined)
+    assert.equal(normalizeMapZoomLimit(''), undefined)
+    assert.equal(normalizeMapZoomLimit('   '), undefined)
+    assert.equal(normalizeMapZoomLimit(false), undefined)
+    assert.equal(normalizeMapZoomLimit([]), undefined)
     assert.equal(normalizeMapZoomLimit(-1), undefined)
     assert.equal(normalizeMapZoomLimit(1.5), undefined)
+})
+
+test('ignora límites vacíos y conserva los límites vigentes', () => {
+    assert.deepEqual(
+        resolveMapZoomBounds({
+            currentMinZoom: 4,
+            currentMaxZoom: 18,
+            minZoom: null,
+            maxZoom: '',
+        }),
+        {
+            minZoom: 4,
+            maxZoom: 18,
+            shouldSetMinZoom: false,
+            shouldSetMaxZoom: false,
+        },
+    )
 })

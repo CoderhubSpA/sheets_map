@@ -1,4 +1,11 @@
-export const MAP_ACTION_CONTRACTS = Object.freeze({
+function deepFreeze(value) {
+    if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+
+    Object.values(value).forEach((nestedValue) => deepFreeze(nestedValue));
+    return Object.freeze(value);
+}
+
+export const MAP_ACTION_CONTRACTS = deepFreeze({
     setZoom: {
         invocation: { type: "payload" },
         required: ["level"],
@@ -47,6 +54,7 @@ export const MAP_ACTION_CONTRACTS = Object.freeze({
     },
     drawShape: {
         invocation: { type: "payload" },
+        transactional: false,
         required: ["shape"],
         payload: {
             shape: "polygon|circle|rectangle|delete|cancel|clear",
@@ -54,6 +62,7 @@ export const MAP_ACTION_CONTRACTS = Object.freeze({
     },
     setEraserMode: {
         invocation: { type: "payload" },
+        transactional: false,
         required: ["active"],
         payload: {
             active: "boolean",

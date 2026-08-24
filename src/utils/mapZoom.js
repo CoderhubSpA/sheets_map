@@ -2,6 +2,13 @@ export const DEFAULT_MAP_MIN_ZOOM = 0
 export const DEFAULT_MAP_MAX_ZOOM = 20
 
 export function normalizeMapZoomLimit(value) {
+    if (typeof value === 'string') {
+        value = value.trim()
+        if (value === '') return undefined
+    } else if (typeof value !== 'number') {
+        return undefined
+    }
+
     const parsed = Number(value)
     if (!Number.isInteger(parsed) || parsed < 0) return undefined
 
