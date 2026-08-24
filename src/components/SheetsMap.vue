@@ -121,6 +121,7 @@
                 <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
+                    :disable-feature-click="disable_feature_click"
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
                     :highlight-color="style_variables['feature-highlight-color']"
                     :highlight-weight="style_variables['feature-highlight-weight']"
@@ -399,6 +400,10 @@ export default {
         // Si es true, Sheets Map no muestra su modal interno de detalle de feature al hacer
         // click (útil para consumidores que ya tienen su propio modal escuchando feature-click).
         disable_feature_modal: {
+            type: Boolean,
+            default: false,
+        },
+        disable_feature_click: {
             type: Boolean,
             default: false,
         },
@@ -971,6 +976,8 @@ export default {
                             // Evita que el click también dispare onMapClick (nivel de mapa) en el mismo
                             // tick, lo que borraría el highlight recién puesto en setSelectedGeojsonLayer.
                             L.DomEvent.stopPropagation(clickEvent);
+
+                            if (this.disable_feature_click) return;
 
                             const active_layer = this.active_layers.find((l) => {
                                 return feature.layer_id == l.id;
@@ -3354,6 +3361,8 @@ export default {
             }
         },
         setLayer(layer) {
+            if (this.disable_feature_click) return;
+
             layer.timestamp = new Date().getTime();
 
             this.$emit("set_layer", layer);
@@ -3532,6 +3541,8 @@ export default {
         // Punto único de emisión de feature-click, usado tanto por vector tiles como por GeoJSON,
         // para que ambos flujos entreguen el mismo shape al consumidor (modal de detalle).
         emitFeatureClick({ layer, properties, latlng, visible_columns }) {
+            if (this.disable_feature_click) return;
+
             // Emitir evento para que el componente padre pueda reaccionar
             this.$emit("set_layer", {
                 layer_id: layer.id,
