@@ -35,6 +35,7 @@
                     :loading="loadingLegend"
                     :error="legendError"
                     :layer="layer"
+                    :request_auth="request_auth"
                     :semantic-legend="semanticLegend"
                     :spatial-context="spatialContext"
                     @update:draft="draft = $event"
@@ -129,6 +130,7 @@ export default {
         visible: { type: Boolean, default: false },
         layer: { type: Object, default: null },
         copyHandler: { type: Function, default: null },
+        request_auth: { type: Object, default: null },
     },
     data() {
         return {
@@ -168,7 +170,7 @@ export default {
         visible(visible) { if (visible) this.initialize() },
     },
     beforeDestroy() {
-        this.clearCopyFeedbackTimer()
+        this.cancelRequests()
     },
     methods: {
         validateState() {
@@ -221,6 +223,7 @@ export default {
             const params = {
                 tileUrl: this.layer.url,
                 layerName: this.draft.layerName,
+                requestAuth: this.request_auth,
                 signal: this.abortController.signal,
             }
             const [attributesResult, defaultLegendResult] = await Promise.allSettled([
@@ -277,6 +280,7 @@ export default {
                     tileUrl: this.layer.url,
                     layerName: this.draft.layerName,
                     attribute,
+                    requestAuth: this.request_auth,
                     signal: this.abortController.signal,
                 })
                 if (requestId !== this.requestId) return

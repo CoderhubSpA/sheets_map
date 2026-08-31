@@ -252,6 +252,10 @@ export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
             sh_map_has_layer_render_state: normalizedLayerDefinition.renderState,
             sh_map_request_headers: normalizedLayerDefinition.request?.headers || {},
             sh_map_request_auth_mode: normalizedLayerDefinition.auth?.mode || "",
+            sh_map_has_layer_requires_bearer:
+                ["runtime-bearer", "ogp-bearer"].includes(
+                    normalizedLayerDefinition.auth?.mode,
+                ),
             sh_map_has_layer_visible: normalizedLayerDefinition.visible,
             sh_map_has_layer_opacity: normalizedLayerDefinition.opacity,
         },

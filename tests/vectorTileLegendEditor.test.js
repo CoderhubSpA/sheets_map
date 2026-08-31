@@ -826,7 +826,9 @@ test('el preview carga solamente tiles visibles y reacciona al completar la leye
         'utf8',
     )
     assert.match(preview, /type:\s*'vector'/)
-    assert.match(preview, /tiles:\s*\[this\.tileUrl\]/)
+    assert.match(preview, /tiles:\s*\[this\.buildTileUrl\(\)\]/)
+    assert.match(preview, /transformRequest:[\s\S]*buildMapLibreRequest/s)
+    assert.match(preview, /handleAuthError[\s\S]*invalidate/s)
     assert.match(preview, /maxTileCacheSize:\s*6/)
     assert.match(preview, /type:\s*'raster'[\s\S]*tile\.openstreetmap/s)
     assert.match(preview, /querySourceFeatures[\s\S]*\.slice\(0, 200\)/)

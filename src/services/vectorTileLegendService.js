@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { requestWithAuth } from '../utils/requestAuth.mjs'
 
 function buildUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return null
@@ -36,13 +37,18 @@ export function buildVectorTileLegendUrl(tileUrl, layerName, attribute) {
     return url.toString()
 }
 
-export async function fetchVectorTileSemanticLegend({ tileUrl, layerName, attribute, signal }) {
+export async function fetchVectorTileSemanticLegend({ tileUrl, layerName, attribute, requestAuth, signal }) {
     const legendUrl = buildVectorTileLegendUrl(tileUrl, layerName, attribute)
 
     if (!legendUrl) {
         return null
     }
 
-    const response = await axios.get(legendUrl, { signal })
+    const response = await requestWithAuth({
+        url: legendUrl,
+        requestAuth,
+        requireBearer: Boolean(requestAuth),
+        request: headers => axios.get(legendUrl, { headers, signal }),
+    })
     return response?.data || null
 }

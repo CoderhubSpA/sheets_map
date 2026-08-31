@@ -22,6 +22,13 @@ import {
     parsePointShapeImageId,
 } from '../../utils/vectorTileLegend/icon';
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../../utils/vectorTileLegend/canvas';
+import {
+    appendRequestGeneration,
+    buildMapLibreRequest,
+    getBearerToken,
+    getRequestAuthHeaders,
+    mergeRequestHeaders,
+} from '../../utils/requestAuth.mjs';
 
 export default {
     name: 'VectorTileLayer',
@@ -67,6 +74,10 @@ export default {
             type: Number,
             default: 4
         },
+        request_auth: {
+            type: Object,
+            default: null
+        },
         filterAttribute: {
             type: String,
             default: ''
@@ -89,6 +100,7 @@ export default {
             pointRenderMode: 'circle',
             isInitialized: false,
             currentStyleExpressions: null,
+            initializationId: 0,
             renderStateRequestId: 0,
             legendCountRequestId: 0,
             legendCountAbortController: null,
@@ -97,7 +109,14 @@ export default {
             // Nombre del pane personalizado para esta capa
             customPaneName: null,
             // Flag para indicar si el estilo MapLibre ha sido cargado completamente
-            styleLoaded: false
+            styleLoaded: false,
+            maplibreErrorHandler: null,
+            maplibreAuthHeaders: {},
+            authRecoveredTokens: new Set(),
+            authRequestGeneration: 0,
+            nextTokenRequestGeneration: 0,
+            tokenRequestGenerations: new Map(),
+            tileRequestTokens: new Map()
         };
     },
     watch: {
@@ -119,6 +138,11 @@ export default {
             // Aplicación síncrona desde el cache: evita reconstruir el estado
             // de render en cada tick del slider.
             this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
+        },
+        request_auth(newRequestAuth, oldRequestAuth) {
+            if (newRequestAuth === oldRequestAuth) return;
+            this.cleanup();
+            this.$nextTick(this.createVectorTileLayer);
         },
         filterAttribute() {
             this.applyTileFilter();
@@ -164,6 +188,7 @@ export default {
             if (!this.map || typeof this.map.addLayer !== 'function' || this.isInitialized) {
                 return;
             }
+            const initializationId = ++this.initializationId;
 
             // Verificar que MapLibre GL Leaflet esté disponible
             if (!L.maplibreGL) {
@@ -212,7 +237,20 @@ export default {
 
             this.tileUrl = tileUrl;
 
-            const renderState = await this.resolveRenderState();
+            if (this.request_auth) {
+                try {
+                    this.maplibreAuthHeaders = await getRequestAuthHeaders(this.request_auth, tileUrl);
+                    if (!getBearerToken(this.maplibreAuthHeaders)) {
+                        throw new Error('Bearer authentication is required.');
+                    }
+                } catch (error) {
+                    console.warn(`VectorTileLayer: No fue posible preparar autenticación para capa ${this.layer.id}`, error);
+                    return;
+                }
+            }
+            if (initializationId !== this.initializationId || this.isDestroyed()) return;
+
+            const renderState = this.resolveRenderState();
             this.currentStyleExpressions = renderState.styleExpressions;
 
             // Orden de prioridad para sourceLayer:
@@ -234,7 +272,7 @@ export default {
                 sources: {
                     'vector-tiles': {
                         type: 'vector',
-                        tiles: [buildFilteredVectorTileUrl(tileUrl, this.filterAttribute, this.filterValue)],
+                        tiles: [this.buildFilteredTileUrl()],
                         scheme: 'xyz',
                         minzoom: 0,
                         maxzoom: 22
@@ -259,11 +297,6 @@ export default {
                 this.layer.sh_map_request_headers && typeof this.layer.sh_map_request_headers === 'object'
                     ? this.layer.sh_map_request_headers
                     : {};
-            const requestAuthMode =
-                typeof this.layer.sh_map_request_auth_mode === 'string'
-                    ? this.layer.sh_map_request_auth_mode
-                    : '';
-            
             // Crear la capa MapLibre GL como capa de Leaflet
             this.vectorTileLayer = L.maplibreGL({
                 style: maplibreStyle,
@@ -278,25 +311,16 @@ export default {
                     preserveDrawingBuffer: true,  // CRÍTICO para html2canvas: Preservar buffer para permitir captura
                     antialias: true,  // Mejorar calidad del rendering
                 },
-                transformRequest: (url) => {
-                    const headers = {
-                        ...requestHeaders,
-                    };
-                    const runtimeAuth = window.__OGP_RUNTIME_AUTH__ || {};
-                    if (
-                        requestAuthMode === 'ogp-bearer' &&
-                        typeof runtimeAuth.getBearerToken === 'function'
-                    ) {
-                        const runtimeToken = runtimeAuth.getBearerToken();
-                        if (typeof runtimeToken === 'string' && runtimeToken.length > 0) {
-                            headers.Authorization = `Bearer ${runtimeToken}`;
-                        }
-                    }
-
-                    return {
+                transformRequest: (url, resourceType) => {
+                    const request = buildMapLibreRequest({
                         url,
-                        headers,
-                    };
+                        resourceType,
+                        tileUrl,
+                        requestAuth: this.request_auth,
+                        headers: mergeRequestHeaders(requestHeaders, this.maplibreAuthHeaders),
+                        baseUrl: window.location.href,
+                    });
+                    return this.rememberTileRequestToken(url, resourceType, request);
                 },
             });
             
@@ -305,6 +329,9 @@ export default {
 
         // Obtener MapLibre GL map instance
         this.maplibreMap = this.vectorTileLayer.getMaplibreMap();
+
+            this.maplibreErrorHandler = event => this.handleMapLibreAuthError(event);
+            this.maplibreMap.on('error', this.maplibreErrorHandler);
 
             // CRÍTICO: Esperar a que el estilo MapLibre se cargue completamente
             // Sin esto, queryRenderedFeatures() no funcionará
@@ -457,6 +484,7 @@ export default {
                     tileUrl: this.tileUrl || this.layer.sh_map_has_layer_url,
                     layerName: legendConfig.layerName,
                     attribute: legendConfig.attribute,
+                    requestAuth: this.request_auth,
                     signal: controller?.signal,
                 });
 
@@ -503,6 +531,69 @@ export default {
         scaleOpacity(expr) {
             if (typeof expr === 'number') return expr * this.opacity;
             return ['*', expr, this.opacity];
+        },
+
+        async handleMapLibreAuthError(event) {
+            const status = event?.error?.status ?? event?.error?.statusCode;
+            const sourceId = event?.sourceId ?? event?.source?.id;
+            if (status !== 401 || sourceId !== 'vector-tiles') return;
+
+            const failedUrl = event?.error?.url;
+            const rejectedToken = failedUrl
+                ? this.tileRequestTokens.get(failedUrl)
+                : null;
+            if (!rejectedToken || this.authRecoveredTokens.has(rejectedToken)) return;
+
+            this.authRecoveredTokens.add(rejectedToken);
+            this.tileRequestTokens.delete(failedUrl);
+            try {
+                await this.request_auth?.invalidate?.(rejectedToken);
+                const refreshedHeaders = await getRequestAuthHeaders(this.request_auth, this.tileUrl);
+                const refreshedToken = getBearerToken(refreshedHeaders);
+                if (!refreshedToken || refreshedToken === rejectedToken) {
+                    throw new Error('Bearer authentication could not be renewed.');
+                }
+                this.maplibreAuthHeaders = refreshedHeaders;
+                if (this.isDestroyed() || !this.maplibreMap) return;
+
+                const source = this.maplibreMap.getSource('vector-tiles');
+                if (source && typeof source.setTiles === 'function') {
+                    this.authRequestGeneration += 1;
+                    source.setTiles([this.buildFilteredTileUrl()]);
+                }
+            } catch (error) {
+                if (!this.isDestroyed()) {
+                    console.warn(`VectorTileLayer: No fue posible renovar autenticación para capa ${this.layer.id}`, error);
+                }
+            }
+        },
+
+        rememberTileRequestToken(url, resourceType, request) {
+            if (resourceType !== 'Tile') return request;
+
+            const token = getBearerToken(request?.headers);
+            if (!token) return request;
+
+            if (!this.tokenRequestGenerations.has(token)) {
+                if (this.tokenRequestGenerations.size >= 32) {
+                    this.tokenRequestGenerations.delete(
+                        this.tokenRequestGenerations.keys().next().value,
+                    );
+                }
+                this.nextTokenRequestGeneration += 1;
+                this.tokenRequestGenerations.set(token, this.nextTokenRequestGeneration);
+            }
+            const requestUrl = appendRequestGeneration(
+                request?.url || url,
+                this.tokenRequestGenerations.get(token),
+                '_sheets_auth_token',
+            );
+
+            if (!this.tileRequestTokens.has(requestUrl) && this.tileRequestTokens.size >= 256) {
+                this.tileRequestTokens.delete(this.tileRequestTokens.keys().next().value);
+            }
+            this.tileRequestTokens.set(requestUrl, token);
+            return { ...request, url: requestUrl };
         },
 
         resolveStylePaint(styleExpressions = null) {
@@ -616,7 +707,12 @@ export default {
         // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
         // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
         buildFilteredTileUrl() {
-            return buildFilteredVectorTileUrl(this.tileUrl, this.filterAttribute, this.filterValue);
+            const filteredUrl = buildFilteredVectorTileUrl(
+                this.tileUrl,
+                this.filterAttribute,
+                this.filterValue,
+            );
+            return appendRequestGeneration(filteredUrl, this.authRequestGeneration);
         },
 
         // Actualiza el template de tiles de la fuente en runtime (sin reconstruir el estilo)
@@ -1162,6 +1258,7 @@ export default {
         },
         
         cleanup() {
+            this.initializationId += 1;
             this.cancelLegendCountEnrichment();
             // Cerrar popups
             if (this.map) {
@@ -1185,6 +1282,17 @@ export default {
             this.styleLoaded = false;
 
             this.$emit('legend-clear', this.layer.id);
+
+            if (this.maplibreMap && this.maplibreErrorHandler) {
+                this.maplibreMap.off('error', this.maplibreErrorHandler);
+            }
+            this.maplibreErrorHandler = null;
+            this.maplibreAuthHeaders = {};
+            this.authRecoveredTokens.clear();
+            this.authRequestGeneration = 0;
+            this.nextTokenRequestGeneration = 0;
+            this.tokenRequestGenerations.clear();
+            this.tileRequestTokens.clear();
             
             // Remover capa del mapa usando el método de Leaflet
             // Esto llamará automáticamente al onRemove de L.maplibreGL que

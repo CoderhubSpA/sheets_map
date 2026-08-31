@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { requestWithAuth } from '../utils/requestAuth.mjs'
 
 function buildUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return null
@@ -32,13 +33,18 @@ export function buildVectorTileAttributesUrl(tileUrl, layerName) {
     return url.toString()
 }
 
-export async function fetchVectorTileAttributes({ tileUrl, layerName, signal }) {
+export async function fetchVectorTileAttributes({ tileUrl, layerName, requestAuth, signal }) {
     const attributesUrl = buildVectorTileAttributesUrl(tileUrl, layerName)
 
     if (!attributesUrl) {
         return null
     }
 
-    const response = await axios.get(attributesUrl, { signal })
+    const response = await requestWithAuth({
+        url: attributesUrl,
+        requestAuth,
+        requireBearer: Boolean(requestAuth),
+        request: headers => axios.get(attributesUrl, { headers, signal }),
+    })
     return response?.data || null
 }

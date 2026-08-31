@@ -121,6 +121,7 @@
                 <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
+                    :request_auth="requestAuthForLayer(vectorTile.layer)"
                     :disable-feature-click="disable_feature_click"
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
                     :highlight-color="style_variables['feature-highlight-color']"
@@ -138,12 +139,13 @@
                     v-on:drawing-empty="findBounds"></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
-                <l-wms-tile-layer v-for="layer in operative_geoserver_wms || []" :key="layer.id"
+                <authenticated-wms-tile-layer v-for="layer in operative_geoserver_wms || []" :key="layer.id"
+                    :map="map" :request_auth="requestAuthForLayer(layer)"
                     :base-url="layer.sh_map_has_layer_url" :layers="layer.sh_map_has_layer_geoserver_layer"
-                    :name="layer.sh_map_has_layer_geoserver_layer" :transparent="true"
+                    :transparent="true"
                     :format="layer.sh_map_has_layer_wms_format || 'image/png'"
                     :opacity="getLayerOpacity(layer.id)"
-                    :options="{ maxNativeZoom: 20, maxZoom: 20 }" layer-type="base" service="WMS" />
+                    :options="{ maxNativeZoom: 20, maxZoom: 20 }" />
 
                 <l-control class="sheets-map-legend" position="bottomright"
                     v-if="active_layers.length > 0 && show_legend">
@@ -300,6 +302,7 @@
     </div>
 </template>
 <script>
+/* eslint-disable vue/no-reserved-keys */
 import L from "leaflet";
 import Simplify from "simplify-js";
 import _ from "lodash";
@@ -309,7 +312,6 @@ import {
     LMap,
     LTileLayer,
     LGeoJson,
-    LWMSTileLayer,
     LControl,
     LControlScale,
 } from "vue2-leaflet";
@@ -318,6 +320,7 @@ import SuperclusterLayer from "./layers/SuperclusterLayer.vue";
 import SuperclusterEntityTypeLayer from "./layers/SuperclusterEntityTypeLayer.vue";
 import VectorTileLayer from "./layers/VectorTileLayer.vue";
 import VectorTileLegend from "./layers/VectorTileLegend.vue";
+import AuthenticatedWmsTileLayer from "./layers/AuthenticatedWmsTileLayer.vue";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
@@ -360,6 +363,10 @@ Icon.Default.mergeOptions({
 });
 import ScreenshotButton from "./ScreenshotButton.vue";
 import FeatureDetailModal from "./FeatureDetailModal.vue";
+import {
+    requestAuthForLayer as selectRequestAuthForLayer,
+    requestWithAuth,
+} from "../utils/requestAuth.mjs";
 
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
 const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
@@ -377,7 +384,7 @@ export default {
         LMap,
         LTileLayer,
         LGeoJson,
-        "l-wms-tile-layer": LWMSTileLayer,
+        AuthenticatedWmsTileLayer,
         BButton,
         BIcon,
         BPopover,
@@ -431,6 +438,10 @@ export default {
         metrics: {
             type: Array,
             default: () => [],
+        },
+        request_auth: {
+            type: Object,
+            default: null,
         },
     },
     data() {
@@ -1396,6 +1407,9 @@ export default {
         this.map_resize_observer?.disconnect();
     },
     methods: {
+        requestAuthForLayer(layer) {
+            return selectRequestAuthForLayer(this.request_auth, layer);
+        },
         snapshotRuntimeState() {
             const snapshot = createMapRuntimeSnapshot(this);
             const markerLatLng = this.marker && typeof this.marker.getLatLng === "function"
@@ -2355,8 +2369,14 @@ export default {
 
             // Guardar el zoom actual para verificar si cambió durante la petición
             const current_zoom = this.zoom;
+            const requestAuth = this.requestAuthForLayer(layer);
 
-            return axios.get(url).then((response) => {
+            return requestWithAuth({
+                url,
+                requestAuth,
+                requireBearer: Boolean(requestAuth),
+                request: headers => axios.get(url, { headers }),
+            }).then((response) => {
                 // Si el zoom cambió durante la petición, cancelamos el procesamiento
                 if (
                     current_zoom !== this.zoom &&

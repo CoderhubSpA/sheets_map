@@ -67,7 +67,7 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
-                                    <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value)"></b-icon>
+                                    <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value, option)"></b-icon>
                                     <button
                                         type="button"
                                         class="layer-settings-button"
@@ -189,7 +189,7 @@
                                         </div>
                                         <div>
                                             <span class="layer-download-btn">
-                                                <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value)"></b-icon>
+                                                <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value, option)"></b-icon>
                                                 <button
                                                     type="button"
                                                     class="layer-settings-button"
@@ -280,6 +280,7 @@
         <vector-tile-layer-settings-modal
             :visible.sync="showVectorTileSettings"
             :layer="selectedVectorTileLayer"
+            :request_auth="requestAuthForLayer(selectedVectorTileLayer)"
             @apply="applyVectorTileSettings"
         />
 
@@ -318,6 +319,10 @@ import { fetchVectorTileAttributes } from "../services/vectorTileAttributesServi
 import { inferVectorTileLayerNameFromUrl } from "../utils/vectorTileLegend/config";
 import { isVectorTileSymbologyEligible } from "../utils/vectorTileLegend/editor";
 import VectorTileLayerSettingsModal from "./VectorTileLayerSettingsModal.vue";
+import {
+    requestAuthForLayer as selectRequestAuthForLayer,
+    requestWithAuth,
+} from '../utils/requestAuth.mjs';
 
 export default {
     name: 'SheetsMapTools',
@@ -348,6 +353,10 @@ export default {
         theme:{
             type: String,
             optional: true
+        },
+        request_auth: {
+            type: Object,
+            default: null,
         }
     },
     data() {
@@ -371,6 +380,7 @@ export default {
             availableFormats: [],
             selectedLayerUrl: '',
             selectedLayerName: '',
+            selectedDownloadLayer: null,
             selectedFormat: '',
             showFormatModal: false,
         };
@@ -409,6 +419,8 @@ export default {
                         sh_map_has_layer_code: layer["sh_map_has_layer_code"],
                         sh_map_has_layer_url: layer["sh_map_has_layer_url"],
                         sh_map_has_layer_geoserver_layer: layer["sh_map_has_layer_geoserver_layer"],
+                        sh_map_has_layer_requires_bearer: layer["sh_map_has_layer_requires_bearer"],
+                        sh_map_request_auth_mode: layer["sh_map_request_auth_mode"],
                         sh_map_has_layer_legend_config: this.runtimeLegendConfigs[layer.id] ?? layer["sh_map_has_layer_legend_config"],
                         legendRevision: this.legendRevisions[layer.id] || 0,
                         filterAttribute: this.layer_filters[layer.id]?.attribute || '',
@@ -552,6 +564,10 @@ export default {
         },
     },
     methods: {
+        requestAuthForLayer(layer) {
+            return selectRequestAuthForLayer(this.request_auth, layer);
+        },
+
         isVectorTileLayer(layer) {
             return isVectorTileSymbologyEligible(layer);
         },
@@ -618,7 +634,11 @@ export default {
             }
 
             try {
-                const result = await fetchVectorTileAttributes({ tileUrl: option.url, layerName });
+                const result = await fetchVectorTileAttributes({
+                    tileUrl: option.url,
+                    layerName,
+                    requestAuth: this.requestAuthForLayer(option),
+                });
                 this.$set(this.availableAttributesByLayer, option.key, result?.attributes || []);
             } catch (e) {
                 console.warn('No fue posible cargar los atributos de la capa', option.key, e);
@@ -873,12 +893,18 @@ export default {
                 }
             }
         },
-        async download_layer(url, layer_name) {
+        async download_layer(url, layer_name, layer) {
+            const requestAuth = this.requestAuthForLayer(layer);
             // Obtenemos capacidades de la capa (estandar WFS)
             try {
                 // Intentamos obtener capabilities
-                const capabilitiesURL = `${url}/capabilities`;
-                const capabilitiesResponse = await axios.get(capabilitiesURL);
+                const capabilitiesURL = `${url.replace(/\/$/, '')}/capabilities`;
+                const capabilitiesResponse = await requestWithAuth({
+                    url: capabilitiesURL,
+                    requestAuth,
+                    requireBearer: Boolean(requestAuth),
+                    request: headers => axios.get(capabilitiesURL, { headers }),
+                });
 
                 // Si tiene formatos disponibles, mostrar popup
                 if (capabilitiesResponse.data &&
@@ -888,7 +914,8 @@ export default {
                         this.showFormatSelectionPopup(
                             capabilitiesResponse.data.supported_formats,
                             url,
-                            layer_name
+                            layer_name,
+                            layer
                         );
                         return;
                     }
@@ -898,12 +925,17 @@ export default {
             }
 
 
-            axios.get(url).then((response) => {
+            requestWithAuth({
+                url,
+                requestAuth,
+                requireBearer: Boolean(requestAuth),
+                request: headers => axios.get(url, { headers, responseType: 'blob' }),
+            }).then((response) => {
                 let fileType = _.split(response.headers['content-type'], ';', 1);
-                fileType = _.head(fileType);
+                fileType = _.head(fileType) || 'application/octet-stream';
 
                 if(response.data && fileType) {
-                    this.createDownloadFile(response.data, fileType, layer_name, url);
+                    this.createDownloadFile(response.data, fileType, layer_name);
                 } else {
                     throw new Error('No se obtuvo el archivo de descarga o no se pudo determinar el tipo de archivo');
                 }
@@ -911,51 +943,53 @@ export default {
                 console.error("Download Layer error: " + error);
             });
         },
-        showFormatSelectionPopup(formats, baseUrl, layerName){
+        showFormatSelectionPopup(formats, baseUrl, layerName, layer){
             // Aquí mostramos el modal de Bootstrap con los formatos
             this.availableFormats = formats;
             this.selectedLayerUrl = baseUrl;
             this.selectedLayerName = layerName;
+            this.selectedDownloadLayer = layer;
             this.selectedFormat = formats[0] || ''; // Seleccionar el primer formato por defecto
             this.showFormatModal = true; // Mostrar el modal
         },
-        downloadWithFormat(format) {
-            const exportUrl = `${this.selectedLayerUrl}/export?outputFormat=${format}`;
-            
-            // Crear elemento <a> para descarga directa del navegador
+        async downloadWithFormat(format) {
+            const exportUrlObject = new URL(this.selectedLayerUrl, window.location.href);
+            exportUrlObject.pathname = `${exportUrlObject.pathname.replace(/\/$/, '')}/export`;
+            exportUrlObject.searchParams.set('outputFormat', format);
+            const exportUrl = this.selectedLayerUrl.startsWith('/')
+                ? `${exportUrlObject.pathname}${exportUrlObject.search}`
+                : exportUrlObject.toString();
+
+            try {
+                const requestAuth = this.requestAuthForLayer(this.selectedDownloadLayer);
+                const response = await requestWithAuth({
+                    url: exportUrl,
+                    requestAuth,
+                    requireBearer: Boolean(requestAuth),
+                    request: headers => axios.get(exportUrl, { headers, responseType: 'blob' }),
+                });
+                const fileType = _.head(_.split(response.headers['content-type'], ';', 1))
+                    || 'application/octet-stream';
+                const fileName = `${this.selectedLayerName}.${this.getFileExtension(format)}`;
+                this.createDownloadFile(response.data, fileType, fileName);
+            } catch (error) {
+                console.error('Download Layer error: ', error);
+            }
+        },
+        createDownloadFile(data, type, name) {
+            const blob = data instanceof Blob
+                ? data
+                : new Blob([
+                    typeof data === 'string' ? data : JSON.stringify(data),
+                ], { type });
+            const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = exportUrl;
-            a.download = `${this.selectedLayerName}.${this.getFileExtension(format)}`;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            
-            // Agregar temporalmente al DOM y hacer clic
+            a.href = url;
+            a.download = name ? name : 'layer';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-        },
-        createDownloadFile(data, type, name, origen_url) {
-            let blob = null;
-            let url = '';
-            let a = null;
-
-            if(type === 'application/json' || type === 'text/plain') {
-                blob = new Blob([JSON.stringify(data)], { type: type });
-                url = window.URL.createObjectURL(blob);
-                a = document.createElement('a');
-            } else {
-                url = origen_url;
-
-                a = document.createElement('a');
-                a.target = '_blank';
-                a.rel = 'noopener noreferrer';
-            }
-
-            a.href = url;
-            a.download = name ? name : 'layer';
-            a.click();
-
-            window.URL.revokeObjectURL(url);
+            window.setTimeout(() => window.URL.revokeObjectURL(url), 0);
         },
         getFileExtension(format) {
             const formatMap = {
@@ -1406,6 +1440,7 @@ export default {
         color: #FFFFFF !important;
     }
 }
+
 </style>
 <style>
 /* Estilos globales para el popover de opacidad (necesarios porque Bootstrap Vue renderiza fuera del componente).
