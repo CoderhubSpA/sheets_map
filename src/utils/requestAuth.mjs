@@ -23,6 +23,14 @@ export function mergeRequestHeaders(baseHeaders, addedHeaders) {
     return result;
 }
 
+function withoutAuthorization(headers) {
+    return Object.fromEntries(
+        Object.entries(headerObject(headers)).filter(
+            ([key]) => key.toLowerCase() !== "authorization",
+        ),
+    );
+}
+
 export function getBearerToken(headers) {
     const authorization = Object.entries(headers || {}).find(
         ([key]) => key.toLowerCase() === "authorization",
@@ -74,20 +82,41 @@ function layerRequestAuthMode(layer) {
 
 export function layerRequiresBearer(layer) {
     const value = layer?.sh_map_has_layer_requires_bearer;
+    const rawMode = layer?.sh_map_request_auth_mode;
+    if (
+        (typeof rawMode === "string" && rawMode.trim()) ||
+        (rawMode !== null && rawMode !== undefined && typeof rawMode !== "string")
+    ) return true;
     if (value === true || value === 1) return true;
+    if (value === false || value === 0 || value === null || value === undefined) {
+        return false;
+    }
     if (typeof value === "string") {
         const normalized = value.trim().toLowerCase();
         if (normalized === "1" || normalized === "true") return true;
-        if (normalized !== "") return false;
+        if (["", "0", "false"].includes(normalized)) return false;
+        return true;
     }
-    if (value !== null && value !== undefined) return false;
-    return ["runtime-bearer", "ogp-bearer"].includes(
-        layerRequestAuthMode(layer),
-    );
+    return true;
 }
 
 const unavailableClientCache = new WeakMap();
 const legacyClientCache = new WeakMap();
+const recoveryCache = new WeakMap();
+
+export function createAuthRecoveryLatch() {
+    let acquired = false;
+    return Object.freeze({
+        acquire(rejectedToken) {
+            if (!rejectedToken || acquired) return false;
+            acquired = true;
+            return true;
+        },
+        reset() {
+            acquired = false;
+        },
+    });
+}
 
 function clientForLayer(cache, layer, clientFactory) {
     if (!layer || typeof layer !== "object") return null;
@@ -98,6 +127,22 @@ function clientForLayer(cache, layer, clientFactory) {
 function trustedLayerOrigin(layer, url) {
     const layerOrigin = getUrlOrigin(layer?.sh_map_has_layer_url);
     return Boolean(layerOrigin && getUrlOrigin(url) === layerOrigin);
+}
+
+function trustedLegacyUrl(layer, url) {
+    if (!trustedLayerOrigin(layer, url)) return false;
+
+    const runtimeAuth = globalThis.__OGP_RUNTIME_AUTH__;
+    if (typeof runtimeAuth?.isTrustedUrl === "function") {
+        try {
+            return Boolean(runtimeAuth.isTrustedUrl(url));
+        } catch {
+            return false;
+        }
+    }
+
+    const pageOrigin = globalThis.location?.origin;
+    return Boolean(pageOrigin && getUrlOrigin(url) === pageOrigin);
 }
 
 function unavailableRequestAuth(layer) {
@@ -111,7 +156,7 @@ function unavailableRequestAuth(layer) {
 function legacyRequestAuth(layer) {
     return clientForLayer(legacyClientCache, layer, () => {
         const headers = (url) => {
-            if (!trustedLayerOrigin(layer, url)) return {};
+            if (!trustedLegacyUrl(layer, url)) return {};
             const token = globalThis.__OGP_RUNTIME_AUTH__?.getBearerToken?.();
             return typeof token === "string" && token
                 ? { Authorization: `Bearer ${token}` }
@@ -120,7 +165,7 @@ function legacyRequestAuth(layer) {
         return {
             getHeaders: async (url) => headers(url),
             peekHeaders: headers,
-            isTrustedUrl: (url) => trustedLayerOrigin(layer, url),
+            isTrustedUrl: (url) => trustedLegacyUrl(layer, url),
             invalidate: (rejectedToken) => (
                 globalThis.__OGP_RUNTIME_AUTH__?.invalidate?.(rejectedToken) ?? false
             ),
@@ -130,21 +175,20 @@ function legacyRequestAuth(layer) {
 
 export function requestAuthForLayer(requestAuth, layer) {
     if (!layerRequiresBearer(layer)) return null;
-    if (requestAuth) return requestAuth;
     if (layerRequestAuthMode(layer) === "ogp-bearer") {
         return legacyRequestAuth(layer);
     }
+    if (requestAuth) return requestAuth;
     return unavailableRequestAuth(layer);
 }
 
 export async function getRequestAuthHeaders(requestAuth, url) {
     if (
         !requestAuth ||
-        typeof requestAuth.getHeaders !== "function" ||
-        !trustedByClient(requestAuth, url)
+        typeof requestAuth.getHeaders !== "function"
     ) return {};
     const headers = headerObject(await requestAuth.getHeaders(url));
-    return headers;
+    return trustedByClient(requestAuth, url) ? headers : {};
 }
 
 export function peekRequestAuthHeaders(requestAuth, url) {
@@ -155,6 +199,58 @@ export function peekRequestAuthHeaders(requestAuth, url) {
     ) return {};
     const headers = headerObject(requestAuth.peekHeaders(url));
     return headers;
+}
+
+export async function refreshRequestAuthHeaders(requestAuth, url, rejectedToken) {
+    if (!requestAuth || !rejectedToken) {
+        return getRequestAuthHeaders(requestAuth, url);
+    }
+
+    let tokenRecoveries = recoveryCache.get(requestAuth);
+    if (!tokenRecoveries) {
+        tokenRecoveries = new Map();
+        recoveryCache.set(requestAuth, tokenRecoveries);
+    }
+
+    let recovery = tokenRecoveries.get(rejectedToken);
+    if (!recovery) {
+        if (tokenRecoveries.size >= 32) {
+            tokenRecoveries.delete(tokenRecoveries.keys().next().value);
+        }
+        recovery = { refreshes: new Map(), invalidation: null };
+        recovery.invalidation = Promise.resolve()
+            .then(() => requestAuth.invalidate?.(rejectedToken))
+            .catch((error) => {
+                if (tokenRecoveries.get(rejectedToken) === recovery) {
+                    tokenRecoveries.delete(rejectedToken);
+                }
+                throw error;
+            });
+        tokenRecoveries.set(rejectedToken, recovery);
+    }
+
+    const scope = getUrlOrigin(url) || String(url || "");
+    let refresh = recovery.refreshes.get(scope);
+    if (!refresh) {
+        refresh = recovery.invalidation.then(
+            () => getRequestAuthHeaders(requestAuth, url),
+        );
+        recovery.refreshes.set(scope, refresh);
+        refresh.then(
+            () => {
+                if (recovery.refreshes.get(scope) === refresh) {
+                    recovery.refreshes.delete(scope);
+                }
+            },
+            () => {
+                if (recovery.refreshes.get(scope) === refresh) {
+                    recovery.refreshes.delete(scope);
+                }
+            },
+        );
+    }
+
+    return refresh;
 }
 
 export function buildMapLibreRequest({
@@ -174,7 +270,7 @@ export function buildMapLibreRequest({
     return {
         url,
         headers: mergeRequestHeaders(
-            headers,
+            requestAuth ? withoutAuthorization(headers) : headers,
             peekRequestAuthHeaders(requestAuth, url),
         ),
     };
@@ -216,10 +312,11 @@ export async function requestWithAuth({
         return firstResult;
     }
 
-    if (typeof requestAuth?.invalidate === "function") {
-        await requestAuth.invalidate(rejectedToken);
-    }
-    const retryAuthHeaders = await getRequestAuthHeaders(requestAuth, url);
+    const retryAuthHeaders = await refreshRequestAuthHeaders(
+        requestAuth,
+        url,
+        rejectedToken,
+    );
     if (requireBearer && !getBearerToken(retryAuthHeaders)) {
         throw new Error("Bearer authentication is required for this request.");
     }

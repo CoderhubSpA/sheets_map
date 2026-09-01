@@ -1,4 +1,5 @@
 const DYNAMIC_VECTOR_TILE_CODE = "operative_vector_tiles_xyz";
+const DYNAMIC_AUTH_MODES = new Set(["", "runtime-bearer", "ogp-bearer"]);
 
 function normalizeId(rawId) {
     if (typeof rawId !== "string") {
@@ -51,13 +52,23 @@ function normalizeRequest(rawRequest = null) {
 }
 
 function normalizeAuth(rawAuth = null) {
-    if (!rawAuth || typeof rawAuth !== "object") {
+    if (rawAuth === null || rawAuth === undefined) {
         return { mode: "" };
     }
+    if (typeof rawAuth !== "object" || Array.isArray(rawAuth)) {
+        throw new Error("auth debe ser un objeto válido.");
+    }
 
-    return {
-        mode: normalizeString(rawAuth.mode).toLowerCase(),
-    };
+    if (rawAuth.mode !== null && rawAuth.mode !== undefined && typeof rawAuth.mode !== "string") {
+        throw new Error("auth.mode debe ser un string válido.");
+    }
+
+    const mode = normalizeString(rawAuth.mode).toLowerCase();
+    if (!DYNAMIC_AUTH_MODES.has(mode)) {
+        throw new Error(`Modo de autenticación no soportado: ${rawAuth.mode}`);
+    }
+
+    return { mode };
 }
 
 function normalizeVisibleColumns(rawColumns = []) {
@@ -236,6 +247,8 @@ export function normalizePublicLayerDefinition(rawDefinition) {
 }
 
 export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
+    const auth = normalizeAuth(normalizedLayerDefinition.auth);
+
     return {
         layer_id: normalizedLayerDefinition.id,
         layer: {
@@ -251,11 +264,9 @@ export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
             sh_map_has_layer_legend_mode: normalizedLayerDefinition.legendMode,
             sh_map_has_layer_render_state: normalizedLayerDefinition.renderState,
             sh_map_request_headers: normalizedLayerDefinition.request?.headers || {},
-            sh_map_request_auth_mode: normalizedLayerDefinition.auth?.mode || "",
+            sh_map_request_auth_mode: auth.mode,
             sh_map_has_layer_requires_bearer:
-                ["runtime-bearer", "ogp-bearer"].includes(
-                    normalizedLayerDefinition.auth?.mode,
-                ),
+                ["runtime-bearer", "ogp-bearer"].includes(auth.mode),
             sh_map_has_layer_visible: normalizedLayerDefinition.visible,
             sh_map_has_layer_opacity: normalizedLayerDefinition.opacity,
         },

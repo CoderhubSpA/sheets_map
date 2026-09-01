@@ -60,6 +60,10 @@ npm pack --dry-run
 npm publish
 ```
 
+Mientras el lockfile permanezca fuera del repositorio, el tarball no es reproducible
+byte a byte. La publicación debe ejecutarse desde un entorno aprobado, registrando las
+versiones de Node/npm y revisando nuevamente la salida de `npm pack --dry-run`.
+
 \
 &nbsp;
 
@@ -89,15 +93,26 @@ El proveedor debe implementar este contrato:
 
 | Método | Responsabilidad |
 | --- | --- |
-| `getHeaders(url)` | Obtiene o renueva la credencial y retorna una promesa con los headers. |
+| `getHeaders(url)` | Obtiene o renueva la credencial y retorna una promesa con los headers; puede establecer la confianza inicial del destino. |
 | `peekHeaders(url)` | Retorna sincrónicamente los headers vigentes para MapLibre. |
-| `isTrustedUrl(url)` | Autoriza únicamente orígenes GIS aprobados. |
-| `invalidate(token)` | Invalida solo el token rechazado para permitir un reintento tras `401`. |
+| `isTrustedUrl(url)` | Confirma únicamente orígenes GIS aprobados después de que `getHeaders` inicializa la credencial. |
+| `invalidate(token)` | Invalida solo el token rechazado para permitir un reintento tras `401`; la librería consolida la invalidación y renovación concurrente del mismo token. |
 
 Una capa protegida no degrada a transporte anónimo si el proveedor no puede
 obtener un Bearer. El modo histórico `ogp-bearer` sigue disponible para
-integraciones que usan `window.__OGP_RUNTIME_AUTH__`, pero las integraciones
-nuevas deben preferir `request_auth`.
+integraciones que usan `window.__OGP_RUNTIME_AUTH__`, pero para destinos externos
+ese objeto debe implementar `isTrustedUrl(url)` con una allowlist controlada por
+el host. Sin ese callback, el modo legacy solo autoriza URLs del mismo origen de
+la página. Las integraciones nuevas deben preferir `request_auth`.
+
+`mapActions.addLayer` rechaza modos de autenticación desconocidos. Si metadata
+persistida declara un modo o flag contradictorio, la capa se trata como protegida
+y falla cerrada en vez de degradar a transporte anónimo.
+
+MapLibre inyecta únicamente el resultado vigente de `peekHeaders`; si el proveedor
+revoca la confianza, elimina cualquier `Authorization` previamente cacheado. Cada
+instancia de source permite como máximo una recuperación automática tras `401` para
+evitar cadenas ilimitadas de renovación.
 
 ---
 

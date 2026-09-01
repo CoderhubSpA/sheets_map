@@ -57,8 +57,10 @@ import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../util
 import {
     appendRequestGeneration,
     buildMapLibreRequest,
+    createAuthRecoveryLatch,
     getBearerToken,
     getRequestAuthHeaders,
+    refreshRequestAuthHeaders,
 } from '../utils/requestAuth.mjs'
 
 const INITIAL_CENTER = [-71.1, -35.1]
@@ -84,8 +86,7 @@ export default {
             styleUpdateFrame: null,
             resizeObserver: null,
             initializeId: 0,
-            authHeaders: {},
-            authRecoveredTokens: new Set(),
+            authRecovery: createAuthRecoveryLatch(),
             authRequestGeneration: 0,
             mapErrorHandler: null,
             nextTokenRequestGeneration: 0,
@@ -161,8 +162,8 @@ export default {
 
             if (this.request_auth) {
                 try {
-                    this.authHeaders = await getRequestAuthHeaders(this.request_auth, this.tileUrl)
-                    if (!getBearerToken(this.authHeaders)) throw new Error('Missing Bearer token.')
+                    const initialAuthHeaders = await getRequestAuthHeaders(this.request_auth, this.tileUrl)
+                    if (!getBearerToken(initialAuthHeaders)) throw new Error('Missing Bearer token.')
                 } catch {
                     if (initializeId === this.initializeId) {
                         this.mapError = 'No fue posible autenticar la vista previa de la capa.'
@@ -200,7 +201,6 @@ export default {
                         resourceType,
                         tileUrl: this.tileUrl,
                         requestAuth: this.request_auth,
-                        headers: this.authHeaders,
                         baseUrl: window.location.href,
                     }),
                 ),
@@ -264,8 +264,7 @@ export default {
             }
             this.mapErrorHandler = null
             this.mapLoaded = false
-            this.authHeaders = {}
-            this.authRecoveredTokens.clear()
+            this.authRecovery.reset()
             this.authRequestGeneration = 0
             this.nextTokenRequestGeneration = 0
             this.tokenRequestGenerations.clear()
@@ -303,20 +302,21 @@ export default {
 
             const failedUrl = event?.error?.url
             const rejectedToken = failedUrl ? this.tileRequestTokens.get(failedUrl) : null
-            if (!rejectedToken || this.authRecoveredTokens.has(rejectedToken)) return
+            if (!this.authRecovery.acquire(rejectedToken)) return
 
             const currentMap = this.map
-            this.authRecoveredTokens.add(rejectedToken)
             this.tileRequestTokens.delete(failedUrl)
             try {
-                await this.request_auth?.invalidate?.(rejectedToken)
-                const refreshedHeaders = await getRequestAuthHeaders(this.request_auth, this.tileUrl)
+                const refreshedHeaders = await refreshRequestAuthHeaders(
+                    this.request_auth,
+                    this.tileUrl,
+                    rejectedToken,
+                )
                 const refreshedToken = getBearerToken(refreshedHeaders)
                 if (!refreshedToken || refreshedToken === rejectedToken) {
                     throw new Error('Bearer authentication could not be renewed.')
                 }
                 if (!currentMap || this.map !== currentMap || this._isDestroyed) return
-                this.authHeaders = refreshedHeaders
                 const source = currentMap.getSource(VECTOR_TILE_PREVIEW_SOURCE_ID)
                 if (source && typeof source.setTiles === 'function') {
                     this.authRequestGeneration += 1

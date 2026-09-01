@@ -25,9 +25,10 @@ import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../../u
 import {
     appendRequestGeneration,
     buildMapLibreRequest,
+    createAuthRecoveryLatch,
     getBearerToken,
     getRequestAuthHeaders,
-    mergeRequestHeaders,
+    refreshRequestAuthHeaders,
 } from '../../utils/requestAuth.mjs';
 
 export default {
@@ -111,8 +112,7 @@ export default {
             // Flag para indicar si el estilo MapLibre ha sido cargado completamente
             styleLoaded: false,
             maplibreErrorHandler: null,
-            maplibreAuthHeaders: {},
-            authRecoveredTokens: new Set(),
+            authRecovery: createAuthRecoveryLatch(),
             authRequestGeneration: 0,
             nextTokenRequestGeneration: 0,
             tokenRequestGenerations: new Map(),
@@ -239,8 +239,8 @@ export default {
 
             if (this.request_auth) {
                 try {
-                    this.maplibreAuthHeaders = await getRequestAuthHeaders(this.request_auth, tileUrl);
-                    if (!getBearerToken(this.maplibreAuthHeaders)) {
+                    const initialAuthHeaders = await getRequestAuthHeaders(this.request_auth, tileUrl);
+                    if (!getBearerToken(initialAuthHeaders)) {
                         throw new Error('Bearer authentication is required.');
                     }
                 } catch (error) {
@@ -317,7 +317,7 @@ export default {
                         resourceType,
                         tileUrl,
                         requestAuth: this.request_auth,
-                        headers: mergeRequestHeaders(requestHeaders, this.maplibreAuthHeaders),
+                        headers: requestHeaders,
                         baseUrl: window.location.href,
                     });
                     return this.rememberTileRequestToken(url, resourceType, request);
@@ -542,18 +542,19 @@ export default {
             const rejectedToken = failedUrl
                 ? this.tileRequestTokens.get(failedUrl)
                 : null;
-            if (!rejectedToken || this.authRecoveredTokens.has(rejectedToken)) return;
+            if (!this.authRecovery.acquire(rejectedToken)) return;
 
-            this.authRecoveredTokens.add(rejectedToken);
             this.tileRequestTokens.delete(failedUrl);
             try {
-                await this.request_auth?.invalidate?.(rejectedToken);
-                const refreshedHeaders = await getRequestAuthHeaders(this.request_auth, this.tileUrl);
+                const refreshedHeaders = await refreshRequestAuthHeaders(
+                    this.request_auth,
+                    this.tileUrl,
+                    rejectedToken,
+                );
                 const refreshedToken = getBearerToken(refreshedHeaders);
                 if (!refreshedToken || refreshedToken === rejectedToken) {
                     throw new Error('Bearer authentication could not be renewed.');
                 }
-                this.maplibreAuthHeaders = refreshedHeaders;
                 if (this.isDestroyed() || !this.maplibreMap) return;
 
                 const source = this.maplibreMap.getSource('vector-tiles');
@@ -1287,8 +1288,7 @@ export default {
                 this.maplibreMap.off('error', this.maplibreErrorHandler);
             }
             this.maplibreErrorHandler = null;
-            this.maplibreAuthHeaders = {};
-            this.authRecoveredTokens.clear();
+            this.authRecovery.reset();
             this.authRequestGeneration = 0;
             this.nextTokenRequestGeneration = 0;
             this.tokenRequestGenerations.clear();

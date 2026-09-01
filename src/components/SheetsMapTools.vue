@@ -318,6 +318,7 @@ import axios from 'axios';
 import { fetchVectorTileAttributes } from "../services/vectorTileAttributesService";
 import { inferVectorTileLayerNameFromUrl } from "../utils/vectorTileLegend/config";
 import { isVectorTileSymbologyEligible } from "../utils/vectorTileLegend/editor";
+import { resolveDownloadFilename } from "../utils/downloadFilename.mjs";
 import VectorTileLayerSettingsModal from "./VectorTileLayerSettingsModal.vue";
 import {
     requestAuthForLayer as selectRequestAuthForLayer,
@@ -935,7 +936,13 @@ export default {
                 fileType = _.head(fileType) || 'application/octet-stream';
 
                 if(response.data && fileType) {
-                    this.createDownloadFile(response.data, fileType, layer_name);
+                    const fileName = resolveDownloadFilename({
+                        headers: response.headers,
+                        contentType: fileType,
+                        fallbackName: layer_name,
+                        url,
+                    });
+                    this.createDownloadFile(response.data, fileType, fileName);
                 } else {
                     throw new Error('No se obtuvo el archivo de descarga o no se pudo determinar el tipo de archivo');
                 }
@@ -970,7 +977,13 @@ export default {
                 });
                 const fileType = _.head(_.split(response.headers['content-type'], ';', 1))
                     || 'application/octet-stream';
-                const fileName = `${this.selectedLayerName}.${this.getFileExtension(format)}`;
+                const fileName = resolveDownloadFilename({
+                    headers: response.headers,
+                    contentType: fileType,
+                    fallbackName: this.selectedLayerName,
+                    fallbackExtension: this.getFileExtension(format),
+                    url: exportUrl,
+                });
                 this.createDownloadFile(response.data, fileType, fileName);
             } catch (error) {
                 console.error('Download Layer error: ', error);

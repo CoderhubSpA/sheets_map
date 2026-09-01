@@ -17,10 +17,19 @@ versionado según [SemVer](https://semver.org/lang/es/).
   las demás conservan transporte anónimo aunque compartan el visor.
 - Las capas protegidas fallan cerradas cuando no existe una credencial válida, en lugar de degradar
   silenciosamente a solicitudes anónimas.
-- Los `401` invalidan el token exacto y permiten un único reintento; MapLibre separa las generaciones
-  con identificadores no sensibles para que respuestas tardías no invaliden credenciales nuevas.
+- Los `401` invalidan el token exacto, coalescen invalidaciones concurrentes y permiten un único
+  reintento; MapLibre separa las generaciones con identificadores no sensibles para que respuestas
+  tardías no invaliden credenciales nuevas.
+- Los proveedores con confianza lazy pueden emitir su credencial antes de la validación final del
+  origen; MapLibre elimina headers cacheados después de una revocación y limita la recuperación a
+  un intento por instancia de source.
 - La vista previa de simbología usa el mismo transporte autenticado que la capa visible.
-- Se conserva compatibilidad con capas existentes que declaran `ogp-bearer`.
+- Se conserva compatibilidad con capas existentes que declaran `ogp-bearer`, exigiendo confianza
+  aprobada por el host para destinos externos.
+- La metadata de autenticación inválida o contradictoria falla cerrada y los modos dinámicos
+  desconocidos se rechazan al normalizar la capa.
+- Las descargas autenticadas conservan el nombre indicado por `Content-Disposition` y usan una
+  extensión segura derivada del formato, MIME o URL cuando el servidor no entrega un nombre.
 - El paquete publicado contiene únicamente el build de `dist` y ya no distribuye archivos internos
   del repositorio; `prepack` genera el build antes de empaquetar.
 

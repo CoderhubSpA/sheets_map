@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buildVectorTileLayerPayload } from "../src/utils/dynamicLayers.js";
+import {
+    buildVectorTileLayerPayload,
+    normalizePublicLayerDefinition,
+} from "../src/utils/dynamicLayers.js";
 import {
     appendRequestGeneration,
     buildMapLibreRequest,
+    createAuthRecoveryLatch,
     fetchWithAuth,
     getBearerToken,
     getRequestAuthHeaders,
@@ -52,20 +57,33 @@ test("selects the runtime auth client only for opted-in layers", () => {
     assert.equal(layerRequiresBearer({
         sh_map_has_layer_requires_bearer: false,
         sh_map_request_auth_mode: "runtime-bearer",
-    }), false);
+    }), true);
+    assert.equal(layerRequiresBearer({
+        sh_map_has_layer_requires_bearer: "invalid",
+    }), true);
+    assert.equal(layerRequiresBearer({
+        sh_map_request_auth_mode: "unsupported-bearer",
+    }), true);
+    assert.equal(layerRequiresBearer({
+        sh_map_request_auth_mode: 123,
+    }), true);
     assert.equal(requestAuthForLayer(requestAuth, null), null);
 });
 
 test("keeps legacy ogp-bearer scoped to the layer origin", async (context) => {
     globalThis.__OGP_RUNTIME_AUTH__ = {
         getBearerToken: () => "legacy-token",
+        isTrustedUrl: (url) => new URL(url).origin === "https://gis.test",
     };
     context.after(() => delete globalThis.__OGP_RUNTIME_AUTH__);
+    const injectedRequestAuth = scopedAuthClient("injected-token");
     const layer = {
         sh_map_request_auth_mode: "ogp-bearer",
         sh_map_has_layer_url: "https://gis.test/vector/tiles/places/{z}/{x}/{y}.pbf",
     };
-    const requestAuth = requestAuthForLayer(null, layer);
+    const requestAuth = requestAuthForLayer(injectedRequestAuth, layer);
+
+    assert.notEqual(requestAuth, injectedRequestAuth);
 
     assert.deepEqual(
         await getRequestAuthHeaders(requestAuth, "https://gis.test/vector/layers/places/legend"),
@@ -75,6 +93,30 @@ test("keeps legacy ogp-bearer scoped to the layer origin", async (context) => {
         await getRequestAuthHeaders(requestAuth, "https://fonts.test/glyph.pbf"),
         {},
     );
+});
+
+test("fails closed for cross-origin legacy auth without host trust", async (context) => {
+    let tokenCalls = 0;
+    globalThis.__OGP_RUNTIME_AUTH__ = {
+        getBearerToken: () => {
+            tokenCalls += 1;
+            return "legacy-token";
+        },
+    };
+    context.after(() => delete globalThis.__OGP_RUNTIME_AUTH__);
+    const layer = {
+        sh_map_request_auth_mode: "ogp-bearer",
+        sh_map_has_layer_url: "https://untrusted.test/vector/tiles/places/{z}/{x}/{y}.pbf",
+    };
+
+    assert.deepEqual(
+        await getRequestAuthHeaders(
+            requestAuthForLayer(null, layer),
+            "https://untrusted.test/vector/tiles/places/1/0/0.pbf",
+        ),
+        {},
+    );
+    assert.equal(tokenCalls, 0);
 });
 
 test("returns a fail-closed client when protected auth is unavailable", async () => {
@@ -110,6 +152,36 @@ test("marks both current and legacy dynamic auth modes as protected", () => {
     }
 });
 
+test("rejects unsupported dynamic auth modes", () => {
+    const definition = {
+        id: "places",
+        type: "vector-tile",
+        source: { tiles: ["https://gis.test/vector/tiles/places/{z}/{x}/{y}.pbf"] },
+    };
+
+    assert.throws(
+        () => normalizePublicLayerDefinition({
+            ...definition,
+            auth: { mode: "custom-bearer" },
+        }),
+        /Modo de autenticación no soportado/,
+    );
+    assert.throws(
+        () => normalizePublicLayerDefinition({
+            ...definition,
+            auth: { mode: true },
+        }),
+        /auth\.mode debe ser un string válido/,
+    );
+    assert.throws(
+        () => normalizePublicLayerDefinition({
+            ...definition,
+            auth: "runtime-bearer",
+        }),
+        /auth debe ser un objeto válido/,
+    );
+});
+
 test("scopes async and synchronous headers to the client-confirmed origin", async () => {
     const requestAuth = scopedAuthClient();
 
@@ -127,15 +199,40 @@ test("scopes async and synchronous headers to the client-confirmed origin", asyn
     );
 });
 
-test("does not invoke the credential provider for untrusted or invalid URLs", async () => {
-    let headerCalls = 0;
+test("allows a lazy client to establish trust while obtaining its first token", async () => {
+    let credential = null;
+    let tokenCalls = 0;
+    const requestAuth = {
+        getHeaders: async (url) => {
+            tokenCalls += 1;
+            credential = {
+                token: "lazy-token",
+                origins: [new URL(url).origin],
+            };
+            return { Authorization: `Bearer ${credential.token}` };
+        },
+        isTrustedUrl: (url) => Boolean(
+            credential?.origins.includes(new URL(url).origin),
+        ),
+    };
+
+    assert.deepEqual(
+        await getRequestAuthHeaders(requestAuth, "https://gis.test/wms"),
+        { Authorization: "Bearer lazy-token" },
+    );
+    assert.equal(tokenCalls, 1);
+});
+
+test("never returns credentials for URLs the provider keeps untrusted", async () => {
+    let asyncHeaderCalls = 0;
+    let syncHeaderCalls = 0;
     const requestAuth = {
         getHeaders: async () => {
-            headerCalls += 1;
+            asyncHeaderCalls += 1;
             return { Authorization: "Bearer must-not-leak" };
         },
         peekHeaders: () => {
-            headerCalls += 1;
+            syncHeaderCalls += 1;
             return { Authorization: "Bearer must-not-leak" };
         },
         isTrustedUrl: (url) => {
@@ -146,7 +243,8 @@ test("does not invoke the credential provider for untrusted or invalid URLs", as
 
     assert.deepEqual(await getRequestAuthHeaders(requestAuth, "https://external.test/tile"), {});
     assert.deepEqual(peekRequestAuthHeaders(requestAuth, "invalid"), {});
-    assert.equal(headerCalls, 0);
+    assert.equal(asyncHeaderCalls, 1);
+    assert.equal(syncHeaderCalls, 0);
 });
 
 test("keeps MapLibre headers on vector tiles and off external glyphs", () => {
@@ -179,6 +277,37 @@ test("keeps MapLibre headers on vector tiles and off external glyphs", () => {
     });
 });
 
+test("removes stale MapLibre authorization when the provider no longer trusts the URL", () => {
+    const requestAuth = {
+        peekHeaders: () => ({}),
+        isTrustedUrl: () => false,
+    };
+
+    assert.deepEqual(buildMapLibreRequest({
+        url: "https://gis.test/vector/tiles/places/1/0/0.pbf",
+        resourceType: "Tile",
+        tileUrl: "https://gis.test/vector/tiles/places/{z}/{x}/{y}.pbf",
+        requestAuth,
+        headers: {
+            authorization: "Bearer stale-token",
+            "X-Map-Request": "1",
+        },
+        baseUrl: "https://sheets.test/viewer",
+    }), {
+        url: "https://gis.test/vector/tiles/places/1/0/0.pbf",
+        headers: { "X-Map-Request": "1" },
+    });
+});
+
+test("limits MapLibre authentication recovery to one attempt per source instance", () => {
+    const recovery = createAuthRecoveryLatch();
+
+    assert.equal(recovery.acquire("token-a"), true);
+    assert.equal(recovery.acquire("token-b"), false);
+    recovery.reset();
+    assert.equal(recovery.acquire("token-c"), true);
+});
+
 test("invalidates the exact token and retries one time after an Axios-style 401", async () => {
     const requestAuth = scopedAuthClient();
     const calls = [];
@@ -194,6 +323,61 @@ test("invalidates the exact token and retries one time after an Axios-style 401"
 
     assert.equal(result.status, 200);
     assert.deepEqual(calls.map(getBearerToken), ["token-a", "token-b"]);
+});
+
+test("coalesces concurrent invalidation for the same rejected token", async () => {
+    let token = "token-a";
+    let getHeaderCalls = 0;
+    let invalidateCalls = 0;
+    let releaseFailures;
+    let releaseInvalidation;
+    let signalInvalidationStarted;
+    const failuresReady = new Promise((resolve) => { releaseFailures = resolve; });
+    const invalidationReady = new Promise((resolve) => { releaseInvalidation = resolve; });
+    const invalidationStarted = new Promise((resolve) => { signalInvalidationStarted = resolve; });
+    let firstAttempts = 0;
+    const requestAuth = {
+        getHeaders: async () => {
+            getHeaderCalls += 1;
+            return { Authorization: `Bearer ${token}` };
+        },
+        isTrustedUrl: () => true,
+        invalidate: async (rejectedToken) => {
+            invalidateCalls += 1;
+            signalInvalidationStarted();
+            await invalidationReady;
+            if (token === rejectedToken) token = "token-b";
+        },
+    };
+    const createRequest = () => {
+        let attempts = 0;
+        return requestWithAuth({
+            url: "https://gis.test/wms",
+            requestAuth,
+            request: async (headers) => {
+                attempts += 1;
+                if (attempts > 1) return { status: 200, headers };
+                firstAttempts += 1;
+                if (firstAttempts === 2) releaseFailures();
+                await failuresReady;
+                return { status: 401 };
+            },
+        });
+    };
+
+    const pendingRequests = Promise.all([createRequest(), createRequest()]);
+    await invalidationStarted;
+    await Promise.resolve();
+    assert.equal(invalidateCalls, 1);
+    releaseInvalidation();
+
+    const responses = await pendingRequests;
+    assert.equal(getHeaderCalls, 3);
+    assert.deepEqual(responses.map((response) => response.status), [200, 200]);
+    assert.deepEqual(responses.map((response) => getBearerToken(response.headers)), [
+        "token-b",
+        "token-b",
+    ]);
 });
 
 test("retries a Fetch-style 401 once and never authorizes an external URL", async () => {
@@ -245,6 +429,19 @@ test("fails closed when a protected request cannot obtain a Bearer token", async
         /Bearer authentication is required/,
     );
     assert.equal(requestCount, 0);
+});
+
+test("keeps native image transport for public WMS layers", () => {
+    const source = readFileSync(
+        new URL("../src/utils/authenticatedWmsLayer.js", import.meta.url),
+        "utf8",
+    );
+
+    assert.match(
+        source,
+        /if \(!this\._requestAuth\) \{[\s\S]*this\._loadNativeTile\(tile, url, state, done\)/,
+    );
+    assert.match(source, /_loadNativeTile\(tile, url, state, done\)[\s\S]*tile\.src = url/);
 });
 
 test("separates MapLibre request generations without exposing the token", () => {
