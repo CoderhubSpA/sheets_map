@@ -1,4 +1,5 @@
 const DYNAMIC_VECTOR_TILE_CODE = "operative_vector_tiles_xyz";
+const DYNAMIC_AUTH_MODES = new Set(["", "runtime-bearer", "ogp-bearer"]);
 
 function normalizeId(rawId) {
     if (typeof rawId !== "string") {
@@ -50,14 +51,18 @@ function normalizeRequest(rawRequest = null) {
     return { headers };
 }
 
-function normalizeAuth(rawAuth = null) {
-    if (!rawAuth || typeof rawAuth !== "object") {
+export function normalizePublicLayerAuth(rawAuth = null) {
+    if (rawAuth === null || rawAuth === undefined) {
         return { mode: "" };
     }
+    const rawMode = typeof rawAuth === "string"
+        ? rawAuth
+        : rawAuth && typeof rawAuth === "object" && !Array.isArray(rawAuth)
+            ? rawAuth.mode
+            : "";
+    const mode = normalizeString(rawMode).toLowerCase();
 
-    return {
-        mode: normalizeString(rawAuth.mode).toLowerCase(),
-    };
+    return { mode: DYNAMIC_AUTH_MODES.has(mode) ? mode : "" };
 }
 
 function normalizeVisibleColumns(rawColumns = []) {
@@ -141,7 +146,7 @@ function normalizeVectorTileDefinition(rawDefinition) {
         legendMode: normalizeLegendMode(rawDefinition.legendMode),
         renderState: normalizeRenderState(rawDefinition.renderState),
         request: normalizeRequest(rawDefinition.request),
-        auth: normalizeAuth(rawDefinition.auth),
+        auth: normalizePublicLayerAuth(rawDefinition.auth),
         name: normalizeString(rawDefinition.name, normalizeId(rawDefinition.id)),
         visible: normalizeBoolean(rawDefinition.visible, true),
         opacity: normalizeNumber(rawDefinition.opacity, null),
@@ -177,6 +182,9 @@ export function normalizePublicLayerPatch(rawPatch = {}) {
     }
     if (Object.prototype.hasOwnProperty.call(rawPatch, "request")) {
         patch.request = normalizeRequest(rawPatch.request);
+    }
+    if (Object.prototype.hasOwnProperty.call(rawPatch, "auth")) {
+        patch.auth = normalizePublicLayerAuth(rawPatch.auth);
     }
     if (Object.prototype.hasOwnProperty.call(rawPatch, "visible")) {
         patch.visible = normalizeBoolean(rawPatch.visible, true);
@@ -236,6 +244,8 @@ export function normalizePublicLayerDefinition(rawDefinition) {
 }
 
 export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
+    const auth = normalizePublicLayerAuth(normalizedLayerDefinition.auth);
+
     return {
         layer_id: normalizedLayerDefinition.id,
         layer: {
@@ -251,7 +261,9 @@ export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
             sh_map_has_layer_legend_mode: normalizedLayerDefinition.legendMode,
             sh_map_has_layer_render_state: normalizedLayerDefinition.renderState,
             sh_map_request_headers: normalizedLayerDefinition.request?.headers || {},
-            sh_map_request_auth_mode: normalizedLayerDefinition.auth?.mode || "",
+            sh_map_request_auth_mode: auth.mode,
+            sh_map_has_layer_requires_bearer:
+                ["runtime-bearer", "ogp-bearer"].includes(auth.mode),
             sh_map_has_layer_visible: normalizedLayerDefinition.visible,
             sh_map_has_layer_opacity: normalizedLayerDefinition.opacity,
         },

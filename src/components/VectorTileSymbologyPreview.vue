@@ -54,6 +54,11 @@ import {
 import { buildVectorTileTemplateUrl } from '../utils/vectorTileUrl.js'
 import { parsePointShapeImageId } from '../utils/vectorTileLegend/icon.js'
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../utils/vectorTileLegend/canvas.js'
+import {
+    buildMapLibreRequest,
+    getRequiredRequestAuthHeaders,
+} from '../utils/requestAuth.mjs'
+import { createMapLibreAuthRecoveryController } from '../utils/mapLibreAuthRecovery.mjs'
 
 const INITIAL_CENTER = [-71.1, -35.1]
 const INITIAL_ZOOM = 9
@@ -65,6 +70,7 @@ export default {
     props: {
         draft: { type: Object, required: true },
         layer: { type: Object, required: true },
+        request_auth: { type: Object, default: null },
         semanticLegend: { type: Object, default: null },
         spatialContext: { type: Object, default: () => ({ bbox: null, centroid: null }) },
     },
@@ -76,6 +82,11 @@ export default {
             autoFitted: false,
             styleUpdateFrame: null,
             resizeObserver: null,
+            initializeId: 0,
+            authRecovery: createMapLibreAuthRecoveryController({
+                sourceId: VECTOR_TILE_PREVIEW_SOURCE_ID,
+            }),
+            mapErrorHandler: null,
         }
     },
     computed: {
@@ -119,6 +130,7 @@ export default {
         },
         tileUrl() { this.recreateMap() },
         sourceLayer() { this.recreateMap() },
+        request_auth() { this.recreateMap() },
         viewportKey() { this.$nextTick(this.fitToSpatialContext) },
     },
     mounted() {
@@ -134,11 +146,26 @@ export default {
         this.destroyMap()
     },
     methods: {
-        initializeMap() {
+        async initializeMap() {
+            const initializeId = ++this.initializeId
+            this.mapError = ''
+            this.mapLoaded = false
             if (!this.$refs.mapContainer || !this.tileUrl || !this.sourceLayer) {
                 this.mapError = 'No fue posible determinar el servicio vectorial de la capa.'
                 return
             }
+
+            if (this.request_auth) {
+                try {
+                    await getRequiredRequestAuthHeaders(this.request_auth, this.tileUrl)
+                } catch {
+                    if (initializeId === this.initializeId) {
+                        this.mapError = 'No fue posible autenticar la vista previa de la capa.'
+                    }
+                    return
+                }
+            }
+            if (initializeId !== this.initializeId || this._isDestroyed) return
 
             this.mapError = ''
             this.mapLoaded = false
@@ -160,6 +187,17 @@ export default {
                 boxZoom: false,
                 keyboard: false,
                 attributionControl: false,
+                transformRequest: (url, resourceType) => this.rememberTileRequestToken(
+                    url,
+                    resourceType,
+                    buildMapLibreRequest({
+                        url,
+                        resourceType,
+                        tileUrl: this.tileUrl,
+                        requestAuth: this.request_auth,
+                        baseUrl: window.location.href,
+                    }),
+                ),
                 style: {
                     version: 8,
                     sources: {
@@ -171,7 +209,7 @@ export default {
                         },
                         [VECTOR_TILE_PREVIEW_SOURCE_ID]: {
                             type: 'vector',
-                            tiles: [this.tileUrl],
+                            tiles: [this.buildTileUrl()],
                             scheme: 'xyz',
                             minzoom: 0,
                             maxzoom: 22,
@@ -197,9 +235,11 @@ export default {
             this.map.on('load', markStyleReady)
             if (this.map.isStyleLoaded()) markStyleReady()
             this.map.on('idle', this.fitToLoadedSector)
-            this.map.on('error', event => {
+            this.mapErrorHandler = event => {
+                void this.handleAuthError(event)
                 if (event?.error) console.warn('VectorTileSymbologyPreview:', event.error)
-            })
+            }
+            this.map.on('error', this.mapErrorHandler)
         },
         recreateMap() {
             this.$nextTick(() => {
@@ -208,12 +248,35 @@ export default {
             })
         },
         destroyMap() {
-            if (!this.map) return
-            this.map.off('idle', this.fitToLoadedSector)
-            this.map.off('styleimagemissing', this.handleMissingShapeImage)
-            this.map.remove()
-            this.map = null
+            this.initializeId += 1
+            if (this.map) {
+                this.map.off('idle', this.fitToLoadedSector)
+                this.map.off('styleimagemissing', this.handleMissingShapeImage)
+                if (this.mapErrorHandler) this.map.off('error', this.mapErrorHandler)
+                this.map.remove()
+                this.map = null
+            }
+            this.mapErrorHandler = null
             this.mapLoaded = false
+            this.authRecovery.reset()
+        },
+        buildTileUrl() {
+            return this.authRecovery.decorateSourceUrl(this.tileUrl)
+        },
+        rememberTileRequestToken(url, resourceType, request) {
+            return this.authRecovery.rememberRequest(url, resourceType, request)
+        },
+        async handleAuthError(event) {
+            const recovered = await this.authRecovery.recover({
+                event,
+                requestAuth: this.request_auth,
+                requestUrl: () => this.tileUrl,
+                getMap: () => this.map,
+                onError: () => {
+                    this.mapError = 'No fue posible renovar la autenticación de la vista previa.'
+                },
+            })
+            if (recovered) this.mapError = ''
         },
         scheduleLiveStyle() {
             this.$nextTick(() => {

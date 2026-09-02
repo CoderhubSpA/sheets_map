@@ -37,21 +37,32 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 
 ---
 
-1. Upgrade `"version"` in `package.json`.
+1. Actualizar `"version"` en `package.json` y documentar la versión en `CHANGELOG.md`.
 
-2. Compile:
+2. Ejecutar las verificaciones:
 
+```bash
+npm test
+npm run lint
 ```
-npm run build:lib
+
+3. Inspeccionar el contenido publicable. `prepack` compila `dist` automáticamente:
+
+```bash
+npm pack --dry-run
 ```
 
-3. Publish:
+4. Crear y revisar el commit o PR de release.
 
-```
+5. Publicar desde el commit aprobado:
+
+```bash
 npm publish
 ```
 
-4. Update repo: `stage` changes, `commit` and `push`.
+Mientras el lockfile permanezca fuera del repositorio, el tarball no es reproducible
+byte a byte. La publicación debe ejecutarse desde un entorno aprobado, registrando las
+versiones de Node/npm y revisando nuevamente la salida de `npm pack --dry-run`.
 
 \
 &nbsp;
@@ -63,8 +74,48 @@ npm publish
 Ejecutar
 
 ```bash
-npm install @CoderhubSpA/sheets_map@latest
+npm install coderhubspa_sheets_map@latest
 ```
+
+### Autenticación de capas restringidas
+
+Entregar el mismo proveedor mediante la prop `request_auth` de `SheetsMap` y
+`SheetsMapTools`. La librería solo lo utiliza para capas marcadas con
+`sh_map_has_layer_requires_bearer` o con `auth.mode: "runtime-bearer"` en
+`mapActions.addLayer`.
+
+```vue
+<SheetsMap :request_auth="mapTokenClient" />
+<SheetsMapTools :request_auth="mapTokenClient" />
+```
+
+El proveedor debe implementar este contrato:
+
+| Método | Responsabilidad |
+| --- | --- |
+| `getHeaders(url)` | Obtiene o renueva la credencial y retorna una promesa con los headers; puede establecer la confianza inicial del destino. |
+| `peekHeaders(url)` | Retorna sincrónicamente los headers vigentes para MapLibre. |
+| `isTrustedUrl(url)` | Confirma únicamente orígenes GIS aprobados después de que `getHeaders` inicializa la credencial. |
+| `invalidate(token)` | Invalida solo el token rechazado para permitir un reintento tras `401`; la librería consolida la invalidación y renovación concurrente del mismo token. |
+
+Una capa protegida no degrada a transporte anónimo si el proveedor no puede
+obtener un Bearer. El modo histórico `ogp-bearer` sigue disponible para
+integraciones que usan `window.__OGP_RUNTIME_AUTH__`, pero para destinos externos
+ese objeto debe implementar `isTrustedUrl(url)` con una allowlist controlada por
+el host. Sin ese callback, el modo legacy solo autoriza URLs del mismo origen de
+la página. Las integraciones nuevas deben preferir `request_auth`.
+
+`mapActions.addLayer` solo activa autenticación para `runtime-bearer` y
+`ogp-bearer`; los modos desconocidos se normalizan sin autenticación para no
+ejecutar contratos que la librería no soporta. Si metadata persistida combina un
+modo soportado con un flag contradictorio, la restauración conserva el estado
+protegido y falla cerrada.
+
+MapLibre inyecta únicamente el resultado vigente de `peekHeaders`; si el proveedor
+revoca la confianza, elimina cualquier `Authorization` previamente cacheado. Cada
+token rechazado permite como máximo una recuperación automática tras `401`; una
+credencial nueva habilita una generación de recuperación nueva sin formar cadenas
+ilimitadas para el mismo token.
 
 ---
 

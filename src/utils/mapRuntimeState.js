@@ -2,6 +2,7 @@ import {
     DEFAULT_MAP_MAX_ZOOM,
     DEFAULT_MAP_MIN_ZOOM,
 } from "./mapZoom.js";
+import { normalizePublicLayerAuth } from "./dynamicLayers.js";
 
 const REQUIRED_SNAPSHOT_FIELDS = Object.freeze([
     "dynamicLayerRegistry",
@@ -204,6 +205,39 @@ function sameLocation(first, second) {
     );
 }
 
+function restoredProtection(value) {
+    if (value === true || value === 1) return true;
+    if (value === false || value === 0 || value === null || value === undefined) {
+        return false;
+    }
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (["", "0", "false"].includes(normalized)) return false;
+        return true;
+    }
+    return true;
+}
+
+function normalizeRestoredDynamicLayers(registry) {
+    Object.values(registry).forEach((record) => {
+        if (!record?.definition || record.definition.type !== "vector-tile") return;
+
+        const payloadLayer = record.payload?.layer;
+        const definitionAuth = normalizePublicLayerAuth(record.definition.auth);
+        const payloadAuth = normalizePublicLayerAuth(payloadLayer?.sh_map_request_auth_mode);
+        const auth = definitionAuth.mode ? definitionAuth : payloadAuth;
+        record.definition.auth = auth;
+        if (!payloadLayer) return;
+
+        const explicitlyProtected = restoredProtection(
+            payloadLayer.sh_map_has_layer_requires_bearer,
+        );
+        payloadLayer.sh_map_request_auth_mode = auth.mode;
+        payloadLayer.sh_map_has_layer_requires_bearer = explicitlyProtected || Boolean(auth.mode);
+    });
+    return registry;
+}
+
 export function validateMapRuntimeSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== "object") {
         throw new TypeError("Map runtime restoration requires a snapshot.");
@@ -274,7 +308,9 @@ export function applyMapRuntimeSnapshot(runtime, snapshot) {
     validateMapRuntimeSnapshot(snapshot);
 
     const restoredState = {
-        dynamicLayerRegistry: cloneMapRuntimeValue(snapshot.dynamicLayerRegistry),
+        dynamicLayerRegistry: normalizeRestoredDynamicLayers(
+            cloneMapRuntimeValue(snapshot.dynamicLayerRegistry),
+        ),
         vectorTileLegends: cloneMapRuntimeValue(snapshot.vectorTileLegends),
         center: cloneMapRuntimeValue(snapshot.center),
         zoom: snapshot.zoom,

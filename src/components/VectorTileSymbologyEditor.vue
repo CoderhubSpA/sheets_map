@@ -311,6 +311,7 @@
         <vector-tile-symbology-preview
             :draft="draft"
             :layer="layer"
+            :request_auth="request_auth"
             :semantic-legend="semanticLegend"
             :spatial-context="spatialContext"
         />
@@ -330,6 +331,7 @@ export default {
         loading: { type: Boolean, default: false },
         error: { type: String, default: '' },
         layer: { type: Object, required: true },
+        request_auth: { type: Object, default: null },
         semanticLegend: { type: Object, default: null },
         spatialContext: { type: Object, default: () => ({ bbox: null, centroid: null }) },
     },

@@ -121,6 +121,7 @@
                 <vector-tile-layer v-for="vectorTile in renderable_vector_tiles_xyz" :key="vectorTile._uid" :map="map"
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
+                    :request_auth="requestAuthForLayer(vectorTile.layer)"
                     :disable-feature-click="disable_feature_click"
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
                     :highlight-color="style_variables['feature-highlight-color']"
@@ -128,7 +129,9 @@
                     :filter-attribute="getLayerFilter(vectorTile.layer.id).attribute"
                     :filter-value="getLayerFilter(vectorTile.layer.id).value"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
-                    @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
+                    @legend-clear="handleVectorTileLegendClear"
+                    @auth-error="handleVectorTileAuthError" @auth-ready="handleVectorTileAuthReady"
+                    ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
 
                 <!-- Polygon draft-->
@@ -138,12 +141,13 @@
                     v-on:drawing-empty="findBounds"></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
-                <l-wms-tile-layer v-for="layer in operative_geoserver_wms || []" :key="layer.id"
+                <authenticated-wms-tile-layer v-for="layer in operative_geoserver_wms || []" :key="layer.id"
+                    :map="map" :request_auth="requestAuthForLayer(layer)"
                     :base-url="layer.sh_map_has_layer_url" :layers="layer.sh_map_has_layer_geoserver_layer"
-                    :name="layer.sh_map_has_layer_geoserver_layer" :transparent="true"
+                    :transparent="true"
                     :format="layer.sh_map_has_layer_wms_format || 'image/png'"
                     :opacity="getLayerOpacity(layer.id)"
-                    :options="{ maxNativeZoom: 20, maxZoom: 20 }" layer-type="base" service="WMS" />
+                    :options="{ maxNativeZoom: 20, maxZoom: 20 }" />
 
                 <l-control class="sheets-map-legend" position="bottomright"
                     v-if="active_layers.length > 0 && show_legend">
@@ -295,11 +299,18 @@
                 </l-control>
                 <l-control-scale class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
+            <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
+                <strong>No fue posible cargar una capa protegida.</strong>
+                <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
+                    {{ error.layerName }}: {{ error.message }}
+                </span>
+            </div>
         </div>
         <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
     </div>
 </template>
 <script>
+/* eslint-disable vue/no-reserved-keys */
 import L from "leaflet";
 import Simplify from "simplify-js";
 import _ from "lodash";
@@ -309,7 +320,6 @@ import {
     LMap,
     LTileLayer,
     LGeoJson,
-    LWMSTileLayer,
     LControl,
     LControlScale,
 } from "vue2-leaflet";
@@ -318,6 +328,7 @@ import SuperclusterLayer from "./layers/SuperclusterLayer.vue";
 import SuperclusterEntityTypeLayer from "./layers/SuperclusterEntityTypeLayer.vue";
 import VectorTileLayer from "./layers/VectorTileLayer.vue";
 import VectorTileLegend from "./layers/VectorTileLegend.vue";
+import AuthenticatedWmsTileLayer from "./layers/AuthenticatedWmsTileLayer.vue";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
@@ -360,6 +371,10 @@ Icon.Default.mergeOptions({
 });
 import ScreenshotButton from "./ScreenshotButton.vue";
 import FeatureDetailModal from "./FeatureDetailModal.vue";
+import {
+    requestAuthForLayer as selectRequestAuthForLayer,
+    requestWithAuth,
+} from "../utils/requestAuth.mjs";
 
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
 const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
@@ -377,7 +392,7 @@ export default {
         LMap,
         LTileLayer,
         LGeoJson,
-        "l-wms-tile-layer": LWMSTileLayer,
+        AuthenticatedWmsTileLayer,
         BButton,
         BIcon,
         BPopover,
@@ -432,6 +447,10 @@ export default {
             type: Array,
             default: () => [],
         },
+        request_auth: {
+            type: Object,
+            default: null,
+        },
     },
     data() {
         return {
@@ -477,6 +496,7 @@ export default {
             operative_geoserver_wms: [],
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
+            layer_auth_errors: {},
             viewport_resize_handler: null,
             map_resize_observer: null,
             dynamic_layer_registry: {},
@@ -1246,6 +1266,14 @@ export default {
                     return 0;
                 });
         },
+        visible_vector_tile_auth_errors() {
+            const visibleLayerIds = new Set(
+                this.renderable_vector_tiles_xyz.map((entry) => String(entry.layer?.id || "")),
+            );
+            return Object.values(this.layer_auth_errors).filter(
+                (error) => visibleLayerIds.has(String(error.layerId)),
+            );
+        },
         disabled_layers() {
             if (_.isEmpty(this.layers)) {
                 return [];
@@ -1396,6 +1424,26 @@ export default {
         this.map_resize_observer?.disconnect();
     },
     methods: {
+        requestAuthForLayer(layer) {
+            return selectRequestAuthForLayer(this.request_auth, layer);
+        },
+        handleVectorTileAuthError(details = {}) {
+            const layerId = String(details.layerId || "").trim();
+            if (!layerId) return;
+            const error = {
+                layerId,
+                layerName: String(details.layerName || layerId),
+                message: String(details.message || "No fue posible autenticar la capa."),
+            };
+            this.$set(this.layer_auth_errors, layerId, error);
+            this.$emit("layer-auth-error", error);
+        },
+        handleVectorTileAuthReady(layerId) {
+            const normalizedLayerId = String(layerId || "").trim();
+            if (!normalizedLayerId) return;
+            this.$delete(this.layer_auth_errors, normalizedLayerId);
+            this.$emit("layer-auth-ready", normalizedLayerId);
+        },
         snapshotRuntimeState() {
             const snapshot = createMapRuntimeSnapshot(this);
             const markerLatLng = this.marker && typeof this.marker.getLatLng === "function"
@@ -2355,8 +2403,14 @@ export default {
 
             // Guardar el zoom actual para verificar si cambió durante la petición
             const current_zoom = this.zoom;
+            const requestAuth = this.requestAuthForLayer(layer);
 
-            return axios.get(url).then((response) => {
+            return requestWithAuth({
+                url,
+                requestAuth,
+                requireBearer: Boolean(requestAuth),
+                request: headers => axios.get(url, { headers }),
+            }).then((response) => {
                 // Si el zoom cambió durante la petición, cancelamos el procesamiento
                 if (
                     current_zoom !== this.zoom &&
@@ -3582,6 +3636,29 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.my-map-container {
+    position: relative;
+}
+
+.layer-auth-alert {
+    position: absolute;
+    z-index: 1000;
+    top: 16px;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: min(520px, calc(100% - 32px));
+    padding: 12px 16px;
+    border: 1px solid #b42318;
+    border-radius: 6px;
+    background: #fff4f2;
+    color: #7a271a;
+    box-shadow: 0 4px 12px rgb(16 24 40 / 18%);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
 .my-map-container.drawing .my-map,
 .my-map-container.drawing :deep(.leaflet-interactive:not(.polygon_draft_circle_marker)) {
     cursor: crosshair !important;

@@ -1,13 +1,17 @@
 {
   "name": "coderhubspa_sheets_map",
-  "version": "1.56.1",
+  "version": "1.57.0",
   "private": false,
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "serve": "vite",
     "serve:proxy": "cross-env VITE_BASE_PATH=/map-dev/ vite --port 5173 --strictPort",
     "build:lib": "vite build",
+    "prepack": "npm run build:lib",
     "preview": "vite preview",
-    "lint": "eslint src --ext .vue,.js",
+    "lint": "eslint src --ext .vue,.js,.mjs",
     "test": "node --experimental-default-type=module --test tests"
   },
   "dependencies": {
@@ -48,6 +52,8 @@
   "eslintConfig": {
     "root": true,
     "env": {
+      "browser": true,
+      "es2021": true,
       "node": true
     },
     "extends": [
