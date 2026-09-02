@@ -129,7 +129,9 @@
                     :filter-attribute="getLayerFilter(vectorTile.layer.id).attribute"
                     :filter-value="getLayerFilter(vectorTile.layer.id).value"
                     @feature-click="handleVectorTileFeatureClick" @legend-ready="handleVectorTileLegendReady"
-                    @legend-clear="handleVectorTileLegendClear" ref="vectorTileLayers"></vector-tile-layer>
+                    @legend-clear="handleVectorTileLegendClear"
+                    @auth-error="handleVectorTileAuthError" @auth-ready="handleVectorTileAuthReady"
+                    ref="vectorTileLayers"></vector-tile-layer>
                 <!-- End Vector Tile Layers -->
 
                 <!-- Polygon draft-->
@@ -297,6 +299,12 @@
                 </l-control>
                 <l-control-scale class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
+            <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
+                <strong>No fue posible cargar una capa protegida.</strong>
+                <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
+                    {{ error.layerName }}: {{ error.message }}
+                </span>
+            </div>
         </div>
         <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
     </div>
@@ -488,6 +496,7 @@ export default {
             operative_geoserver_wms: [],
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
+            layer_auth_errors: {},
             viewport_resize_handler: null,
             map_resize_observer: null,
             dynamic_layer_registry: {},
@@ -1257,6 +1266,14 @@ export default {
                     return 0;
                 });
         },
+        visible_vector_tile_auth_errors() {
+            const visibleLayerIds = new Set(
+                this.renderable_vector_tiles_xyz.map((entry) => String(entry.layer?.id || "")),
+            );
+            return Object.values(this.layer_auth_errors).filter(
+                (error) => visibleLayerIds.has(String(error.layerId)),
+            );
+        },
         disabled_layers() {
             if (_.isEmpty(this.layers)) {
                 return [];
@@ -1409,6 +1426,23 @@ export default {
     methods: {
         requestAuthForLayer(layer) {
             return selectRequestAuthForLayer(this.request_auth, layer);
+        },
+        handleVectorTileAuthError(details = {}) {
+            const layerId = String(details.layerId || "").trim();
+            if (!layerId) return;
+            const error = {
+                layerId,
+                layerName: String(details.layerName || layerId),
+                message: String(details.message || "No fue posible autenticar la capa."),
+            };
+            this.$set(this.layer_auth_errors, layerId, error);
+            this.$emit("layer-auth-error", error);
+        },
+        handleVectorTileAuthReady(layerId) {
+            const normalizedLayerId = String(layerId || "").trim();
+            if (!normalizedLayerId) return;
+            this.$delete(this.layer_auth_errors, normalizedLayerId);
+            this.$emit("layer-auth-ready", normalizedLayerId);
         },
         snapshotRuntimeState() {
             const snapshot = createMapRuntimeSnapshot(this);
@@ -3602,6 +3636,29 @@ export default {
 </script>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.my-map-container {
+    position: relative;
+}
+
+.layer-auth-alert {
+    position: absolute;
+    z-index: 1000;
+    top: 16px;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: min(520px, calc(100% - 32px));
+    padding: 12px 16px;
+    border: 1px solid #b42318;
+    border-radius: 6px;
+    background: #fff4f2;
+    color: #7a271a;
+    box-shadow: 0 4px 12px rgb(16 24 40 / 18%);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
 .my-map-container.drawing .my-map,
 .my-map-container.drawing :deep(.leaflet-interactive:not(.polygon_draft_circle_marker)) {
     cursor: crosshair !important;

@@ -4,13 +4,14 @@ import test from "node:test";
 import {
     buildVectorTileLayerPayload,
     normalizePublicLayerDefinition,
+    normalizePublicLayerPatch,
 } from "../src/utils/dynamicLayers.js";
 import {
     appendRequestGeneration,
     buildMapLibreRequest,
-    createAuthRecoveryLatch,
     fetchWithAuth,
     getBearerToken,
+    getRequiredRequestAuthHeaders,
     getRequestAuthHeaders,
     layerRequiresBearer,
     peekRequestAuthHeaders,
@@ -63,10 +64,10 @@ test("selects the runtime auth client only for opted-in layers", () => {
     }), true);
     assert.equal(layerRequiresBearer({
         sh_map_request_auth_mode: "unsupported-bearer",
-    }), true);
+    }), false);
     assert.equal(layerRequiresBearer({
         sh_map_request_auth_mode: 123,
-    }), true);
+    }), false);
     assert.equal(requestAuthForLayer(requestAuth, null), null);
 });
 
@@ -116,6 +117,13 @@ test("fails closed for cross-origin legacy auth without host trust", async (cont
         ),
         {},
     );
+    assert.deepEqual(
+        await getRequestAuthHeaders(
+            requestAuthForLayer(null, layer),
+            "https://external.test/vector/tiles/places/1/0/0.pbf",
+        ),
+        {},
+    );
     assert.equal(tokenCalls, 0);
 });
 
@@ -152,34 +160,37 @@ test("marks both current and legacy dynamic auth modes as protected", () => {
     }
 });
 
-test("rejects unsupported dynamic auth modes", () => {
+test("normalizes unsupported dynamic auth modes to anonymous compatibility", () => {
     const definition = {
         id: "places",
         type: "vector-tile",
         source: { tiles: ["https://gis.test/vector/tiles/places/{z}/{x}/{y}.pbf"] },
     };
 
-    assert.throws(
-        () => normalizePublicLayerDefinition({
+    assert.deepEqual(
+        normalizePublicLayerDefinition({
             ...definition,
             auth: { mode: "custom-bearer" },
-        }),
-        /Modo de autenticación no soportado/,
+        }).auth,
+        { mode: "" },
     );
-    assert.throws(
-        () => normalizePublicLayerDefinition({
+    assert.deepEqual(
+        normalizePublicLayerDefinition({
             ...definition,
             auth: { mode: true },
-        }),
-        /auth\.mode debe ser un string válido/,
+        }).auth,
+        { mode: "" },
     );
-    assert.throws(
-        () => normalizePublicLayerDefinition({
+    assert.deepEqual(
+        normalizePublicLayerDefinition({
             ...definition,
             auth: "runtime-bearer",
-        }),
-        /auth debe ser un objeto válido/,
+        }).auth,
+        { mode: "runtime-bearer" },
     );
+    assert.deepEqual(normalizePublicLayerPatch({ auth: "ogp-bearer" }), {
+        auth: { mode: "ogp-bearer" },
+    });
 });
 
 test("scopes async and synchronous headers to the client-confirmed origin", async () => {
@@ -299,13 +310,36 @@ test("removes stale MapLibre authorization when the provider no longer trusts th
     });
 });
 
-test("limits MapLibre authentication recovery to one attempt per source instance", () => {
-    const recovery = createAuthRecoveryLatch();
+test("retries transient protected auth bootstrap and reuses a stable cloned-layer client", async () => {
+    let attempts = 0;
+    const waits = [];
+    const requestAuth = {
+        getHeaders: async () => {
+            attempts += 1;
+            return attempts < 3 ? {} : { Authorization: "Bearer token-a" };
+        },
+        isTrustedUrl: () => true,
+    };
 
-    assert.equal(recovery.acquire("token-a"), true);
-    assert.equal(recovery.acquire("token-b"), false);
-    recovery.reset();
-    assert.equal(recovery.acquire("token-c"), true);
+    assert.deepEqual(
+        await getRequiredRequestAuthHeaders(requestAuth, "https://gis.test/tiles", {
+            attempts: 3,
+            retryDelayMs: 10,
+            wait: async (delay) => waits.push(delay),
+        }),
+        { Authorization: "Bearer token-a" },
+    );
+    assert.deepEqual(waits, [10, 20]);
+
+    const firstLayer = {
+        id: "places",
+        sh_map_has_layer_url: "https://gis.test/vector/tiles/places/{z}/{x}/{y}.pbf",
+        sh_map_has_layer_requires_bearer: true,
+    };
+    assert.equal(
+        requestAuthForLayer(null, firstLayer),
+        requestAuthForLayer(null, { ...firstLayer }),
+    );
 });
 
 test("invalidates the exact token and retries one time after an Axios-style 401", async () => {

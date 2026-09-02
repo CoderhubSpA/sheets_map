@@ -421,3 +421,76 @@ test("restores an empty first-bootstrap registry by removing candidate layers", 
     assert.equal(runtime.map_min_zoom, undefined);
     assert.equal(runtime.map_max_zoom, undefined);
 });
+
+test("normalizes legacy and unsupported dynamic auth while restoring snapshots", () => {
+    const runtime = createRuntime();
+    const snapshot = createMapRuntimeSnapshot(runtime);
+    snapshot.dynamicLayerRegistry = {
+        legacy: {
+            definition: {
+                id: "legacy",
+                type: "vector-tile",
+                auth: { mode: "" },
+            },
+            payload: {
+                layer: {
+                    sh_map_request_auth_mode: "runtime-bearer",
+                    sh_map_has_layer_requires_bearer: false,
+                },
+            },
+        },
+        unsupported: {
+            definition: {
+                id: "unsupported",
+                type: "vector-tile",
+                auth: { mode: "custom-bearer" },
+            },
+            payload: {
+                layer: {
+                    sh_map_request_auth_mode: "custom-bearer",
+                    sh_map_has_layer_requires_bearer: false,
+                },
+            },
+        },
+        explicit: {
+            definition: {
+                id: "explicit",
+                type: "vector-tile",
+                auth: { mode: "custom-bearer" },
+            },
+            payload: {
+                layer: {
+                    sh_map_request_auth_mode: "custom-bearer",
+                    sh_map_has_layer_requires_bearer: "invalid",
+                },
+            },
+        },
+    };
+
+    applyMapRuntimeSnapshot(runtime, snapshot);
+
+    assert.deepEqual(runtime.dynamic_layer_registry.legacy.definition.auth, {
+        mode: "runtime-bearer",
+    });
+    assert.equal(
+        runtime.dynamic_layer_registry.legacy.payload.layer.sh_map_has_layer_requires_bearer,
+        true,
+    );
+    assert.deepEqual(runtime.dynamic_layer_registry.unsupported.definition.auth, { mode: "" });
+    assert.equal(
+        runtime.dynamic_layer_registry.unsupported.payload.layer.sh_map_request_auth_mode,
+        "",
+    );
+    assert.equal(
+        runtime.dynamic_layer_registry.unsupported.payload.layer.sh_map_has_layer_requires_bearer,
+        false,
+    );
+    assert.equal(
+        runtime.dynamic_layer_registry.explicit.payload.layer.sh_map_has_layer_requires_bearer,
+        true,
+    );
+    assert.equal(
+        snapshot.dynamicLayerRegistry.unsupported.definition.auth.mode,
+        "custom-bearer",
+    );
+});

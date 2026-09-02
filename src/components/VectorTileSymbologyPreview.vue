@@ -55,13 +55,10 @@ import { buildVectorTileTemplateUrl } from '../utils/vectorTileUrl.js'
 import { parsePointShapeImageId } from '../utils/vectorTileLegend/icon.js'
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../utils/vectorTileLegend/canvas.js'
 import {
-    appendRequestGeneration,
     buildMapLibreRequest,
-    createAuthRecoveryLatch,
-    getBearerToken,
-    getRequestAuthHeaders,
-    refreshRequestAuthHeaders,
+    getRequiredRequestAuthHeaders,
 } from '../utils/requestAuth.mjs'
+import { createMapLibreAuthRecoveryController } from '../utils/mapLibreAuthRecovery.mjs'
 
 const INITIAL_CENTER = [-71.1, -35.1]
 const INITIAL_ZOOM = 9
@@ -86,12 +83,10 @@ export default {
             styleUpdateFrame: null,
             resizeObserver: null,
             initializeId: 0,
-            authRecovery: createAuthRecoveryLatch(),
-            authRequestGeneration: 0,
+            authRecovery: createMapLibreAuthRecoveryController({
+                sourceId: VECTOR_TILE_PREVIEW_SOURCE_ID,
+            }),
             mapErrorHandler: null,
-            nextTokenRequestGeneration: 0,
-            tokenRequestGenerations: new Map(),
-            tileRequestTokens: new Map(),
         }
     },
     computed: {
@@ -162,8 +157,7 @@ export default {
 
             if (this.request_auth) {
                 try {
-                    const initialAuthHeaders = await getRequestAuthHeaders(this.request_auth, this.tileUrl)
-                    if (!getBearerToken(initialAuthHeaders)) throw new Error('Missing Bearer token.')
+                    await getRequiredRequestAuthHeaders(this.request_auth, this.tileUrl)
                 } catch {
                     if (initializeId === this.initializeId) {
                         this.mapError = 'No fue posible autenticar la vista previa de la capa.'
@@ -265,68 +259,24 @@ export default {
             this.mapErrorHandler = null
             this.mapLoaded = false
             this.authRecovery.reset()
-            this.authRequestGeneration = 0
-            this.nextTokenRequestGeneration = 0
-            this.tokenRequestGenerations.clear()
-            this.tileRequestTokens.clear()
         },
         buildTileUrl() {
-            return appendRequestGeneration(this.tileUrl, this.authRequestGeneration)
+            return this.authRecovery.decorateSourceUrl(this.tileUrl)
         },
         rememberTileRequestToken(url, resourceType, request) {
-            if (resourceType !== 'Tile') return request
-            const token = getBearerToken(request?.headers)
-            if (!token) return request
-            if (!this.tokenRequestGenerations.has(token)) {
-                if (this.tokenRequestGenerations.size >= 32) {
-                    this.tokenRequestGenerations.delete(this.tokenRequestGenerations.keys().next().value)
-                }
-                this.nextTokenRequestGeneration += 1
-                this.tokenRequestGenerations.set(token, this.nextTokenRequestGeneration)
-            }
-            const requestUrl = appendRequestGeneration(
-                request?.url || url,
-                this.tokenRequestGenerations.get(token),
-                '_sheets_auth_token',
-            )
-            if (!this.tileRequestTokens.has(requestUrl) && this.tileRequestTokens.size >= 256) {
-                this.tileRequestTokens.delete(this.tileRequestTokens.keys().next().value)
-            }
-            this.tileRequestTokens.set(requestUrl, token)
-            return { ...request, url: requestUrl }
+            return this.authRecovery.rememberRequest(url, resourceType, request)
         },
         async handleAuthError(event) {
-            const status = event?.error?.status ?? event?.error?.statusCode
-            const sourceId = event?.sourceId ?? event?.source?.id
-            if (status !== 401 || sourceId !== VECTOR_TILE_PREVIEW_SOURCE_ID) return
-
-            const failedUrl = event?.error?.url
-            const rejectedToken = failedUrl ? this.tileRequestTokens.get(failedUrl) : null
-            if (!this.authRecovery.acquire(rejectedToken)) return
-
-            const currentMap = this.map
-            this.tileRequestTokens.delete(failedUrl)
-            try {
-                const refreshedHeaders = await refreshRequestAuthHeaders(
-                    this.request_auth,
-                    this.tileUrl,
-                    rejectedToken,
-                )
-                const refreshedToken = getBearerToken(refreshedHeaders)
-                if (!refreshedToken || refreshedToken === rejectedToken) {
-                    throw new Error('Bearer authentication could not be renewed.')
-                }
-                if (!currentMap || this.map !== currentMap || this._isDestroyed) return
-                const source = currentMap.getSource(VECTOR_TILE_PREVIEW_SOURCE_ID)
-                if (source && typeof source.setTiles === 'function') {
-                    this.authRequestGeneration += 1
-                    source.setTiles([this.buildTileUrl()])
-                }
-            } catch {
-                if (this.map === currentMap && !this._isDestroyed) {
+            const recovered = await this.authRecovery.recover({
+                event,
+                requestAuth: this.request_auth,
+                requestUrl: () => this.tileUrl,
+                getMap: () => this.map,
+                onError: () => {
                     this.mapError = 'No fue posible renovar la autenticación de la vista previa.'
-                }
-            }
+                },
+            })
+            if (recovered) this.mapError = ''
         },
         scheduleLiveStyle() {
             this.$nextTick(() => {

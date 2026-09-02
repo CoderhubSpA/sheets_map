@@ -23,13 +23,10 @@ import {
 } from '../../utils/vectorTileLegend/icon';
 import { normalizePointCanvasStrokeWidth, pointCanvasDashPattern } from '../../utils/vectorTileLegend/canvas';
 import {
-    appendRequestGeneration,
     buildMapLibreRequest,
-    createAuthRecoveryLatch,
-    getBearerToken,
-    getRequestAuthHeaders,
-    refreshRequestAuthHeaders,
+    getRequiredRequestAuthHeaders,
 } from '../../utils/requestAuth.mjs';
+import { createMapLibreAuthRecoveryController } from '../../utils/mapLibreAuthRecovery.mjs';
 
 export default {
     name: 'VectorTileLayer',
@@ -112,18 +109,14 @@ export default {
             // Flag para indicar si el estilo MapLibre ha sido cargado completamente
             styleLoaded: false,
             maplibreErrorHandler: null,
-            authRecovery: createAuthRecoveryLatch(),
-            authRequestGeneration: 0,
-            nextTokenRequestGeneration: 0,
-            tokenRequestGenerations: new Map(),
-            tileRequestTokens: new Map()
+            authRecovery: createMapLibreAuthRecoveryController({ sourceId: 'vector-tiles' })
         };
     },
     watch: {
         map(newMap, oldMap) {
-            if (!oldMap && newMap && !this.isInitialized) {
-                this.createVectorTileLayer();
-            }
+            if (newMap === oldMap) return;
+            if (oldMap) this.cleanup(oldMap);
+            if (newMap) this.$nextTick(this.createVectorTileLayer);
         },
         'layer.sh_map_has_layer_render_state': {
             deep: true,
@@ -239,16 +232,16 @@ export default {
 
             if (this.request_auth) {
                 try {
-                    const initialAuthHeaders = await getRequestAuthHeaders(this.request_auth, tileUrl);
-                    if (!getBearerToken(initialAuthHeaders)) {
-                        throw new Error('Bearer authentication is required.');
-                    }
+                    await getRequiredRequestAuthHeaders(this.request_auth, tileUrl);
                 } catch (error) {
-                    console.warn(`VectorTileLayer: No fue posible preparar autenticación para capa ${this.layer.id}`, error);
+                    if (initializationId === this.initializationId && !this.isDestroyed()) {
+                        this.reportAuthError('No fue posible autenticar la capa protegida.', error);
+                    }
                     return;
                 }
             }
             if (initializationId !== this.initializationId || this.isDestroyed()) return;
+            this.$emit('auth-ready', this.layer.id);
 
             const renderState = this.resolveRenderState();
             this.currentStyleExpressions = renderState.styleExpressions;
@@ -534,67 +527,30 @@ export default {
         },
 
         async handleMapLibreAuthError(event) {
-            const status = event?.error?.status ?? event?.error?.statusCode;
-            const sourceId = event?.sourceId ?? event?.source?.id;
-            if (status !== 401 || sourceId !== 'vector-tiles') return;
-
-            const failedUrl = event?.error?.url;
-            const rejectedToken = failedUrl
-                ? this.tileRequestTokens.get(failedUrl)
-                : null;
-            if (!this.authRecovery.acquire(rejectedToken)) return;
-
-            this.tileRequestTokens.delete(failedUrl);
-            try {
-                const refreshedHeaders = await refreshRequestAuthHeaders(
-                    this.request_auth,
-                    this.tileUrl,
-                    rejectedToken,
-                );
-                const refreshedToken = getBearerToken(refreshedHeaders);
-                if (!refreshedToken || refreshedToken === rejectedToken) {
-                    throw new Error('Bearer authentication could not be renewed.');
-                }
-                if (this.isDestroyed() || !this.maplibreMap) return;
-
-                const source = this.maplibreMap.getSource('vector-tiles');
-                if (source && typeof source.setTiles === 'function') {
-                    this.authRequestGeneration += 1;
-                    source.setTiles([this.buildFilteredTileUrl()]);
-                }
-            } catch (error) {
-                if (!this.isDestroyed()) {
-                    console.warn(`VectorTileLayer: No fue posible renovar autenticación para capa ${this.layer.id}`, error);
-                }
-            }
+            const recovered = await this.authRecovery.recover({
+                event,
+                requestAuth: this.request_auth,
+                requestUrl: () => this.buildRawFilteredTileUrl(),
+                getMap: () => this.maplibreMap,
+                onError: error => this.reportAuthError(
+                    'No fue posible renovar la autenticación de la capa.',
+                    error,
+                ),
+            });
+            if (recovered) this.$emit('auth-ready', this.layer.id);
         },
 
         rememberTileRequestToken(url, resourceType, request) {
-            if (resourceType !== 'Tile') return request;
+            return this.authRecovery.rememberRequest(url, resourceType, request);
+        },
 
-            const token = getBearerToken(request?.headers);
-            if (!token) return request;
-
-            if (!this.tokenRequestGenerations.has(token)) {
-                if (this.tokenRequestGenerations.size >= 32) {
-                    this.tokenRequestGenerations.delete(
-                        this.tokenRequestGenerations.keys().next().value,
-                    );
-                }
-                this.nextTokenRequestGeneration += 1;
-                this.tokenRequestGenerations.set(token, this.nextTokenRequestGeneration);
-            }
-            const requestUrl = appendRequestGeneration(
-                request?.url || url,
-                this.tokenRequestGenerations.get(token),
-                '_sheets_auth_token',
-            );
-
-            if (!this.tileRequestTokens.has(requestUrl) && this.tileRequestTokens.size >= 256) {
-                this.tileRequestTokens.delete(this.tileRequestTokens.keys().next().value);
-            }
-            this.tileRequestTokens.set(requestUrl, token);
-            return { ...request, url: requestUrl };
+        reportAuthError(message, error) {
+            console.warn(`VectorTileLayer: ${message} (${this.layer.id})`, error);
+            this.$emit('auth-error', {
+                layerId: this.layer.id,
+                layerName: this.layer.name || this.layer.sh_map_has_layer_name || this.layer.id,
+                message,
+            });
         },
 
         resolveStylePaint(styleExpressions = null) {
@@ -707,13 +663,16 @@ export default {
 
         // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
         // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
-        buildFilteredTileUrl() {
-            const filteredUrl = buildFilteredVectorTileUrl(
+        buildRawFilteredTileUrl() {
+            return buildFilteredVectorTileUrl(
                 this.tileUrl,
                 this.filterAttribute,
                 this.filterValue,
             );
-            return appendRequestGeneration(filteredUrl, this.authRequestGeneration);
+        },
+
+        buildFilteredTileUrl() {
+            return this.authRecovery.decorateSourceUrl(this.buildRawFilteredTileUrl());
         },
 
         // Actualiza el template de tiles de la fuente en runtime (sin reconstruir el estilo)
@@ -1252,30 +1211,30 @@ export default {
         //     // Descomentar solo si necesitas debuggear problemas con vector tiles
         // },
         
-        removeLayer() {
-            if (this.vectorTileLayer && this.map && this.map.hasLayer(this.vectorTileLayer)) {
-                this.map.removeLayer(this.vectorTileLayer);
+        removeLayer(targetMap = this.map) {
+            if (this.vectorTileLayer && targetMap && targetMap.hasLayer(this.vectorTileLayer)) {
+                targetMap.removeLayer(this.vectorTileLayer);
             }
         },
         
-        cleanup() {
+        cleanup(targetMap = this.map) {
             this.initializationId += 1;
             this.cancelLegendCountEnrichment();
             // Cerrar popups
-            if (this.map) {
-                this.map.closePopup();
+            if (targetMap) {
+                targetMap.closePopup();
             }
             
             // Remover event listeners de LEAFLET que nosotros agregamos
-            if (this.map) {
+            if (targetMap) {
                 if (this.leafletMouseMoveHandler) {
-                    this.map.off('mousemove', this.leafletMouseMoveHandler);
+                    targetMap.off('mousemove', this.leafletMouseMoveHandler);
                     this.leafletMouseMoveHandler = null;
                 }
                 
                 // Resetear cursor
-                if (this.map.getContainer()) {
-                    this.map.getContainer().style.cursor = '';
+                if (targetMap.getContainer()) {
+                    targetMap.getContainer().style.cursor = '';
                 }
             }
             
@@ -1289,15 +1248,11 @@ export default {
             }
             this.maplibreErrorHandler = null;
             this.authRecovery.reset();
-            this.authRequestGeneration = 0;
-            this.nextTokenRequestGeneration = 0;
-            this.tokenRequestGenerations.clear();
-            this.tileRequestTokens.clear();
             
             // Remover capa del mapa usando el método de Leaflet
             // Esto llamará automáticamente al onRemove de L.maplibreGL que
             // limpiará el canvas, la sincronización y recursos internos
-            this.removeLayer();
+            this.removeLayer(targetMap);
             
             // NO remover el pane - lo reutilizaremos si la capa se reactiva
             // Esto evita race conditions al destruir/crear componentes rápidamente

@@ -51,24 +51,18 @@ function normalizeRequest(rawRequest = null) {
     return { headers };
 }
 
-function normalizeAuth(rawAuth = null) {
+export function normalizePublicLayerAuth(rawAuth = null) {
     if (rawAuth === null || rawAuth === undefined) {
         return { mode: "" };
     }
-    if (typeof rawAuth !== "object" || Array.isArray(rawAuth)) {
-        throw new Error("auth debe ser un objeto válido.");
-    }
+    const rawMode = typeof rawAuth === "string"
+        ? rawAuth
+        : rawAuth && typeof rawAuth === "object" && !Array.isArray(rawAuth)
+            ? rawAuth.mode
+            : "";
+    const mode = normalizeString(rawMode).toLowerCase();
 
-    if (rawAuth.mode !== null && rawAuth.mode !== undefined && typeof rawAuth.mode !== "string") {
-        throw new Error("auth.mode debe ser un string válido.");
-    }
-
-    const mode = normalizeString(rawAuth.mode).toLowerCase();
-    if (!DYNAMIC_AUTH_MODES.has(mode)) {
-        throw new Error(`Modo de autenticación no soportado: ${rawAuth.mode}`);
-    }
-
-    return { mode };
+    return { mode: DYNAMIC_AUTH_MODES.has(mode) ? mode : "" };
 }
 
 function normalizeVisibleColumns(rawColumns = []) {
@@ -152,7 +146,7 @@ function normalizeVectorTileDefinition(rawDefinition) {
         legendMode: normalizeLegendMode(rawDefinition.legendMode),
         renderState: normalizeRenderState(rawDefinition.renderState),
         request: normalizeRequest(rawDefinition.request),
-        auth: normalizeAuth(rawDefinition.auth),
+        auth: normalizePublicLayerAuth(rawDefinition.auth),
         name: normalizeString(rawDefinition.name, normalizeId(rawDefinition.id)),
         visible: normalizeBoolean(rawDefinition.visible, true),
         opacity: normalizeNumber(rawDefinition.opacity, null),
@@ -188,6 +182,9 @@ export function normalizePublicLayerPatch(rawPatch = {}) {
     }
     if (Object.prototype.hasOwnProperty.call(rawPatch, "request")) {
         patch.request = normalizeRequest(rawPatch.request);
+    }
+    if (Object.prototype.hasOwnProperty.call(rawPatch, "auth")) {
+        patch.auth = normalizePublicLayerAuth(rawPatch.auth);
     }
     if (Object.prototype.hasOwnProperty.call(rawPatch, "visible")) {
         patch.visible = normalizeBoolean(rawPatch.visible, true);
@@ -247,7 +244,7 @@ export function normalizePublicLayerDefinition(rawDefinition) {
 }
 
 export function buildVectorTileLayerPayload(normalizedLayerDefinition) {
-    const auth = normalizeAuth(normalizedLayerDefinition.auth);
+    const auth = normalizePublicLayerAuth(normalizedLayerDefinition.auth);
 
     return {
         layer_id: normalizedLayerDefinition.id,

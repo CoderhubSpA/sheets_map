@@ -105,14 +105,17 @@ ese objeto debe implementar `isTrustedUrl(url)` con una allowlist controlada por
 el host. Sin ese callback, el modo legacy solo autoriza URLs del mismo origen de
 la página. Las integraciones nuevas deben preferir `request_auth`.
 
-`mapActions.addLayer` rechaza modos de autenticación desconocidos. Si metadata
-persistida declara un modo o flag contradictorio, la capa se trata como protegida
-y falla cerrada en vez de degradar a transporte anónimo.
+`mapActions.addLayer` solo activa autenticación para `runtime-bearer` y
+`ogp-bearer`; los modos desconocidos se normalizan sin autenticación para no
+ejecutar contratos que la librería no soporta. Si metadata persistida combina un
+modo soportado con un flag contradictorio, la restauración conserva el estado
+protegido y falla cerrada.
 
 MapLibre inyecta únicamente el resultado vigente de `peekHeaders`; si el proveedor
 revoca la confianza, elimina cualquier `Authorization` previamente cacheado. Cada
-instancia de source permite como máximo una recuperación automática tras `401` para
-evitar cadenas ilimitadas de renovación.
+token rechazado permite como máximo una recuperación automática tras `401`; una
+credencial nueva habilita una generación de recuperación nueva sin formar cadenas
+ilimitadas para el mismo token.
 
 ---
 

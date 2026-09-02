@@ -11,6 +11,20 @@ function headerObject(headers) {
     return { ...headers };
 }
 
+export function getHeaderValue(headers, name) {
+    if (!headers || typeof name !== "string") return "";
+    try {
+        const value = headers.get?.(name);
+        if (typeof value === "string") return value;
+    } catch {
+        // Fall through to the iterable/object representations.
+    }
+
+    return Object.entries(headerObject(headers)).find(
+        ([key]) => key.toLowerCase() === name.toLowerCase(),
+    )?.[1] || "";
+}
+
 export function mergeRequestHeaders(baseHeaders, addedHeaders) {
     const result = headerObject(baseHeaders);
     Object.entries(addedHeaders || {}).forEach(([key, value]) => {
@@ -32,9 +46,7 @@ function withoutAuthorization(headers) {
 }
 
 export function getBearerToken(headers) {
-    const authorization = Object.entries(headers || {}).find(
-        ([key]) => key.toLowerCase() === "authorization",
-    )?.[1];
+    const authorization = getHeaderValue(headers, "authorization");
     const match = typeof authorization === "string"
         ? authorization.match(/^Bearer\s+(.+)$/i)
         : null;
@@ -80,13 +92,11 @@ function layerRequestAuthMode(layer) {
         : "";
 }
 
+const SUPPORTED_BEARER_MODES = new Set(["runtime-bearer", "ogp-bearer"]);
+
 export function layerRequiresBearer(layer) {
     const value = layer?.sh_map_has_layer_requires_bearer;
-    const rawMode = layer?.sh_map_request_auth_mode;
-    if (
-        (typeof rawMode === "string" && rawMode.trim()) ||
-        (rawMode !== null && rawMode !== undefined && typeof rawMode !== "string")
-    ) return true;
+    if (SUPPORTED_BEARER_MODES.has(layerRequestAuthMode(layer))) return true;
     if (value === true || value === 1) return true;
     if (value === false || value === 0 || value === null || value === undefined) {
         return false;
@@ -100,28 +110,25 @@ export function layerRequiresBearer(layer) {
     return true;
 }
 
-const unavailableClientCache = new WeakMap();
-const legacyClientCache = new WeakMap();
+const unavailableClientCache = new Map();
+const legacyClientCache = new Map();
 const recoveryCache = new WeakMap();
 
-export function createAuthRecoveryLatch() {
-    let acquired = false;
-    return Object.freeze({
-        acquire(rejectedToken) {
-            if (!rejectedToken || acquired) return false;
-            acquired = true;
-            return true;
-        },
-        reset() {
-            acquired = false;
-        },
-    });
+function layerClientKey(layer) {
+    if (!layer || typeof layer !== "object") return "";
+    const id = String(layer.id || layer.sh_map_has_layer_id || "").trim();
+    const url = String(layer.sh_map_has_layer_url || "").trim();
+    return id || url ? JSON.stringify([id, url]) : "";
 }
 
 function clientForLayer(cache, layer, clientFactory) {
-    if (!layer || typeof layer !== "object") return null;
-    if (!cache.has(layer)) cache.set(layer, clientFactory());
-    return cache.get(layer);
+    const key = layerClientKey(layer);
+    if (!key) return null;
+    if (!cache.has(key)) {
+        if (cache.size >= 256) cache.delete(cache.keys().next().value);
+        cache.set(key, clientFactory());
+    }
+    return cache.get(key);
 }
 
 function trustedLayerOrigin(layer, url) {
@@ -187,6 +194,9 @@ export async function getRequestAuthHeaders(requestAuth, url) {
         !requestAuth ||
         typeof requestAuth.getHeaders !== "function"
     ) return {};
+    const cachedHeaders = peekRequestAuthHeaders(requestAuth, url);
+    if (getBearerToken(cachedHeaders)) return cachedHeaders;
+
     const headers = headerObject(await requestAuth.getHeaders(url));
     return trustedByClient(requestAuth, url) ? headers : {};
 }
@@ -199,6 +209,34 @@ export function peekRequestAuthHeaders(requestAuth, url) {
     ) return {};
     const headers = headerObject(requestAuth.peekHeaders(url));
     return headers;
+}
+
+export async function getRequiredRequestAuthHeaders(
+    requestAuth,
+    url,
+    {
+        attempts = 3,
+        retryDelayMs = 250,
+        wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay)),
+    } = {},
+) {
+    if (!requestAuth) return {};
+    const totalAttempts = Number.isInteger(attempts) && attempts > 0 ? attempts : 1;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
+        try {
+            const headers = await getRequestAuthHeaders(requestAuth, url);
+            if (getBearerToken(headers)) return headers;
+            lastError = new Error("Bearer authentication is required for this request.");
+        } catch (error) {
+            lastError = error;
+        }
+
+        if (attempt < totalAttempts) await wait(retryDelayMs * attempt);
+    }
+
+    throw lastError || new Error("Bearer authentication is required for this request.");
 }
 
 export async function refreshRequestAuthHeaders(requestAuth, url, rejectedToken) {

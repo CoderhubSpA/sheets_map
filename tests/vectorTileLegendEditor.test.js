@@ -828,9 +828,11 @@ test('el preview carga solamente tiles visibles y reacciona al completar la leye
     assert.match(preview, /type:\s*'vector'/)
     assert.match(preview, /tiles:\s*\[this\.buildTileUrl\(\)\]/)
     assert.match(preview, /transformRequest:[\s\S]*buildMapLibreRequest/s)
-    assert.match(preview, /handleAuthError[\s\S]*refreshRequestAuthHeaders/s)
-    assert.match(preview, /authRecovery\.acquire\(rejectedToken\)/)
-    assert.doesNotMatch(preview, /authRecoveredTokens/)
+    assert.match(preview, /createMapLibreAuthRecoveryController\(\{[\s\S]*sourceId: VECTOR_TILE_PREVIEW_SOURCE_ID/s)
+    assert.match(preview, /getRequiredRequestAuthHeaders\(this\.request_auth, this\.tileUrl\)/)
+    assert.match(preview, /handleAuthError[\s\S]*authRecovery\.recover\(\{/s)
+    assert.match(preview, /rememberTileRequestToken[\s\S]*authRecovery\.rememberRequest/s)
+    assert.doesNotMatch(preview, /authRecovery\.acquire|tileRequestTokens|tokenRequestGenerations/)
     assert.match(preview, /maxTileCacheSize:\s*6/)
     assert.match(preview, /type:\s*'raster'[\s\S]*tile\.openstreetmap/s)
     assert.match(preview, /querySourceFeatures[\s\S]*\.slice\(0, 200\)/)
@@ -845,6 +847,24 @@ test('el preview carga solamente tiles visibles y reacciona al completar la leye
     assert.match(preview, /parsePointShapeImageId/)
     assert.match(preview, /buildVectorTilePreviewLayers\(this\.sourceLayer, this\.renderState\.styleExpressions\)/)
     assert.doesNotMatch(preview, /Vista acotada a los tiles visibles|previewDescription|performance-note|datos reales|data-badge|type:\s*'geojson'/)
+})
+
+test('la capa vectorial migra entre mapas y publica errores de autenticación visibles', () => {
+    const liveLayer = readFileSync(
+        new URL('../src/components/layers/VectorTileLayer.vue', import.meta.url),
+        'utf8',
+    )
+    const map = readFileSync(
+        new URL('../src/components/SheetsMap.vue', import.meta.url),
+        'utf8',
+    )
+
+    assert.match(liveLayer, /map\(newMap, oldMap\)[\s\S]*this\.cleanup\(oldMap\)/s)
+    assert.match(liveLayer, /cleanup\(targetMap = this\.map\)[\s\S]*this\.removeLayer\(targetMap\)/s)
+    assert.match(liveLayer, /\$emit\('auth-error'/)
+    assert.match(map, /@auth-error="handleVectorTileAuthError"/)
+    assert.match(map, /class="layer-auth-alert" role="alert" aria-live="assertive"/)
+    assert.match(map, /\$emit\("layer-auth-error", error\)/)
 })
 
 test('normaliza bbox y centroide WGS84 para encuadrar la vista previa', () => {
