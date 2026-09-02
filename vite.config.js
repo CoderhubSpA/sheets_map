@@ -46,7 +46,8 @@ export default defineConfig({
       output: {
         globals: {
           vue: 'Vue',
-          leaflet: 'L'
+          leaflet: 'L',
+          'vue2-leaflet': 'Vue2Leaflet'
         },
         plugins: [renameCssPlugin()]
       }
