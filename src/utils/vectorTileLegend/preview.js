@@ -47,6 +47,34 @@ export function normalizeVectorTileSpatialContext(...sources) {
     return { bbox, centroid }
 }
 
+export const VECTOR_TILE_SPATIAL_FIT = Object.freeze({
+    BOUNDS: 'bounds',
+    POINT: 'point',
+    CENTROID: 'centroid',
+})
+
+/**
+ * Decide cómo encuadrar una capa a partir de su contexto espacial normalizado.
+ * Las coordenadas quedan en orden lon/lat; cada mapa (MapLibre o Leaflet)
+ * traduce el resultado y aplica sus propios límites de zoom.
+ */
+export function resolveVectorTileSpatialFit({ bbox = null, centroid = null } = {}) {
+    if (!bbox) {
+        return centroid ? { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: centroid } : null
+    }
+
+    const [minX, minY, maxX, maxY] = bbox
+    if (minX === maxX && minY === maxY) {
+        return { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: centroid || [minX, minY] }
+    }
+
+    return {
+        type: VECTOR_TILE_SPATIAL_FIT.BOUNDS,
+        bounds: [[minX, minY], [maxX, maxY]],
+        center: centroid,
+    }
+}
+
 function semanticLegendFromDraft(draft = {}, semanticLegend = null) {
     const base = semanticLegend && typeof semanticLegend === 'object' ? semanticLegend : {}
     const items = Array.isArray(draft.items) ? draft.items : []

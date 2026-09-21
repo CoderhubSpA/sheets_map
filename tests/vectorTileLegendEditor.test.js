@@ -16,6 +16,8 @@ import {
     buildVectorTilePreviewLayers,
     buildVectorTilePreviewRenderState,
     normalizeVectorTileSpatialContext,
+    resolveVectorTileSpatialFit,
+    VECTOR_TILE_SPATIAL_FIT,
 } from '../src/utils/vectorTileLegend/preview.js'
 import {
     buildVectorTileSemanticRenderState,
@@ -837,7 +839,7 @@ test('el preview carga solamente tiles visibles y reacciona al completar la leye
     assert.match(preview, /type:\s*'raster'[\s\S]*tile\.openstreetmap/s)
     assert.match(preview, /querySourceFeatures[\s\S]*\.slice\(0, 200\)/)
     assert.match(preview, /fitToSpatialContext\(\)/)
-    assert.match(preview, /fitBounds\(\[\[minX, minY\], \[maxX, maxY\]\]/)
+    assert.match(preview, /resolveVectorTileSpatialFit\(this\.viewport\)[\s\S]*fitBounds\(fit\.bounds/s)
     assert.match(preview, /center:\s*this\.viewport\.centroid \|\| INITIAL_CENTER/)
     assert.match(preview, /semanticLegend:\s*\{[\s\S]*deep:\s*true[\s\S]*scheduleLiveStyle/s)
     assert.match(preview, /requestAnimationFrame[\s\S]*applyLiveStyle/s)
@@ -886,6 +888,23 @@ test('normaliza bbox y centroide WGS84 para encuadrar la vista previa', () => {
         ),
         { bbox: [-71, -35, -70, -34], centroid: [-70.5, -34.5] },
     )
+})
+
+test('resuelve el encuadre de una capa según su contexto espacial', () => {
+    assert.deepEqual(
+        resolveVectorTileSpatialFit({ bbox: [-72, -36, -70, -34], centroid: [-71, -35] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.BOUNDS, bounds: [[-72, -36], [-70, -34]], center: [-71, -35] },
+    )
+    assert.deepEqual(
+        resolveVectorTileSpatialFit({ bbox: [-71, -35, -71, -35], centroid: null }),
+        { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35] },
+    )
+    assert.deepEqual(
+        resolveVectorTileSpatialFit({ bbox: null, centroid: [-70.5, -34.5] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-70.5, -34.5] },
+    )
+    assert.equal(resolveVectorTileSpatialFit({ bbox: null, centroid: null }), null)
+    assert.equal(resolveVectorTileSpatialFit(), null)
 })
 
 test('la vista previa conserva separación inferior uniforme', () => {
