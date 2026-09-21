@@ -16,7 +16,10 @@ import {
     buildVectorTilePreviewLayers,
     buildVectorTilePreviewRenderState,
     normalizeVectorTileSpatialContext,
+    LEAFLET_LAYER_FIT_ZOOM,
+    latestLayerFitRequest,
     resolveVectorTileSpatialFit,
+    toLeafletSpatialFit,
     VECTOR_TILE_SPATIAL_FIT,
 } from '../src/utils/vectorTileLegend/preview.js'
 import {
@@ -905,6 +908,33 @@ test('resuelve el encuadre de una capa según su contexto espacial', () => {
     )
     assert.equal(resolveVectorTileSpatialFit({ bbox: null, centroid: null }), null)
     assert.equal(resolveVectorTileSpatialFit(), null)
+})
+
+test('traduce el encuadre de la capa al orden lat/lon de Leaflet', () => {
+    assert.deepEqual(
+        toLeafletSpatialFit({ type: VECTOR_TILE_SPATIAL_FIT.BOUNDS, bounds: [[-72, -36], [-70, -34]], center: [-71, -35] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.BOUNDS, bounds: [[-36, -72], [-34, -70]] },
+    )
+    assert.deepEqual(
+        toLeafletSpatialFit({ type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-35, -71], zoom: LEAFLET_LAYER_FIT_ZOOM.POINT },
+    )
+    assert.deepEqual(
+        toLeafletSpatialFit({ type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-70.5, -34.5] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-34.5, -70.5], zoom: LEAFLET_LAYER_FIT_ZOOM.CENTROID },
+    )
+    assert.equal(toLeafletSpatialFit(null), null)
+})
+
+test('elige el pedido de encuadre más reciente entre las capas', () => {
+    const older = { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35], timestamp: 100 }
+    const newer = { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-70, -34], timestamp: 200 }
+    assert.equal(
+        latestLayerFitRequest([{ fitRequest: older }, { fitRequest: null }, { fitRequest: newer }]),
+        newer,
+    )
+    assert.equal(latestLayerFitRequest([{ fitRequest: null }, {}]), null)
+    assert.equal(latestLayerFitRequest(undefined), null)
 })
 
 test('la vista previa conserva separación inferior uniforme', () => {

@@ -345,6 +345,12 @@ import {
 } from "../utils/mapZoom";
 import { MAP_ACTION_CONTRACTS } from "../utils/mapActionContracts";
 import {
+    LEAFLET_LAYER_FIT_ZOOM,
+    latestLayerFitRequest,
+    toLeafletSpatialFit,
+    VECTOR_TILE_SPATIAL_FIT,
+} from "../utils/vectorTileLegend/preview";
+import {
     cloneMapRuntimeValue,
     createMapBootstrapActions,
     createMapRuntimeSnapshot,
@@ -379,6 +385,8 @@ import {
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
 const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
 const DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM = 19;
+// Margen para que el encuadre no quede bajo el panel de capas ni los controles de zoom.
+const LAYER_FIT_PADDING = Object.freeze([64, 64]);
 const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
 
 function hasValidMapConfigValue(value) {
@@ -465,6 +473,8 @@ export default {
             base_tile_max_zoom: undefined,
             base_tile_max_native_zoom: undefined,
             external_view_override: false,
+            // Evita repetir un encuadre ya atendido cuando working_layers cambia por otra razón.
+            handled_fit_request_timestamp: latestLayerFitRequest(this.working_layers)?.timestamp || 0,
             center_default: [...DEFAULT_MAP_CENTER],
             center: [...DEFAULT_MAP_CENTER],
             center_parsed: "",
@@ -1346,6 +1356,13 @@ export default {
         analytic_cluster() {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
+        working_layers(layers) {
+            const request = latestLayerFitRequest(layers);
+            if (!request || request.timestamp <= this.handled_fit_request_timestamp) return;
+
+            this.handled_fit_request_timestamp = request.timestamp;
+            this.fitLayerExtent(request);
+        },
         zoom(newZoom) {
             this.search_new_titles = true;
             if (
@@ -1816,6 +1833,21 @@ export default {
                 this.clearLocationMarker();
             }
             this.map.flyTo(latLng, this.clampMapZoom(zoom || 12), options.leaflet || {});
+        },
+        fitLayerExtent(fitRequest) {
+            const fit = toLeafletSpatialFit(fitRequest);
+            if (!this.map || !fit) return;
+
+            this.external_view_override = true;
+            this.clearLocationMarker();
+            if (fit.type === VECTOR_TILE_SPATIAL_FIT.BOUNDS) {
+                this.map.flyToBounds(fit.bounds, {
+                    padding: LAYER_FIT_PADDING,
+                    maxZoom: this.clampMapZoom(LEAFLET_LAYER_FIT_ZOOM.POINT),
+                });
+                return;
+            }
+            this.map.flyTo(fit.center, this.clampMapZoom(fit.zoom));
         },
         zoomMap(zoom) {
             const delta = zoom === "out" ? -1 : 1;
