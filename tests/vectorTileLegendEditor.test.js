@@ -18,6 +18,7 @@ import {
     normalizeVectorTileSpatialContext,
     LEAFLET_LAYER_FIT_ZOOM,
     latestLayerFitRequest,
+    resolveLayerFitToApply,
     resolveVectorTileSpatialFit,
     toLeafletSpatialFit,
     VECTOR_TILE_SPATIAL_FIT,
@@ -935,6 +936,31 @@ test('elige el pedido de encuadre más reciente entre las capas', () => {
     )
     assert.equal(latestLayerFitRequest([{ fitRequest: null }, {}]), null)
     assert.equal(latestLayerFitRequest(undefined), null)
+})
+
+test('conserva el pedido de encuadre hasta que el mapa puede aplicarlo', () => {
+    const request = { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35], timestamp: 500 }
+    const layers = [{ fitRequest: request }]
+
+    // El pedido llega antes de que Leaflet esté listo: no se aplica ni se da por atendido.
+    assert.equal(resolveLayerFitToApply({ layers, handledTimestamp: 0, isMapReady: false }), null)
+    // Cuando el mapa queda listo, el mismo pedido sigue disponible.
+    assert.equal(resolveLayerFitToApply({ layers, handledTimestamp: 0, isMapReady: true }), request)
+    // Ya atendido: no se repite aunque working_layers cambie por otra razón.
+    assert.equal(resolveLayerFitToApply({ layers, handledTimestamp: 500, isMapReady: true }), null)
+    assert.equal(resolveLayerFitToApply({ layers: [], handledTimestamp: 0, isMapReady: true }), null)
+})
+
+test('el encuadre de capa no registra el error completo de axios', () => {
+    const tools = readFileSync(
+        new URL('../src/components/SheetsMapTools.vue', import.meta.url),
+        'utf8',
+    )
+    const centerLayer = tools.slice(tools.indexOf('async centerLayer('), tools.indexOf('applyVectorTileSettings('))
+
+    // error.config.headers conserva el Authorization de las capas restringidas.
+    assert.match(centerLayer, /console\.warn\([^)]*error\?\.message[^)]*error\?\.response\?\.status/s)
+    assert.doesNotMatch(centerLayer, /console\.warn\([^)]*,\s*error\s*\)/)
 })
 
 test('la vista previa conserva separación inferior uniforme', () => {

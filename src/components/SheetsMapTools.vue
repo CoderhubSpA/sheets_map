@@ -631,7 +631,9 @@ export default {
                 }
                 this.$set(this.layer_fit_requests, option.key, { ...fit, timestamp: Date.now() });
             } catch (error) {
-                console.warn("No fue posible obtener la extensión de la capa", option.key, error);
+                // error.config conserva el Authorization de las capas restringidas: se
+                // registran solo campos seguros.
+                console.warn("No fue posible obtener la extensión de la capa", option.key, error?.message, error?.response?.status);
                 this.$set(this.layer_fit_errors, option.key, "No fue posible obtener la extensión de la capa.");
             } finally {
                 this.$delete(this.centering_layers, option.key);

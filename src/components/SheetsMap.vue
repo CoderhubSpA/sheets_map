@@ -347,6 +347,7 @@ import { MAP_ACTION_CONTRACTS } from "../utils/mapActionContracts";
 import {
     LEAFLET_LAYER_FIT_ZOOM,
     latestLayerFitRequest,
+    resolveLayerFitToApply,
     toLeafletSpatialFit,
     VECTOR_TILE_SPATIAL_FIT,
 } from "../utils/vectorTileLegend/preview";
@@ -1356,12 +1357,8 @@ export default {
         analytic_cluster() {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
-        working_layers(layers) {
-            const request = latestLayerFitRequest(layers);
-            if (!request || request.timestamp <= this.handled_fit_request_timestamp) return;
-
-            this.handled_fit_request_timestamp = request.timestamp;
-            this.fitLayerExtent(request);
+        working_layers() {
+            this.applyPendingLayerFit();
         },
         zoom(newZoom) {
             this.search_new_titles = true;
@@ -1834,9 +1831,22 @@ export default {
             }
             this.map.flyTo(latLng, this.clampMapZoom(zoom || 12), options.leaflet || {});
         },
+        // El pedido solo se da por atendido cuando el mapa pudo aplicarlo; si llega
+        // antes de que Leaflet esté listo, queda pendiente hasta ready().
+        applyPendingLayerFit() {
+            const request = resolveLayerFitToApply({
+                layers: this.working_layers,
+                handledTimestamp: this.handled_fit_request_timestamp,
+                isMapReady: Boolean(this.map),
+            });
+            if (!request) return;
+
+            this.handled_fit_request_timestamp = request.timestamp;
+            this.fitLayerExtent(request);
+        },
         fitLayerExtent(fitRequest) {
             const fit = toLeafletSpatialFit(fitRequest);
-            if (!this.map || !fit) return;
+            if (!fit) return;
 
             this.external_view_override = true;
             this.clearLocationMarker();
@@ -1875,6 +1885,7 @@ export default {
             });
             this.map_resize_observer.observe(this.$refs.map_container);
             this.map_resize_observer.observe(document.body);
+            this.applyPendingLayerFit();
 
             // Actualizar zoom y tamaño del marcador al hacer zoom
             this.map.on("zoomend", () => {

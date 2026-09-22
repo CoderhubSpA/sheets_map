@@ -115,6 +115,19 @@ export function latestLayerFitRequest(layers = []) {
     }, null)
 }
 
+/**
+ * Devuelve el pedido que corresponde aplicar, o null. El pedido se conserva
+ * mientras el mapa no esté listo: recién atendido puede darse por consumido.
+ */
+export function resolveLayerFitToApply({ layers = [], handledTimestamp = 0, isMapReady = false } = {}) {
+    if (!isMapReady) return null
+
+    const request = latestLayerFitRequest(layers)
+    if (!request || request.timestamp <= handledTimestamp) return null
+
+    return request
+}
+
 function semanticLegendFromDraft(draft = {}, semanticLegend = null) {
     const base = semanticLegend && typeof semanticLegend === 'object' ? semanticLegend : {}
     const items = Array.isArray(draft.items) ? draft.items : []
