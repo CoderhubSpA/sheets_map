@@ -47,7 +47,17 @@ const layer = {
 
 test('detecta únicamente capas Vector Tiles XYZ', () => {
     assert.equal(isVectorTileSymbologyEligible(layer), true)
+    assert.equal(isVectorTileSymbologyEligible({
+        code: null,
+        url: 'https://agcid01-geoserver.chdev.cl/vector/tiles/capa_eod',
+    }), true)
+    assert.equal(isVectorTileSymbologyEligible({
+        sh_map_has_layer_code: { gen_code: 'operative_vector_tiles_xyz' },
+    }), true)
     assert.equal(isVectorTileSymbologyEligible({ sh_map_has_layer_code: 'operative_geoserver_wms' }), false)
+    assert.equal(isVectorTileSymbologyEligible({
+        url: 'https://agcid01-geoserver.chdev.cl/geoserver/wms',
+    }), false)
 })
 
 test('crea defaults seguros cuando legend_config es inválido', () => {
@@ -904,16 +914,25 @@ test('el modal mantiene header y footer visibles con body scroll en viewports ba
     )
     assert.match(component, /modal-class="vector-tile-settings-modal"/)
     assert.match(component, /dialog-class="vector-tile-settings-dialog"/)
+    assert.match(component, /content-class="vector-tile-settings-content"/)
     assert.match(component, /body-class="vector-tile-settings-body"/)
     assert.match(component, /hide-footer/)
     assert.match(component, /<footer class="settings-footer">/)
-    assert.match(component, /max-height:\s*calc\(100dvh - 1rem\)/)
+    assert.match(component, /height:\s*calc\(100dvh - 1rem\)/)
     assert.match(component, /\.vector-tile-settings-body\s*\{[^}]*overflow:\s*hidden/s)
     assert.match(component, /\.settings-workspace\s*\{[^}]*overflow-y:\s*auto/s)
-    assert.match(component, /\.vector-tile-settings-modal\s*\{[^}]*overflow:\s*hidden/s)
-    assert.match(component, /scrollbar-width:\s*none/)
-    assert.match(component, /\.vector-tile-settings-body::-webkit-scrollbar\s*\{[^}]*width:\s*0/s)
+    assert.match(component, /\.modal-open \.modal\.vector-tile-settings-modal\s*\{[^}]*overflow-y:\s*hidden\s*!important[^}]*padding-right:\s*0\s*!important/s)
+    assert.match(component, /\.vector-tile-settings-dialog\.modal-dialog\s*\{[^}]*width:\s*auto[^}]*max-width:\s*min\(1440px, calc\(100vw - 32px\)\)[^}]*margin-top:\s*1rem[^}]*margin-bottom:\s*1rem[^}]*overflow:\s*hidden/s)
+    assert.match(component, /\.vector-tile-settings-content\s*\{[^}]*max-height:\s*calc\(100dvh - 2rem\)[^}]*overflow:\s*hidden/s)
+    assert.doesNotMatch(component, /vector-tile-settings-content--(?:symbology|filters)/)
+    assert.match(component, /\.settings-workspace\s*\{[^}]*scrollbar-width:\s*thin/s)
+    assert.match(component, /\.settings-workspace::-webkit-scrollbar\s*\{[^}]*width:\s*8px/s)
+    assert.match(component, /\.settings-workspace\s*\{[^}]*touch-action:\s*pan-y/s)
+    assert.doesNotMatch(component, /scrollbar-width:\s*none/)
     assert.match(component, /\.modal-header,[\s\S]*\.modal-footer\s*\{[^}]*flex:\s*0 0 auto/s)
+    assert.match(component, /\.modal-header\s*\{[^}]*align-items:\s*center[^}]*min-height:\s*64px[^}]*padding:\s*0 24px/s)
+    assert.match(component, /\.modal-header \.close\s*\{[^}]*height:\s*40px[^}]*align-items:\s*center[^}]*margin:\s*0 0 0 auto[^}]*padding:\s*0/s)
+    assert.match(component, /\.settings-footer\s*\{[^}]*padding:\s*12px 24px max\(20px, env\(safe-area-inset-bottom\)\)/s)
 })
 
 test('el editor profesional separa pestañas, preview, trazos y colores de clases', () => {

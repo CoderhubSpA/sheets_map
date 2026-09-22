@@ -52,7 +52,28 @@ function isFiniteNumberValue(value) {
 }
 
 export function isVectorTileSymbologyEligible(layer = {}) {
-    return layer.sh_map_has_layer_code === VECTOR_TILE_CODE || layer.code === VECTOR_TILE_CODE
+    const layerCodes = [
+        layer.sh_map_has_layer_code,
+        layer.code,
+        layer.map_layer_type_code,
+        layer.layerTypeCode,
+    ].flatMap((value) => {
+        if (typeof value === 'string') return [value]
+        if (!value || typeof value !== 'object') return []
+
+        return [value.gen_code, value.code, value.value]
+    })
+
+    if (layerCodes.some(code => String(code || '').trim() === VECTOR_TILE_CODE)) {
+        return true
+    }
+
+    // En algunas respuestas del Visor Maestro el código calculado del tipo de
+    // capa no llega al cliente, aunque la URL operativa sí. El endpoint
+    // /vector/tiles/ identifica inequívocamente las capas XYZ soportadas por
+    // este editor y evita degradarlas al popover legacy.
+    const layerUrl = layer.sh_map_has_layer_url || layer.url || layer.layer_url || ''
+    return /(?:^|\/)vector\/tiles(?:\/|$)/i.test(String(layerUrl))
 }
 
 export function createVectorTileLegendDraft(layer = {}, defaultLegend = null) {
