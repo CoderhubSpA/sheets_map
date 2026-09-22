@@ -345,6 +345,13 @@ import {
 } from "../utils/mapZoom";
 import { MAP_ACTION_CONTRACTS } from "../utils/mapActionContracts";
 import {
+    LEAFLET_LAYER_FIT_ZOOM,
+    latestLayerFitRequest,
+    resolveLayerFitToApply,
+    toLeafletSpatialFit,
+    VECTOR_TILE_SPATIAL_FIT,
+} from "../utils/vectorTileLegend/preview";
+import {
     cloneMapRuntimeValue,
     createMapBootstrapActions,
     createMapRuntimeSnapshot,
@@ -379,6 +386,8 @@ import {
 const DEFAULT_MAP_CENTER = Object.freeze([-33.472, -70.769]);
 const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
 const DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM = 19;
+// Margen para que el encuadre no quede bajo el panel de capas ni los controles de zoom.
+const LAYER_FIT_PADDING = Object.freeze([64, 64]);
 const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
 
 function hasValidMapConfigValue(value) {
@@ -465,6 +474,8 @@ export default {
             base_tile_max_zoom: undefined,
             base_tile_max_native_zoom: undefined,
             external_view_override: false,
+            // Evita repetir un encuadre ya atendido cuando working_layers cambia por otra razón.
+            handled_fit_request_timestamp: latestLayerFitRequest(this.working_layers)?.timestamp || 0,
             center_default: [...DEFAULT_MAP_CENTER],
             center: [...DEFAULT_MAP_CENTER],
             center_parsed: "",
@@ -1346,6 +1357,9 @@ export default {
         analytic_cluster() {
             this.analytic_cluster_initial_zoom = this.zoom;
         },
+        working_layers() {
+            this.applyPendingLayerFit();
+        },
         zoom(newZoom) {
             this.search_new_titles = true;
             if (
@@ -1817,6 +1831,34 @@ export default {
             }
             this.map.flyTo(latLng, this.clampMapZoom(zoom || 12), options.leaflet || {});
         },
+        // El pedido solo se da por atendido cuando el mapa pudo aplicarlo; si llega
+        // antes de que Leaflet esté listo, queda pendiente hasta ready().
+        applyPendingLayerFit() {
+            const request = resolveLayerFitToApply({
+                layers: this.working_layers,
+                handledTimestamp: this.handled_fit_request_timestamp,
+                isMapReady: Boolean(this.map),
+            });
+            if (!request) return;
+
+            this.handled_fit_request_timestamp = request.timestamp;
+            this.fitLayerExtent(request);
+        },
+        fitLayerExtent(fitRequest) {
+            const fit = toLeafletSpatialFit(fitRequest);
+            if (!fit) return;
+
+            this.external_view_override = true;
+            this.clearLocationMarker();
+            if (fit.type === VECTOR_TILE_SPATIAL_FIT.BOUNDS) {
+                this.map.flyToBounds(fit.bounds, {
+                    padding: LAYER_FIT_PADDING,
+                    maxZoom: this.clampMapZoom(LEAFLET_LAYER_FIT_ZOOM.POINT),
+                });
+                return;
+            }
+            this.map.flyTo(fit.center, this.clampMapZoom(fit.zoom));
+        },
         zoomMap(zoom) {
             const delta = zoom === "out" ? -1 : 1;
             this.zoom = this.clampMapZoom(this.zoom + delta);
@@ -1836,10 +1878,14 @@ export default {
             this.map = this.$refs.my_map.mapObject;
             this.updateMapViewportHeight();
 
+            // Observar también el body: cuando el layout del host termina de acomodarse,
+            // el mapa cambia de posición sin cambiar de tamaño y su altura debe recalcularse.
             this.map_resize_observer = new ResizeObserver(() => {
-                this.map.invalidateSize(false);
+                this.updateMapViewportHeight();
             });
             this.map_resize_observer.observe(this.$refs.map_container);
+            this.map_resize_observer.observe(document.body);
+            this.applyPendingLayerFit();
 
             // Actualizar zoom y tamaño del marcador al hacer zoom
             this.map.on("zoomend", () => {

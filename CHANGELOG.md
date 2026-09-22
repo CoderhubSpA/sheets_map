@@ -3,6 +3,21 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 versionado según [SemVer](https://semver.org/lang/es/).
 
+## [1.58.0] - 2026-09-22
+
+### Added
+
+- Botón «Centrar capa» en las capas Vector Tiles del control de capas, a la izquierda de
+  «Descargar capa». Encuadra la extensión completa de la capa usando el `bbox` de
+  `/vector/layers/{layer}/attributes`, respeta los límites de zoom del mapa, no altera la
+  visibilidad, la simbología ni los filtros de la capa y muestra el motivo en la fila cuando la capa
+  no informa extensión o la consulta falla.
+
+### Fixed
+
+- El mapa ya no queda con 320 px de alto al cargar el visor: la altura se recalcula cuando el
+  layout del host termina de acomodarse, sin necesidad de redimensionar la ventana.
+
 ## [1.57.0] - 2026-08-31
 
 ### Added
