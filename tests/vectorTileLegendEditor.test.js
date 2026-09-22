@@ -1008,7 +1008,12 @@ test('la leyenda y el mapa se ajustan al viewport sin depender del zoom del nave
     const legend = readFileSync(new URL('../src/components/layers/VectorTileLegend.vue', import.meta.url), 'utf8')
 
     assert.match(map, /updateMapViewportHeight\(\)/)
-    assert.match(map, /window\.innerHeight - top/)
+    assert.match(map, /scheduleMapViewportHeightUpdate\(\)/)
+    assert.match(map, /window\.visualViewport\.height \+ window\.visualViewport\.offsetTop/)
+    assert.match(map, /\[100, 300, 700, 1500\]/)
+    assert.match(map, /document\.fonts\?\.ready\?\.then\(this\.viewport_resize_handler\)/)
+    assert.match(map, /this\.map_resize_observer\.observe\(this\.\$el\.parentElement\)/)
+    assert.match(map, /class="sheets-map-root" :style="\[css_vars, mapViewportStyle\]"/)
     assert.match(map, /height:\s*var\(--sh-map-available-height,\s*96dvh\)/)
     assert.match(map, /\.sheets-map-legend\s*\{[^}]*max-height:[^;}]+[^}]*overflow-y:\s*auto/s)
     assert.match(legend, /isPolygonGeometry\(\)/)
