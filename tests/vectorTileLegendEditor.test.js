@@ -16,6 +16,12 @@ import {
     buildVectorTilePreviewLayers,
     buildVectorTilePreviewRenderState,
     normalizeVectorTileSpatialContext,
+    LEAFLET_LAYER_FIT_ZOOM,
+    latestLayerFitRequest,
+    resolveLayerFitToApply,
+    resolveVectorTileSpatialFit,
+    toLeafletSpatialFit,
+    VECTOR_TILE_SPATIAL_FIT,
 } from '../src/utils/vectorTileLegend/preview.js'
 import {
     buildVectorTileSemanticRenderState,
@@ -860,7 +866,7 @@ test('el preview carga solamente tiles visibles y reacciona al completar la leye
     assert.match(preview, /type:\s*'raster'[\s\S]*tile\.openstreetmap/s)
     assert.match(preview, /querySourceFeatures[\s\S]*\.slice\(0, 200\)/)
     assert.match(preview, /fitToSpatialContext\(\)/)
-    assert.match(preview, /fitBounds\(\[\[minX, minY\], \[maxX, maxY\]\]/)
+    assert.match(preview, /resolveVectorTileSpatialFit\(this\.viewport\)[\s\S]*fitBounds\(fit\.bounds/s)
     assert.match(preview, /center:\s*this\.viewport\.centroid \|\| INITIAL_CENTER/)
     assert.match(preview, /semanticLegend:\s*\{[\s\S]*deep:\s*true[\s\S]*scheduleLiveStyle/s)
     assert.match(preview, /requestAnimationFrame[\s\S]*applyLiveStyle/s)
@@ -909,6 +915,75 @@ test('normaliza bbox y centroide WGS84 para encuadrar la vista previa', () => {
         ),
         { bbox: [-71, -35, -70, -34], centroid: [-70.5, -34.5] },
     )
+})
+
+test('resuelve el encuadre de una capa según su contexto espacial', () => {
+    assert.deepEqual(
+        resolveVectorTileSpatialFit({ bbox: [-72, -36, -70, -34], centroid: [-71, -35] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.BOUNDS, bounds: [[-72, -36], [-70, -34]], center: [-71, -35] },
+    )
+    assert.deepEqual(
+        resolveVectorTileSpatialFit({ bbox: [-71, -35, -71, -35], centroid: null }),
+        { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35] },
+    )
+    assert.deepEqual(
+        resolveVectorTileSpatialFit({ bbox: null, centroid: [-70.5, -34.5] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-70.5, -34.5] },
+    )
+    assert.equal(resolveVectorTileSpatialFit({ bbox: null, centroid: null }), null)
+    assert.equal(resolveVectorTileSpatialFit(), null)
+})
+
+test('traduce el encuadre de la capa al orden lat/lon de Leaflet', () => {
+    assert.deepEqual(
+        toLeafletSpatialFit({ type: VECTOR_TILE_SPATIAL_FIT.BOUNDS, bounds: [[-72, -36], [-70, -34]], center: [-71, -35] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.BOUNDS, bounds: [[-36, -72], [-34, -70]] },
+    )
+    assert.deepEqual(
+        toLeafletSpatialFit({ type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-35, -71], zoom: LEAFLET_LAYER_FIT_ZOOM.POINT },
+    )
+    assert.deepEqual(
+        toLeafletSpatialFit({ type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-70.5, -34.5] }),
+        { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-34.5, -70.5], zoom: LEAFLET_LAYER_FIT_ZOOM.CENTROID },
+    )
+    assert.equal(toLeafletSpatialFit(null), null)
+})
+
+test('elige el pedido de encuadre más reciente entre las capas', () => {
+    const older = { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35], timestamp: 100 }
+    const newer = { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: [-70, -34], timestamp: 200 }
+    assert.equal(
+        latestLayerFitRequest([{ fitRequest: older }, { fitRequest: null }, { fitRequest: newer }]),
+        newer,
+    )
+    assert.equal(latestLayerFitRequest([{ fitRequest: null }, {}]), null)
+    assert.equal(latestLayerFitRequest(undefined), null)
+})
+
+test('conserva el pedido de encuadre hasta que el mapa puede aplicarlo', () => {
+    const request = { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: [-71, -35], timestamp: 500 }
+    const layers = [{ fitRequest: request }]
+
+    // El pedido llega antes de que Leaflet esté listo: no se aplica ni se da por atendido.
+    assert.equal(resolveLayerFitToApply({ layers, handledTimestamp: 0, isMapReady: false }), null)
+    // Cuando el mapa queda listo, el mismo pedido sigue disponible.
+    assert.equal(resolveLayerFitToApply({ layers, handledTimestamp: 0, isMapReady: true }), request)
+    // Ya atendido: no se repite aunque working_layers cambie por otra razón.
+    assert.equal(resolveLayerFitToApply({ layers, handledTimestamp: 500, isMapReady: true }), null)
+    assert.equal(resolveLayerFitToApply({ layers: [], handledTimestamp: 0, isMapReady: true }), null)
+})
+
+test('el encuadre de capa no registra el error completo de axios', () => {
+    const tools = readFileSync(
+        new URL('../src/components/SheetsMapTools.vue', import.meta.url),
+        'utf8',
+    )
+    const centerLayer = tools.slice(tools.indexOf('async centerLayer('), tools.indexOf('applyVectorTileSettings('))
+
+    // error.config.headers conserva el Authorization de las capas restringidas.
+    assert.match(centerLayer, /console\.warn\([^)]*error\?\.message[^)]*error\?\.response\?\.status/s)
+    assert.doesNotMatch(centerLayer, /console\.warn\([^)]*,\s*error\s*\)/)
 })
 
 test('la vista previa conserva separación inferior uniforme', () => {
@@ -1046,6 +1121,9 @@ test('la leyenda y el mapa se ajustan al viewport sin depender del zoom del nave
     assert.match(map, /document\.fonts\?\.ready\?\.then\(this\.viewport_resize_handler\)/)
     assert.match(map, /this\.map_resize_observer\.observe\(this\.\$el\.parentElement\)/)
     assert.match(map, /class="sheets-map-root" :style="\[css_vars, mapViewportStyle\]"/)
+    // La posición del mapa cambia cuando el layout del host termina de acomodarse.
+    assert.match(map, /new ResizeObserver\(\(\) => \{\s*this\.scheduleMapViewportHeightUpdate\(\);/)
+    assert.match(map, /map_resize_observer\.observe\(document\.body\)/)
     assert.match(map, /height:\s*var\(--sh-map-available-height,\s*96dvh\)/)
     assert.match(map, /\.sheets-map-legend\s*\{[^}]*max-height:[^;}]+[^}]*overflow-y:\s*auto/s)
     assert.match(legend, /isPolygonGeometry\(\)/)

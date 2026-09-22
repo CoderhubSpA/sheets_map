@@ -81,7 +81,7 @@ flowchart TD
 | `vectorTileLegend/editor.js` | Crea, valida y serializa el borrador con orden determinista. |
 | `vectorTileLegend/config.js` | Normaliza configuraciones v2 y mantiene compatibilidad con claves anteriores. |
 | `vectorTileLegend/style.js` | Traduce el contrato a expresiones MapLibre para polígonos, líneas y puntos. |
-| `vectorTileLegend/preview.js` | Adapta el borrador al render state de producción, normaliza `bbox`/`centroid` y crea una capa por tipo geométrico. |
+| `vectorTileLegend/preview.js` | Adapta el borrador al render state de producción, normaliza `bbox`/`centroid`, resuelve el encuadre compartido con [Centrar capa](centrar-capa-vector-tiles.md) y crea una capa por tipo geométrico. |
 | `VectorTileLayer.vue` | Aplica URL filtrada, estilos, símbolos y actualización de leyenda en runtime. |
 | `VectorTileLegend.vue` | Presenta título, descripción, clases y trazo de línea. |
 | `clipboard.js` | Implementa Clipboard API, timeout, fallback con `textarea` y resultado accesible. |

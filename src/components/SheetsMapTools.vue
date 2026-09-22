@@ -67,6 +67,16 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
+                                    <button
+                                        v-if="isVectorTileLayer(option)"
+                                        type="button"
+                                        class="layer-settings-button"
+                                        title="Centrar capa"
+                                        :aria-label="`Centrar capa ${option.value}`"
+                                        :aria-busy="Boolean(centering_layers[option.key])"
+                                        :disabled="Boolean(centering_layers[option.key])"
+                                        @click.stop="centerLayer(option)"
+                                    ><b-icon :icon="centering_layers[option.key] ? 'arrow-repeat' : 'bullseye'" :animation="centering_layers[option.key] ? 'spin' : ''" aria-hidden="true"></b-icon></button>
                                     <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value, option)"></b-icon>
                                     <button
                                         type="button"
@@ -78,6 +88,7 @@
                                 </div>
                                 <div class="layer-option-body">
                                     <span>{{ option.value }}</span>
+                                    <small v-if="layer_fit_errors[option.key]" class="layer-fit-error" role="alert">{{ layer_fit_errors[option.key] }}</small>
                                 </div>
                             </div>
                             <b-popover
@@ -186,9 +197,20 @@
                                                 :data-color="option.color"
                                                 :data-text-color="option.text_color"
                                              >{{option.value}}</label>
+                                            <small v-if="layer_fit_errors[option.key]" class="layer-fit-error" role="alert">{{ layer_fit_errors[option.key] }}</small>
                                         </div>
                                         <div>
                                             <span class="layer-download-btn">
+                                                <button
+                                                    v-if="isVectorTileLayer(option)"
+                                                    type="button"
+                                                    class="layer-settings-button"
+                                                    title="Centrar capa"
+                                                    :aria-label="`Centrar capa ${option.value}`"
+                                                    :aria-busy="Boolean(centering_layers[option.key])"
+                                                    :disabled="Boolean(centering_layers[option.key])"
+                                                    @click.stop="centerLayer(option)"
+                                                ><b-icon :icon="centering_layers[option.key] ? 'arrow-repeat' : 'bullseye'" :animation="centering_layers[option.key] ? 'spin' : ''" aria-hidden="true"></b-icon></button>
                                                 <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value, option)"></b-icon>
                                                 <button
                                                     type="button"
@@ -318,6 +340,10 @@ import axios from 'axios';
 import { fetchVectorTileAttributes } from "../services/vectorTileAttributesService";
 import { inferVectorTileLayerNameFromUrl } from "../utils/vectorTileLegend/config";
 import { isVectorTileSymbologyEligible } from "../utils/vectorTileLegend/editor";
+import {
+    normalizeVectorTileSpatialContext,
+    resolveVectorTileSpatialFit,
+} from "../utils/vectorTileLegend/preview";
 import { resolveDownloadFilename } from "../utils/downloadFilename.mjs";
 import VectorTileLayerSettingsModal from "./VectorTileLayerSettingsModal.vue";
 import {
@@ -372,6 +398,10 @@ export default {
             availableAttributesByLayer: {},
             runtimeLegendConfigs: {},
             legendRevisions: {},
+            // AGCID01-31: pedido de encuadre por capa que SheetsMap atiende vía working_layers.
+            layer_fit_requests: {},
+            centering_layers: {},
+            layer_fit_errors: {},
             selectedVectorTileLayer: null,
             showVectorTileSettings: false,
             active_base_layers: '',
@@ -426,6 +456,7 @@ export default {
                         legendRevision: this.legendRevisions[layer.id] || 0,
                         filterAttribute: this.layer_filters[layer.id]?.attribute || '',
                         filterValue: this.layer_filters[layer.id]?.value ?? '',
+                        fitRequest: this.layer_fit_requests[layer.id] || null,
                     };
                 }
             ).sort(
@@ -577,6 +608,36 @@ export default {
             if (!this.isVectorTileLayer(layer)) return;
             this.selectedVectorTileLayer = { ...layer };
             this.showVectorTileSettings = true;
+        },
+
+        async centerLayer(option) {
+            if (this.centering_layers[option.key]) return;
+
+            this.$set(this.centering_layers, option.key, true);
+            this.$delete(this.layer_fit_errors, option.key);
+            try {
+                const layerName = option.geoserverLayer || inferVectorTileLayerNameFromUrl(option.url);
+                const attributes = layerName
+                    ? await fetchVectorTileAttributes({
+                        tileUrl: option.url,
+                        layerName,
+                        requestAuth: this.requestAuthForLayer(option),
+                    })
+                    : null;
+                const fit = resolveVectorTileSpatialFit(normalizeVectorTileSpatialContext(attributes));
+                if (!fit) {
+                    this.$set(this.layer_fit_errors, option.key, "La capa no informa su extensión; se conserva la vista actual.");
+                    return;
+                }
+                this.$set(this.layer_fit_requests, option.key, { ...fit, timestamp: Date.now() });
+            } catch (error) {
+                // error.config conserva el Authorization de las capas restringidas: se
+                // registran solo campos seguros.
+                console.warn("No fue posible obtener la extensión de la capa", option.key, error?.message, error?.response?.status);
+                this.$set(this.layer_fit_errors, option.key, "No fue posible obtener la extensión de la capa.");
+            } finally {
+                this.$delete(this.centering_layers, option.key);
+            }
         },
 
         applyVectorTileSettings(settings) {
@@ -1059,6 +1120,15 @@ export default {
 .layer-settings-button:focus-visible {
     outline: 2px solid var(--option-active-color);
     outline-offset: 2px;
+}
+
+.layer-settings-button:disabled {
+    cursor: progress;
+}
+
+.layer-fit-error {
+    display: block;
+    color: #b42318;
 }
 
 .subgroup-container {

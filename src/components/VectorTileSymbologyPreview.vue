@@ -49,7 +49,9 @@ import {
     buildVectorTilePreviewLayers,
     buildVectorTilePreviewRenderState,
     normalizeVectorTileSpatialContext,
+    resolveVectorTileSpatialFit,
     VECTOR_TILE_PREVIEW_SOURCE_ID,
+    VECTOR_TILE_SPATIAL_FIT,
 } from '../utils/vectorTileLegend/preview.js'
 import { buildVectorTileTemplateUrl } from '../utils/vectorTileUrl.js'
 import { parsePointShapeImageId } from '../utils/vectorTileLegend/icon.js'
@@ -377,22 +379,20 @@ export default {
         },
         fitToSpatialContext() {
             if (!this.map || !this.mapLoaded) return false
-            const { bbox, centroid } = this.viewport
-            if (centroid) this.map.setCenter(centroid)
-            if (!bbox) {
-                if (!centroid) return false
-                this.autoFitted = true
-                this.map.jumpTo({ center: centroid, zoom: INITIAL_ZOOM })
-                return true
-            }
+            const fit = resolveVectorTileSpatialFit(this.viewport)
+            if (!fit) return false
 
             this.autoFitted = true
-            const [minX, minY, maxX, maxY] = bbox
-            if (minX === maxX && minY === maxY) {
-                this.map.jumpTo({ center: centroid || [minX, minY], zoom: 11 })
+            if (fit.type === VECTOR_TILE_SPATIAL_FIT.CENTROID) {
+                this.map.jumpTo({ center: fit.center, zoom: INITIAL_ZOOM })
                 return true
             }
-            this.map.fitBounds([[minX, minY], [maxX, maxY]], {
+            if (fit.type === VECTOR_TILE_SPATIAL_FIT.POINT) {
+                this.map.jumpTo({ center: fit.center, zoom: 11 })
+                return true
+            }
+            if (fit.center) this.map.setCenter(fit.center)
+            this.map.fitBounds(fit.bounds, {
                 padding: 28,
                 maxZoom: 11,
                 duration: 0,

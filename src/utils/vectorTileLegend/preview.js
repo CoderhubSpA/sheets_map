@@ -47,6 +47,87 @@ export function normalizeVectorTileSpatialContext(...sources) {
     return { bbox, centroid }
 }
 
+export const VECTOR_TILE_SPATIAL_FIT = Object.freeze({
+    BOUNDS: 'bounds',
+    POINT: 'point',
+    CENTROID: 'centroid',
+})
+
+/**
+ * Decide cómo encuadrar una capa a partir de su contexto espacial normalizado.
+ * Las coordenadas quedan en orden lon/lat; cada mapa (MapLibre o Leaflet)
+ * traduce el resultado y aplica sus propios límites de zoom.
+ */
+export function resolveVectorTileSpatialFit({ bbox = null, centroid = null } = {}) {
+    if (!bbox) {
+        return centroid ? { type: VECTOR_TILE_SPATIAL_FIT.CENTROID, center: centroid } : null
+    }
+
+    const [minX, minY, maxX, maxY] = bbox
+    if (minX === maxX && minY === maxY) {
+        return { type: VECTOR_TILE_SPATIAL_FIT.POINT, center: centroid || [minX, minY] }
+    }
+
+    return {
+        type: VECTOR_TILE_SPATIAL_FIT.BOUNDS,
+        bounds: [[minX, minY], [maxX, maxY]],
+        center: centroid,
+    }
+}
+
+// Sin extensión real no hay encuadre posible: un punto se acerca a nivel de
+// calle y un centroide suelto, a nivel de ciudad.
+export const LEAFLET_LAYER_FIT_ZOOM = Object.freeze({
+    POINT: 15,
+    CENTROID: 12,
+})
+
+function toLeafletLatLng([lon, lat]) {
+    return [lat, lon]
+}
+
+/**
+ * Traduce el encuadre (lon/lat) al orden lat/lon que espera Leaflet.
+ */
+export function toLeafletSpatialFit(fit) {
+    if (!fit) return null
+    if (fit.type === VECTOR_TILE_SPATIAL_FIT.BOUNDS) {
+        return { type: fit.type, bounds: fit.bounds.map(toLeafletLatLng) }
+    }
+
+    return {
+        type: fit.type,
+        center: toLeafletLatLng(fit.center),
+        zoom: fit.type === VECTOR_TILE_SPATIAL_FIT.POINT
+            ? LEAFLET_LAYER_FIT_ZOOM.POINT
+            : LEAFLET_LAYER_FIT_ZOOM.CENTROID,
+    }
+}
+
+/**
+ * Devuelve el pedido de encuadre más reciente publicado en working_layers.
+ */
+export function latestLayerFitRequest(layers = []) {
+    return (layers || []).reduce((latest, layer) => {
+        const request = layer?.fitRequest
+        if (!request) return latest
+        return !latest || request.timestamp > latest.timestamp ? request : latest
+    }, null)
+}
+
+/**
+ * Devuelve el pedido que corresponde aplicar, o null. El pedido se conserva
+ * mientras el mapa no esté listo: recién atendido puede darse por consumido.
+ */
+export function resolveLayerFitToApply({ layers = [], handledTimestamp = 0, isMapReady = false } = {}) {
+    if (!isMapReady) return null
+
+    const request = latestLayerFitRequest(layers)
+    if (!request || request.timestamp <= handledTimestamp) return null
+
+    return request
+}
+
 function semanticLegendFromDraft(draft = {}, semanticLegend = null) {
     const base = semanticLegend && typeof semanticLegend === 'object' ? semanticLegend : {}
     const items = Array.isArray(draft.items) ? draft.items : []
