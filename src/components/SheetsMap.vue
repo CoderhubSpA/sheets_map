@@ -1868,10 +1868,13 @@ export default {
             this.map = this.$refs.my_map.mapObject;
             this.updateMapViewportHeight();
 
+            // Observar también el body: cuando el layout del host termina de acomodarse,
+            // el mapa cambia de posición sin cambiar de tamaño y su altura debe recalcularse.
             this.map_resize_observer = new ResizeObserver(() => {
-                this.map.invalidateSize(false);
+                this.updateMapViewportHeight();
             });
             this.map_resize_observer.observe(this.$refs.map_container);
+            this.map_resize_observer.observe(document.body);
 
             // Actualizar zoom y tamaño del marcador al hacer zoom
             this.map.on("zoomend", () => {

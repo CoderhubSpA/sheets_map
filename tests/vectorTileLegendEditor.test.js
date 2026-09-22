@@ -1058,6 +1058,9 @@ test('la leyenda y el mapa se ajustan al viewport sin depender del zoom del nave
 
     assert.match(map, /updateMapViewportHeight\(\)/)
     assert.match(map, /window\.innerHeight - top/)
+    // La posición del mapa cambia cuando el layout del host termina de acomodarse.
+    assert.match(map, /new ResizeObserver\(\(\) => \{\s*this\.updateMapViewportHeight\(\);/)
+    assert.match(map, /map_resize_observer\.observe\(document\.body\)/)
     assert.match(map, /height:\s*var\(--sh-map-available-height,\s*96dvh\)/)
     assert.match(map, /\.sheets-map-legend\s*\{[^}]*max-height:[^;}]+[^}]*overflow-y:\s*auto/s)
     assert.match(legend, /isPolygonGeometry\(\)/)
