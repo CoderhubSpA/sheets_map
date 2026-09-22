@@ -61,7 +61,7 @@ El modal se organiza en las pestañas **Simbología y leyenda** y **Filtros**. L
 
 ### Elegibilidad y contexto
 
-El modal solo se habilita cuando `sh_map_has_layer_code` o su alias local `code` es `operative_vector_tiles_xyz`. La configuración inicial se obtiene desde:
+El modal se habilita cuando alguno de los códigos de tipo disponibles identifica `operative_vector_tiles_xyz`. La URL `/vector/tiles/` sirve como respaldo solo si no existe ningún código de tipo utilizable; un código explícito de otro tipo conserva el popover anterior, aunque la URL contenga ese patrón. La configuración inicial se obtiene desde:
 
 - `sh_map_has_layer_legend_config`, alias de `legend_config`;
 - `sh_map_has_layer_geoserver_layer`, alias de `gen_geoserver_layer`;

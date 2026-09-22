@@ -28,7 +28,7 @@ La edición admite:
 
 | Tema | Comportamiento |
 | --- | --- |
-| Tipo habilitado | Solo capas con código `operative_vector_tiles_xyz`. |
+| Tipo habilitado | Capas con código `operative_vector_tiles_xyz`; la URL `/vector/tiles/` se usa como respaldo solo si no llega ningún código de tipo utilizable. Un código explícito de otro tipo conserva el configurador anterior. |
 | Visor habilitado | En la instalación local actual, este tipo reservado solo está configurado en el Visor Maestro. |
 | Permisos | Los administra el host Sheets. `sheets_map` no decide si el usuario es administrador. |
 | Contexto inicial | Se toma de `sh_map_has_layer_legend_config`, alias de `legend_config`. |

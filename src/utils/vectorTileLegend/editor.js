@@ -64,14 +64,16 @@ export function isVectorTileSymbologyEligible(layer = {}) {
         return [value.gen_code, value.code, value.value]
     })
 
-    if (layerCodes.some(code => String(code || '').trim() === VECTOR_TILE_CODE)) {
-        return true
+    const usableCodes = layerCodes
+        .map(code => String(code ?? '').trim())
+        .filter(Boolean)
+
+    if (usableCodes.length > 0) {
+        return usableCodes.includes(VECTOR_TILE_CODE)
     }
 
-    // En algunas respuestas del Visor Maestro el código calculado del tipo de
-    // capa no llega al cliente, aunque la URL operativa sí. El endpoint
-    // /vector/tiles/ identifica inequívocamente las capas XYZ soportadas por
-    // este editor y evita degradarlas al popover legacy.
+    // La URL solo respalda respuestas sin código de tipo utilizable. Un código
+    // explícito de otro tipo debe conservar su configurador legacy.
     const layerUrl = layer.sh_map_has_layer_url || layer.url || layer.layer_url || ''
     return /(?:^|\/)vector\/tiles(?:\/|$)/i.test(String(layerUrl))
 }

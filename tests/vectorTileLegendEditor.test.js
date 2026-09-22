@@ -52,9 +52,22 @@ test('detecta únicamente capas Vector Tiles XYZ', () => {
         url: 'https://agcid01-geoserver.chdev.cl/vector/tiles/capa_eod',
     }), true)
     assert.equal(isVectorTileSymbologyEligible({
+        code: '  ',
+        sh_map_has_layer_code: { gen_code: '' },
+        url: '/vector/tiles/capa_eod',
+    }), true)
+    assert.equal(isVectorTileSymbologyEligible({
         sh_map_has_layer_code: { gen_code: 'operative_vector_tiles_xyz' },
     }), true)
     assert.equal(isVectorTileSymbologyEligible({ sh_map_has_layer_code: 'operative_geoserver_wms' }), false)
+    assert.equal(isVectorTileSymbologyEligible({
+        sh_map_has_layer_code: 'operative_geoserver_wms',
+        url: '/vector/tiles/proxy',
+    }), false)
+    assert.equal(isVectorTileSymbologyEligible({
+        sh_map_has_layer_code: { gen_code: 'operative_geoserver_wms' },
+        url: '/vector/tiles/proxy',
+    }), false)
     assert.equal(isVectorTileSymbologyEligible({
         url: 'https://agcid01-geoserver.chdev.cl/geoserver/wms',
     }), false)
