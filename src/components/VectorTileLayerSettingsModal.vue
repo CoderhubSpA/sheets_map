@@ -376,8 +376,11 @@ export default {
 .settings-tab > span:last-child { display: flex; flex-direction: column; gap: 2px; }
 .settings-tab strong { font-size: .83rem; }
 .settings-tab small { font-size: .67rem; font-weight: 400; }
-.settings-workspace { min-height: 0; flex: 1 1 auto; overflow-y: auto; padding: 22px 24px 28px; scrollbar-width: none; }
-.settings-workspace::-webkit-scrollbar { width: 0; height: 0; }
+.settings-workspace { min-height: 0; flex: 1 1 auto; overflow-y: auto; padding: 22px 24px 32px; overscroll-behavior: contain; scrollbar-color: #9aa9b6 transparent; scrollbar-gutter: stable; scrollbar-width: thin; touch-action: pan-y; }
+.settings-workspace::-webkit-scrollbar { width: 8px; }
+.settings-workspace::-webkit-scrollbar-track { background: transparent; }
+.settings-workspace::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: #9aa9b6; background-clip: padding-box; }
+.settings-workspace::-webkit-scrollbar-thumb:hover { background: #748594; background-clip: padding-box; }
 .settings-panel { min-height: 220px; }
 .filter-panel { max-width: 980px; }
 .filter-panel__heading { margin-bottom: 18px; }
@@ -399,7 +402,7 @@ export default {
 .validation-summary { margin: 18px 0 0; }
 .copy-feedback { display: inline-flex; min-height: 38px; align-items: center; margin-right: auto; padding: 7px 14px; border-radius: 999px; color: #fff; background: #6c757d; box-shadow: 0 3px 10px rgba(38, 55, 70, .28); font-size: .875rem; font-weight: 600; white-space: nowrap; }
 .copy-feedback--error { background: #b54747; }
-.settings-footer { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 24px; border-top: 1px solid #dee2e6; background: #fff; }
+.settings-footer { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 24px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid #dee2e6; background: #fff; }
 .manual-json { margin-top: 16px; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; background: #f8f9fa; }
 .manual-json h5 { margin-bottom: 4px; }
 .manual-json p { margin-bottom: 8px; font-size: 0.85rem; }
@@ -409,8 +412,11 @@ export default {
 
 <style>
 /* BootstrapVue mueve el modal a <body>; estas clases exclusivas evitan afectar otros modales. */
-.vector-tile-settings-modal {
-    overflow: hidden;
+.modal.vector-tile-settings-modal,
+.modal-open .modal.vector-tile-settings-modal {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    padding-right: 0 !important;
 }
 
 .vector-tile-settings-dialog .vector-tile-settings-content {
@@ -425,8 +431,11 @@ export default {
 .vector-tile-settings-dialog.modal-dialog {
     width: auto;
     max-width: min(1440px, calc(100vw - 32px));
+    margin-top: 1rem;
+    margin-bottom: 1rem;
     margin-right: auto;
     margin-left: auto;
+    overflow: hidden;
 }
 
 .vector-tile-settings-dialog .modal-header,
@@ -434,6 +443,30 @@ export default {
     flex: 0 0 auto;
     padding-right: 24px;
     padding-left: 24px;
+}
+
+.vector-tile-settings-dialog .modal-header {
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+    padding: 0 24px;
+}
+
+.vector-tile-settings-dialog .modal-header .modal-title {
+    margin: 0;
+    line-height: 1.3;
+}
+
+.vector-tile-settings-dialog .modal-header .close {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    align-self: auto;
+    justify-content: center;
+    margin: 0 0 0 auto;
+    padding: 0;
+    line-height: 1;
 }
 
 .vector-tile-settings-dialog .vector-tile-settings-body {
@@ -444,12 +477,6 @@ export default {
     overflow: hidden;
     padding: 0;
     overscroll-behavior: contain;
-    scrollbar-width: none;
-}
-
-.vector-tile-settings-dialog .vector-tile-settings-body::-webkit-scrollbar {
-    width: 0;
-    height: 0;
 }
 
 @media (max-height: 720px) {

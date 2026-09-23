@@ -1,5 +1,5 @@
 <template>
-    <div :id="'content-' + config.id" :style="css_vars">
+    <div :id="'content-' + config.id" class="sheets-map-root" :style="[css_vars, mapViewportStyle]">
         <button v-if="config.sh_map_has_show_this_zone" type="button" class="btn btn-filter" v-on:click="filter()">
             Ver esta zona
         </button>
@@ -508,8 +508,11 @@ export default {
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
             layer_auth_errors: {},
+            map_viewport_height: "96dvh",
             viewport_resize_handler: null,
             map_resize_observer: null,
+            viewport_height_frame: null,
+            viewport_settle_timers: [],
             dynamic_layer_registry: {},
             dynamic_layer_render_token: 0,
             map_configuration_ready: false,
@@ -542,6 +545,12 @@ export default {
         };
     },
     computed: {
+        mapViewportStyle() {
+            return {
+                "--sh-map-available-height": this.map_viewport_height,
+                height: this.map_viewport_height,
+            };
+        },
         mapOptions() {
             const options = {
                 zoomControl: false,
@@ -1427,14 +1436,32 @@ export default {
     },
     mounted() {
         this.poweredCoderhub();
-        this.viewport_resize_handler = () => this.updateMapViewportHeight();
+        this.viewport_resize_handler = () => this.scheduleMapViewportHeightUpdate();
         window.addEventListener("resize", this.viewport_resize_handler, { passive: true });
-        this.$nextTick(this.viewport_resize_handler);
+        window.addEventListener("orientationchange", this.viewport_resize_handler, { passive: true });
+        window.addEventListener("pageshow", this.viewport_resize_handler, { passive: true });
+        window.visualViewport?.addEventListener("resize", this.viewport_resize_handler, { passive: true });
+
+        this.$nextTick(() => {
+            this.scheduleMapViewportHeightUpdate();
+            // El encabezado del CMS termina de ajustar fuentes y navegación después
+            // del primer render. Estas pasadas breves evitan conservar una altura
+            // calculada con una posición transitoria del mapa.
+            this.viewport_settle_timers = [100, 300, 700, 1500].map((delay) =>
+                window.setTimeout(this.viewport_resize_handler, delay),
+            );
+            document.fonts?.ready?.then(this.viewport_resize_handler);
+        });
     },
     beforeDestroy() {
         if (this.viewport_resize_handler) {
             window.removeEventListener("resize", this.viewport_resize_handler);
+            window.removeEventListener("orientationchange", this.viewport_resize_handler);
+            window.removeEventListener("pageshow", this.viewport_resize_handler);
+            window.visualViewport?.removeEventListener("resize", this.viewport_resize_handler);
         }
+        this.viewport_settle_timers.forEach((timer) => window.clearTimeout(timer));
+        if (this.viewport_height_frame) window.cancelAnimationFrame(this.viewport_height_frame);
         this.map_resize_observer?.disconnect();
     },
     methods: {
@@ -1486,13 +1513,26 @@ export default {
                 nextTick: () => this.$nextTick(),
             });
         },
+        scheduleMapViewportHeightUpdate() {
+            if (typeof window === "undefined" || this.viewport_height_frame) return;
+
+            this.viewport_height_frame = window.requestAnimationFrame(() => {
+                this.viewport_height_frame = null;
+                this.updateMapViewportHeight();
+            });
+        },
         updateMapViewportHeight() {
             const container = this.$refs.map_container;
             if (!container || typeof window === "undefined") return;
 
             const top = Math.max(0, container.getBoundingClientRect().top);
-            const availableHeight = Math.max(320, window.innerHeight - top);
-            container.style.setProperty("--sh-map-available-height", `${availableHeight}px`);
+            const viewportBottom = window.visualViewport
+                ? window.visualViewport.height + window.visualViewport.offsetTop
+                : window.innerHeight;
+            const availableHeight = Math.max(320, Math.floor(viewportBottom - top));
+            const nextHeight = `${availableHeight}px`;
+
+            if (this.map_viewport_height !== nextHeight) this.map_viewport_height = nextHeight;
             this.$nextTick(() => this.map?.invalidateSize(false));
         },
         configureMapZoom(payload = {}) {
@@ -1876,14 +1916,17 @@ export default {
         ready() {
             this.setTileLayer();
             this.map = this.$refs.my_map.mapObject;
-            this.updateMapViewportHeight();
+            this.scheduleMapViewportHeightUpdate();
 
             // Observar también el body: cuando el layout del host termina de acomodarse,
             // el mapa cambia de posición sin cambiar de tamaño y su altura debe recalcularse.
             this.map_resize_observer = new ResizeObserver(() => {
-                this.updateMapViewportHeight();
+                this.scheduleMapViewportHeightUpdate();
             });
             this.map_resize_observer.observe(this.$refs.map_container);
+            if (this.$el.parentElement) this.map_resize_observer.observe(this.$el.parentElement);
+            const layout = this.$el.closest?.(".layout");
+            if (layout && layout !== this.$el.parentElement) this.map_resize_observer.observe(layout);
             this.map_resize_observer.observe(document.body);
             this.applyPendingLayerFit();
 
@@ -3711,6 +3754,12 @@ export default {
 }
 
 .my-map {
+    min-height: 320px;
+    height: 100%;
+}
+
+.sheets-map-root,
+.my-map-container {
     min-height: 320px;
     height: var(--sh-map-available-height, 96dvh);
 }

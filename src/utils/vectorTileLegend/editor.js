@@ -52,7 +52,30 @@ function isFiniteNumberValue(value) {
 }
 
 export function isVectorTileSymbologyEligible(layer = {}) {
-    return layer.sh_map_has_layer_code === VECTOR_TILE_CODE || layer.code === VECTOR_TILE_CODE
+    const layerCodes = [
+        layer.sh_map_has_layer_code,
+        layer.code,
+        layer.map_layer_type_code,
+        layer.layerTypeCode,
+    ].flatMap((value) => {
+        if (typeof value === 'string') return [value]
+        if (!value || typeof value !== 'object') return []
+
+        return [value.gen_code, value.code, value.value]
+    })
+
+    const usableCodes = layerCodes
+        .map(code => String(code ?? '').trim())
+        .filter(Boolean)
+
+    if (usableCodes.length > 0) {
+        return usableCodes.includes(VECTOR_TILE_CODE)
+    }
+
+    // La URL solo respalda respuestas sin código de tipo utilizable. Un código
+    // explícito de otro tipo debe conservar su configurador legacy.
+    const layerUrl = layer.sh_map_has_layer_url || layer.url || layer.layer_url || ''
+    return /(?:^|\/)vector\/tiles(?:\/|$)/i.test(String(layerUrl))
 }
 
 export function createVectorTileLegendDraft(layer = {}, defaultLegend = null) {
