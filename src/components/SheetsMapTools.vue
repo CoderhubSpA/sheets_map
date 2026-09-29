@@ -67,6 +67,7 @@
                                 </div>
                                 <div class="layer-option-active-icon">
                                     <b-icon icon="dash-circle-fill"></b-icon>
+                                    <!-- bootstrap-vue 2.23.1 no incluye BIconCrosshair: con b-icon el botón quedaría vacío, por eso se dibuja el SVG oficial de Bootstrap Icons -->
                                     <button
                                         v-if="isVectorTileLayer(option)"
                                         type="button"
@@ -76,7 +77,16 @@
                                         :aria-busy="Boolean(centering_layers[option.key])"
                                         :disabled="Boolean(centering_layers[option.key])"
                                         @click.stop="centerLayer(option)"
-                                    ><b-icon :icon="centering_layers[option.key] ? 'arrow-repeat' : 'bullseye'" :animation="centering_layers[option.key] ? 'spin' : ''" aria-hidden="true"></b-icon></button>
+                                    ><b-icon v-if="centering_layers[option.key]" icon="arrow-repeat" animation="spin" aria-hidden="true"></b-icon><svg
+                                        v-else
+                                        class="b-icon bi bi-crosshair"
+                                        width="1em"
+                                        height="1em"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                        aria-hidden="true"
+                                        focusable="false"
+                                    ><path d="M8.5.5a.5.5 0 0 0-1 0v.518A7 7 0 0 0 1.018 7.5H.5a.5.5 0 0 0 0 1h.518A7 7 0 0 0 7.5 14.982v.518a.5.5 0 0 0 1 0v-.518A7 7 0 0 0 14.982 8.5h.518a.5.5 0 0 0 0-1h-.518A7 7 0 0 0 8.5 1.018zm-6.48 7A6 6 0 0 1 7.5 2.02v.48a.5.5 0 0 0 1 0v-.48a6 6 0 0 1 5.48 5.48h-.48a.5.5 0 0 0 0 1h.48a6 6 0 0 1-5.48 5.48v-.48a.5.5 0 0 0-1 0v.48A6 6 0 0 1 2.02 8.5h.48a.5.5 0 0 0 0-1zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4" /></svg></button>
                                     <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value, option)"></b-icon>
                                     <button
                                         type="button"
@@ -210,7 +220,16 @@
                                                     :aria-busy="Boolean(centering_layers[option.key])"
                                                     :disabled="Boolean(centering_layers[option.key])"
                                                     @click.stop="centerLayer(option)"
-                                                ><b-icon :icon="centering_layers[option.key] ? 'arrow-repeat' : 'bullseye'" :animation="centering_layers[option.key] ? 'spin' : ''" aria-hidden="true"></b-icon></button>
+                                                ><b-icon v-if="centering_layers[option.key]" icon="arrow-repeat" animation="spin" aria-hidden="true"></b-icon><svg
+                                                    v-else
+                                                    class="b-icon bi bi-crosshair"
+                                                    width="1em"
+                                                    height="1em"
+                                                    viewBox="0 0 16 16"
+                                                    fill="currentColor"
+                                                    aria-hidden="true"
+                                                    focusable="false"
+                                                ><path d="M8.5.5a.5.5 0 0 0-1 0v.518A7 7 0 0 0 1.018 7.5H.5a.5.5 0 0 0 0 1h.518A7 7 0 0 0 7.5 14.982v.518a.5.5 0 0 0 1 0v-.518A7 7 0 0 0 14.982 8.5h.518a.5.5 0 0 0 0-1h-.518A7 7 0 0 0 8.5 1.018zm-6.48 7A6 6 0 0 1 7.5 2.02v.48a.5.5 0 0 0 1 0v-.48a6 6 0 0 1 5.48 5.48h-.48a.5.5 0 0 0 0 1h.48a6 6 0 0 1-5.48 5.48v-.48a.5.5 0 0 0-1 0v.48A6 6 0 0 1 2.02 8.5h.48a.5.5 0 0 0 0-1zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4" /></svg></button>
                                                 <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value, option)"></b-icon>
                                                 <button
                                                     type="button"

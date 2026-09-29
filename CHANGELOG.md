@@ -3,6 +3,14 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 versionado según [SemVer](https://semver.org/lang/es/).
 
+## [1.58.1] - 2026-09-28
+
+### Changed
+
+- El botón «Centrar capa» del control de capas usa ahora el ícono de mira `crosshair` de Bootstrap
+  Icons en lugar de `bullseye`, en ambas presentaciones del control (capas sueltas y subgrupos).
+  Se dibuja como SVG propio porque `bootstrap-vue` 2.23.1 no incluye ese ícono.
+
 ## [1.58.0] - 2026-09-22
 
 ### Added
