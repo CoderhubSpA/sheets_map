@@ -986,6 +986,18 @@ test('el encuadre de capa no registra el error completo de axios', () => {
     assert.doesNotMatch(centerLayer, /console\.warn\([^)]*,\s*error\s*\)/)
 })
 
+test('el botón Centrar capa dibuja el ícono crosshair de Bootstrap Icons en ambas presentaciones', () => {
+    const tools = readFileSync(
+        new URL('../src/components/SheetsMapTools.vue', import.meta.url),
+        'utf8',
+    )
+
+    // bootstrap-vue 2.23.1 no incluye BIconCrosshair: <b-icon icon="crosshair"> renderiza un SVG vacío.
+    assert.doesNotMatch(tools, /['"]crosshair['"]/)
+    assert.doesNotMatch(tools, /bullseye/)
+    assert.equal(tools.match(/<svg[^>]*\bbi-crosshair\b[^>]*>\s*<path d="[^"]+"/g)?.length, 2)
+})
+
 test('la vista previa conserva separación inferior uniforme', () => {
     const preview = readFileSync(
         new URL('../src/components/VectorTileSymbologyPreview.vue', import.meta.url),

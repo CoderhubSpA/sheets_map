@@ -8,6 +8,7 @@ Cada capa Vector Tiles del control de capas muestra el botón **Centrar capa**. 
 
 - Las acciones de la fila quedan en este orden: **Centrar capa → Descargar capa → Configurar capa**. Centrar no depende de que exista `download_url`.
 - El botón es un `<button>` con `aria-label="Centrar capa <nombre>"` y tooltip; se activa con clic, `Enter` o `Espacio`.
+- El ícono es la mira `crosshair` de Bootstrap Icons (⌖), dibujada como `<svg>` propio en las dos presentaciones: `bootstrap-vue` 2.23.1 no incluye `BIconCrosshair`, y `<b-icon icon="crosshair">` renderiza un SVG vacío sin lanzar error. Las clases `b-icon bi` heredan el tamaño y la alineación de las demás acciones, y un test evita que vuelva a `b-icon`.
 - Mientras consulta la extensión, el ícono cambia a un indicador giratorio y el botón queda deshabilitado.
 - Si la capa no informa extensión o la consulta falla, el mapa conserva la vista y la fila muestra el motivo en rojo.
 - Funciona igual en las dos presentaciones del control: opción suelta y opción dentro de un subgrupo.
@@ -82,6 +83,7 @@ Prueba manual en el Visor Maestro con la librería vinculada (ver [Vincular la l
 2. Desde una vista alejada, pulsar **Centrar capa** en **Macrozonas EOD Gran Concepción 2015**: el mapa encuadra Talcahuano, Concepción y Coronel y la capa sigue inactiva.
 3. Repetir con **Puntos de Medición Vehicular Periódicas Curicó** usando `Tab` y `Enter`.
 4. Repetir con **Red Nacional de Ciclovías (diciembre 2025)** para líneas.
+5. En las dos presentaciones (opción suelta y subgrupo), confirmar que el botón muestra la mira ⌖ a la izquierda de **Descargar capa** y **Configurar capa**, y no un espacio vacío.
 
 ## Limitaciones conocidas
 
