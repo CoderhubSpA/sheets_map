@@ -15,7 +15,11 @@ import {
     mergeVectorTileLegendCounts,
 } from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
-import { buildFilteredVectorTileUrl, buildVectorTileTemplateUrl } from '../../utils/vectorTileUrl';
+import {
+    buildFilteredVectorTileUrl,
+    buildLabeledVectorTileUrl,
+    buildVectorTileTemplateUrl,
+} from '../../utils/vectorTileUrl';
 import {
     buildPointIconSizeExpression,
     buildPointShapeIconExpression,
@@ -586,6 +590,15 @@ export default {
                 defaultFillColor: resolvedStyleExpressions.defaultFillColor || '#3388ff',
                 defaultStrokeColor: resolvedStyleExpressions.defaultStrokeColor || '#3388ff',
                 pointDashStyle: resolvedStyleExpressions.pointDashStyle || 'solid',
+                // Etiqueta de texto sobre el centro de cada polígono (vacía = sin texto visible).
+                labelTextExpression: resolvedStyleExpressions.labelTextExpression ?? '',
+                labelSizeExpression: resolvedStyleExpressions.labelSizeExpression ?? 12,
+                labelColorExpression: resolvedStyleExpressions.labelColorExpression || '#000000',
+                labelHaloColorExpression: resolvedStyleExpressions.labelHaloColorExpression || '#FFFFFF',
+                labelHaloWidthExpression: resolvedStyleExpressions.labelHaloWidthExpression ?? 1,
+                labelFontExpression: resolvedStyleExpressions.labelFontExpression || ["Noto Sans Bold", "Noto Sans Regular"],
+                // Ancho máximo de una línea de texto; al superarlo la etiqueta se parte en varias líneas.
+                labelMaxWidthExpression: resolvedStyleExpressions.labelMaxWidthExpression ?? 10,
             };
         },
 
@@ -739,11 +752,20 @@ export default {
         // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
         // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
         buildRawFilteredTileUrl() {
-            return buildFilteredVectorTileUrl(
-                this.tileUrl,
-                this.filterAttribute,
-                this.filterValue,
+            return buildLabeledVectorTileUrl(
+                buildFilteredVectorTileUrl(
+                    this.tileUrl,
+                    this.filterAttribute,
+                    this.filterValue,
+                ),
+                this.hasLabelText(this.currentStyleExpressions),
             );
+        },
+
+        // Las etiquetas se piden al servidor solo si el estilo define un texto, para no pagar su costo en las demás capas.
+        hasLabelText(styleExpressions) {
+            const text = styleExpressions?.labelTextExpression;
+            return Array.isArray(text) ? text.length > 0 : Boolean(text);
         },
 
         buildFilteredTileUrl() {
@@ -784,6 +806,14 @@ export default {
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-opacity', paint.lineOpacityExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-dasharray', paint.lineDashArray);
+
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-field', paint.labelTextExpression);
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-font', paint.labelFontExpression);
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-max-width', paint.labelMaxWidthExpression);
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-size', paint.labelSizeExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-color', paint.labelColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-halo-color', paint.labelHaloColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-halo-width', paint.labelHaloWidthExpression);
 
             [
                 [
@@ -838,8 +868,11 @@ export default {
             const renderState = await this.resolveRenderState();
             if (this.isDestroyed() || requestId !== this.renderStateRequestId) return;
 
+            const labelsChanged =
+                this.hasLabelText(this.currentStyleExpressions) !== this.hasLabelText(renderState.styleExpressions);
             this.currentStyleExpressions = renderState.styleExpressions;
             this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
+            if (labelsChanged) this.applyTileFilter();
             this.emitLegend(renderState.legend);
             this.scheduleLegendCountEnrichment(renderState.legend);
         },
@@ -1277,7 +1310,31 @@ export default {
                     }
                 });
             }
-            
+
+            // Etiqueta de texto de los polígonos. Se dibuja sobre la capa de puntos `<capa>_label`
+            // que emite el geoserver (un ancla por feature, en un único tile); queda vacía
+            // mientras no se envíe labelTextExpression.
+            layers.push({
+                id: `${this.layer.id}-label`,
+                type: 'symbol',
+                source: 'vector-tiles',
+                'source-layer': `${this.sourceLayer}_label`,
+                filter: ['==', '$type', 'Point'],
+                layout: {
+                    'text-field': paint.labelTextExpression,
+                    'text-font': paint.labelFontExpression,
+                    'text-max-width': paint.labelMaxWidthExpression,
+                    'text-size': paint.labelSizeExpression,
+                    'text-allow-overlap': false,
+                    'text-ignore-placement': false
+                },
+                paint: {
+                    'text-color': paint.labelColorExpression,
+                    'text-halo-color': paint.labelHaloColorExpression,
+                    'text-halo-width': paint.labelHaloWidthExpression
+                }
+            });
+
             return layers;
         },
         
