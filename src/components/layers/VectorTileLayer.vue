@@ -15,7 +15,11 @@ import {
     mergeVectorTileLegendCounts,
 } from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
-import { buildFilteredVectorTileUrl, buildVectorTileTemplateUrl } from '../../utils/vectorTileUrl';
+import {
+    buildFilteredVectorTileUrl,
+    buildLabeledVectorTileUrl,
+    buildVectorTileTemplateUrl,
+} from '../../utils/vectorTileUrl';
 import {
     buildPointIconSizeExpression,
     buildPointShapeIconExpression,
@@ -27,6 +31,8 @@ import {
     getRequiredRequestAuthHeaders,
 } from '../../utils/requestAuth.mjs';
 import { createMapLibreAuthRecoveryController } from '../../utils/mapLibreAuthRecovery.mjs';
+import { fetchVectorTileFeature } from '../../services/vectorTileFeatureService';
+import axios from 'axios';
 
 export default {
     name: 'VectorTileLayer',
@@ -102,6 +108,8 @@ export default {
             renderStateRequestId: 0,
             legendCountRequestId: 0,
             legendCountAbortController: null,
+            highlightRequestId: 0,
+            highlightAbortController: null,
             // Referencias a handlers para poder limpiarlos
             leafletMouseMoveHandler: null,
             // Nombre del pane personalizado para esta capa
@@ -582,6 +590,15 @@ export default {
                 defaultFillColor: resolvedStyleExpressions.defaultFillColor || '#3388ff',
                 defaultStrokeColor: resolvedStyleExpressions.defaultStrokeColor || '#3388ff',
                 pointDashStyle: resolvedStyleExpressions.pointDashStyle || 'solid',
+                // Etiqueta de texto sobre el centro de cada polígono (vacía = sin texto visible).
+                labelTextExpression: resolvedStyleExpressions.labelTextExpression ?? '',
+                labelSizeExpression: resolvedStyleExpressions.labelSizeExpression ?? 12,
+                labelColorExpression: resolvedStyleExpressions.labelColorExpression || '#000000',
+                labelHaloColorExpression: resolvedStyleExpressions.labelHaloColorExpression || '#FFFFFF',
+                labelHaloWidthExpression: resolvedStyleExpressions.labelHaloWidthExpression ?? 1,
+                labelFontExpression: resolvedStyleExpressions.labelFontExpression || ["Noto Sans Bold", "Noto Sans Regular"],
+                // Ancho máximo de una línea de texto; al superarlo la etiqueta se parte en varias líneas.
+                labelMaxWidthExpression: resolvedStyleExpressions.labelMaxWidthExpression ?? 10,
             };
         },
 
@@ -639,21 +656,92 @@ export default {
             ];
         },
 
-        // Marca visualmente el feature clickeado (geometría exacta de queryRenderedFeatures,
-        // sin necesitar id/promoteId en la fuente de tiles).
-        setHighlightFeature(feature) {
+        // Propiedad que identifica cada feature en los tiles (configurable por capa vía render state).
+        getFeatureIdProperty() {
+            return this.layer.sh_map_has_layer_render_state?.featureIdProperty || 'id';
+        },
+
+        // Marca visualmente el feature clickeado. Con identificador, se pide al backend la geometría
+        // completa (los tiles solo traen el fragmento del tile); sin él, o si la consulta falla,
+        // se usa la geometría de queryRenderedFeatures.
+        highlightFeature(feature) {
+            this.clearHighlight();
+
+            const featureId = feature.properties?.[this.getFeatureIdProperty()];
+            if (featureId === undefined || featureId === null || featureId === '') {
+                this.setHighlightFeatures([feature]);
+                return;
+            }
+
+            this.highlightFullFeature(feature, featureId, this.highlightRequestId);
+        },
+
+        async highlightFullFeature(feature, featureId, requestId) {
+            const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+            this.highlightAbortController = controller;
+
+            let features = null;
+            try {
+                features = await this.fetchFullFeatures(featureId, controller?.signal);
+            } catch (error) {
+                if (axios.isCancel(error) || error?.name === 'AbortError') return;
+                console.warn(`VectorTileLayer: no fue posible obtener la geometría completa de la capa ${this.layer.id}`, error);
+            }
+
+            if (this.isDestroyed() || requestId !== this.highlightRequestId) return;
+
+            this.highlightAbortController = null;
+            // Un identificador debe corresponder a un único feature; cualquier otro resultado no está soportado.
+            if (features && features.length > 1) {
+                console.warn(`VectorTileLayer: el identificador ${featureId} coincide con ${features.length} features en la capa ${this.layer.id}`);
+            }
+            this.setHighlightFeatures(features && features.length === 1 ? features : [feature]);
+        },
+
+        async fetchFullFeatures(featureId, signal) {
+            const idProperty = this.getFeatureIdProperty();
+            const cacheKey = `${idProperty}:${featureId}`;
+            if (!this.fullFeatureCache) this.fullFeatureCache = new Map();
+            if (this.fullFeatureCache.has(cacheKey)) return this.fullFeatureCache.get(cacheKey);
+
+            const tileUrl = this.tileUrl || this.layer.sh_map_has_layer_url;
+            const collection = await fetchVectorTileFeature({
+                tileUrl,
+                layerName: inferVectorTileLayerNameFromUrl(tileUrl),
+                featureId,
+                idProperty,
+                requestAuth: this.request_auth,
+                signal,
+            });
+
+            const features = collection?.features?.filter(item => item?.geometry) || [];
+            if (features.length === 1) this.fullFeatureCache.set(cacheKey, features);
+            return features;
+        },
+
+        setHighlightFeatures(features) {
             const source = this.maplibreMap && this.maplibreMap.getSource(this.highlightSourceId);
             if (!source) return;
 
             source.setData({
                 type: 'FeatureCollection',
-                features: [{ type: 'Feature', geometry: feature.geometry, properties: {} }]
+                features: features.map(item => ({ type: 'Feature', geometry: item.geometry, properties: {} }))
             });
+        },
+
+        // Invalida cualquier consulta de geometría en curso para que no reaparezca un highlight obsoleto.
+        cancelHighlightRequest() {
+            this.highlightRequestId += 1;
+            if (this.highlightAbortController) {
+                this.highlightAbortController.abort();
+                this.highlightAbortController = null;
+            }
         },
 
         // Público: usado por SheetsMap.vue para limpiar el highlight de esta capa
         // cuando se selecciona un feature de otra capa (u otro mecanismo, ej. GeoJSON).
         clearHighlight() {
+            this.cancelHighlightRequest();
             if (!this.maplibreMap || !this.styleLoaded) return;
             const source = this.maplibreMap.getSource(this.highlightSourceId);
             if (!source) return;
@@ -664,11 +752,20 @@ export default {
         // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
         // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
         buildRawFilteredTileUrl() {
-            return buildFilteredVectorTileUrl(
-                this.tileUrl,
-                this.filterAttribute,
-                this.filterValue,
+            return buildLabeledVectorTileUrl(
+                buildFilteredVectorTileUrl(
+                    this.tileUrl,
+                    this.filterAttribute,
+                    this.filterValue,
+                ),
+                this.hasLabelText(this.currentStyleExpressions),
             );
+        },
+
+        // Las etiquetas se piden al servidor solo si el estilo define un texto, para no pagar su costo en las demás capas.
+        hasLabelText(styleExpressions) {
+            const text = styleExpressions?.labelTextExpression;
+            return Array.isArray(text) ? text.length > 0 : Boolean(text);
         },
 
         buildFilteredTileUrl() {
@@ -709,6 +806,14 @@ export default {
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-width', paint.lineWidthExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-opacity', paint.lineOpacityExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-line`, 'line-dasharray', paint.lineDashArray);
+
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-field', paint.labelTextExpression);
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-font', paint.labelFontExpression);
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-max-width', paint.labelMaxWidthExpression);
+            this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-size', paint.labelSizeExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-color', paint.labelColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-halo-color', paint.labelHaloColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-halo-width', paint.labelHaloWidthExpression);
 
             [
                 [
@@ -763,8 +868,11 @@ export default {
             const renderState = await this.resolveRenderState();
             if (this.isDestroyed() || requestId !== this.renderStateRequestId) return;
 
+            const labelsChanged =
+                this.hasLabelText(this.currentStyleExpressions) !== this.hasLabelText(renderState.styleExpressions);
             this.currentStyleExpressions = renderState.styleExpressions;
             this.applyStyleExpressionsToLiveLayer(renderState.styleExpressions);
+            if (labelsChanged) this.applyTileFilter();
             this.emitLegend(renderState.legend);
             this.scheduleLegendCountEnrichment(renderState.legend);
         },
@@ -856,8 +964,8 @@ export default {
                 const feature = features[0];
                 const properties = feature.properties;
                 
-                // Resaltar el feature clickeado
-                this.setHighlightFeature(feature);
+                // Resaltar el feature clickeado (no bloquea el evento ni el modal)
+                this.highlightFeature(feature);
 
                 // Emitir evento para que el padre pueda reaccionar si necesita
                 this.$emit('feature-click', {
@@ -1202,7 +1310,31 @@ export default {
                     }
                 });
             }
-            
+
+            // Etiqueta de texto de los polígonos. Se dibuja sobre la capa de puntos `<capa>_label`
+            // que emite el geoserver (un ancla por feature, en un único tile); queda vacía
+            // mientras no se envíe labelTextExpression.
+            layers.push({
+                id: `${this.layer.id}-label`,
+                type: 'symbol',
+                source: 'vector-tiles',
+                'source-layer': `${this.sourceLayer}_label`,
+                filter: ['==', '$type', 'Point'],
+                layout: {
+                    'text-field': paint.labelTextExpression,
+                    'text-font': paint.labelFontExpression,
+                    'text-max-width': paint.labelMaxWidthExpression,
+                    'text-size': paint.labelSizeExpression,
+                    'text-allow-overlap': false,
+                    'text-ignore-placement': false
+                },
+                paint: {
+                    'text-color': paint.labelColorExpression,
+                    'text-halo-color': paint.labelHaloColorExpression,
+                    'text-halo-width': paint.labelHaloWidthExpression
+                }
+            });
+
             return layers;
         },
         
@@ -1220,6 +1352,8 @@ export default {
         cleanup(targetMap = this.map) {
             this.initializationId += 1;
             this.cancelLegendCountEnrichment();
+            this.cancelHighlightRequest();
+            this.fullFeatureCache = null;
             // Cerrar popups
             if (targetMap) {
                 targetMap.closePopup();

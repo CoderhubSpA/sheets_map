@@ -7,6 +7,16 @@ export function buildFilteredVectorTileUrl(tileUrl, attribute, value) {
     return `${tileUrl}${separator}filter.${encodeURIComponent(attribute)}=eq.${encodeURIComponent(value)}`
 }
 
+// Pide al geoserver la capa `<capa>_label` (un punto de anclaje por polígono) junto con los tiles.
+export function buildLabeledVectorTileUrl(tileUrl, enabled) {
+    if (!tileUrl || !enabled) {
+        return tileUrl
+    }
+
+    const separator = tileUrl.includes('?') ? '&' : '?'
+    return `${tileUrl}${separator}labels=true`
+}
+
 export function buildVectorTileTemplateUrl(tileUrl = '') {
     if (!tileUrl || /\{z\}.*\{x\}.*\{y\}/.test(tileUrl)) return tileUrl
 
