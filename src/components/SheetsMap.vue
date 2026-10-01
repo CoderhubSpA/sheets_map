@@ -291,7 +291,7 @@
                         </div>
                     </div>
                 </l-control>
-                <l-control class="coordinate-format" position="bottomleft">
+                <l-control v-if="show_coordinates" class="coordinate-format" position="bottomleft">
                     <b-button class="btn-coordinate-format" @click.capture.stop="changeCoordinateFormat()">
                         <b-icon icon="arrow-left-right"></b-icon>
                     </b-button>
@@ -677,6 +677,8 @@ export default {
                     custom_styles["feature-highlight-color"] || "#FFEB3B",
                 "feature-highlight-weight":
                     custom_styles["feature-highlight-weight"] || 4,
+                // Oculta el control de coordenadas de la esquina inferior izquierda ("true" o true).
+                "hide-coordinates": custom_styles["hide-coordinates"] || false,
                 // Hexagonal Clusters Style
                 "hexagonal-cluster-small-color":
                     custom_styles["hexagonal-cluster-small-color"] || "#F9E79F",
@@ -927,6 +929,10 @@ export default {
                 /** Configura límites de zoom del mapa y overzoom de capas base. */
                 configureMapZoom: bootstrapActions.configureMapZoom,
             };
+        },
+        show_coordinates() {
+            const hidden = this.style_variables["hide-coordinates"];
+            return !(hidden === true || hidden === "true");
         },
         btn_style() {
             let class_name = "custom-controls";
