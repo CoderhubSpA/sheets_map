@@ -297,7 +297,7 @@
                     </b-button>
                     {{ center_parsed }}
                 </l-control>
-                <l-control-scale class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
+                <l-control-scale v-if="show_coordinates" class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
             <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
                 <strong>No fue posible cargar una capa protegida.</strong>
