@@ -6,7 +6,7 @@ Cada capa Vector Tiles del control de capas muestra el botón **Centrar capa**. 
 
 ## Resultado funcional
 
-- Las acciones de la fila quedan en este orden: **Centrar capa → Descargar capa → Configurar capa**. Centrar no depende de que exista `download_url`.
+- Las acciones de la fila quedan en este orden: **Centrar capa → Descargar capa → Configurar capa**. Centrar no depende de que exista `download_url`. Los botones de descarga y de configuración muestran los tooltips «Descargar Capa» y «Configurar simbología».
 - El botón es un `<button>` con `aria-label="Centrar capa <nombre>"` y tooltip; se activa con clic, `Enter` o `Espacio`.
 - El ícono es la mira `crosshair` de Bootstrap Icons (⌖), dibujada como `<svg>` propio en las dos presentaciones: `bootstrap-vue` 2.23.1 no incluye `BIconCrosshair`, y `<b-icon icon="crosshair">` renderiza un SVG vacío sin lanzar error. Las clases `b-icon bi` heredan el tamaño y la alineación de las demás acciones, y un test evita que vuelva a `b-icon`.
 - Mientras consulta la extensión, el ícono cambia a un indicador giratorio y el botón queda deshabilitado.

@@ -998,6 +998,29 @@ test('el botón Centrar capa dibuja el ícono crosshair de Bootstrap Icons en am
     assert.equal(tools.match(/<svg[^>]*\bbi-crosshair\b[^>]*>\s*<path d="[^"]+"/g)?.length, 2)
 })
 
+test('el botón de descarga de capa muestra el tooltip «Descargar Capa» en ambas presentaciones', () => {
+    const tools = readFileSync(
+        new URL('../src/components/SheetsMapTools.vue', import.meta.url),
+        'utf8',
+    )
+
+    // Antes era un ícono suelto sin tooltip ni foco de teclado: ahora es un botón con title.
+    assert.equal(tools.match(/<button[^>]*title="Descargar Capa"/g)?.length, 2)
+    assert.doesNotMatch(tools, /<b-icon[^>]*cloud-arrow-down[^>]*@click/)
+})
+
+test('el engranaje de cada capa muestra el tooltip «Configurar simbología» en ambas presentaciones', () => {
+    const tools = readFileSync(
+        new URL('../src/components/SheetsMapTools.vue', import.meta.url),
+        'utf8',
+    )
+    // El id es el target del popover de opacidad de las capas que no son Vector Tiles: debe conservarse.
+    const gearButtons = tools.match(/<button[^>]*:id="'layer-opacity-' \+ option\.key"[^>]*>/g) ?? []
+
+    assert.equal(gearButtons.length, 2)
+    gearButtons.forEach((button) => assert.match(button, /title="Configurar simbología"/))
+})
+
 test('la vista previa conserva separación inferior uniforme', () => {
     const preview = readFileSync(
         new URL('../src/components/VectorTileSymbologyPreview.vue', import.meta.url),
