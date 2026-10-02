@@ -3,6 +3,20 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 versionado según [SemVer](https://semver.org/lang/es/).
 
+## [1.60.0] - 2026-10-02
+
+### Added
+
+- Botón de colapso (chevron) a la derecha del ícono de filtro en el encabezado de cada agrupación del
+  control de capas. Oculta o muestra los subgrupos de esa agrupación sin alterar las capas activas, los
+  filtros ni los acordeones abiertos. El ícono de filtro y el título conservan su función.
+
+### Changed
+
+- Los botones de descarga y de configuración de cada capa muestran los tooltips «Descargar Capa» y
+  «Configurar simbología». La descarga pasa de ícono suelto a `<button>` con `aria-label`, en ambas
+  presentaciones del control (capas sueltas y subgrupos).
+
 ## [1.58.1] - 2026-09-28
 
 ### Changed

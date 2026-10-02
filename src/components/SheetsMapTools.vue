@@ -9,11 +9,26 @@
             >
                 <div class="grouped-title">
                     <h5 @click="get_layers_group(group, group_key)">{{group_key}}</h5>
-                    <b-icon icon="filter-circle-fill" @click="get_layers_group(group, group_key)"></b-icon>
+                    <div class="grouped-title-controls">
+                        <b-icon
+                            icon="filter-circle-fill"
+                            @click="get_layers_group(group, group_key)"
+                        ></b-icon>
+                        <!-- String(): Vue 2 elimina los atributos con valor false y aria-expanded="false" debe quedar -->
+                        <button
+                            type="button"
+                            class="layer-settings-button group-collapse-button"
+                            :title="getGroupCollapseLabel(group_key)"
+                            :aria-label="`${getGroupCollapseLabel(group_key)}: ${group_key}`"
+                            :aria-expanded="String(!isGroupCollapsed(group_key))"
+                            @click="toggleGroupCollapse(group_key)"
+                        ><b-icon :icon="isGroupCollapsed(group_key) ? 'chevron-down' : 'chevron-up'" aria-hidden="true"></b-icon></button>
+                    </div>
                 </div>
                 <!-- Si no posee subgrupos -->
                 <div v-for="(subgroup, subgroup_key) in group"
                     :key="subgroup_key" class="subgroup-container"
+                    v-show="!isGroupCollapsed(group_key)"
                 >
                     <div
                         v-if="subgroup_key == 'null'"
@@ -87,10 +102,18 @@
                                         aria-hidden="true"
                                         focusable="false"
                                     ><path d="M8.5.5a.5.5 0 0 0-1 0v.518A7 7 0 0 0 1.018 7.5H.5a.5.5 0 0 0 0 1h.518A7 7 0 0 0 7.5 14.982v.518a.5.5 0 0 0 1 0v-.518A7 7 0 0 0 14.982 8.5h.518a.5.5 0 0 0 0-1h-.518A7 7 0 0 0 8.5 1.018zm-6.48 7A6 6 0 0 1 7.5 2.02v.48a.5.5 0 0 0 1 0v-.48a6 6 0 0 1 5.48 5.48h-.48a.5.5 0 0 0 0 1h.48a6 6 0 0 1-5.48 5.48v-.48a.5.5 0 0 0-1 0v.48A6 6 0 0 1 2.02 8.5h.48a.5.5 0 0 0 0-1zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4" /></svg></button>
-                                    <b-icon v-if="option.download_url" icon="cloud-arrow-down-fill" @click.stop="download_layer(option.download_url, option.value, option)"></b-icon>
+                                    <button
+                                        v-if="option.download_url"
+                                        type="button"
+                                        class="layer-settings-button"
+                                        title="Descargar Capa"
+                                        :aria-label="`Descargar capa ${option.value}`"
+                                        @click.stop="download_layer(option.download_url, option.value, option)"
+                                    ><b-icon icon="cloud-arrow-down-fill" aria-hidden="true"></b-icon></button>
                                     <button
                                         type="button"
                                         class="layer-settings-button"
+                                        title="Configurar simbología"
                                         :id="'layer-opacity-' + option.key"
                                         :aria-label="`Configurar capa ${option.value}`"
                                         @click.stop="handleSettingsClick(option)"
@@ -230,10 +253,18 @@
                                                     aria-hidden="true"
                                                     focusable="false"
                                                 ><path d="M8.5.5a.5.5 0 0 0-1 0v.518A7 7 0 0 0 1.018 7.5H.5a.5.5 0 0 0 0 1h.518A7 7 0 0 0 7.5 14.982v.518a.5.5 0 0 0 1 0v-.518A7 7 0 0 0 14.982 8.5h.518a.5.5 0 0 0 0-1h-.518A7 7 0 0 0 8.5 1.018zm-6.48 7A6 6 0 0 1 7.5 2.02v.48a.5.5 0 0 0 1 0v-.48a6 6 0 0 1 5.48 5.48h-.48a.5.5 0 0 0 0 1h.48a6 6 0 0 1-5.48 5.48v-.48a.5.5 0 0 0-1 0v.48A6 6 0 0 1 2.02 8.5h.48a.5.5 0 0 0 0-1zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4" /></svg></button>
-                                                <b-icon v-if="option.download_url" icon="cloud-arrow-down" @click="download_layer(option.download_url, option.value, option)"></b-icon>
+                                                <button
+                                                    v-if="option.download_url"
+                                                    type="button"
+                                                    class="layer-settings-button"
+                                                    title="Descargar Capa"
+                                                    :aria-label="`Descargar capa ${option.value}`"
+                                                    @click="download_layer(option.download_url, option.value, option)"
+                                                ><b-icon icon="cloud-arrow-down" aria-hidden="true"></b-icon></button>
                                                 <button
                                                     type="button"
                                                     class="layer-settings-button"
+                                                    title="Configurar simbología"
                                                     :id="'layer-opacity-' + option.key"
                                                     :aria-label="`Configurar capa ${option.value}`"
                                                     @click.stop="handleSettingsClick(option)"
@@ -425,6 +456,7 @@ export default {
             showVectorTileSettings: false,
             active_base_layers: '',
             active_groups: {},
+            collapsed_groups: {},
             disabled_layers: {},
             clusterize: true,
             availableFormats: [],
@@ -736,6 +768,16 @@ export default {
             this.$delete(this.layer_filters, layerKey);
             this.$delete(this.filterDraftAttribute, layerKey);
             this.$delete(this.filterDraftValue, layerKey);
+        },
+
+        isGroupCollapsed(groupKey) {
+            return Boolean(this.collapsed_groups[groupKey]);
+        },
+        toggleGroupCollapse(groupKey) {
+            this.$set(this.collapsed_groups, groupKey, !this.collapsed_groups[groupKey]);
+        },
+        getGroupCollapseLabel(groupKey) {
+            return this.isGroupCollapsed(groupKey) ? "Expandir agrupación" : "Colapsar agrupación";
         },
 
         // This method toggles the state of a group of layers and filters the layers in the group
@@ -1145,6 +1187,18 @@ export default {
     cursor: progress;
 }
 
+// El botón envuelve al ícono sin cambiar su caja: el ícono sigue alineado con el título del grupo. Los márgenes del
+// ícono pasan al botón porque dentro de él serían una zona muerta clicable y alargarían el anillo de foco.
+.group-collapse-button {
+    display: flex;
+    margin: 30px 2px 5px 0;
+}
+
+.grouped-title-controls {
+    display: flex;
+    gap: 4px;
+}
+
 .layer-fit-error {
     display: block;
     color: #b42318;
@@ -1182,6 +1236,9 @@ export default {
                 margin-top: 30px;
                 margin-bottom: 5px;
                 margin-right: 2px;
+            }
+            .group-collapse-button svg {
+                margin: 0;
             }
         }
         margin: 0;
