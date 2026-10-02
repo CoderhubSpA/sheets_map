@@ -9,11 +9,26 @@
             >
                 <div class="grouped-title">
                     <h5 @click="get_layers_group(group, group_key)">{{group_key}}</h5>
-                    <b-icon icon="filter-circle-fill" @click="get_layers_group(group, group_key)"></b-icon>
+                    <div class="grouped-title-controls">
+                        <b-icon
+                            icon="filter-circle-fill"
+                            @click="get_layers_group(group, group_key)"
+                        ></b-icon>
+                        <!-- String(): Vue 2 elimina los atributos con valor false y aria-expanded="false" debe quedar -->
+                        <button
+                            type="button"
+                            class="layer-settings-button group-collapse-button"
+                            :title="getGroupCollapseLabel(group_key)"
+                            :aria-label="`${getGroupCollapseLabel(group_key)}: ${group_key}`"
+                            :aria-expanded="String(!isGroupCollapsed(group_key))"
+                            @click="toggleGroupCollapse(group_key)"
+                        ><b-icon :icon="isGroupCollapsed(group_key) ? 'chevron-down' : 'chevron-up'" aria-hidden="true"></b-icon></button>
+                    </div>
                 </div>
                 <!-- Si no posee subgrupos -->
                 <div v-for="(subgroup, subgroup_key) in group"
                     :key="subgroup_key" class="subgroup-container"
+                    v-show="!isGroupCollapsed(group_key)"
                 >
                     <div
                         v-if="subgroup_key == 'null'"
@@ -441,6 +456,7 @@ export default {
             showVectorTileSettings: false,
             active_base_layers: '',
             active_groups: {},
+            collapsed_groups: {},
             disabled_layers: {},
             clusterize: true,
             availableFormats: [],
@@ -752,6 +768,16 @@ export default {
             this.$delete(this.layer_filters, layerKey);
             this.$delete(this.filterDraftAttribute, layerKey);
             this.$delete(this.filterDraftValue, layerKey);
+        },
+
+        isGroupCollapsed(groupKey) {
+            return Boolean(this.collapsed_groups[groupKey]);
+        },
+        toggleGroupCollapse(groupKey) {
+            this.$set(this.collapsed_groups, groupKey, !this.collapsed_groups[groupKey]);
+        },
+        getGroupCollapseLabel(groupKey) {
+            return this.isGroupCollapsed(groupKey) ? "Expandir agrupación" : "Colapsar agrupación";
         },
 
         // This method toggles the state of a group of layers and filters the layers in the group
@@ -1161,6 +1187,18 @@ export default {
     cursor: progress;
 }
 
+// El botón envuelve al ícono sin cambiar su caja: el ícono sigue alineado con el título del grupo. Los márgenes del
+// ícono pasan al botón porque dentro de él serían una zona muerta clicable y alargarían el anillo de foco.
+.group-collapse-button {
+    display: flex;
+    margin: 30px 2px 5px 0;
+}
+
+.grouped-title-controls {
+    display: flex;
+    gap: 4px;
+}
+
 .layer-fit-error {
     display: block;
     color: #b42318;
@@ -1198,6 +1236,9 @@ export default {
                 margin-top: 30px;
                 margin-bottom: 5px;
                 margin-right: 2px;
+            }
+            .group-collapse-button svg {
+                margin: 0;
             }
         }
         margin: 0;
