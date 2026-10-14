@@ -52,3 +52,18 @@ export async function fetchVectorTileSemanticLegend({ tileUrl, layerName, attrib
     })
     return response?.data || null
 }
+
+export async function fetchVectorTileLegendCounts({ tileUrl, layerName, areas, groups, requestAuth, signal }) {
+    const legendUrl = buildVectorTileLegendUrl(tileUrl, layerName)
+    if (!legendUrl) throw new Error('Unsupported layer count URL')
+    const url = buildUrl(legendUrl)
+    url.pathname = url.pathname.replace(/\/legend$/, '/counts')
+    const countUrl = tileUrl.startsWith('/') ? `${url.pathname}${url.search}` : url.toString()
+    const response = await requestWithAuth({
+        url: countUrl,
+        requestAuth,
+        requireBearer: Boolean(requestAuth),
+        request: headers => axios.post(countUrl, { areas, groups }, { headers, signal }),
+    })
+    return response?.data
+}
