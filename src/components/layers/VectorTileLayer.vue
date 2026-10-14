@@ -12,9 +12,9 @@ import { normalizeVectorTileLegendConfig, inferVectorTileLayerNameFromUrl } from
 import {
     buildDefaultVectorTilePaint,
     buildVectorTileSemanticRenderState,
-    mergeVectorTileLegendCounts,
 } from '../../utils/vectorTileLegend/style';
-import { fetchVectorTileSemanticLegend } from '../../services/vectorTileLegendService';
+import { fetchVectorTileLegendCounts } from '../../services/vectorTileLegendService';
+import { defaultCountLegend, legendCountGroups, mergeExactLegendCounts, pendingLegendCounts } from '../../utils/vectorTileLegend/counts';
 import {
     buildFilteredVectorTileUrl,
     buildLabeledVectorTileUrl,
@@ -93,6 +93,10 @@ export default {
         disableFeatureClick: {
             type: Boolean,
             default: false
+        },
+        drawnAreas: {
+            type: Array,
+            default: () => []
         }
     },
     data() {
@@ -150,6 +154,10 @@ export default {
         },
         filterValue() {
             this.applyTileFilter();
+        },
+        legendCountScope() {
+            this.cancelLegendCountEnrichment();
+            this.scheduleLegendCountEnrichment(this.resolveRenderState().legend);
         }
     },
     mounted() {
@@ -162,6 +170,9 @@ export default {
         this.cleanup();
     },
     computed: {
+        legendCountScope() {
+            return JSON.stringify([this.drawnAreas, this.filterAttribute, this.filterValue]);
+        },
         highlightSourceId() {
             return `${this.layer.id}-highlight-source`;
         }
@@ -391,7 +402,7 @@ export default {
                 styleExpressions:
                     explicitRenderState?.styleExpressions ||
                     buildDefaultVectorTilePaint(this.layer),
-                legend: null,
+                legend: defaultCountLegend(this.layer),
                 sourceLayerHint:
                     explicitRenderState?.sourceLayerHint ||
                     this.layer.sh_map_has_layer_vector_source_layer ||
@@ -408,6 +419,8 @@ export default {
 
             const legendConfig = normalizeVectorTileLegendConfig(this.layer);
 
+            if (legendConfig?.visibility?.showInMapLegend === false) defaultRenderState.legend.visible = false;
+
             if (!legendConfig) {
                 return defaultRenderState;
             }
@@ -416,10 +429,11 @@ export default {
                 return defaultRenderState;
             }
 
-            return buildVectorTileSemanticRenderState({
+            const renderState = buildVectorTileSemanticRenderState({
                 layer: this.layer,
                 config: legendConfig,
             });
+            return { ...renderState, legend: renderState.legend || defaultRenderState.legend };
         },
 
         emitLegend(legend) {
@@ -459,67 +473,44 @@ export default {
 
         async enrichLegendCounts(baseLegend) {
             const legendMode = this.layer.sh_map_has_layer_legend_mode || 'internal';
-            const legendConfig = normalizeVectorTileLegendConfig(this.layer);
-
-            if (
-                !baseLegend ||
-                baseLegend.visible === false ||
-                legendMode !== 'internal' ||
-                !legendConfig ||
-                legendConfig.mode === 'manual' ||
-                !legendConfig.layerName ||
-                !legendConfig.attribute
-            ) {
-                return;
-            }
-
             this.cancelLegendCountEnrichment();
+            if (!baseLegend || baseLegend.visible === false || legendMode !== 'internal') return;
             const requestId = this.legendCountRequestId;
             const controller = typeof AbortController !== 'undefined'
                 ? new AbortController()
                 : null;
             this.legendCountAbortController = controller;
+            const spatialFiltered = this.drawnAreas.length > 0;
+            this.emitLegend(pendingLegendCounts(baseLegend, spatialFiltered));
 
             try {
-                const semanticLegend = await fetchVectorTileSemanticLegend({
-                    tileUrl: this.tileUrl || this.layer.sh_map_has_layer_url,
-                    layerName: legendConfig.layerName,
-                    attribute: legendConfig.attribute,
+                const tileUrl = this.buildRawFilteredTileUrl();
+                const response = await fetchVectorTileLegendCounts({
+                    tileUrl,
+                    layerName: inferVectorTileLayerNameFromUrl(tileUrl),
+                    areas: this.drawnAreas,
+                    groups: legendCountGroups(baseLegend),
                     requestAuth: this.request_auth,
                     signal: controller?.signal,
                 });
 
                 if (
-                    !semanticLegend ||
                     this.isDestroyed() ||
-                    requestId !== this.legendCountRequestId ||
-                    String(semanticLegend.attribute || '') !== String(legendConfig.attribute)
+                    requestId !== this.legendCountRequestId
                 ) {
                     return;
                 }
 
-                const countedRenderState = buildVectorTileSemanticRenderState({
-                    layer: this.layer,
-                    config: legendConfig,
-                    semanticLegend,
-                });
-                const enrichedLegend = mergeVectorTileLegendCounts(
-                    baseLegend,
-                    countedRenderState.legend,
-                );
-
-                if (enrichedLegend) {
-                    this.emitLegend(enrichedLegend);
-                }
+                this.emitLegend(mergeExactLegendCounts(baseLegend, response, spatialFiltered));
             } catch (error) {
                 const isCancelled = error?.name === 'AbortError' ||
                     error?.name === 'CanceledError' ||
                     error?.code === 'ERR_CANCELED';
 
-                if (!isCancelled) {
-                    console.warn('VectorTileLayer: No fue posible enriquecer las cantidades de la leyenda', error);
+                if (!isCancelled && requestId === this.legendCountRequestId && !this.isDestroyed()) {
+                    console.warn('VectorTileLayer: No fue posible obtener el conteo de la leyenda');
+                    this.emitLegend(pendingLegendCounts(baseLegend, spatialFiltered, 'error'));
                 }
-                // Ante cualquier error se conserva la leyenda que ya está visible.
             } finally {
                 if (requestId === this.legendCountRequestId) {
                     this.legendCountAbortController = null;

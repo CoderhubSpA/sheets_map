@@ -10,6 +10,14 @@
         <div class="vector-tile-legend__description" v-if="legend.description">
             {{ legend.description }}
         </div>
+        <div v-if="legend.countStatus" class="vector-tile-legend__description" role="status">
+            <template v-if="legend.countStatus === 'loading'">Calculando registros…</template>
+            <template v-else-if="legend.countStatus === 'error'">Conteo no disponible</template>
+            <template v-else>
+                {{ legend.spatialFiltered ? 'Intersección con dibujos' : 'Total de la capa' }}
+                <span v-if="legend.items.length > 1">: {{ formatCount(legend.totalCount) }}</span>
+            </template>
+        </div>
 
         <div
             v-for="item in visibleItems"
