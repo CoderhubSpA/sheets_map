@@ -3797,11 +3797,16 @@ li {
 .custom-controls {
     position: relative;
     z-index: 800;
+    pointer-events: none;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
     margin-top: 24px;
+}
+
+.custom-controls > * {
+    pointer-events: auto;
 }
 
 .zoom-wrapper {
