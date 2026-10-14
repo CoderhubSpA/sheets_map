@@ -96,6 +96,8 @@ export default {
     },
     draft_style() {
       const style = {
+        // Geoman mantiene el dibujo continuo sin reentradas desde pm:drawend.
+        continueDrawing: true,
         templineStyle: {
           color: this.style_variables["polygon_draft_color"],
           weight: this.style_variables["polygon_draft_weight"],
@@ -136,7 +138,6 @@ export default {
       this.map.pm.setLang("es");
       L.PM.setOptIn(true);
       this.map.on("pm:create", this.handlePmCreate);
-      this.map.on("pm:drawend", this.handlePmDrawEnd);
       this.pmInitialized = true;
     },
     handlePmCreate(e) {
@@ -169,7 +170,7 @@ export default {
       // Calculamos los bounds de los poligonos y los emitimos a sheets
       this.polygonBounds();
       this.$emit("apply-filter", this.bounds_filters);
-      // Guardamos el shape activo para re-habilitar en pm:drawend
+      // Guardamos el tipo de figura completada.
       this._lastShape = e.shape;
       this.map.eachLayer((layer) => {
         if (this.popupcontents[layer._leaflet_id]) {
@@ -351,33 +352,6 @@ export default {
         this.setCursor("");
       } finally {
         this._cancelling = false;
-      }
-    },
-    // pm:drawend se dispara después de pm:create Y al desactivar eraser mode.
-    // Solo re-habilitamos el draw si drawing sigue activo (polígono completado, no cancelado).
-    // Verificamos que el shape sea un shape de dibujo válido (no "Removal" del eraser).
-    handlePmDrawEnd(e) {
-      const validShapes = [
-        "Polygon",
-        "Circle",
-        "Rectangle",
-        "Marker",
-        "CircleMarker",
-        "Line",
-      ];
-      const isDrawShape = e && e.shape && validShapes.includes(e.shape);
-      if (this.drawing && this._lastShape && isDrawShape) {
-        // Capturamos _lastShape AHORA — no en el momento de ejecución del nextTick,
-        // porque toggleDelete puede nullarlo antes de que el microtask se ejecute.
-        const shapeToRedraw = this._lastShape;
-        this.$nextTick(() => {
-          if (this.map && this.map.pm && this.drawing && shapeToRedraw) {
-            this.map.pm.enableDraw(shapeToRedraw, this.draft_style);
-          }
-        });
-      } else if (this._lastShape && !this.drawing && isDrawShape) {
-        this._lastShape = null;
-        this.setCursor("");
       }
     },
     setCursor(type) {
