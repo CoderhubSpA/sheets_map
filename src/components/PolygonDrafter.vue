@@ -45,6 +45,7 @@
 import { LGeoJson, LCircleMarker } from "vue2-leaflet";
 import * as L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
+const DRAW_SHAPES = { polygon: "Polygon", circle: "Circle", rectangle: "Rectangle" };
 export default {
   name: "PolygonDrafter",
   props: {
@@ -69,6 +70,9 @@ export default {
       buttons_pressed: {
         marker: false,
         polyline: false,
+        polygon: false,
+        circle: false,
+        rectangle: false,
         delete: false,
       },
       invisibleLayer: null,
@@ -170,14 +174,15 @@ export default {
       // Calculamos los bounds de los poligonos y los emitimos a sheets
       this.polygonBounds();
       this.$emit("apply-filter", this.bounds_filters);
-      // Guardamos el tipo de figura completada.
-      this._lastShape = e.shape;
+      this.restorePopups();
+    },
+    restorePopups() {
       this.map.eachLayer((layer) => {
         if (this.popupcontents[layer._leaflet_id]) {
           layer.bindPopup(this.popupcontents[layer._leaflet_id]);
-          delete this.popupcontents[layer._leaflet_id];
         }
       });
+      this.popupcontents = {};
     },
     setupLayerEvents(layer) {
       // No esta activada la funcion para actualizar dibujos (edit tool), se mantiene en caso de ser agregado
@@ -252,107 +257,42 @@ export default {
       this.bounds_filters = bounds_filters;
     },
     beginDraw(shape) {
-      if (!this.map || !this.map.pm) return;
+      if (!this.map || !this.map.pm || !Object.prototype.hasOwnProperty.call(DRAW_SHAPES, shape)) return;
+      this.cancelDraw();
       //Al iniciar un dibujo, desactivamos los popups de puntos y capas, de esta forma, podemos dibujar sin interferencia
       this.map.eachLayer((layer) => {
         layer.closePopup();
         this.popupcontents[layer._leaflet_id] = layer.getPopup();
         layer.unbindPopup();
       });
-      //activamos el valor de drawing, y desactivamos el modo de borrado, para empezar a dibujar
       this.drawing = true;
-      // Guardar en capitalizado (como lo devuelve geoman en e.shape) para usarlo en enableDraw
-      const shapeMap = {
-        polygon: "Polygon",
-        circle: "Circle",
-        rectangle: "Rectangle",
-      };
-      this._prevShape = shapeMap[shape] || shape;
+      this.buttons_pressed[shape] = true;
       this.setCursor("crosshair");
-      this.map.pm.disableGlobalRemovalMode();
-      this.buttons_pressed["delete"] = false;
-      this.$emit("button-pressed", this.buttons_pressed);
-      switch (shape) {
-        // caso para un marcador, para ser utilizado debe activarse el boton en SheetsMap
-        // case 'marker': {
-        //     if (this.buttons_pressed["marker"]) {
-        //         this.map.pm.disableDraw();
-        //     } else {
-        //         this.map.pm.enableDraw('Marker');
-        //     }
-        //     this.buttons_pressed["marker"] = !this.buttons_pressed["marker"];
-        //     this.$emit('button-pressed', this.buttons_pressed);
-        //     break;
-        // }
-        case "polygon": {
-          this.map.pm.enableDraw("Polygon", this.draft_style);
-
-          break;
-        }
-        case "circle": {
-          this.map.pm.enableDraw("Circle", this.draft_style);
-
-          break;
-        }
-        case "rectangle": {
-          this.map.pm.enableDraw("Rectangle", this.draft_style);
-
-          break;
-        }
-      }
+      this.map.pm.enableDraw(DRAW_SHAPES[shape], this.draft_style);
+      this.$emit("button-pressed", { ...this.buttons_pressed });
     },
     toggleDelete() {
       if (!this.map || !this.map.pm) return;
-      this.map.pm.toggleGlobalRemovalMode();
-      this.buttons_pressed["delete"] = !this.buttons_pressed["delete"];
-      this.$emit("button-pressed", this.buttons_pressed);
-      // Si se activa el eraser, pausamos el modo dibujo
-      if (this.buttons_pressed["delete"]) {
-        this.map.pm.disableDraw();
-        this.drawing = false;
-        this._lastShape = null;
-        this.setCursor("");
-      } else if (
-        this._prevShape &&
-        this.drawing === false &&
-        !this._cancelling
-      ) {
-        // Si se desactiva el eraser y había un shape activo, retomamos el dibujo
-        this.drawing = true;
-        this._lastShape = this._prevShape;
-        this._prevShape = null;
-        this.setCursor("crosshair");
-        // Diferir enableDraw a un macrotask: cuando el eraser se apaga porque
-        // se borró el último polígono, esto corre DENTRO del ciclo del click
-        // de borrado. Armar el dibujo sincrónico hace que geoman capture ese
-        // mismo click como primer vértice del nuevo polígono. Con setTimeout(0)
-        // el click termina antes de armar el draw -> queda activo sin vértice.
-        const shapeToDraw = this._lastShape;
-        setTimeout(() => {
-          if (this.map && this.map.pm && this.drawing && shapeToDraw) {
-            this.map.pm.enableDraw(shapeToDraw, this.draft_style);
-          }
-        }, 0);
-      } else {
-        // Desactivado por cancelación — limpiar sin retomar
-        this._prevShape = null;
+      const enableRemoval = !this.buttons_pressed.delete;
+      this.cancelDraw();
+      if (enableRemoval) {
+        this.map.pm.enableGlobalRemovalMode();
+        this.buttons_pressed.delete = true;
+        this.$emit("button-pressed", { ...this.buttons_pressed });
       }
     },
     cancelDraw() {
-      if (!this.map || !this.map.pm) {
-        this._cancelling = false;
-        return;
-      }
-      this._cancelling = true;
-      try {
+      this.drawing = false;
+      Object.keys(this.buttons_pressed).forEach((button) => {
+        this.buttons_pressed[button] = false;
+      });
+      if (this.map && this.map.pm) {
         this.map.pm.disableDraw();
-        this.drawing = false;
-        this._lastShape = null;
-        this._prevShape = null;
+        this.map.pm.disableGlobalRemovalMode();
         this.setCursor("");
-      } finally {
-        this._cancelling = false;
+        this.restorePopups();
       }
+      this.$emit("button-pressed", { ...this.buttons_pressed });
     },
     setCursor(type) {
       const container = this.map.getContainer();

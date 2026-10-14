@@ -34,15 +34,18 @@
                         </b-button>
                     </div>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
-                        @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
+                        @click.capture.stop="polygonAction('polygon', true)" :pressed="buttons_pressed.polygon"
+                        title="Dibujar polígono" aria-label="Dibujar polígono">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
-                        @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                        @click.capture.stop="polygonAction('circle', true)" :pressed="buttons_pressed.circle"
+                        title="Dibujar círculo" aria-label="Dibujar círculo">
                         <b-icon icon="circle"></b-icon>
                     </b-button>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
-                        @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                        @click.capture.stop="polygonAction('rectangle', true)" :pressed="buttons_pressed.rectangle"
+                        title="Dibujar rectángulo" aria-label="Dibujar rectángulo">
                         <b-icon icon="square"></b-icon>
                     </b-button>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
@@ -533,6 +536,9 @@ export default {
             buttons_pressed: {
                 marker: false,
                 polyline: false,
+                polygon: false,
+                circle: false,
+                rectangle: false,
                 delete: false,
             },
             hide_base_layer: false,
@@ -3401,12 +3407,14 @@ export default {
         },
         // END HELPERS
         // Polygon Action: draw or delete
-        polygonAction(action) {
+        polygonAction(action, toggleDrawing = false) {
             if (action === "delete") {
                 this.$refs.polygon_drafter.toggleDelete();
             } else if (action === "clear") {
                 this.$refs.polygon_drafter.deleteAll();
             } else if (action === "cancel") {
+                this.$refs.polygon_drafter.cancelDraw();
+            } else if (toggleDrawing && this.$refs.polygon_drafter.buttons_pressed[action] === true) {
                 this.$refs.polygon_drafter.cancelDraw();
             } else {
                 this.$refs.polygon_drafter.beginDraw(action);
@@ -3848,6 +3856,10 @@ li {
     background-color: #e2e6ea;
     border-color: #dae0e5;
     color: #212529;
+}
+
+.custom-controls .zoom-btn.active {
+    box-shadow: inset 0 0 0 2px currentColor !important;
 }
 
 /* This line delete the UKR flag in the leaflet powered banner */
