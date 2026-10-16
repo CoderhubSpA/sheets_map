@@ -5,6 +5,7 @@ import axios from 'axios'
 import { fetchVectorTileLegendCounts } from '../src/services/vectorTileLegendService.js'
 import { inferVectorTileLayerNameFromUrl } from '../src/utils/vectorTileLegend/config.js'
 import { defaultCountLegend, legendCountGroups, mergeExactLegendCounts, pendingLegendCounts } from '../src/utils/vectorTileLegend/counts.js'
+import { selectionViewport } from '../src/utils/vectorTileLegend/selection.js'
 
 const base = defaultCountLegend({ name: 'Capa', sh_map_has_layer_color: '#123456' })
 const response = count => ({ total_count: count, geometry_type: 'Polygon', counts: { all_features: count } })
@@ -20,12 +21,14 @@ function controller(fetchCounts) {
     const emitted = []
     const vm = { layer: {}, drawnAreas: [], request_auth: null, legendCountRequestId: 0,
         legendCountAbortController: null, isDestroyed: () => false,
+        applySelectionCountResult() {},
         buildRawFilteredTileUrl: () => 'https://gis.test/vector/tiles/demo?filter.kind=eq.a',
         emitLegend: legend => emitted.push(legend) }
     vm.cancelLegendCountEnrichment = method('cancelLegendCountEnrichment').bind(vm)
     vm.enrichLegendCounts = method('enrichLegendCounts', {
         fetchVectorTileLegendCounts: fetchCounts, inferVectorTileLayerNameFromUrl,
         pendingLegendCounts, legendCountGroups, mergeExactLegendCounts,
+        selectionViewport,
     }).bind(vm)
     return { vm, emitted }
 }
@@ -130,4 +133,69 @@ test('drawing and erasing consume map clicks before vector feature details', () 
     drafter.buttons_pressed.delete = false
     click.call(vm, {})
     assert.equal(featureQueries, 1)
+})
+
+test('the annotation fallback refetches tile bodies instead of retaining the old URL cache', async () => {
+    const url = 'https://gis.test/vector/tiles/demo/{z}/{x}/{y}.pbf'
+    const source = { tiles: [url], setTiles(tiles) { this.tiles = tiles } }
+    const requests = []
+    const vm = { drawnAreas: [{ type: 'Polygon', coordinates: [] }], buildFilteredTileUrl: () => url, isDestroyed: () => false,
+        maplibreMap: { getSource: () => source, isStyleLoaded: () => true,
+            refreshTiles: id => requests.push({ id, areas: vm.drawnAreas }) } }
+    const refresh = method('applyTileFilter').bind(vm)
+    await refresh()
+    vm.drawnAreas = []
+    await refresh()
+    assert.deepEqual(requests.map(r => r.areas), [[{ type: 'Polygon', coordinates: [] }], []])
+    assert.ok(requests.every(r => r.id === 'vector-tiles'))
+    assert.deepEqual(source.tiles, [url]) // No geometry or synthetic selection token enters the URL.
+})
+
+test('the drawing watcher reuses loaded tiles while requesting exact membership', () => {
+    let counts = 0, tiles = 0
+    const vm = { drawnAreas: [{}], cancelLegendCountEnrichment() {}, applyStyleExpressionsToLiveLayer() {},
+        currentStyleExpressions: {}, maplibreMap: { getSource: () => ({ tiles: ['keyed-tiles'] }) },
+        buildFilteredTileUrl: () => 'keyed-tiles', applyTileFilter: () => tiles++,
+        resolveRenderState: () => ({ legend: base }), scheduleLegendCountEnrichment: () => counts++ }
+    const watcher = source.match(/legendCountScope\(\) \{([\s\S]*?)^ {8}\}/m)[1]
+    new Function(watcher).call(vm)
+    assert.equal(counts, 1)
+    assert.equal(tiles, 0)
+})
+
+test('attribute and label URL changes use setTiles without a duplicate forced refresh', async () => {
+    const next = 'https://gis.test/vector/tiles/demo/{z}/{x}/{y}.pbf?filter.kind=eq.a&labels=true'
+    const calls = []
+    const source = { tiles: ['previous'], setTiles: tiles => calls.push(tiles) }
+    const vm = { buildFilteredTileUrl: () => next, isDestroyed: () => false,
+        maplibreMap: { getSource: () => source, isStyleLoaded: () => true,
+            refreshTiles: () => assert.fail('Duplicate tile refresh') } }
+    await method('applyTileFilter').call(vm)
+    assert.deepEqual(calls, [[next]])
+    vm.maplibreMap = null
+    await method('applyTileFilter').call(vm) // A late watcher after cleanup is harmless.
+})
+
+test('a paused paint source finishes its reparse before refresh and ignores obsolete selections', async () => {
+    let rendered
+    let paused = true
+    let requests = 0
+    const source = { tiles: ['tile'], setTiles() {} }
+    const map = { getSource: () => source, isStyleLoaded: () => !paused, once: event => {
+        assert.equal(event, 'idle')
+        return new Promise(resolve => { rendered = () => { paused = false; resolve() } })
+    }, triggerRepaint() {}, refreshTiles() { assert.equal(paused, false); requests++ } }
+    const vm = { maplibreMap: map, legendCountScope: 'first', isDestroyed: () => false, buildFilteredTileUrl: () => 'tile' }
+    const refresh = method('applyTileFilter').bind(vm)
+    const first = refresh()
+    assert.equal(requests, 0)
+    rendered()
+    await first
+    assert.equal(requests, 1)
+    paused = true
+    const obsolete = refresh()
+    vm.legendCountScope = 'newer'
+    rendered()
+    await obsolete
+    assert.equal(requests, 1)
 })
