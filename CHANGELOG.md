@@ -3,6 +3,14 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 versionado según [SemVer](https://semver.org/lang/es/).
 
+## [1.60.1] - 2026-10-20
+
+### Fixed
+
+- Las descargas muestran un mensaje de error y permiten reintentar la misma operación. Si falla el
+  descubrimiento de capabilities, el reintento vuelve a consultarlas; respuestas tardías no alteran
+  la selección activa.
+
 ## [1.60.0] - 2026-10-02
 
 ### Added
