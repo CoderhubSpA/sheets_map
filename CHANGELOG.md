@@ -3,6 +3,13 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 versionado según [SemVer](https://semver.org/lang/es/).
 
+## [1.60.1] - 2026-10-20
+
+### Fixed
+
+- Las descargas de capas muestran un mensaje de error y permiten reintentar tanto el formato
+  seleccionado como la descarga directa de fallback.
+
 ## [1.60.0] - 2026-10-02
 
 ### Added
