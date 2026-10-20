@@ -7,8 +7,9 @@ versionado según [SemVer](https://semver.org/lang/es/).
 
 ### Fixed
 
-- Las descargas de capas muestran un mensaje de error y permiten reintentar tanto el formato
-  seleccionado como la descarga directa de fallback.
+- Las descargas muestran un mensaje de error y permiten reintentar la misma operación. Si falla el
+  descubrimiento de capabilities, el reintento vuelve a consultarlas; respuestas tardías no alteran
+  la selección activa.
 
 ## [1.60.0] - 2026-10-02
 
