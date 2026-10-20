@@ -362,12 +362,24 @@
             title="Seleccionar formato de descarga"
             ok-title="Descargar"
             cancel-title="Cancelar"
+            :ok-disabled="!selectedFormat"
             centered
             @ok="downloadWithFormat(selectedFormat)"
         >
             <div class="format-selection-container">
                 <p>Seleccione el formato en el que desea descargar la capa:</p>
-                <b-form-group>
+                <b-alert v-if="downloadError" show variant="danger" role="alert">
+                    <p class="mb-2">{{ downloadError }}</p>
+                    <b-button
+                        v-if="failedDownload"
+                        size="sm"
+                        variant="outline-danger"
+                        @click="retryDownload"
+                    >
+                        Reintentar
+                    </b-button>
+                </b-alert>
+                <b-form-group v-if="availableFormats.length">
                     <b-form-radio
                         v-for="format in availableFormats"
                         :key="format"
@@ -384,7 +396,7 @@
 </template>
 <script>
 import _ from "lodash";
-import { BIcon, BModal, BFormGroup, BFormRadio, BPopover } from 'bootstrap-vue';
+import { BAlert, BButton, BIcon, BModal, BFormGroup, BFormRadio, BPopover } from 'bootstrap-vue';
 import SheetsTooltip from "./SheetsTooltip.vue";
 import axios from 'axios';
 import { fetchVectorTileAttributes } from "../services/vectorTileAttributesService";
@@ -404,6 +416,8 @@ import {
 export default {
     name: 'SheetsMapTools',
     components: {
+        BAlert,
+        BButton,
         BIcon,
         BModal,
         BFormGroup,
@@ -465,6 +479,8 @@ export default {
             selectedDownloadLayer: null,
             selectedFormat: '',
             showFormatModal: false,
+            downloadError: '',
+            failedDownload: null,
         };
     },
     computed: {
@@ -1018,6 +1034,8 @@ export default {
         },
         async download_layer(url, layer_name, layer) {
             const requestAuth = this.requestAuthForLayer(layer);
+            this.downloadError = '';
+            this.failedDownload = null;
             // Obtenemos capacidades de la capa (estandar WFS)
             try {
                 // Intentamos obtener capabilities
@@ -1043,34 +1061,11 @@ export default {
                         return;
                     }
             } catch (error) {
-                console.error("Error al obtener capabilities: ", error);
+                console.error("Error al obtener capabilities", error?.response?.status || 'request error');
                 // Continuar con el flujo normal de descarga
             }
 
-
-            requestWithAuth({
-                url,
-                requestAuth,
-                requireBearer: Boolean(requestAuth),
-                request: headers => axios.get(url, { headers, responseType: 'blob' }),
-            }).then((response) => {
-                let fileType = _.split(response.headers['content-type'], ';', 1);
-                fileType = _.head(fileType) || 'application/octet-stream';
-
-                if(response.data && fileType) {
-                    const fileName = resolveDownloadFilename({
-                        headers: response.headers,
-                        contentType: fileType,
-                        fallbackName: layer_name,
-                        url,
-                    });
-                    this.createDownloadFile(response.data, fileType, fileName);
-                } else {
-                    throw new Error('No se obtuvo el archivo de descarga o no se pudo determinar el tipo de archivo');
-                }
-            }).catch((error) => {
-                console.error("Download Layer error: " + error);
-            });
+            await this.downloadDirect(url, layer_name, layer);
         },
         showFormatSelectionPopup(formats, baseUrl, layerName, layer){
             // Aquí mostramos el modal de Bootstrap con los formatos
@@ -1079,9 +1074,61 @@ export default {
             this.selectedLayerName = layerName;
             this.selectedDownloadLayer = layer;
             this.selectedFormat = formats[0] || ''; // Seleccionar el primer formato por defecto
+            this.downloadError = '';
+            this.failedDownload = null;
             this.showFormatModal = true; // Mostrar el modal
         },
+        async downloadDirect(url, layerName, layer) {
+            const requestAuth = this.requestAuthForLayer(layer);
+
+            try {
+                const response = await requestWithAuth({
+                    url,
+                    requestAuth,
+                    requireBearer: Boolean(requestAuth),
+                    request: headers => axios.get(url, { headers, responseType: 'blob' }),
+                });
+                const fileType = _.head(_.split(response.headers['content-type'], ';', 1))
+                    || 'application/octet-stream';
+                if (!response.data || !fileType) {
+                    throw new Error('No se obtuvo el archivo de descarga o no se pudo determinar el tipo de archivo');
+                }
+
+                const fileName = resolveDownloadFilename({
+                    headers: response.headers,
+                    contentType: fileType,
+                    fallbackName: layerName,
+                    url,
+                });
+                this.createDownloadFile(response.data, fileType, fileName);
+                this.downloadError = '';
+                this.failedDownload = null;
+                this.showFormatModal = false;
+            } catch (error) {
+                console.error('Layer download failed', error?.response?.status || 'request error');
+                this.downloadError = 'No fue posible descargar la capa. Verifica la conexión e inténtalo nuevamente.';
+                this.failedDownload = { kind: 'direct', url, layerName, layer };
+                this.selectedLayerUrl = url;
+                this.selectedLayerName = layerName;
+                this.selectedDownloadLayer = layer;
+                this.availableFormats = [];
+                this.selectedFormat = '';
+                this.showFormatModal = true;
+            }
+        },
+        async retryDownload() {
+            if (!this.failedDownload) return;
+
+            if (this.failedDownload.kind === 'direct') {
+                const { url, layerName, layer } = this.failedDownload;
+                await this.downloadDirect(url, layerName, layer);
+                return;
+            }
+
+            await this.downloadWithFormat(this.selectedFormat || this.failedDownload.format);
+        },
         async downloadWithFormat(format) {
+            this.downloadError = '';
             const exportUrlObject = new URL(this.selectedLayerUrl, window.location.href);
             exportUrlObject.pathname = `${exportUrlObject.pathname.replace(/\/$/, '')}/export`;
             exportUrlObject.searchParams.set('outputFormat', format);
@@ -1107,8 +1154,14 @@ export default {
                     url: exportUrl,
                 });
                 this.createDownloadFile(response.data, fileType, fileName);
+                this.downloadError = '';
+                this.failedDownload = null;
+                this.showFormatModal = false;
             } catch (error) {
-                console.error('Download Layer error: ', error);
+                console.error('Layer download failed', error?.response?.status || 'request error');
+                this.downloadError = 'No fue posible descargar la capa. Verifica la conexión e inténtalo nuevamente.';
+                this.failedDownload = { kind: 'format', format };
+                this.showFormatModal = true;
             }
         },
         createDownloadFile(data, type, name) {
