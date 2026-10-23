@@ -2511,7 +2511,6 @@ export default {
                     current_zoom !== this.zoom &&
                     layer.sh_map_has_layer_code == "operative_vector_tiles_tms"
                 ) {
-                    console.log("Zoom changed, canceling GeoJson request processing");
                     return;
                 }
                 let raw_data;
@@ -2976,7 +2975,6 @@ export default {
                 })
                 .finally(() => {
                     this.notifyMapConfigurationReady();
-                    console.log("done data");
                 });
         },
         orderByColor(geojson_multicolor) {
