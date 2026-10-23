@@ -212,9 +212,7 @@ export default {
     polygonBounds() {
       let search = [];
 
-      for (const [key, geojson] of Object.entries(this.polygon_arr)) {
-        console.log(key);
-        console.log(geojson);
+      for (const [, geojson] of Object.entries(this.polygon_arr)) {
         search.push(geojson.features[0].geometry.coordinates[0]);
       }
 
