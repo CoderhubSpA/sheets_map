@@ -1,9 +1,10 @@
-// Cliente mínimo para el servicio de búsqueda de Nominatim (OpenStreetMap).
-// Cumple la política de uso del servidor público:
-// - como máximo 1 solicitud por segundo por navegador (estado compartido a nivel de módulo),
+// Cliente mínimo para el servicio de búsqueda de Nominatim (OpenStreetMap):
+// - como máximo 1 solicitud por segundo desde cada pestaña (estado compartido a nivel de módulo).
+//   Este límite no suma usuarios: el límite agregado que exige el servidor público lo aplica
+//   un proxy del anfitrión (en Sheets, /nominatim), que se configura como nominatim_url,
 // - sin autocompletar (solo se consulta cuando la persona lo pide),
 // - caché en memoria para no repetir consultas,
-// - reintentos acotados solo ante 429/503 o fallas de red.
+// - reintentos acotados solo ante 429/503 o fallas de red, sin adelantarse a Retry-After.
 // Se usa fetch y no axios a propósito: así no viajan a OSM los encabezados globales
 // (CSRF, Authorization) que la aplicación anfitriona pueda haber configurado en axios.
 
@@ -12,10 +13,13 @@ export const NOMINATIM_DEFAULT_COUNTRYCODES = 'cl'
 export const NOMINATIM_RESULT_LIMIT = 8
 export const MIN_REQUEST_INTERVAL_MS = 1000
 export const RETRY_DELAYS_MS = Object.freeze([1000, 3000])
-export const MAX_RETRY_AFTER_MS = 5000
+// Espera máxima que acepta la interfaz antes de avisar que el buscador está ocupado.
+// No acorta Retry-After: si el servidor pide más, no se vuelve a consultar antes de lo indicado.
+export const MAX_WAIT_MS = 5000
 export const REQUEST_TIMEOUT_MS = 10000
 const MAX_CACHE_ENTRIES = 100
 const RETRYABLE_STATUSES = new Set([429, 503])
+const INVALID_BODY = Symbol('invalid-body')
 
 export const NOMINATIM_ERROR_KIND = Object.freeze({
     BUSY: 'busy',
@@ -34,12 +38,14 @@ export class NominatimError extends Error {
 export function createNominatimState() {
     return {
         lastRequestAt: null,
+        // Instante desde el que se puede volver a consultar, según el último Retry-After.
+        nextAllowedAt: 0,
         queue: Promise.resolve(),
         cache: new Map(),
     }
 }
 
-// Estado compartido por todas las instancias del buscador en el navegador.
+// Estado compartido por todas las instancias del buscador en la pestaña.
 const sharedState = createNominatimState()
 
 export function normalizeQuery(query) {
@@ -88,10 +94,13 @@ export function parseBoundingBox(boundingbox) {
     return [[south, west], [north, east]]
 }
 
-export function toPlace(item = {}) {
+export function toPlace(item) {
+    if (!item || typeof item !== 'object') return null
+
     const lat = Number(item.lat)
     const lon = Number(item.lon)
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+    // El proveedor es configurable: no se encuadra un punto fuera de rango.
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null
 
     return {
         label: item.display_name || `${lat}, ${lon}`,
@@ -101,7 +110,7 @@ export function toPlace(item = {}) {
     }
 }
 
-// Retry-After puede venir en segundos o como fecha HTTP. Se acota a MAX_RETRY_AFTER_MS.
+// Retry-After puede venir en segundos o como fecha HTTP. Devuelve la espera completa en ms.
 export function parseRetryAfter(headerValue, nowMs = Date.now()) {
     if (headerValue === null || headerValue === undefined || headerValue === '') return null
 
@@ -113,9 +122,11 @@ export function parseRetryAfter(headerValue, nowMs = Date.now()) {
         const date = Date.parse(text)
         if (Number.isFinite(date)) delayMs = Math.max(0, date - nowMs)
     }
-    if (delayMs === null) return null
+    return delayMs
+}
 
-    return Math.min(delayMs, MAX_RETRY_AFTER_MS)
+function busyError(status = null) {
+    return new NominatimError(NOMINATIM_ERROR_KIND.BUSY, 'Nominatim está ocupado', status)
 }
 
 function defaultSleep(ms) {
@@ -126,14 +137,15 @@ function defaultFetch(...args) {
     return globalThis.fetch(...args)
 }
 
-// Reserva un turno respetando el intervalo mínimo entre solicitudes. Los turnos se
-// encadenan para que dos búsquedas simultáneas tampoco superen 1 solicitud por segundo.
+// Reserva un turno respetando el intervalo mínimo entre solicitudes y el último Retry-After.
+// Los turnos se encadenan para que dos búsquedas simultáneas tampoco superen 1 solicitud por
+// segundo. Si la espera supera lo que acepta la interfaz, se avisa ocupado sin consultar.
 function acquireRequestSlot(state, now, sleep) {
     const slot = state.queue.then(async () => {
-        if (state.lastRequestAt !== null) {
-            const waitMs = state.lastRequestAt + MIN_REQUEST_INTERVAL_MS - now()
-            if (waitMs > 0) await sleep(waitMs)
-        }
+        const intervalEnd = state.lastRequestAt === null ? 0 : state.lastRequestAt + MIN_REQUEST_INTERVAL_MS
+        const waitMs = Math.max(intervalEnd, state.nextAllowedAt) - now()
+        if (waitMs > MAX_WAIT_MS) throw busyError()
+        if (waitMs > 0) await sleep(waitMs)
         state.lastRequestAt = now()
     })
     state.queue = slot.catch(() => {})
@@ -148,17 +160,27 @@ function rememberResult(state, key, places) {
     }
 }
 
-async function fetchWithTimeout(fetchImpl, url, timeoutMs) {
-    if (typeof AbortController !== 'function') {
-        return fetchImpl(url, { headers: { Accept: 'application/json' } })
-    }
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
+// El tiempo límite cubre encabezados y cuerpo: fetch resuelve al llegar los encabezados
+// y la lectura del JSON puede quedar pendiente si el cuerpo se detiene.
+async function fetchJsonWithTimeout(fetchImpl, url, timeoutMs) {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null
+    let timer = null
+    const timeout = new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+            if (controller) controller.abort()
+            reject(new Error(`sin respuesta en ${timeoutMs} ms`))
+        }, timeoutMs)
+    })
     try {
-        return await fetchImpl(url, {
-            headers: { Accept: 'application/json' },
-            signal: controller.signal,
-        })
+        const response = await Promise.race([
+            fetchImpl(url, { headers: { Accept: 'application/json' }, signal: controller?.signal }),
+            timeout,
+        ])
+        if (!response.ok) return { response, data: null }
+
+        // Un cuerpo que no es JSON se trata como respuesta inválida, no como falla de red.
+        const data = await Promise.race([response.json().catch(() => INVALID_BODY), timeout])
+        return { response, data }
     } finally {
         clearTimeout(timer)
     }
@@ -182,9 +204,9 @@ export function createNominatimClient({
         for (let attempt = 0; ; attempt++) {
             await acquireRequestSlot(state, now, sleep)
 
-            let response = null
+            let result = null
             try {
-                response = await fetchWithTimeout(fetchImpl, url, timeoutMs)
+                result = await fetchJsonWithTimeout(fetchImpl, url, timeoutMs)
             } catch (error) {
                 // Falla de red o tiempo agotado: se puede reintentar.
                 if (attempt < RETRY_DELAYS_MS.length) {
@@ -194,20 +216,28 @@ export function createNominatimClient({
                 throw new NominatimError(NOMINATIM_ERROR_KIND.FAILED, `Nominatim no respondió: ${error?.message || error}`)
             }
 
+            const { response, data } = result
             if (response.ok) {
-                const data = await response.json()
-                const places = (Array.isArray(data) ? data : []).map(toPlace).filter(Boolean)
+                // Solo un array es una respuesta válida (vacío = sin coincidencias). Un objeto de
+                // error o un cuerpo inválido no se cachea, para no repetir un falso "sin resultados".
+                if (!Array.isArray(data)) {
+                    throw new NominatimError(NOMINATIM_ERROR_KIND.FAILED, 'Nominatim respondió en un formato inesperado', response.status)
+                }
+                const places = data.map(toPlace).filter(Boolean)
                 rememberResult(state, cacheKey, places)
                 return places
             }
 
             if (RETRYABLE_STATUSES.has(response.status)) {
-                if (attempt < RETRY_DELAYS_MS.length) {
-                    const retryAfter = parseRetryAfter(response.headers?.get?.('Retry-After'), now())
-                    await sleep(retryAfter ?? RETRY_DELAYS_MS[attempt])
+                const retryAfter = parseRetryAfter(response.headers?.get?.('Retry-After'), now())
+                // El enfriamiento vale para todas las búsquedas de la pestaña, no solo para esta.
+                if (retryAfter !== null) state.nextAllowedAt = Math.max(state.nextAllowedAt, now() + retryAfter)
+                if (attempt < RETRY_DELAYS_MS.length && (retryAfter ?? 0) <= MAX_WAIT_MS) {
+                    // Con Retry-After, acquireRequestSlot espera hasta nextAllowedAt.
+                    if (retryAfter === null) await sleep(RETRY_DELAYS_MS[attempt])
                     continue
                 }
-                throw new NominatimError(NOMINATIM_ERROR_KIND.BUSY, 'Nominatim está ocupado', response.status)
+                throw busyError(response.status)
             }
 
             // 403 (bloqueo por política de uso) y otros errores: no se reintenta.
