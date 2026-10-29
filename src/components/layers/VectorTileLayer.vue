@@ -15,6 +15,8 @@ import {
 } from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileLegendCounts } from '../../services/vectorTileLegendService';
 import { defaultCountLegend, legendCountGroups, mergeExactLegendCounts, pendingLegendCounts } from '../../utils/vectorTileLegend/counts';
+import { DRAWN_SELECTION_ATTRIBUTE, SELECTION_KEY_ATTRIBUTE, drawnSelectionColor, drawnSelectionOpacity, drawnSelectionTileRequest,
+    featureKeyTileUrl, selectedFeatureKeys, selectionViewport, viewportContains, withoutSelectionMetadata } from '../../utils/vectorTileLegend/selection';
 import {
     buildFilteredVectorTileUrl,
     buildLabeledVectorTileUrl,
@@ -112,6 +114,7 @@ export default {
             renderStateRequestId: 0,
             legendCountRequestId: 0,
             legendCountAbortController: null,
+            selectedFeatureKeys: null,
             highlightRequestId: 0,
             highlightAbortController: null,
             // Referencias a handlers para poder limpiarlos
@@ -149,14 +152,12 @@ export default {
             this.cleanup();
             this.$nextTick(this.createVectorTileLayer);
         },
-        filterAttribute() {
-            this.applyTileFilter();
-        },
-        filterValue() {
-            this.applyTileFilter();
-        },
         legendCountScope() {
             this.cancelLegendCountEnrichment();
+            if (!this.drawnAreas.length) this.clearSelectionFeatureState();
+            this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
+            const source = this.maplibreMap?.getSource('vector-tiles');
+            if (source && source.tiles?.[0] !== this.buildFilteredTileUrl()) this.applyTileFilter();
             this.scheduleLegendCountEnrichment(this.resolveRenderState().legend);
         }
     },
@@ -284,6 +285,7 @@ export default {
                 sources: {
                     'vector-tiles': {
                         type: 'vector',
+                        promoteId: SELECTION_KEY_ATTRIBUTE,
                         tiles: [this.buildFilteredTileUrl()],
                         scheme: 'xyz',
                         minzoom: 0,
@@ -332,7 +334,10 @@ export default {
                         headers: requestHeaders,
                         baseUrl: window.location.href,
                     });
-                    return this.rememberTileRequestToken(url, resourceType, request);
+                    const selectedRequest = drawnSelectionTileRequest(
+                        request, resourceType, tileUrl, this.selectedFeatureKeys ? [] : this.drawnAreas, window.location.href,
+                    );
+                    return this.rememberTileRequestToken(url, resourceType, selectedRequest);
                 },
             });
             
@@ -349,7 +354,10 @@ export default {
             // Sin esto, queryRenderedFeatures() no funcionará
             this.maplibreMap.on('load', () => {
                 this.styleLoaded = true;
+                this.applySelectionFeatureState();
             });
+            this.maplibreMap.on('sourcedata', this.applySelectionFeatureState);
+            this.map.on('moveend', this.handleSelectionViewportChanged);
             // Cubre la carrera donde 'load' ya se disparó antes de registrar el listener
             // de arriba (posible si el hilo se demora en llegar hasta acá).
             if (this.maplibreMap.isStyleLoaded()) {
@@ -474,22 +482,25 @@ export default {
         async enrichLegendCounts(baseLegend) {
             const legendMode = this.layer.sh_map_has_layer_legend_mode || 'internal';
             this.cancelLegendCountEnrichment();
-            if (!baseLegend || baseLegend.visible === false || legendMode !== 'internal') return;
+            const showLegend = baseLegend && baseLegend.visible !== false && legendMode === 'internal';
+            if (!showLegend && !this.drawnAreas.length) return;
             const requestId = this.legendCountRequestId;
             const controller = typeof AbortController !== 'undefined'
                 ? new AbortController()
                 : null;
             this.legendCountAbortController = controller;
             const spatialFiltered = this.drawnAreas.length > 0;
-            this.emitLegend(pendingLegendCounts(baseLegend, spatialFiltered));
+            if (showLegend) this.emitLegend(pendingLegendCounts(baseLegend, spatialFiltered));
 
             try {
                 const tileUrl = this.buildRawFilteredTileUrl();
+                const viewport = spatialFiltered ? selectionViewport(this.map) : null;
                 const response = await fetchVectorTileLegendCounts({
                     tileUrl,
                     layerName: inferVectorTileLayerNameFromUrl(tileUrl),
                     areas: this.drawnAreas,
-                    groups: legendCountGroups(baseLegend),
+                    groups: showLegend ? legendCountGroups(baseLegend) : [],
+                    selectionBbox: viewport,
                     requestAuth: this.request_auth,
                     signal: controller?.signal,
                 });
@@ -501,7 +512,8 @@ export default {
                     return;
                 }
 
-                this.emitLegend(mergeExactLegendCounts(baseLegend, response, spatialFiltered));
+                this.applySelectionCountResult(response, viewport);
+                if (showLegend) this.emitLegend(mergeExactLegendCounts(baseLegend, response, spatialFiltered));
             } catch (error) {
                 const isCancelled = error?.name === 'AbortError' ||
                     error?.name === 'CanceledError' ||
@@ -509,7 +521,8 @@ export default {
 
                 if (!isCancelled && requestId === this.legendCountRequestId && !this.isDestroyed()) {
                     console.warn('VectorTileLayer: No fue posible obtener el conteo de la leyenda');
-                    this.emitLegend(pendingLegendCounts(baseLegend, spatialFiltered, 'error'));
+                    this.applySelectionCountResult(null, null);
+                    if (showLegend) this.emitLegend(pendingLegendCounts(baseLegend, spatialFiltered, 'error'));
                 }
             } finally {
                 if (requestId === this.legendCountRequestId) {
@@ -518,11 +531,63 @@ export default {
             }
         },
 
+        clearSelectionFeatureState() {
+            this.selectedFeatureKeys = null;
+            const map = this.maplibreMap;
+            if (!map?.getSource('vector-tiles')) return;
+            for (const sourceLayer of [this.sourceLayer, `${this.sourceLayer}_label`]) {
+                map.removeFeatureState({ source: 'vector-tiles', sourceLayer });
+            }
+        },
+
+        applySelectionCountResult(response, viewport) {
+            this.clearSelectionFeatureState();
+            const keys = this.drawnAreas.length ? selectedFeatureKeys(response?.selected_keys) : null;
+            if (keys !== null && viewport) this.selectedFeatureKeys = { keys, viewport, scope: this.legendCountScope };
+            this.applyStyleExpressionsToLiveLayer(this.currentStyleExpressions);
+            if (!this.drawnAreas.length) return;
+            if (this.selectedFeatureKeys) this.applySelectionFeatureState();
+            else this.applyTileFilter(); // Compatibility and bounded-overflow fallback.
+        },
+
+        applySelectionFeatureState(event) {
+            if (event && (event.sourceId !== 'vector-tiles' || event.sourceDataType === 'metadata')) return;
+            const selection = this.selectedFeatureKeys;
+            if (!this.styleLoaded || !selection || selection.scope !== this.legendCountScope ||
+                !viewportContains(selection.viewport, selectionViewport(this.map, 0))) return;
+            const map = this.maplibreMap;
+            const sourceLayers = [this.sourceLayer, `${this.sourceLayer}_label`];
+            const keys = new Set(sourceLayers.flatMap(sourceLayer => map.querySourceFeatures('vector-tiles', { sourceLayer }))
+                .map(feature => feature.properties?.[SELECTION_KEY_ATTRIBUTE]).filter(Boolean));
+            for (const key of keys) {
+                // Truthy values survive MapLibre's queued bulk-removal reconciliation;
+                // boolean false can otherwise be mistaken for a missing replacement.
+                const selected = selection.keys.has(key) ? 'selected' : 'rejected';
+                for (const sourceLayer of sourceLayers) {
+                    const feature = { source: 'vector-tiles', sourceLayer, id: key };
+                    if (map.getFeatureState(feature)[DRAWN_SELECTION_ATTRIBUTE] !== selected) {
+                        map.setFeatureState(feature, { [DRAWN_SELECTION_ATTRIBUTE]: selected });
+                    }
+                }
+            }
+        },
+
+        handleSelectionViewportChanged() {
+            if (this.drawnAreas.length && this.isInitialized) {
+                const selection = this.selectedFeatureKeys;
+                if (selection?.scope === this.legendCountScope &&
+                    viewportContains(selection.viewport, selectionViewport(this.map, 0))) {
+                    this.applySelectionFeatureState();
+                    return;
+                }
+                this.enrichLegendCounts(this.resolveRenderState().legend);
+            }
+        },
+
         // Escala una expresión de opacidad (número plano o expression array de MapLibre)
         // por el factor de opacidad de la capa (prop `opacity`, 0-1).
         scaleOpacity(expr) {
-            if (typeof expr === 'number') return expr * this.opacity;
-            return ['*', expr, this.opacity];
+            return drawnSelectionOpacity(expr, this.opacity, this.drawnAreas.length > 0, Boolean(this.selectedFeatureKeys));
         },
 
         async handleMapLibreAuthError(event) {
@@ -554,8 +619,11 @@ export default {
 
         resolveStylePaint(styleExpressions = null) {
             const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
-            const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
-            const strokeColorExpression = resolvedStyleExpressions.strokeColorExpression;
+            // Con áreas dibujadas, los registros fuera de la selección pasan a gris.
+            const selectionActive = this.drawnAreas.length > 0;
+            const featureState = Boolean(this.selectedFeatureKeys);
+            const fillColorExpression = drawnSelectionColor(resolvedStyleExpressions.fillColorExpression, selectionActive, featureState);
+            const strokeColorExpression = drawnSelectionColor(resolvedStyleExpressions.strokeColorExpression, selectionActive, featureState);
 
             return {
                 fillColorExpression,
@@ -583,6 +651,7 @@ export default {
                 pointDashStyle: resolvedStyleExpressions.pointDashStyle || 'solid',
                 // Etiqueta de texto sobre el centro de cada polígono (vacía = sin texto visible).
                 labelTextExpression: resolvedStyleExpressions.labelTextExpression ?? '',
+                labelOpacityExpression: drawnSelectionOpacity(1, 1, this.drawnAreas.length > 0, Boolean(this.selectedFeatureKeys)),
                 labelSizeExpression: resolvedStyleExpressions.labelSizeExpression ?? 12,
                 labelColorExpression: resolvedStyleExpressions.labelColorExpression || '#000000',
                 labelHaloColorExpression: resolvedStyleExpressions.labelHaloColorExpression || '#FFFFFF',
@@ -743,14 +812,14 @@ export default {
         // Reconstruye la URL de tiles agregando el filtro server-side (REQ-706.1), si hay uno activo.
         // El geoserver soporta ?filter.<atributo>=eq.<valor> en el mismo endpoint {z}/{x}/{y}.pbf.
         buildRawFilteredTileUrl() {
-            return buildLabeledVectorTileUrl(
+            return featureKeyTileUrl(buildLabeledVectorTileUrl(
                 buildFilteredVectorTileUrl(
                     this.tileUrl,
                     this.filterAttribute,
                     this.filterValue,
                 ),
                 this.hasLabelText(this.currentStyleExpressions),
-            );
+            ));
         },
 
         // Las etiquetas se piden al servidor solo si el estilo define un texto, para no pagar su costo en las demás capas.
@@ -763,13 +832,27 @@ export default {
             return this.authRecovery.decorateSourceUrl(this.buildRawFilteredTileUrl());
         },
 
-        // Actualiza el template de tiles de la fuente en runtime (sin reconstruir el estilo)
-        // y fuerza a MapLibre a refetchear con el nuevo filtro.
-        applyTileFilter() {
-            const source = this.maplibreMap && this.maplibreMap.getSource('vector-tiles');
+        async applyTileFilter() {
+            const map = this.maplibreMap;
+            if (!map || !map.getSource('vector-tiles')) return;
+            const scope = this.legendCountScope;
+            // Finish a pending paint reparse before expiring tile data; otherwise
+            // MapLibre can discard the refresh or fetch every visible tile twice.
+            if (!map.isStyleLoaded()) {
+                const idle = map.once('idle');
+                map.triggerRepaint();
+                await idle;
+            }
+            if (map !== this.maplibreMap || scope !== this.legendCountScope || this.isDestroyed()) return;
+            const source = map.getSource('vector-tiles');
             if (!source || typeof source.setTiles !== 'function') return;
 
-            source.setTiles([this.buildFilteredTileUrl()]);
+            const tileUrl = this.buildFilteredTileUrl();
+            if (source.tiles?.[0] === tileUrl) {
+                map.refreshTiles('vector-tiles');
+            } else {
+                source.setTiles([tileUrl]);
+            }
         },
 
         applyStyleExpressionsToLiveLayer(styleExpressions = null) {
@@ -803,6 +886,7 @@ export default {
             this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-max-width', paint.labelMaxWidthExpression);
             this.setLayoutPropertyIfExists(`${this.layer.id}-label`, 'text-size', paint.labelSizeExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-color', paint.labelColorExpression);
+            this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-opacity', paint.labelOpacityExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-halo-color', paint.labelHaloColorExpression);
             this.setPaintPropertyIfExists(`${this.layer.id}-label`, 'text-halo-width', paint.labelHaloWidthExpression);
 
@@ -953,7 +1037,7 @@ export default {
             
             if (features.length > 0) {
                 const feature = features[0];
-                const properties = feature.properties;
+                const properties = withoutSelectionMetadata(feature.properties);
                 
                 // Resaltar el feature clickeado (no bloquea el evento ni el modal)
                 this.highlightFeature(feature);
@@ -961,7 +1045,7 @@ export default {
                 // Emitir evento para que el padre pueda reaccionar si necesita
                 this.$emit('feature-click', {
                     layer: this.layer,
-                    feature: feature,
+                    feature: { ...feature, properties },
                     properties: properties,
                     latlng: [e.latlng.lat, e.latlng.lng],
                     visible_columns: this.visible_columns
@@ -1320,6 +1404,7 @@ export default {
                     'text-ignore-placement': false
                 },
                 paint: {
+                    'text-opacity': paint.labelOpacityExpression,
                     'text-color': paint.labelColorExpression,
                     'text-halo-color': paint.labelHaloColorExpression,
                     'text-halo-width': paint.labelHaloWidthExpression
@@ -1347,6 +1432,7 @@ export default {
             this.fullFeatureCache = null;
             // Cerrar popups
             if (targetMap) {
+                targetMap.off('moveend', this.handleSelectionViewportChanged);
                 targetMap.closePopup();
             }
             
@@ -1371,6 +1457,8 @@ export default {
             if (this.maplibreMap && this.maplibreErrorHandler) {
                 this.maplibreMap.off('error', this.maplibreErrorHandler);
             }
+            if (this.maplibreMap) this.maplibreMap.off('sourcedata', this.applySelectionFeatureState);
+            this.selectedFeatureKeys = null;
             this.maplibreErrorHandler = null;
             this.authRecovery.reset();
             
