@@ -2,14 +2,25 @@ import { mergeRequestHeaders } from '../requestAuth.mjs'
 
 export const DRAWN_SELECTION_ATTRIBUTE = '__sheets_selected'
 export const SELECTION_KEY_ATTRIBUTE = '__sheets_selection_key'
-export const UNSELECTED_OPACITY_FACTOR = 0.2
+export const UNSELECTED_OPACITY_FACTOR = 0.5
+export const UNSELECTED_COLOR = '#9E9E9E'
 
-/** Preserve palette expressions; reduce only the opacity of rejected records. */
+// A legacy/missing annotation must not falsely classify a record as rejected.
+function rejectedRecord(featureState) {
+    return ['==', [featureState ? 'feature-state' : 'get', DRAWN_SELECTION_ATTRIBUTE], featureState ? 'rejected' : false]
+}
+
+/** Preserve palette expressions; soften the opacity of rejected records so they stay visible as context. */
 export function drawnSelectionOpacity(expression, opacity, selected, featureState = false) {
     const base = typeof expression === 'number' ? expression * opacity : ['*', expression, opacity]
     if (!selected) return base
-    // A legacy/missing annotation must not falsely classify a record as rejected.
-    return ['*', base, ['case', ['==', [featureState ? 'feature-state' : 'get', DRAWN_SELECTION_ATTRIBUTE], featureState ? 'rejected' : false], UNSELECTED_OPACITY_FACTOR, 1]]
+    return ['*', base, ['case', rejectedRecord(featureState), UNSELECTED_OPACITY_FACTOR, 1]]
+}
+
+/** Paint rejected records gray; selected and unannotated records keep their palette color. */
+export function drawnSelectionColor(expression, selected, featureState = false) {
+    if (!selected) return expression
+    return ['case', rejectedRecord(featureState), UNSELECTED_COLOR, expression]
 }
 
 export function featureKeyTileUrl(url) {

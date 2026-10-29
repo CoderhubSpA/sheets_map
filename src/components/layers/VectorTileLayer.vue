@@ -15,7 +15,7 @@ import {
 } from '../../utils/vectorTileLegend/style';
 import { fetchVectorTileLegendCounts } from '../../services/vectorTileLegendService';
 import { defaultCountLegend, legendCountGroups, mergeExactLegendCounts, pendingLegendCounts } from '../../utils/vectorTileLegend/counts';
-import { DRAWN_SELECTION_ATTRIBUTE, SELECTION_KEY_ATTRIBUTE, drawnSelectionOpacity, drawnSelectionTileRequest,
+import { DRAWN_SELECTION_ATTRIBUTE, SELECTION_KEY_ATTRIBUTE, drawnSelectionColor, drawnSelectionOpacity, drawnSelectionTileRequest,
     featureKeyTileUrl, selectedFeatureKeys, selectionViewport, viewportContains, withoutSelectionMetadata } from '../../utils/vectorTileLegend/selection';
 import {
     buildFilteredVectorTileUrl,
@@ -619,8 +619,11 @@ export default {
 
         resolveStylePaint(styleExpressions = null) {
             const resolvedStyleExpressions = styleExpressions || buildDefaultVectorTilePaint(this.layer);
-            const fillColorExpression = resolvedStyleExpressions.fillColorExpression;
-            const strokeColorExpression = resolvedStyleExpressions.strokeColorExpression;
+            // Con áreas dibujadas, los registros fuera de la selección pasan a gris.
+            const selectionActive = this.drawnAreas.length > 0;
+            const featureState = Boolean(this.selectedFeatureKeys);
+            const fillColorExpression = drawnSelectionColor(resolvedStyleExpressions.fillColorExpression, selectionActive, featureState);
+            const strokeColorExpression = drawnSelectionColor(resolvedStyleExpressions.strokeColorExpression, selectionActive, featureState);
 
             return {
                 fillColorExpression,

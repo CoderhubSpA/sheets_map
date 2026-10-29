@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import { createExpression } from '@maplibre/maplibre-gl-style-spec'
-import { DRAWN_SELECTION_ATTRIBUTE, SELECTION_KEY_ATTRIBUTE, drawnSelectionOpacity, drawnSelectionTileRequest,
+import { DRAWN_SELECTION_ATTRIBUTE, SELECTION_KEY_ATTRIBUTE, UNSELECTED_COLOR, drawnSelectionColor, drawnSelectionOpacity, drawnSelectionTileRequest,
     featureKeyTileUrl, selectedFeatureKeys, selectionViewport, viewportContains, withoutSelectionMetadata } from '../src/utils/vectorTileLegend/selection.js'
 
 function evaluate(expression, properties, state = {}) {
@@ -16,10 +16,25 @@ test('MapLibre preserves class opacity, fades only false intersections and resto
     const style = drawnSelectionOpacity(paletteOpacity, 0.5, true)
     assert.equal(evaluate(style, { kind: 'a', [DRAWN_SELECTION_ATTRIBUTE]: true }), 0.3)
     assert.equal(evaluate(style, { kind: 'b', [DRAWN_SELECTION_ATTRIBUTE]: true }), 0.15)
-    assert.equal(evaluate(style, { kind: 'a', [DRAWN_SELECTION_ATTRIBUTE]: false }), 0.06)
+    assert.equal(evaluate(style, { kind: 'a', [DRAWN_SELECTION_ATTRIBUTE]: false }), 0.15)
     assert.equal(evaluate(style, { kind: 'a' }), 0.3) // Legacy data is not falsely rejected.
     assert.equal(evaluate(drawnSelectionOpacity(paletteOpacity, 0.5, false), { kind: 'a', [DRAWN_SELECTION_ATTRIBUTE]: false }), 0.3)
     assert.equal(evaluate(drawnSelectionOpacity(0, 1, true), { [DRAWN_SELECTION_ATTRIBUTE]: true }), 0)
+})
+
+test('rejected records turn gray while selected and unannotated records keep their palette color', () => {
+    const palette = ['match', ['get', 'kind'], 'a', '#ff0000', 'b', '#0000ff', '#00ff00']
+    const color = (expression, properties, state) => String(evaluate(expression, properties, state)).toUpperCase()
+    const style = drawnSelectionColor(palette, true)
+    assert.equal(color(style, { kind: 'a', [DRAWN_SELECTION_ATTRIBUTE]: true }), '#FF0000')
+    assert.equal(color(style, { kind: 'b', [DRAWN_SELECTION_ATTRIBUTE]: false }), UNSELECTED_COLOR)
+    assert.equal(color(style, { kind: 'a' }), '#FF0000') // Legacy data is not falsely rejected.
+    assert.equal(drawnSelectionColor(palette, false), palette) // Clearing restores the palette expression.
+
+    const stateStyle = drawnSelectionColor('#123456', true, true)
+    assert.equal(color(stateStyle, {}, { [DRAWN_SELECTION_ATTRIBUTE]: 'rejected' }), UNSELECTED_COLOR)
+    assert.equal(color(stateStyle, { [DRAWN_SELECTION_ATTRIBUTE]: false }, { [DRAWN_SELECTION_ATTRIBUTE]: 'selected' }), '#123456')
+    assert.equal(color(stateStyle, {}), '#123456')
 })
 
 test('only own vector tiles receive a POST mask, retaining scoped authentication and query filters', () => {
@@ -47,7 +62,7 @@ test('internal selection annotations do not enter feature details or mutate sour
 test('feature-state updates opacity independently of stale tile properties and preserves unknown records', () => {
     const style = drawnSelectionOpacity(0.6, 0.5, true, true)
     assert.equal(evaluate(style, { [DRAWN_SELECTION_ATTRIBUTE]: false }, { [DRAWN_SELECTION_ATTRIBUTE]: 'selected' }), 0.3)
-    assert.equal(evaluate(style, {}, { [DRAWN_SELECTION_ATTRIBUTE]: 'rejected' }), 0.06)
+    assert.equal(evaluate(style, {}, { [DRAWN_SELECTION_ATTRIBUTE]: 'rejected' }), 0.15)
     assert.equal(evaluate(style, { [DRAWN_SELECTION_ATTRIBUTE]: false }), 0.3)
 })
 
