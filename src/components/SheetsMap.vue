@@ -4,11 +4,9 @@
             Ver esta zona
         </button>
         <div class="search-and-quick-layer-container">
-            <search-bar-proxy v-if="
-                config.sh_map_search_component &&
-                config.sh_map_search_component_config
-            " :componentName="config.sh_map_search_component" :config="JSON.parse(config.sh_map_search_component_config)"
-                @change-location="zoomToLocation" />
+            <search-bar-proxy v-if="showSearchBar" :componentName="config.sh_map_search_component"
+                :config="searchComponentConfig" @change-location="zoomToLocation"
+                @change-bounds="zoomToBounds" />
             <QuickLayers :layers="working_layers" :css_vars="css_vars" v-on:set-layer="setLayer"></QuickLayers>
         </div>
         <div ref="map_container" class="my-map-container" :class="[
@@ -388,6 +386,10 @@ const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
 const DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM = 19;
 // Margen para que el encuadre no quede bajo el panel de capas ni los controles de zoom.
 const LAYER_FIT_PADDING = Object.freeze([64, 64]);
+const SEARCH_BOUNDS_PADDING = Object.freeze([24, 24]);
+const SEARCH_BOUNDS_MAX_ZOOM = 17;
+// Buscadores que funcionan sin configuración (no requieren API key).
+const SEARCH_COMPONENTS_WITHOUT_CONFIG = Object.freeze(["SearchBarNominatim"]);
 const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
 
 function hasValidMapConfigValue(value) {
@@ -545,6 +547,25 @@ export default {
         };
     },
     computed: {
+        showSearchBar() {
+            const component = this.config.sh_map_search_component;
+            if (!component) return false;
+            // Los buscadores con API key (p. ej. Google) siguen exigiendo configuración.
+            return SEARCH_COMPONENTS_WITHOUT_CONFIG.includes(component)
+                || Boolean(this.config.sh_map_search_component_config);
+        },
+        searchComponentConfig() {
+            const raw = this.config.sh_map_search_component_config;
+            if (raw && typeof raw === "object") return raw;
+            if (typeof raw !== "string" || !raw.trim()) return {};
+            try {
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === "object" ? parsed : {};
+            } catch (error) {
+                console.error("SheetsMap: sh_map_search_component_config no es un JSON válido", error);
+                return {};
+            }
+        },
         mapViewportStyle() {
             return {
                 "--sh-map-available-height": this.map_viewport_height,
@@ -1876,6 +1897,19 @@ export default {
                 this.clearLocationMarker();
             }
             this.map.flyTo(latLng, this.clampMapZoom(zoom || 12), options.leaflet || {});
+        },
+        // Encuadra el mapa a [[south, west], [north, east]] (p. ej. resultado de un buscador).
+        zoomToBounds(bounds) {
+            if (!this.map || !Array.isArray(bounds) || bounds.length !== 2) return;
+
+            const leafletBounds = L.latLngBounds(bounds);
+            if (!leafletBounds.isValid()) return;
+
+            this.clearLocationMarker();
+            this.map.flyToBounds(leafletBounds, {
+                padding: SEARCH_BOUNDS_PADDING,
+                maxZoom: this.clampMapZoom(SEARCH_BOUNDS_MAX_ZOOM),
+            });
         },
         // El pedido solo se da por atendido cuando el mapa pudo aplicarlo; si llega
         // antes de que Leaflet esté listo, queda pendiente hasta ready().
