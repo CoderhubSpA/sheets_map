@@ -57,11 +57,7 @@
 import { BIcon, BButton, BInputGroupAppend, BInputGroup } from "bootstrap-vue";
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
-import {
-    NOMINATIM_ERROR_KIND,
-    nominatimClient,
-    parseCoordinates,
-} from "./nominatimClient.js";
+import { createPlaceSearch } from "./placeSearch.js";
 
 const MESSAGES = Object.freeze({
     EMPTY: "No se encontraron lugares",
@@ -96,8 +92,18 @@ export default {
             return this.results.length > 0 || Boolean(this.message);
         },
     },
+    created() {
+        // No reactivo: solo decide qué búsqueda puede actualizar la interfaz.
+        this.placeSearch = createPlaceSearch();
+    },
+    beforeDestroy() {
+        this.placeSearch.invalidate();
+    },
     methods: {
         clearSearch() {
+            // Una respuesta que llegue después de borrar ya no repuebla la lista ni mueve el mapa.
+            this.placeSearch.invalidate();
+            this.loading = false;
             this.addressOrLocation = "";
             this.results = [];
             this.message = "";
@@ -116,30 +122,23 @@ export default {
 
             this.results = [];
             this.message = "";
-
-            const coordinates = parseCoordinates(query);
-            if (coordinates) {
-                this.$emit("change-location", coordinates);
-                return;
-            }
-
             this.loading = true;
-            try {
-                const places = await nominatimClient.search(query, this.config || {});
-                if (places.length === 0) {
-                    this.message = MESSAGES.EMPTY;
-                } else if (places.length === 1) {
-                    this.selectPlace(places[0]);
-                } else {
-                    this.results = places;
-                }
-            } catch (error) {
-                console.error("SearchBarNominatim error:", error);
-                this.message = error && error.kind === NOMINATIM_ERROR_KIND.BUSY
-                    ? MESSAGES.BUSY
-                    : MESSAGES.FAILED;
-            } finally {
-                this.loading = false;
+
+            const outcome = await this.placeSearch.run(query, this.config || {});
+            // Se borró la búsqueda o se destruyó el componente mientras se esperaba.
+            if (!outcome) return;
+
+            this.loading = false;
+            if (outcome.kind === "coordinates") {
+                this.$emit("change-location", outcome.coordinates);
+            } else if (outcome.kind === "places") {
+                // También con un único lugar: la persona elige en la lista antes de mover el mapa.
+                this.results = outcome.places;
+            } else if (outcome.kind === "empty") {
+                this.message = MESSAGES.EMPTY;
+            } else {
+                console.error("SearchBarNominatim error:", outcome.error);
+                this.message = outcome.kind === "busy" ? MESSAGES.BUSY : MESSAGES.FAILED;
             }
         },
         selectPlace(place) {
