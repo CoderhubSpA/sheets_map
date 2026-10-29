@@ -834,7 +834,7 @@ test('activar una capa muestra primero legend_config y luego enriquece sus canti
         'utf8',
     )
 
-    assert.match(liveLayer, /fetchVectorTileSemanticLegend/)
+    assert.match(liveLayer, /fetchVectorTileLegendCounts/)
     assert.match(liveLayer, /buildVectorTileSemanticRenderState\(\{[\s\S]*?config: legendConfig,[\s\S]*?\}\)/)
     assert.ok(
         liveLayer.indexOf('this.emitLegend(renderState.legend);') <
@@ -842,9 +842,8 @@ test('activar una capa muestra primero legend_config y luego enriquece sus canti
         'La leyenda persistida debe emitirse antes de programar la consulta de cantidades',
     )
     assert.match(liveLayer, /scheduleLegendCountEnrichment\(baseLegend\)[\s\S]*this\.\$nextTick/s)
-    assert.match(liveLayer, /legendConfig\.mode === 'manual'/)
-    assert.match(liveLayer, /mergeVectorTileLegendCounts\([\s\S]*baseLegend,[\s\S]*countedRenderState\.legend/s)
-    assert.match(liveLayer, /Ante cualquier error se conserva la leyenda que ya está visible/)
+    assert.match(liveLayer, /mergeExactLegendCounts\(baseLegend, response, spatialFiltered\)/)
+    assert.match(liveLayer, /pendingLegendCounts\(baseLegend, spatialFiltered, 'error'\)/)
     assert.match(legendComponent, /\(\{\{ formatCount\(item\.count\) \}\}\)/)
     assert.match(settingsModal, /fetchVectorTileSemanticLegend/)
 })
