@@ -5,6 +5,8 @@ import axios from 'axios'
 import { fetchVectorTileLegendCounts } from '../src/services/vectorTileLegendService.js'
 import { inferVectorTileLayerNameFromUrl } from '../src/utils/vectorTileLegend/config.js'
 import { defaultCountLegend, legendCountGroups, mergeExactLegendCounts, pendingLegendCounts } from '../src/utils/vectorTileLegend/counts.js'
+import { normalizeVectorTileLegendConfig } from '../src/utils/vectorTileLegend/config.js'
+import { buildVectorTileSemanticRenderState } from '../src/utils/vectorTileLegend/style.js'
 
 const base = defaultCountLegend({ name: 'Capa', sh_map_has_layer_color: '#123456' })
 const response = count => ({ total_count: count, geometry_type: 'Polygon', counts: { all_features: count } })
@@ -44,6 +46,26 @@ test('count predicates preserve categorical, null and numeric class boundaries',
     assert.equal(numeric[0].filters[1].operator, 'lt')
     assert.equal(numeric[1].filters[1].operator, 'lte')
     assert.deepEqual(legendCountGroups(base), [{ key: 'all_features', filters: [] }])
+})
+
+test('a null class rebuilt from a persisted palette is counted with isnull', () => {
+    const layer = {
+        name: 'Nullable category',
+        sh_map_has_layer_url: 'https://gis.test/vector/tiles/demo',
+        sh_map_has_layer_legend_config: { vector_tile_legend: {
+            enabled: true, mode: 'semantic', attribute: 'kind',
+            palette: { type: 'categorical', items: {
+                a: { fill: '#ff0000' },
+                __VECTOR_TILE_NULL__: { label: 'Sin clasificación', fill: '#999999' },
+            } },
+        } },
+    }
+    const config = normalizeVectorTileLegendConfig(layer)
+    const { legend } = buildVectorTileSemanticRenderState({ layer, config, semanticLegend: null })
+    assert.deepEqual(legendCountGroups(legend), [
+        { key: 'a', filters: [{ field: 'kind', operator: 'eq', raw_value: 'a' }] },
+        { key: '__VECTOR_TILE_NULL__', filters: [{ field: 'kind', operator: 'isnull' }] },
+    ])
 })
 
 test('zero is a real count; counts never replace persisted labels, colors or classes', () => {
