@@ -1,10 +1,13 @@
+import { NULL_CLASS_KEY } from './constants.js'
+
 /** Build exact count predicates from the displayed classes without changing their styles. */
 export function legendCountGroups(legend) {
     return legend.items.map(item => {
         const filters = []
         const field = legend.attribute
         if (field && !['simple', 'default', 'text'].includes(legend.legendType)) {
-            if (item.source === 'null') {
+            // A null class rebuilt from a persisted palette keeps its reserved key but not source 'null'.
+            if (item.source === 'null' || item.key === NULL_CLASS_KEY) {
                 filters.push({ field, operator: 'isnull' })
             } else if (['numeric', 'numerical'].includes(legend.legendType)) {
                 if (Number.isFinite(item.minValue)) filters.push({ field, operator: 'gte', raw_value: String(item.minValue) })
