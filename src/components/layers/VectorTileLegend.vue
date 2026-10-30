@@ -10,6 +10,16 @@
         <div class="vector-tile-legend__description" v-if="legend.description">
             {{ legend.description }}
         </div>
+        <div v-if="legend.countStatus" class="vector-tile-legend__summary"
+            :class="{ 'vector-tile-legend__summary--spatial': legend.spatialFiltered,
+                'vector-tile-legend__summary--error': legend.countStatus === 'error' }" role="status">
+            <template v-if="legend.countStatus === 'loading'">Calculando registros…</template>
+            <template v-else-if="legend.countStatus === 'error'">Conteo no disponible</template>
+            <template v-else>
+                {{ legend.spatialFiltered ? 'Intersección con dibujos' : 'Total de la capa' }}
+                <strong v-if="legend.items.length > 1">: {{ formatCount(legend.totalCount) }}</strong>
+            </template>
+        </div>
 
         <div
             v-for="item in visibleItems"
@@ -160,6 +170,29 @@ export default {
     gap: 8px;
     min-width: 0;
     margin-top: 6px;
+}
+
+.vector-tile-legend__summary {
+    margin: 8px 0;
+    padding: 6px 8px;
+    border-left: 3px solid #c5d2dd;
+    border-radius: 3px;
+    background: #f3f6f8;
+    color: #344c60;
+    font: 600 11px/1.5 ui-monospace, Consolas, "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.vector-tile-legend__summary--spatial {
+    border-left-color: #126bb3;
+    background: #edf5fb;
+    color: #0b4f7a;
+}
+
+.vector-tile-legend__summary--error {
+    border-left-color: #a13e3e;
+    color: #8b3030;
 }
 
 .vector-tile-legend__swatch {
