@@ -191,6 +191,10 @@
                                     <span v-else>
                                         <i class="legend-icon-color" :style="legendIconControl(layer)"></i>
                                         {{ layer.name }}
+                                        <!-- Leyenda publicada por el servicio OGC externo, si la tiene -->
+                                        <img v-for="url in ogcWmsLegendUrls(layer.id)" :key="url"
+                                            class="ogc-wms-legend-image" :src="url" :alt="`Leyenda de ${layer.name}`"
+                                            @error="hideOgcWmsLegend(layer.id, url)" />
                                     </span>
                                 </span>
                             </div>
@@ -347,6 +351,7 @@ import VectorTileLayer from "./layers/VectorTileLayer.vue";
 import VectorTileLegend from "./layers/VectorTileLegend.vue";
 import AuthenticatedWmsTileLayer from "./layers/AuthenticatedWmsTileLayer.vue";
 import { ogcWmsLayerConfig } from "../utils/ogcWms";
+import { createOgcWmsLegendResolver } from "../utils/ogcWmsLegend";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
@@ -528,6 +533,7 @@ export default {
             base_open_street_map: undefined,
             operative_geoserver_wms: [],
             operative_ogc_wms: [],
+            ogc_wms_legends: {},
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
             layer_auth_errors: {},
@@ -1526,6 +1532,31 @@ export default {
         requestAuthForLayer(layer) {
             return selectRequestAuthForLayer(this.request_auth, layer);
         },
+        async loadOgcWmsLegend(entry) {
+            const layerId = entry.layer.id;
+            const key = `${entry.baseUrl}|${entry.layers}`;
+            if (this.ogc_wms_legends[layerId]?.key === key) return;
+
+            this.$set(this.ogc_wms_legends, layerId, { key, urls: [] });
+            if (!this.ogc_wms_legend_resolver) {
+                this.ogc_wms_legend_resolver = createOgcWmsLegendResolver();
+            }
+            const urls = await this.ogc_wms_legend_resolver.resolve(entry, window.location.protocol);
+            // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
+            if (this.ogc_wms_legends[layerId]?.key !== key) return;
+            this.$set(this.ogc_wms_legends, layerId, { key, urls });
+        },
+        ogcWmsLegendUrls(layerId) {
+            return this.ogc_wms_legends[layerId]?.urls || [];
+        },
+        hideOgcWmsLegend(layerId, url) {
+            const legend = this.ogc_wms_legends[layerId];
+            if (!legend) return;
+            this.$set(this.ogc_wms_legends, layerId, {
+                ...legend,
+                urls: legend.urls.filter((current) => current !== url),
+            });
+        },
         handleVectorTileAuthError(details = {}) {
             const layerId = String(details.layerId || "").trim();
             if (!layerId) return;
@@ -2228,10 +2259,12 @@ export default {
                     break;
                 }
                 case "operative_ogc_wms_1_3_0": {
-                    this.operative_ogc_wms.push({
+                    const entry = {
                         layer,
                         ...ogcWmsLayerConfig(layer, window.location.protocol),
-                    });
+                    };
+                    this.operative_ogc_wms.push(entry);
+                    if (!entry.error) this.loadOgcWmsLegend(entry);
                     break;
                 }
                 case "operative_geoserver_wfs_point": {
@@ -3981,6 +4014,15 @@ li {
     float: left;
     margin-right: 8px;
     opacity: 0.7;
+}
+
+.ogc-wms-legend-image {
+    display: block;
+    clear: both;
+    max-width: 240px;
+    max-height: 320px;
+    margin-top: 4px;
+    object-fit: contain;
 }
 
 .legend-sublavel-container {
