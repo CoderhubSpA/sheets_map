@@ -82,7 +82,9 @@ function createDrafter(popupLayer = null) {
         const layer = {
             options: {},
             on() {},
-            toGeoJSON: () => ({ properties: {}, geometry: { coordinates: [[]] } }),
+            toGeoJSON: () => ({ properties: {}, geometry: {
+                type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+            } }),
         };
         emit("pm:create", { shape, layer });
         const options = state.options;
@@ -90,6 +92,7 @@ function createDrafter(popupLayer = null) {
         // Geoman completes the geometry, then restarts the same native draw instance.
         if (options.continueDrawing) state.active = shape;
         settle();
+        return layer;
     }
 
     return {
@@ -224,4 +227,23 @@ test("deselecting a drawing tool restores popups disabled while drawing", () => 
     assert.equal(boundPopup, null);
     action("polygon", true);
     assert.equal(boundPopup, popup);
+});
+
+test("drawn areas are published without POLYGON columns and cleared on last removal or reset", () => {
+    const { drafter, complete } = createDrafter();
+    const emitted = [];
+    drafter.$emit = (event, value) => { if (event === "areas-changed") emitted.push(value); };
+    drafter.beginDraw("polygon");
+    const layer = complete();
+    assert.equal(emitted.at(-1)[0].type, "Polygon");
+    const handlers = {};
+    layer.on = (event, callback) => { handlers[event] = callback; };
+    drafter.setupLayerEvents(layer);
+    handlers["pm:remove"]({ layer });
+    assert.deepEqual(emitted.at(-1), []);
+    drafter.beginDraw("circle");
+    complete();
+    drafter.map.removeLayer = () => {};
+    drafter.deleteAll();
+    assert.deepEqual(emitted.at(-1), []);
 });

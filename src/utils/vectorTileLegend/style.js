@@ -1,7 +1,6 @@
 import { buildAutomaticPaletteMap, deriveStrokeColor } from './palette.js'
-import { LEGACY_TEXT_CLASS_KEY, TEXT_CLASS_KEY } from './constants.js'
+import { LEGACY_TEXT_CLASS_KEY, NULL_CLASS_KEY, TEXT_CLASS_KEY } from './constants.js'
 
-const NULL_CLASS_KEY = '__VECTOR_TILE_NULL__'
 const SUPPORTED_LEGEND_TYPES = ['categorical', 'boolean', 'numeric', 'numerical', 'text']
 const DEFAULT_POINT_SIZE = 3
 const DEFAULT_POINT_STROKE_WIDTH = 3

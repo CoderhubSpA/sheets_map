@@ -208,6 +208,7 @@ export default {
         let polygon_id = e.layer.properties;
         delete this.polygon_arr[polygon_id];
         if (Object.keys(this.polygon_arr).length == 0) {
+          this.emitDrawnAreas();
           this.$emit("drawing-empty");
         } else {
           this.polygonBounds();
@@ -216,11 +217,10 @@ export default {
       });
     },
     polygonBounds() {
+      this.emitDrawnAreas();
       let search = [];
 
-      for (const [key, geojson] of Object.entries(this.polygon_arr)) {
-        console.log(key);
-        console.log(geojson);
+      for (const geojson of Object.values(this.polygon_arr)) {
         search.push(geojson.features[0].geometry.coordinates[0]);
       }
 
@@ -230,16 +230,6 @@ export default {
       if (search.length == 0) {
         this.bounds_filters = [];
         return;
-      }
-
-      let hasPolygonColumn = all_col.some(
-        (column) => column.format === "POLYGON",
-      );
-
-      if (!hasPolygonColumn) {
-        console.warn(
-          'No se encontro columna con formato "POLYGON" en la entidad',
-        );
       }
 
       let bounds_filters = all_col
@@ -255,6 +245,11 @@ export default {
           return bounds_filter;
         });
       this.bounds_filters = bounds_filters;
+    },
+    emitDrawnAreas() {
+      const areas = Object.values(this.polygon_arr)
+        .flatMap(collection => collection.features.map(feature => feature.geometry));
+      this.$emit("areas-changed", areas);
     },
     beginDraw(shape) {
       if (!this.map || !this.map.pm || !Object.prototype.hasOwnProperty.call(DRAW_SHAPES, shape)) return;
@@ -305,6 +300,7 @@ export default {
       this.layers = [];
       this.polygon_arr = {};
       this.bounds_filters = [];
+      this.emitDrawnAreas();
       this.$emit("apply-filter", null);
     },
   },

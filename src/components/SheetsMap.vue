@@ -123,6 +123,7 @@
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
                     :request_auth="requestAuthForLayer(vectorTile.layer)"
+                    :drawn-areas="drawn_areas"
                     :disable-feature-click="disable_feature_click"
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
                     :highlight-color="style_variables['feature-highlight-color']"
@@ -139,6 +140,7 @@
                 <polygon-drafter ref="polygon_drafter" :info="info" :style_variables="style_variables"
                     :analytic_geojson_list="analytic_geojson_list" :operative_geojson_list="operative_geojson_list"
                     :map="map" v-on:apply-filter="polygonFilter" v-on:button-pressed="setButtonsPressed"
+                    @areas-changed="drawn_areas = $event"
                     v-on:drawing-empty="findBounds"></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
@@ -524,6 +526,7 @@ export default {
             end_map_move: false,
             end_map_pressure: false,
             bounds_filters: [],
+            drawn_areas: [],
             num_zoom: false,
             bounds: [],
             h3,
@@ -2045,6 +2048,7 @@ export default {
         },
 
         filter() {
+            this.$refs.polygon_drafter?.deleteAll();
             this.findBounds();
         },
 
@@ -3107,6 +3111,8 @@ export default {
             }
         },
         onMapClick(event) {
+            const drafter = this.$refs.polygon_drafter;
+            if (drafter?.drawing || drafter?.buttons_pressed?.delete) return;
             // Check the mode
             if (this.point_mode === "form-point") {
                 // Save the point
@@ -3143,6 +3149,7 @@ export default {
             }
         },
         findBounds() {
+            if (this.drawn_areas.length) return;
             if (!this.should_skip_bounds_filter) {
                 let all_col = this.info.columns;
 
