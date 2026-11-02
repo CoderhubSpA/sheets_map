@@ -5,6 +5,7 @@
 <script>
 import L from 'leaflet';
 import { crs84Bbox, fetchFeaturesInView } from '../../utils/ogcApiFeatures';
+import { fetchWfsFeaturesInView } from '../../utils/ogcWfs';
 
 // Espera tras mover el mapa antes de pedir los elementos de la nueva vista.
 const MOVE_DEBOUNCE_MS = 400;
@@ -20,8 +21,9 @@ export default {
             type: Object,
             required: true,
         },
-        itemsUrl: {
-            type: String,
+        // Origen de los elementos: `{ key, kind: 'api-features', itemsUrl }` o `{ key, kind: 'wfs', config }`.
+        source: {
+            type: Object,
             required: true,
         },
         color: {
@@ -41,7 +43,7 @@ export default {
             this.unmountLayer(oldMap);
             this.mountLayer();
         },
-        itemsUrl() {
+        'source.key'() {
             this.mountLayer();
         },
         color() {
@@ -69,7 +71,7 @@ export default {
         },
         mountLayer() {
             this.unmountLayer();
-            if (!this.map || !this.itemsUrl) return;
+            if (!this.map || !this.source?.key) return;
 
             this.geoJsonLayer = L.geoJSON(null, {
                 style: () => this.featureStyle(),
@@ -104,19 +106,18 @@ export default {
             const controller = new AbortController();
             this.controller = controller;
             const bounds = this.map.getBounds();
+            const view = {
+                west: bounds.getWest(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                north: bounds.getNorth(),
+            };
             this.$emit('status', { layerId: this.layer.id, loading: true });
 
             try {
-                const result = await fetchFeaturesInView({
-                    itemsUrl: this.itemsUrl,
-                    bbox: crs84Bbox({
-                        west: bounds.getWest(),
-                        south: bounds.getSouth(),
-                        east: bounds.getEast(),
-                        north: bounds.getNorth(),
-                    }),
-                    signal: controller.signal,
-                });
+                const result = this.source.kind === 'wfs'
+                    ? await fetchWfsFeaturesInView({ config: this.source.config, view, signal: controller.signal })
+                    : await fetchFeaturesInView({ itemsUrl: this.source.itemsUrl, bbox: crs84Bbox(view), signal: controller.signal });
                 if (controller !== this.controller || !this.geoJsonLayer) return;
                 this.geoJsonLayer.clearLayers();
                 this.geoJsonLayer.addData({ type: 'FeatureCollection', features: result.features });

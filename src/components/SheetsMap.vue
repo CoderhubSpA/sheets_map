@@ -166,9 +166,9 @@
                     :opacity="getLayerOpacity(entry.layer.id)"
                     :options="{ maxZoom: 20 }" />
 
-                <!-- Colecciones de OGC API Features (WFS 3.0) externas: se piden sin token ni cookies -->
+                <!-- Elementos de OGC API Features y WFS 2.0 externos: se piden sin token ni cookies -->
                 <ogc-features-layer v-for="entry in renderable_ogc_features" :key="entry.layer.id"
-                    :map="map" :layer="entry.layer" :items-url="entry.itemsUrl"
+                    :map="map" :layer="entry.layer" :source="entry.source"
                     :color="entry.layer.sh_map_has_layer_color || '#0074bd'"
                     :opacity="getLayerOpacity(entry.layer.id)"
                     @status="handleOgcFeaturesStatus" @feature-click="emitFeatureClick" />
@@ -373,6 +373,7 @@ import { createOgcWmsLegendResolver } from "../utils/ogcWmsLegend";
 import { createCapabilitiesLoader } from "../utils/ogcCapabilities";
 import { ogcWmtsLayerRequest, resolveWmtsLayer } from "../utils/ogcWmts";
 import { ogcFeaturesLayerConfig } from "../utils/ogcApiFeatures";
+import { ogcWfsLayerRequest, resolveWfsFeatureType } from "../utils/ogcWfs";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
@@ -558,7 +559,9 @@ export default {
             operative_ogc_wms: [],
             operative_ogc_wmts: [],
             operative_ogc_features: [],
+            operative_ogc_wfs: [],
             ogc_wmts_configs: {},
+            ogc_wfs_configs: {},
             ogc_features_status: {},
             ogc_legends: {},
             operative_vector_tiles_xyz: [],
@@ -1380,7 +1383,19 @@ export default {
                 .map((entry) => ({ layer: entry.layer, config: this.ogc_wmts_configs[entry.layer.id].config }));
         },
         renderable_ogc_features() {
-            return this.operative_ogc_features.filter((entry) => !entry.error);
+            const apiFeatures = this.operative_ogc_features
+                .filter((entry) => !entry.error)
+                .map((entry) => ({
+                    layer: entry.layer,
+                    source: { key: entry.itemsUrl, kind: "api-features", itemsUrl: entry.itemsUrl },
+                }));
+            const wfs = this.operative_ogc_wfs
+                .filter((entry) => !entry.error && this.ogc_wfs_configs[entry.layer.id]?.config)
+                .map((entry) => {
+                    const { key, config } = this.ogc_wfs_configs[entry.layer.id];
+                    return { layer: entry.layer, source: { key, kind: "wfs", config } };
+                });
+            return [...apiFeatures, ...wfs];
         },
         ogc_layer_errors() {
             const errors = [];
@@ -1395,6 +1410,12 @@ export default {
             this.operative_ogc_features.forEach((entry) => add(
                 entry.layer,
                 entry.error || this.ogc_features_status[entry.layer.id]?.error,
+            ));
+            this.operative_ogc_wfs.forEach((entry) => add(
+                entry.layer,
+                entry.error
+                    || this.ogc_wfs_configs[entry.layer.id]?.error
+                    || this.ogc_features_status[entry.layer.id]?.error,
             ));
             return errors;
         },
@@ -1620,6 +1641,25 @@ export default {
             this.$set(this.ogc_legends, layerId, {
                 key,
                 urls: resolved.legendHref ? [resolved.legendHref] : [],
+            });
+        },
+        async loadOgcWfs(entry) {
+            const layerId = entry.layer.id;
+            const key = `${entry.capabilitiesUrl}|${entry.typeName}`;
+            if (this.ogc_wfs_configs[layerId]?.key === key) return;
+
+            this.$set(this.ogc_wfs_configs, layerId, { key, config: null, error: null });
+            const capabilities = await this.ogcCapabilitiesLoader().load(entry.capabilitiesUrl);
+            const resolved = capabilities
+                ? resolveWfsFeatureType(capabilities, { ...entry, pageProtocol: window.location.protocol })
+                : { error: "No se pudo leer el GetCapabilities del servicio WFS. Revise la URL y que el servicio permita CORS." };
+            // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
+            if (this.ogc_wfs_configs[layerId]?.key !== key) return;
+
+            this.$set(this.ogc_wfs_configs, layerId, {
+                key,
+                config: resolved.error ? null : resolved,
+                error: resolved.error || null,
             });
         },
         handleOgcFeaturesStatus(status) {
@@ -2200,6 +2240,7 @@ export default {
             this.operative_ogc_wms = [];
             this.operative_ogc_wmts = [];
             this.operative_ogc_features = [];
+            this.operative_ogc_wfs = [];
 
             // Reset base layer references so they are rebuilt from active_layers
             this.base_open_street_map = undefined;
@@ -2372,6 +2413,15 @@ export default {
                         layer,
                         ...ogcFeaturesLayerConfig(layer, window.location.protocol),
                     });
+                    break;
+                }
+                case "operative_ogc_wfs_2_0_2": {
+                    const entry = {
+                        layer,
+                        ...ogcWfsLayerRequest(layer, window.location.protocol),
+                    };
+                    this.operative_ogc_wfs.push(entry);
+                    if (!entry.error) this.loadOgcWfs(entry);
                     break;
                 }
                 case "operative_geoserver_wfs_point": {
