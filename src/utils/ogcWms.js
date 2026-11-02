@@ -5,7 +5,7 @@ export const OGC_WMS_1_3_0_VERSION = "1.3.0";
 // Parámetros que el cliente arma en cada GetMap. Si vienen en la URL configurada
 // (por ejemplo, al pegar la URL de GetCapabilities) se quitan para no enviarlos duplicados.
 // Los parámetros propios del servidor, como `map` de MapServer, se conservan.
-const CLIENT_MANAGED_PARAMS = new Set([
+const WMS_CLIENT_PARAMS = [
     "service",
     "request",
     "version",
@@ -18,40 +18,45 @@ const CLIENT_MANAGED_PARAMS = new Set([
     "height",
     "format",
     "transparent",
-]);
+];
 
 /**
- * Normaliza la URL de un servicio WMS externo. Devuelve `{ url }` o `{ error }` con un
- * mensaje para el usuario.
+ * Normaliza la URL de un servicio OGC externo. Devuelve `{ url }` o `{ error }` con un mensaje
+ * para el usuario. `clientParams` son los parámetros que arma el cliente y se quitan de la URL.
  */
-export function ogcWmsServiceUrl(rawUrl, pageProtocol) {
+export function ogcServiceUrl(rawUrl, pageProtocol, { service, clientParams = [] }) {
     const value = typeof rawUrl === "string" ? rawUrl.trim() : "";
-    if (!value) return { error: "La capa no tiene la URL del servicio WMS." };
+    if (!value) return { error: `La capa no tiene la URL del servicio ${service}.` };
 
     let url;
     try {
         url = new URL(value);
     } catch {
-        return { error: "La URL del servicio WMS no es válida." };
+        return { error: `La URL del servicio ${service} no es válida.` };
     }
 
     if (url.protocol !== "https:" && url.protocol !== "http:") {
-        return { error: "La URL del servicio WMS debe usar https." };
+        return { error: `La URL del servicio ${service} debe usar https.` };
     }
     // El navegador bloquea contenido http dentro de un sitio https.
     if (url.protocol === "http:" && pageProtocol === "https:") {
-        return { error: "El servicio WMS usa http y el navegador lo bloquea en un sitio https." };
+        return { error: `El servicio ${service} usa http y el navegador lo bloquea en un sitio https.` };
     }
     if (url.username || url.password) {
-        return { error: "La URL del servicio WMS no puede incluir credenciales." };
+        return { error: `La URL del servicio ${service} no puede incluir credenciales.` };
     }
 
+    const managed = new Set(clientParams);
     for (const key of Array.from(url.searchParams.keys())) {
-        if (CLIENT_MANAGED_PARAMS.has(key.toLowerCase())) url.searchParams.delete(key);
+        if (managed.has(key.toLowerCase())) url.searchParams.delete(key);
     }
     url.hash = "";
 
     return { url: url.toString() };
+}
+
+export function ogcWmsServiceUrl(rawUrl, pageProtocol) {
+    return ogcServiceUrl(rawUrl, pageProtocol, { service: "WMS", clientParams: WMS_CLIENT_PARAMS });
 }
 
 /**

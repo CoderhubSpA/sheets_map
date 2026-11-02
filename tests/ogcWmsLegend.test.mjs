@@ -5,9 +5,8 @@ import {
     createOgcWmsLegendResolver,
     getLegendGraphicUrl,
     legendFromCapabilities,
-    loadableImageUrl,
-    parseXmlToTree,
 } from "../src/utils/ogcWmsLegend.js";
+import { loadableUrl, parseXmlToTree } from "../src/utils/ogcCapabilities.js";
 
 const el = (name, attrs = {}, ...children) => ({
     name,
@@ -85,11 +84,19 @@ test("builds GetCapabilities and GetLegendGraphic requests keeping vendor parame
 });
 
 test("only accepts legend images the page can load", () => {
-    assert.equal(loadableImageUrl("legend.png", `${BASE}?REQUEST=GetCapabilities`, "https:"), "https://ows.example.org/legend.png");
-    assert.equal(loadableImageUrl("http://ows.example.org/legend.png", BASE, "https:"), null);
-    assert.equal(loadableImageUrl("http://ows.example.org/legend.png", BASE, "http:"), "http://ows.example.org/legend.png");
-    assert.equal(loadableImageUrl("javascript:alert(1)", BASE, "https:"), null);
-    assert.equal(loadableImageUrl("https://user:secret@ows.example.org/legend.png", BASE, "https:"), null);
+    assert.equal(loadableUrl("legend.png", `${BASE}?REQUEST=GetCapabilities`, "https:"), "https://ows.example.org/legend.png");
+    assert.equal(loadableUrl("http://ows.example.org/legend.png", BASE, "https:"), null);
+    assert.equal(loadableUrl("http://ows.example.org/legend.png", BASE, "http:"), "http://ows.example.org/legend.png");
+    assert.equal(loadableUrl("javascript:alert(1)", BASE, "https:"), null);
+    assert.equal(loadableUrl("https://user:secret@ows.example.org/legend.png", BASE, "https:"), null);
+});
+
+test("upgrades http to https only on the host of the https service URL", () => {
+    assert.equal(
+        loadableUrl("http://ows.example.org/legend.png", BASE, "https:", "ows.example.org"),
+        "https://ows.example.org/legend.png",
+    );
+    assert.equal(loadableUrl("http://other.example.net/legend.png", BASE, "https:", "ows.example.org"), null);
 });
 
 test("parseXmlToTree returns null without a DOM parser or for invalid XML", () => {
@@ -160,16 +167,28 @@ test("uses GetLegendGraphic only when the service declares it and has no LegendU
     assert.deepEqual(await undeclared.resolve({ baseUrl: BASE, layers: "roads" }, "https:"), []);
 });
 
-test("skips an http LegendURL on an https page and tries GetLegendGraphic instead", async () => {
+test("skips an http LegendURL from another host on an https page and tries GetLegendGraphic", async () => {
     const resolver = createOgcWmsLegendResolver({
         fetchImpl: fakeFetch("ok").fetchImpl,
         parseXml: () => capabilities({
             legendGraphic: true,
-            layers: [layer("roads", style("default", legendUrl("http://ows.example.org/legend/roads.png")))],
+            layers: [layer("roads", style("default", legendUrl("http://legends.example.net/roads.png")))],
         }),
     });
     const [url] = await resolver.resolve({ baseUrl: BASE, layers: "roads" }, "https:");
     assert.equal(new URL(url).searchParams.get("REQUEST"), "GetLegendGraphic");
+});
+
+test("upgrades an http LegendURL announced on the service's own https host", async () => {
+    const resolver = createOgcWmsLegendResolver({
+        fetchImpl: fakeFetch("ok").fetchImpl,
+        parseXml: () => capabilities({
+            layers: [layer("roads", style("default", legendUrl("http://ows.example.org/legend/roads.png")))],
+        }),
+    });
+    assert.deepEqual(await resolver.resolve({ baseUrl: BASE, layers: "roads" }, "https:"), [
+        "https://ows.example.org/legend/roads.png",
+    ]);
 });
 
 test("ignores oversized or failed capabilities responses", async () => {
