@@ -152,6 +152,14 @@
                     :opacity="getLayerOpacity(layer.id)"
                     :options="{ maxNativeZoom: 20, maxZoom: 20 }" />
 
+                <!-- Capas WMS 1.3.0 de servicios OGC externos: nunca reciben el token interno -->
+                <authenticated-wms-tile-layer v-for="entry in renderable_ogc_wms" :key="entry.layer.id"
+                    :map="map" :request_auth="null"
+                    :base-url="entry.baseUrl" :layers="entry.layers"
+                    :transparent="true" :format="entry.format" :version="entry.version"
+                    :opacity="getLayerOpacity(entry.layer.id)"
+                    :options="{ maxNativeZoom: 20, maxZoom: 20, uppercase: true }" />
+
                 <l-control class="sheets-map-legend" position="bottomright"
                     v-if="active_layers.length > 0 && show_legend">
                     <div class="legend-container">
@@ -308,6 +316,12 @@
                     {{ error.layerName }}: {{ error.message }}
                 </span>
             </div>
+            <div v-else-if="ogc_wms_errors.length" class="layer-auth-alert" role="alert" aria-live="polite">
+                <strong>No fue posible cargar una capa de un servicio externo.</strong>
+                <span v-for="entry in ogc_wms_errors" :key="entry.layer.id">
+                    {{ entry.layer.name }}: {{ entry.error }}
+                </span>
+            </div>
         </div>
         <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
     </div>
@@ -332,6 +346,7 @@ import SuperclusterEntityTypeLayer from "./layers/SuperclusterEntityTypeLayer.vu
 import VectorTileLayer from "./layers/VectorTileLayer.vue";
 import VectorTileLegend from "./layers/VectorTileLegend.vue";
 import AuthenticatedWmsTileLayer from "./layers/AuthenticatedWmsTileLayer.vue";
+import { ogcWmsLayerConfig } from "../utils/ogcWms";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
@@ -512,6 +527,7 @@ export default {
             base_map_guide: undefined,
             base_open_street_map: undefined,
             operative_geoserver_wms: [],
+            operative_ogc_wms: [],
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
             layer_auth_errors: {},
@@ -1322,6 +1338,12 @@ export default {
                     return 0;
                 });
         },
+        renderable_ogc_wms() {
+            return this.operative_ogc_wms.filter((entry) => !entry.error);
+        },
+        ogc_wms_errors() {
+            return this.operative_ogc_wms.filter((entry) => entry.error);
+        },
         visible_vector_tile_auth_errors() {
             const visibleLayerIds = new Set(
                 this.renderable_vector_tiles_xyz.map((entry) => String(entry.layer?.id || "")),
@@ -2053,8 +2075,9 @@ export default {
         },
 
         switchLayers() {
-            // Recalculamos siempre las operative_geoserver_wms activas
+            // Recalculamos siempre las operative_geoserver_wms y operative_ogc_wms activas
             this.operative_geoserver_wms = [];
+            this.operative_ogc_wms = [];
 
             // Reset base layer references so they are rebuilt from active_layers
             this.base_open_street_map = undefined;
@@ -2202,6 +2225,13 @@ export default {
                 }
                 case "operative_geoserver_wms": {
                     this.operative_geoserver_wms.push(layer);
+                    break;
+                }
+                case "operative_ogc_wms_1_3_0": {
+                    this.operative_ogc_wms.push({
+                        layer,
+                        ...ogcWmsLayerConfig(layer, window.location.protocol),
+                    });
                     break;
                 }
                 case "operative_geoserver_wfs_point": {

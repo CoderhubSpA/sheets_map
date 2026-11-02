@@ -28,6 +28,11 @@ export default {
             type: String,
             default: 'image/png',
         },
+        // Versión WMS de las peticiones; vacía usa la de Leaflet (1.1.1).
+        version: {
+            type: String,
+            default: '',
+        },
         opacity: {
             type: Number,
             default: 1,
@@ -61,6 +66,9 @@ export default {
         format() {
             this.mountLayer();
         },
+        version() {
+            this.mountLayer();
+        },
         request_auth() {
             this.mountLayer();
         },
@@ -86,6 +94,7 @@ export default {
                 opacity: this.opacity,
                 requestAuth: this.request_auth,
                 transparent: this.transparent,
+                ...(this.version ? { version: this.version } : {}),
             });
             this.tileLayer.addTo(this.map);
         },
