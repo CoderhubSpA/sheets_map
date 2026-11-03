@@ -4,6 +4,7 @@
 
 <script>
 import { createAuthenticatedWmsLayer } from '../../utils/authenticatedWmsLayer';
+import { watchTileLoad } from '../../utils/tileLoadStatus';
 
 export default {
     name: 'AuthenticatedWmsTileLayer',
@@ -47,7 +48,7 @@ export default {
         },
     },
     data() {
-        return { tileLayer: null };
+        return { tileLayer: null, stopWatchingTiles: null };
     },
     watch: {
         map(_newMap, oldMap) {
@@ -96,9 +97,13 @@ export default {
                 transparent: this.transparent,
                 ...(this.version ? { version: this.version } : {}),
             });
+            // Antes de agregarla al mapa, para no perder el inicio de la primera carga.
+            this.stopWatchingTiles = watchTileLoad(this.tileLayer, (status) => this.$emit('tile-status', status));
             this.tileLayer.addTo(this.map);
         },
         unmountLayer(map = this.map) {
+            this.stopWatchingTiles?.();
+            this.stopWatchingTiles = null;
             if (!this.tileLayer) return;
             if (map?.hasLayer?.(this.tileLayer)) map.removeLayer(this.tileLayer);
             this.tileLayer = null;

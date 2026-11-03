@@ -5,6 +5,7 @@
 <script>
 import L from 'leaflet';
 import { wmtsTileUrl } from '../../utils/ogcWmts';
+import { watchTileLoad } from '../../utils/tileLoadStatus';
 
 // Capa de teselas WMTS: la URL de cada tesela sale de la configuración resuelta desde GetCapabilities.
 const WmtsTileLayer = L.TileLayer.extend({
@@ -44,7 +45,7 @@ export default {
         },
     },
     data() {
-        return { tileLayer: null };
+        return { tileLayer: null, stopWatchingTiles: null };
     },
     watch: {
         map(_newMap, oldMap) {
@@ -76,9 +77,13 @@ export default {
                 maxNativeZoom: this.config.maxNativeZoom,
                 opacity: this.opacity,
             });
+            // Antes de agregarla al mapa, para no perder el inicio de la primera carga.
+            this.stopWatchingTiles = watchTileLoad(this.tileLayer, (status) => this.$emit('tile-status', status));
             this.tileLayer.addTo(this.map);
         },
         unmountLayer(map = this.map) {
+            this.stopWatchingTiles?.();
+            this.stopWatchingTiles = null;
             if (!this.tileLayer) return;
             if (map?.hasLayer?.(this.tileLayer)) map.removeLayer(this.tileLayer);
             this.tileLayer = null;

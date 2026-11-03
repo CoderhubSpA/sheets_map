@@ -158,13 +158,15 @@
                     :base-url="entry.baseUrl" :layers="entry.layers"
                     :transparent="true" :format="entry.format" :version="entry.version"
                     :opacity="getLayerOpacity(entry.layer.id)"
-                    :options="{ maxNativeZoom: 20, maxZoom: 20, uppercase: true }" />
+                    :options="{ maxNativeZoom: 20, maxZoom: 20, uppercase: true }"
+                    @tile-status="handleOgcTileStatus(entry.layer.id, $event)" />
 
                 <!-- Capas WMTS 1.0.0 de servicios OGC externos: se piden sin token ni cookies -->
                 <ogc-wmts-tile-layer v-for="entry in renderable_ogc_wmts" :key="entry.layer.id"
                     :map="map" :config="entry.config"
                     :opacity="getLayerOpacity(entry.layer.id)"
-                    :options="{ maxZoom: 20 }" />
+                    :options="{ maxZoom: 20 }"
+                    @tile-status="handleOgcTileStatus(entry.layer.id, $event)" />
 
                 <!-- Elementos de OGC API Features y WFS 2.0 externos: se piden sin token ni cookies -->
                 <ogc-features-layer v-for="entry in renderable_ogc_features" :key="entry.layer.id"
@@ -208,8 +210,8 @@
                                         <img v-for="url in ogcLegendUrls(layer.id)" :key="url"
                                             class="ogc-legend-image" :src="url" :alt="`Leyenda de ${layer.name}`"
                                             @error="hideOgcLegend(layer.id, url)" />
-                                        <small v-if="ogcFeaturesStatusText(layer.id)" class="ogc-features-status">
-                                            {{ ogcFeaturesStatusText(layer.id) }}
+                                        <small v-if="ogcLayerStatusText(layer.id)" class="ogc-layer-status">
+                                            {{ ogcLayerStatusText(layer.id) }}
                                         </small>
                                     </span>
                                 </span>
@@ -574,6 +576,7 @@ export default {
             ogc_wmts_configs: {},
             ogc_wfs_configs: {},
             ogc_features_status: {},
+            ogc_tile_status: {},
             ogc_legends: {},
             ogc_warnings: {},
             operative_vector_tiles_xyz: [],
@@ -1685,6 +1688,21 @@ export default {
         handleOgcFeaturesStatus(status) {
             this.$set(this.ogc_features_status, status.layerId, status);
         },
+        handleOgcTileStatus(layerId, status) {
+            this.$set(this.ogc_tile_status, layerId, status);
+        },
+        // Texto bajo la capa en la leyenda: avance de elementos (WFS, Features) o de teselas (WMS, WMTS).
+        ogcLayerStatusText(layerId) {
+            return this.ogcFeaturesStatusText(layerId) || this.ogcTileStatusText(layerId);
+        },
+        ogcTileStatusText(layerId) {
+            const status = this.ogc_tile_status[layerId];
+            if (!status) return "";
+            if (status.loading) return "Cargando teselas…";
+            if (!status.failed) return "";
+            return `${status.failed} de ${status.total} teselas no cargaron en esta vista; `
+                + "el servicio puede estar lento o rechazar la petición.";
+        },
         ogcFeaturesStatusText(layerId) {
             const status = this.ogc_features_status[layerId];
             if (!status || status.error) return "";
@@ -2291,6 +2309,7 @@ export default {
                 this.ogc_wmts_configs,
                 this.ogc_wfs_configs,
                 this.ogc_features_status,
+                this.ogc_tile_status,
                 this.ogc_legends,
                 this.ogc_warnings,
             ];
@@ -4239,7 +4258,7 @@ li {
     object-fit: contain;
 }
 
-.ogc-features-status {
+.ogc-layer-status {
     display: block;
     clear: both;
     max-width: 240px;
