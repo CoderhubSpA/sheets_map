@@ -1,13 +1,24 @@
 // Capas de servicios WFS 2.0 externos según OGC 09-025r2 (WFS 2.0.2, ISO 19142), con salida GeoJSON.
-import { childNamed, childrenNamed, childText, loadableUrl, secureHostOf } from "./ogcCapabilities.js";
-import { ogcServiceUrl } from "./ogcWms.js";
+import {
+    childNamed,
+    childrenNamed,
+    childText,
+    clamp,
+    crsCode,
+    fetchExternal,
+    isWebMercator,
+    loadableUrl,
+    ogcServiceUrl,
+    operationGetRequests,
+    roundCoordinate,
+    secureHostOf,
+} from "./ogcCapabilities.js";
 
 export const OGC_WFS_MAX_FEATURES = 2000;
 
 const REQUEST_TIMEOUT_MS = 20000;
 const EARTH_RADIUS = 6378137;
 const MAX_MERCATOR_LATITUDE = 85.05112878;
-const WEB_MERCATOR_CODES = new Set(["3857", "900913", "102100", "102113", "3785"]);
 // Parámetros que arma el cliente; si vienen en la URL configurada se quitan.
 const WFS_CLIENT_PARAMS = [
     "service",
@@ -58,11 +69,6 @@ export function ogcWfsLayerRequest(layer, pageProtocol) {
     return { serviceUrl: service.url, capabilitiesUrl: wfsCapabilitiesUrl(service.url), typeName };
 }
 
-function crsCode(crs) {
-    const code = /(\d+)\s*$/.exec(crs || "");
-    return code ? code[1] : null;
-}
-
 const isCrs84 = (crs) => /CRS:?84$/i.test(String(crs || "").trim());
 
 /**
@@ -71,7 +77,7 @@ const isCrs84 = (crs) => /CRS:?84$/i.test(String(crs || "").trim());
  */
 export function chooseWfsCrs(listedCrs) {
     const listed = listedCrs.map((crs) => String(crs || "").trim()).filter(Boolean);
-    const mercator = listed.find((crs) => WEB_MERCATOR_CODES.has(crsCode(crs)));
+    const mercator = listed.find(isWebMercator);
     if (mercator) return { srsName: mercator, kind: "mercator" };
     const crs84 = listed.find(isCrs84);
     if (crs84) return { srsName: crs84, kind: "lonlat" };
@@ -86,13 +92,7 @@ export function chooseWfsCrs(listedCrs) {
 }
 
 function getFeatureHref(root) {
-    const operations = childrenNamed(childNamed(root, "OperationsMetadata"), "Operation");
-    const getFeature = operations.find((operation) => operation.attrs?.name === "GetFeature");
-    for (const dcp of childrenNamed(getFeature, "DCP")) {
-        const get = childNamed(childNamed(dcp, "HTTP"), "Get");
-        if (get?.attrs?.href) return get.attrs.href;
-    }
-    return null;
+    return operationGetRequests(root, "GetFeature").map((get) => get.attrs?.href).find(Boolean) || null;
 }
 
 function announcedOutputFormats(root, featureType) {
@@ -163,7 +163,6 @@ export function resolveWfsFeatureType(root, { typeName, capabilitiesUrl, service
 
 const toRadians = (degrees) => (degrees * Math.PI) / 180;
 const toDegrees = (radians) => (radians * 180) / Math.PI;
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 export function lonLatToMercator([lon, lat]) {
     const safeLat = clamp(lat, -MAX_MERCATOR_LATITUDE, MAX_MERCATOR_LATITUDE);
@@ -195,7 +194,7 @@ export function getFeatureRequestUrl(config, { west, south, east, north }, count
         TYPENAMES: config.typeName,
         OUTPUTFORMAT: config.outputFormat,
         SRSNAME: config.srsName,
-        BBOX: [...bbox.map((value) => Math.round(value * 1e6) / 1e6), config.srsName].join(","),
+        BBOX: [...bbox.map(roundCoordinate), config.srsName].join(","),
         COUNT: String(count),
     };
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
@@ -263,22 +262,7 @@ export async function fetchWfsFeaturesInView({
     maxFeatures = OGC_WFS_MAX_FEATURES,
     timeoutMs = REQUEST_TIMEOUT_MS,
 }) {
-    const controller = new AbortController();
-    let timedOut = false;
-    const abort = () => controller.abort();
-    if (signal?.aborted) abort();
-    signal?.addEventListener?.("abort", abort);
-    const timer = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-    }, timeoutMs);
-
-    try {
-        // Sin credenciales: el servicio es externo y no debe recibir cookies del sitio.
-        const response = await fetchImpl(getFeatureRequestUrl(config, view, maxFeatures), {
-            credentials: "omit",
-            signal: controller.signal,
-        });
+    return fetchExternal(getFeatureRequestUrl(config, view, maxFeatures), { fetchImpl, signal, timeoutMs }, async (response) => {
         const text = await response.text();
         const serviceMessage = exceptionText(text);
         if (serviceMessage) throw new Error(`El servicio WFS respondió: ${serviceMessage}`);
@@ -303,11 +287,5 @@ export async function fetchWfsFeaturesInView({
         const numberMatched = matched ?? null;
         const truncated = body.features.length >= maxFeatures || (numberMatched !== null && numberMatched > features.length);
         return { features, numberMatched, truncated };
-    } catch (error) {
-        if (timedOut) throw new Error("El servicio tardó demasiado en responder.");
-        throw error;
-    } finally {
-        clearTimeout(timer);
-        signal?.removeEventListener?.("abort", abort);
-    }
+    });
 }

@@ -1,5 +1,5 @@
 // Colecciones de OGC API – Features – Part 1: Core 1.0 (OGC 17-069r4), lo que antes se llamaba WFS 3.0.
-import { ogcServiceUrl } from "./ogcWms.js";
+import { clamp, fetchExternal, ogcServiceUrl, roundCoordinate } from "./ogcCapabilities.js";
 
 export const OGC_API_FEATURES_PAGE_LIMIT = 500;
 export const OGC_API_FEATURES_MAX_FEATURES = 2000;
@@ -42,17 +42,14 @@ export function ogcFeaturesLayerConfig(layer, pageProtocol) {
     return { itemsUrl: url.toString(), collectionId };
 }
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const round6 = (value) => Math.round(value * 1e6) / 1e6;
-
 /** bbox en CRS84 (lon/lat) recortado al mundo: Leaflet puede entregar longitudes fuera de ±180. */
 export function crs84Bbox({ west, south, east, north }) {
-    if (east - west >= 360) return [-180, round6(clamp(south, -90, 90)), 180, round6(clamp(north, -90, 90))];
+    if (east - west >= 360) return [-180, roundCoordinate(clamp(south, -90, 90)), 180, roundCoordinate(clamp(north, -90, 90))];
     return [
-        round6(clamp(west, -180, 180)),
-        round6(clamp(south, -90, 90)),
-        round6(clamp(east, -180, 180)),
-        round6(clamp(north, -90, 90)),
+        roundCoordinate(clamp(west, -180, 180)),
+        roundCoordinate(clamp(south, -90, 90)),
+        roundCoordinate(clamp(east, -180, 180)),
+        roundCoordinate(clamp(north, -90, 90)),
     ];
 }
 
@@ -79,22 +76,7 @@ export function nextPageUrl(collection, currentUrl) {
 }
 
 async function fetchPage(url, { fetchImpl, signal, timeoutMs }) {
-    const controller = new AbortController();
-    let timedOut = false;
-    const abort = () => controller.abort();
-    if (signal?.aborted) abort();
-    signal?.addEventListener?.("abort", abort);
-    const timer = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-    }, timeoutMs);
-    try {
-        // Sin credenciales: el servicio es externo y no debe recibir cookies del sitio.
-        const response = await fetchImpl(url, {
-            headers: { Accept: GEOJSON_ACCEPT },
-            credentials: "omit",
-            signal: controller.signal,
-        });
+    return fetchExternal(url, { fetchImpl, signal, timeoutMs, headers: { Accept: GEOJSON_ACCEPT } }, async (response) => {
         if (!response?.ok) throw new Error(`El servicio respondió con el estado ${response?.status ?? "desconocido"}.`);
         let body;
         try {
@@ -106,13 +88,7 @@ async function fetchPage(url, { fetchImpl, signal, timeoutMs }) {
             throw new Error("La respuesta del servicio no es una colección GeoJSON.");
         }
         return body;
-    } catch (error) {
-        if (timedOut) throw new Error("El servicio tardó demasiado en responder.");
-        throw error;
-    } finally {
-        clearTimeout(timer);
-        signal?.removeEventListener?.("abort", abort);
-    }
+    });
 }
 
 /**

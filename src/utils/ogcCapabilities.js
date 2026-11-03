@@ -1,7 +1,94 @@
-// Lectura de documentos GetCapabilities de servicios OGC externos (WMS, WMTS) en el navegador.
+// Piezas comunes de los servicios OGC externos (WMS, WMTS, WFS, OGC API Features) en el navegador:
+// URL del servicio, peticiones sin credenciales, lectura de GetCapabilities y códigos de CRS.
 
 const CAPABILITIES_TIMEOUT_MS = 15000;
 const MAX_CAPABILITIES_BYTES = 10 * 1024 * 1024;
+const REQUEST_TIMEOUT_MESSAGE = "El servicio tardó demasiado en responder.";
+const COORDINATE_DECIMALS = 6;
+
+// Códigos EPSG con los que los servidores anuncian Web Mercator, la proyección del visor.
+const WEB_MERCATOR_CODES = new Set(["3857", "900913", "102100", "102113", "3785"]);
+
+/**
+ * Normaliza la URL de un servicio OGC externo. Devuelve `{ url }` o `{ error }` con un mensaje
+ * para el usuario. `clientParams` son los parámetros que arma el cliente y se quitan de la URL.
+ */
+export function ogcServiceUrl(rawUrl, pageProtocol, { service, clientParams = [] }) {
+    const value = typeof rawUrl === "string" ? rawUrl.trim() : "";
+    if (!value) return { error: `La capa no tiene la URL del servicio ${service}.` };
+
+    let url;
+    try {
+        url = new URL(value);
+    } catch {
+        return { error: `La URL del servicio ${service} no es válida.` };
+    }
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+        return { error: `La URL del servicio ${service} debe usar https.` };
+    }
+    // El navegador bloquea contenido http dentro de un sitio https.
+    if (url.protocol === "http:" && pageProtocol === "https:") {
+        return { error: `El servicio ${service} usa http y el navegador lo bloquea en un sitio https.` };
+    }
+    if (url.username || url.password) {
+        return { error: `La URL del servicio ${service} no puede incluir credenciales.` };
+    }
+
+    const managed = new Set(clientParams);
+    for (const key of Array.from(url.searchParams.keys())) {
+        if (managed.has(key.toLowerCase())) url.searchParams.delete(key);
+    }
+    url.hash = "";
+
+    return { url: url.toString() };
+}
+
+/** Código numérico final de un identificador de CRS («EPSG:3857», «urn:ogc:def:crs:EPSG::4326»…). */
+export function crsCode(crs) {
+    const code = /(\d+)\s*$/.exec(crs || "");
+    return code ? code[1] : null;
+}
+
+export const isWebMercator = (crs) => WEB_MERCATOR_CODES.has(crsCode(crs));
+
+export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+/** Redondea una coordenada a los decimales que se envían al servicio. */
+export const roundCoordinate = (value) => Math.round(value * 10 ** COORDINATE_DECIMALS) / 10 ** COORDINATE_DECIMALS;
+
+/**
+ * Pide `url` a un servicio externo con tiempo máximo y entrega la respuesta a `read`, que lee el
+ * cuerpo dentro del mismo plazo. `signal` cancela desde fuera (se propaga como AbortError); si se
+ * agota el plazo se lanza un Error con un mensaje para el usuario.
+ */
+export async function fetchExternal(url, { fetchImpl, signal, timeoutMs, headers }, read) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const abort = () => controller.abort();
+    if (signal?.aborted) abort();
+    signal?.addEventListener?.("abort", abort);
+    const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs);
+
+    try {
+        // Sin credenciales: el servicio es externo y no debe recibir cookies del sitio.
+        const response = await fetchImpl(url, {
+            ...(headers ? { headers } : {}),
+            credentials: "omit",
+            signal: controller.signal,
+        });
+        return await read(response);
+    } catch (error) {
+        if (timedOut) throw new Error(REQUEST_TIMEOUT_MESSAGE);
+        throw error;
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener?.("abort", abort);
+    }
+}
 
 /**
  * Convierte un documento XML en un árbol simple `{ name, attrs, children, text }`, con nombres
@@ -18,7 +105,7 @@ function elementToTree(element) {
     const children = Array.from(element.children || []).map(elementToTree);
     return {
         name: element.localName,
-        attrs: Object.fromEntries(Array.from(element.attributes || []).map((a) => [a.localName, a.value])),
+        attrs: Object.fromEntries(Array.from(element.attributes || []).map((attribute) => [attribute.localName, attribute.value])),
         children,
         text: children.length ? "" : element.textContent || "",
     };
@@ -27,6 +114,13 @@ function elementToTree(element) {
 export const childrenNamed = (node, name) => (node?.children || []).filter((child) => child.name === name);
 export const childNamed = (node, name) => childrenNamed(node, name)[0] || null;
 export const childText = (node, name) => (childNamed(node, name)?.text || "").trim();
+
+/** Nodos `Get` (DCP › HTTP › Get) de la operación `operationName` en `OperationsMetadata` (OWS Common). */
+export function operationGetRequests(root, operationName) {
+    const operations = childrenNamed(childNamed(root, "OperationsMetadata"), "Operation");
+    const operation = operations.find((candidate) => candidate.attrs?.name === operationName);
+    return childrenNamed(operation, "DCP").flatMap((dcp) => childrenNamed(childNamed(dcp, "HTTP"), "Get"));
+}
 
 /**
  * Devuelve la URL absoluta si el navegador puede cargarla desde esta página, o null.
@@ -75,21 +169,17 @@ export function createCapabilitiesLoader({
 
     async function fetchCapabilities(url) {
         if (typeof fetchImpl !== "function") return null;
-        const controller = typeof AbortController === "function" ? new AbortController() : null;
-        const timer = setTimeout(() => controller?.abort(), timeoutMs);
         try {
-            // Sin credenciales: el servicio es externo y no debe recibir cookies del sitio.
-            const response = await fetchImpl(url, { credentials: "omit", signal: controller?.signal });
-            if (!response?.ok) return null;
-            const declaredLength = Number(response.headers?.get?.("content-length"));
-            if (declaredLength > maxBytes) return null;
-            const text = await response.text();
-            if (text.length > maxBytes) return null;
-            return parseXml(text);
+            return await fetchExternal(url, { fetchImpl, timeoutMs }, async (response) => {
+                if (!response?.ok) return null;
+                const declaredLength = Number(response.headers?.get?.("content-length"));
+                if (declaredLength > maxBytes) return null;
+                const text = await response.text();
+                if (text.length > maxBytes) return null;
+                return parseXml(text);
+            });
         } catch {
             return null;
-        } finally {
-            clearTimeout(timer);
         }
     }
 

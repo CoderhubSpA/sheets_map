@@ -1620,46 +1620,48 @@ export default {
             if (this.ogc_legends[layerId]?.key !== key) return;
             this.$set(this.ogc_legends, layerId, { key, urls });
         },
-        async loadOgcWmts(entry) {
+        /**
+         * Lee el GetCapabilities de una capa WMTS o WFS, lo resuelve con `resolve` y guarda en
+         * `configs` `{ key, config, error }`. Devuelve lo resuelto, o null si no hubo que leer
+         * (misma configuración) o si la configuración cambió mientras se leía.
+         */
+        async loadOgcServiceConfig(configs, entry, { key, service, resolve }) {
             const layerId = entry.layer.id;
-            const key = `${entry.capabilitiesUrl}|${entry.layerId}|${entry.preferredFormat || ""}`;
-            if (this.ogc_wmts_configs[layerId]?.key === key) return;
+            if (configs[layerId]?.key === key) return null;
 
-            this.$set(this.ogc_wmts_configs, layerId, { key, config: null, error: null });
+            this.$set(configs, layerId, { key, config: null, error: null });
             const capabilities = await this.ogcCapabilitiesLoader().load(entry.capabilitiesUrl);
             const resolved = capabilities
-                ? resolveWmtsLayer(capabilities, { ...entry, pageProtocol: window.location.protocol })
-                : { error: "No se pudo leer el GetCapabilities del servicio WMTS. Revise la URL y que el servicio permita CORS." };
+                ? resolve(capabilities, { ...entry, pageProtocol: window.location.protocol })
+                : { error: `No se pudo leer el GetCapabilities del servicio ${service}. Revise la URL y que el servicio permita CORS.` };
             // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
-            if (this.ogc_wmts_configs[layerId]?.key !== key) return;
+            if (configs[layerId]?.key !== key) return null;
 
-            this.$set(this.ogc_wmts_configs, layerId, {
+            this.$set(configs, layerId, {
                 key,
                 config: resolved.error ? null : resolved,
                 error: resolved.error || null,
             });
-            this.$set(this.ogc_legends, layerId, {
+            return resolved;
+        },
+        async loadOgcWmts(entry) {
+            const key = `${entry.capabilitiesUrl}|${entry.layerId}|${entry.preferredFormat || ""}`;
+            const resolved = await this.loadOgcServiceConfig(this.ogc_wmts_configs, entry, {
+                key,
+                service: "WMTS",
+                resolve: resolveWmtsLayer,
+            });
+            if (!resolved) return;
+            this.$set(this.ogc_legends, entry.layer.id, {
                 key,
                 urls: resolved.legendHref ? [resolved.legendHref] : [],
             });
         },
         async loadOgcWfs(entry) {
-            const layerId = entry.layer.id;
-            const key = `${entry.capabilitiesUrl}|${entry.typeName}`;
-            if (this.ogc_wfs_configs[layerId]?.key === key) return;
-
-            this.$set(this.ogc_wfs_configs, layerId, { key, config: null, error: null });
-            const capabilities = await this.ogcCapabilitiesLoader().load(entry.capabilitiesUrl);
-            const resolved = capabilities
-                ? resolveWfsFeatureType(capabilities, { ...entry, pageProtocol: window.location.protocol })
-                : { error: "No se pudo leer el GetCapabilities del servicio WFS. Revise la URL y que el servicio permita CORS." };
-            // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
-            if (this.ogc_wfs_configs[layerId]?.key !== key) return;
-
-            this.$set(this.ogc_wfs_configs, layerId, {
-                key,
-                config: resolved.error ? null : resolved,
-                error: resolved.error || null,
+            await this.loadOgcServiceConfig(this.ogc_wfs_configs, entry, {
+                key: `${entry.capabilitiesUrl}|${entry.typeName}`,
+                service: "WFS",
+                resolve: resolveWfsFeatureType,
             });
         },
         handleOgcFeaturesStatus(status) {

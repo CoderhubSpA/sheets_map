@@ -1,6 +1,14 @@
 // Capas de servicios WMTS externos según OGC 07-057r7 (WMTS 1.0.0).
-import { childNamed, childrenNamed, childText, loadableUrl, secureHostOf } from "./ogcCapabilities.js";
-import { ogcServiceUrl } from "./ogcWms.js";
+import {
+    childNamed,
+    childrenNamed,
+    childText,
+    isWebMercator,
+    loadableUrl,
+    ogcServiceUrl,
+    operationGetRequests,
+    secureHostOf,
+} from "./ogcCapabilities.js";
 
 export const OGC_WMTS_1_0_0_VERSION = "1.0.0";
 
@@ -22,7 +30,6 @@ const WMTS_CLIENT_PARAMS = [
 // GoogleMapsCompatible (OGC 07-057r7, anexo E.4). El nivel z tiene escala 559082264.0287178 / 2^z.
 const ZOOM_0_SCALE_DENOMINATOR = 559082264.0287178;
 const WEB_MERCATOR_EDGE = 20037508.3427892;
-const WEB_MERCATOR_CODES = new Set(["3857", "900913", "102100", "102113", "3785"]);
 const MAX_ZOOM = 30;
 const TILE_SIZE = 256;
 
@@ -60,11 +67,6 @@ export function ogcWmtsLayerRequest(layer, pageProtocol) {
         layerId,
         preferredFormat: String(layer?.sh_map_has_layer_wms_format ?? "").trim() || null,
     };
-}
-
-function isWebMercator(crs) {
-    const code = /(\d+)\s*$/.exec(crs || "");
-    return Boolean(code && WEB_MERCATOR_CODES.has(code[1]));
 }
 
 /**
@@ -116,16 +118,12 @@ function secureTemplate(template, base, pageProtocol, secureHost) {
 }
 
 function kvpGetTileHref(root) {
-    const operations = childrenNamed(childNamed(root, "OperationsMetadata"), "Operation");
-    const getTile = operations.find((operation) => operation.attrs?.name === "GetTile");
-    for (const dcp of childrenNamed(getTile, "DCP")) {
-        for (const get of childrenNamed(childNamed(dcp, "HTTP"), "Get")) {
-            const encodings = childrenNamed(get, "Constraint")
-                .filter((constraint) => constraint.attrs?.name === "GetEncoding")
-                .flatMap((constraint) => childrenNamed(childNamed(constraint, "AllowedValues"), "Value"))
-                .map((value) => value.text.trim().toUpperCase());
-            if (get.attrs?.href && (!encodings.length || encodings.includes("KVP"))) return get.attrs.href;
-        }
+    for (const get of operationGetRequests(root, "GetTile")) {
+        const encodings = childrenNamed(get, "Constraint")
+            .filter((constraint) => constraint.attrs?.name === "GetEncoding")
+            .flatMap((constraint) => childrenNamed(childNamed(constraint, "AllowedValues"), "Value"))
+            .map((value) => value.text.trim().toUpperCase());
+        if (get.attrs?.href && (!encodings.length || encodings.includes("KVP"))) return get.attrs.href;
     }
     return null;
 }
