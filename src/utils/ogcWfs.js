@@ -17,6 +17,8 @@ import {
 export const OGC_WFS_MAX_FEATURES = 2000;
 
 const REQUEST_TIMEOUT_MS = 20000;
+// CRS que se pide cuando el tipo no anuncia uno usable: el servidor tendría que reproyectar.
+const FALLBACK_SRS_NAME = "urn:ogc:def:crs:EPSG::3857";
 const EARTH_RADIUS = 6378137;
 const MAX_MERCATOR_LATITUDE = 85.05112878;
 // Parámetros que arma el cliente; si vienen en la URL configurada se quitan.
@@ -74,6 +76,7 @@ const isCrs84 = (crs) => /CRS:?84$/i.test(String(crs || "").trim());
 /**
  * Elige el CRS de la petición. EPSG:3857 no tiene ambigüedad de ejes; con EPSG:4326 el orden
  * depende de la forma del identificador y del servidor, así que la respuesta se revisa después.
+ * Devuelve null si el tipo no anuncia Web Mercator ni un CRS geográfico.
  */
 export function chooseWfsCrs(listedCrs) {
     const listed = listedCrs.map((crs) => String(crs || "").trim()).filter(Boolean);
@@ -87,8 +90,7 @@ export function chooseWfsCrs(listedCrs) {
         const latFirst = /^(urn:|https?:\/\/www\.opengis\.net\/def\/crs)/i.test(wgs84);
         return { srsName: wgs84, kind: latFirst ? "latlon" : "lonlat" };
     }
-    // El tipo no lista un CRS geográfico ni Web Mercator: se pide 3857 y el servidor reproyecta.
-    return { srsName: "urn:ogc:def:crs:EPSG::3857", kind: "mercator" };
+    return null;
 }
 
 function getFeatureHref(root) {
@@ -120,7 +122,8 @@ export function chooseJsonOutputFormat(formats) {
 
 /**
  * Resuelve, desde el GetCapabilities ya convertido en árbol, cómo pedir los elementos del tipo.
- * Devuelve `{ version, getFeatureUrl, typeName, outputFormat, srsName, crsKind }` o `{ error }`.
+ * Devuelve `{ version, getFeatureUrl, typeName, outputFormat, srsName, crsKind }` o `{ error }`;
+ * agrega `warning` si el tipo no anuncia un CRS que el visor pueda usar (la carga se intenta igual).
  */
 export function resolveWfsFeatureType(root, { typeName, capabilitiesUrl, serviceUrl, pageProtocol }) {
     const version = String(root?.attrs?.version || "");
@@ -150,14 +153,19 @@ export function resolveWfsFeatureType(root, { typeName, capabilitiesUrl, service
         ...childrenNamed(featureType, "OtherSRS").map((node) => node.text),
     ];
     const crs = chooseWfsCrs(listedCrs);
+    const name = childText(featureType, "Name");
 
     return {
         version: version === "2.0.2" ? "2.0.2" : "2.0.0",
         getFeatureUrl,
-        typeName: childText(featureType, "Name"),
+        typeName: name,
         outputFormat,
-        srsName: crs.srsName,
-        crsKind: crs.kind,
+        srsName: crs ? crs.srsName : FALLBACK_SRS_NAME,
+        crsKind: crs ? crs.kind : "mercator",
+        ...(crs ? {} : {
+            warning: `El servicio WFS no anuncia EPSG:3857 ni EPSG:4326 para «${name}»; `
+                + "se piden los elementos en EPSG:3857 y puede que no carguen.",
+        }),
     };
 }
 

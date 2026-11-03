@@ -88,7 +88,7 @@ test("chooses Web Mercator first, then CRS84, then EPSG:4326 with its axis order
     assert.deepEqual(chooseWfsCrs(["urn:ogc:def:crs:EPSG::4326"]), { srsName: "urn:ogc:def:crs:EPSG::4326", kind: "latlon" });
     assert.deepEqual(chooseWfsCrs(["http://www.opengis.net/def/crs/EPSG/0/4326"]).kind, "latlon");
     assert.deepEqual(chooseWfsCrs(["EPSG:4326"]), { srsName: "EPSG:4326", kind: "lonlat" });
-    assert.deepEqual(chooseWfsCrs(["urn:ogc:def:crs:EPSG::32719"]), { srsName: "urn:ogc:def:crs:EPSG::3857", kind: "mercator" });
+    assert.equal(chooseWfsCrs(["urn:ogc:def:crs:EPSG::32719"]), null);
 });
 
 const VIEW = { west: -76, south: -41, east: -66, north: -17 };
@@ -182,4 +182,16 @@ test("validates the layer row and builds the GetCapabilities request", () => {
     assert.equal(caps.searchParams.get("REQUEST"), "GetCapabilities");
     assert.equal(caps.searchParams.get("ACCEPTVERSIONS"), "2.0.2,2.0.0");
     assert.match(ogcWfsLayerRequest({ ...layer, sh_map_has_layer_geoserver_layer: "" }, "https:").error, /tipo de elemento/);
+});
+
+test("warns and still requests EPSG:3857 when the type announces no usable CRS", () => {
+    const root = capabilities({
+        types: [featureType("ms:parcels", { defaultCrs: "urn:ogc:def:crs:EPSG::32719" })],
+        getFeatureFormats: ["application/json"],
+    });
+    const resolved = resolveWfsFeatureType(root, options({ typeName: "ms:parcels" }));
+    assert.equal(resolved.error, undefined);
+    assert.equal(resolved.srsName, "urn:ogc:def:crs:EPSG::3857");
+    assert.equal(resolved.crsKind, "mercator");
+    assert.match(resolved.warning, /no anuncia EPSG:3857 ni EPSG:4326 para «ms:parcels»/);
 });

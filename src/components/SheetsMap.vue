@@ -331,7 +331,8 @@
                 <l-control-scale v-if="show_coordinates" class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
             <!-- Avisos sobre el mapa: se apilan, para que un error no oculte a otro -->
-            <div v-if="visible_vector_tile_auth_errors.length || ogc_layer_errors.length" class="map-alerts">
+            <div v-if="visible_vector_tile_auth_errors.length || ogc_layer_errors.length || ogc_layer_warnings.length"
+                class="map-alerts">
                 <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
                     <strong>No fue posible cargar una capa protegida.</strong>
                     <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
@@ -342,6 +343,13 @@
                     <strong>No fue posible cargar una capa de un servicio externo.</strong>
                     <span v-for="entry in ogc_layer_errors" :key="entry.id">
                         {{ entry.name }}: {{ entry.error }}
+                    </span>
+                </div>
+                <!-- Avisos que no impiden cargar la capa: se intenta igual y el usuario sabe por qué podría no verse -->
+                <div v-if="ogc_layer_warnings.length" class="layer-auth-alert layer-warning-alert" role="status" aria-live="polite">
+                    <strong>Una capa de un servicio externo puede no verse.</strong>
+                    <span v-for="entry in ogc_layer_warnings" :key="entry.id">
+                        {{ entry.name }}: {{ entry.warning }}
                     </span>
                 </div>
             </div>
@@ -371,8 +379,8 @@ import VectorTileLegend from "./layers/VectorTileLegend.vue";
 import AuthenticatedWmsTileLayer from "./layers/AuthenticatedWmsTileLayer.vue";
 import OgcWmtsTileLayer from "./layers/OgcWmtsTileLayer.vue";
 import OgcFeaturesLayer from "./layers/OgcFeaturesLayer.vue";
-import { ogcWmsLayerConfig } from "../utils/ogcWms";
-import { createOgcWmsLegendResolver } from "../utils/ogcWmsLegend";
+import { ogcWmsCapabilitiesWarning, ogcWmsLayerConfig } from "../utils/ogcWms";
+import { capabilitiesUrl as wmsCapabilitiesUrl, wmsLegendUrls } from "../utils/ogcWmsLegend";
 import { createCapabilitiesLoader } from "../utils/ogcCapabilities";
 import { ogcWmtsLayerRequest, resolveWmtsLayer } from "../utils/ogcWmts";
 import { ogcFeaturesLayerConfig } from "../utils/ogcApiFeatures";
@@ -567,6 +575,7 @@ export default {
             ogc_wfs_configs: {},
             ogc_features_status: {},
             ogc_legends: {},
+            ogc_warnings: {},
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
             layer_auth_errors: {},
@@ -1422,6 +1431,12 @@ export default {
             ));
             return errors;
         },
+        ogc_layer_warnings() {
+            const failed = new Set(this.ogc_layer_errors.map((entry) => String(entry.id)));
+            return [...this.operative_ogc_wms, ...this.operative_ogc_wfs]
+                .filter((entry) => !failed.has(String(entry.layer.id)) && this.ogc_warnings[entry.layer.id])
+                .map((entry) => ({ id: entry.layer.id, name: entry.layer.name, warning: this.ogc_warnings[entry.layer.id] }));
+        },
         visible_vector_tile_auth_errors() {
             const visibleLayerIds = new Set(
                 this.renderable_vector_tiles_xyz.map((entry) => String(entry.layer?.id || "")),
@@ -1609,19 +1624,18 @@ export default {
             if (!this.ogc_capabilities_loader) this.ogc_capabilities_loader = createCapabilitiesLoader();
             return this.ogc_capabilities_loader;
         },
-        async loadOgcWmsLegend(entry) {
+        async loadOgcWms(entry) {
             const layerId = entry.layer.id;
             const key = `${entry.baseUrl}|${entry.layers}`;
             if (this.ogc_legends[layerId]?.key === key) return;
 
             this.$set(this.ogc_legends, layerId, { key, urls: [] });
-            if (!this.ogc_wms_legend_resolver) {
-                this.ogc_wms_legend_resolver = createOgcWmsLegendResolver({ loader: this.ogcCapabilitiesLoader() });
-            }
-            const urls = await this.ogc_wms_legend_resolver.resolve(entry, window.location.protocol);
+            const { root } = await this.ogcCapabilitiesLoader().load(wmsCapabilitiesUrl(entry.baseUrl));
             // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
             if (this.ogc_legends[layerId]?.key !== key) return;
-            this.$set(this.ogc_legends, layerId, { key, urls });
+            this.$set(this.ogc_legends, layerId, { key, urls: wmsLegendUrls(root, entry, window.location.protocol) });
+            // Sin GetCapabilities (por ejemplo, sin CORS) no hay aviso: las imágenes no necesitan CORS y se piden igual.
+            this.$set(this.ogc_warnings, layerId, root ? ogcWmsCapabilitiesWarning(root, entry.layers) : null);
         },
         /**
          * Lee el GetCapabilities de una capa WMTS o WFS, lo resuelve con `resolve` y guarda en
@@ -1661,11 +1675,12 @@ export default {
             });
         },
         async loadOgcWfs(entry) {
-            await this.loadOgcServiceConfig(this.ogc_wfs_configs, entry, {
+            const resolved = await this.loadOgcServiceConfig(this.ogc_wfs_configs, entry, {
                 key: `${entry.capabilitiesUrl}|${entry.typeName}`,
                 service: "WFS",
                 resolve: resolveWfsFeatureType,
             });
+            if (resolved) this.$set(this.ogc_warnings, entry.layer.id, resolved.warning || null);
         },
         handleOgcFeaturesStatus(status) {
             this.$set(this.ogc_features_status, status.layerId, status);
@@ -2272,7 +2287,13 @@ export default {
                     ...this.operative_ogc_wfs,
                 ].map((entry) => String(entry.layer.id)),
             );
-            const states = [this.ogc_wmts_configs, this.ogc_wfs_configs, this.ogc_features_status, this.ogc_legends];
+            const states = [
+                this.ogc_wmts_configs,
+                this.ogc_wfs_configs,
+                this.ogc_features_status,
+                this.ogc_legends,
+                this.ogc_warnings,
+            ];
             for (const state of states) {
                 for (const layerId of Object.keys(state)) {
                     if (!activeIds.has(layerId)) this.$delete(state, layerId);
@@ -2420,7 +2441,7 @@ export default {
                         ...ogcWmsLayerConfig(layer, window.location.protocol),
                     };
                     this.operative_ogc_wms.push(entry);
-                    if (!entry.error) this.loadOgcWmsLegend(entry);
+                    if (!entry.error) this.loadOgcWms(entry);
                     break;
                 }
                 case "operative_ogc_wmts_1_0_0": {
@@ -4051,6 +4072,12 @@ export default {
     background: #fff4f2;
     color: #7a271a;
     box-shadow: 0 4px 12px rgb(16 24 40 / 18%);
+}
+
+.layer-warning-alert {
+    border-color: #b54708;
+    background: #fffaeb;
+    color: #7a2e0e;
 }
 
 .my-map-container.drawing .my-map,

@@ -3,8 +3,11 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
     OGC_WMS_1_3_0_VERSION,
+    ogcWmsCapabilitiesWarning,
     ogcWmsLayerConfig,
     ogcWmsServiceUrl,
+    wmsLayerCrs,
+    wmsLayerNames,
 } from "../src/utils/ogcWms.js";
 
 const layer = (overrides = {}) => ({
@@ -85,4 +88,34 @@ test("external OGC WMS layers never receive the internal request auth", () => {
     assert.ok(block, "no se encontró el bloque de capas OGC WMS");
     assert.match(block[0], /:request_auth="null"/);
     assert.doesNotMatch(block[0], /requestAuthForLayer/);
+});
+
+const el = (name, ...children) => ({
+    name,
+    attrs: {},
+    children: children.filter((child) => typeof child === "object"),
+    text: children.filter((child) => typeof child === "string").join(""),
+});
+const wmsLayer = (name, crs, ...children) => el("Layer", ...(name ? [el("Name", name)] : []), ...crs.map((code) => el("CRS", code)), ...children);
+const wmsCapabilities = (...layers) => el("WMS_Capabilities", el("Capability", ...layers));
+
+test("collects the CRS of a WMS layer including the ones inherited from its parents", () => {
+    const root = wmsCapabilities(wmsLayer(null, ["EPSG:4326", "EPSG:3857"],
+        wmsLayer("group", ["EPSG:32719"], wmsLayer("roads", ["CRS:84"]))));
+    assert.deepEqual(wmsLayerCrs(root, "roads"), ["EPSG:4326", "EPSG:3857", "EPSG:32719", "CRS:84"]);
+    assert.equal(wmsLayerCrs(root, "rivers"), null);
+});
+
+test("warns, without blocking, when a WMS layer is missing or not announced in EPSG:3857", () => {
+    const root = wmsCapabilities(wmsLayer(null, ["EPSG:4326"],
+        wmsLayer("roads", ["epsg:3857"]),
+        wmsLayer("parcels", ["EPSG:32719"])));
+    assert.equal(ogcWmsCapabilitiesWarning(root, "roads"), null);
+    assert.match(ogcWmsCapabilitiesWarning(root, "roads, parcels"), /no anuncia EPSG:3857 para la capa «parcels»/);
+    assert.match(ogcWmsCapabilitiesWarning(root, "rivers"), /no publica la capa «rivers»/);
+});
+
+test("splits the LAYERS value into trimmed names", () => {
+    assert.deepEqual(wmsLayerNames(" roads, ,rivers "), ["roads", "rivers"]);
+    assert.deepEqual(wmsLayerNames(undefined), []);
 });

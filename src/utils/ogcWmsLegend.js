@@ -1,6 +1,6 @@
 // Leyendas de capas WMS 1.3.0 externas según OGC 06-042: el `LegendURL` del estilo de la capa
 // en GetCapabilities y, como alternativa, `GetLegendGraphic` del perfil SLD de WMS (OGC 05-078r4).
-import { OGC_WMS_1_3_0_VERSION } from "./ogcWms.js";
+import { OGC_WMS_1_3_0_VERSION, wmsLayerNames } from "./ogcWms.js";
 import {
     childNamed,
     childrenNamed,
@@ -71,9 +71,37 @@ export function capabilitiesUrl(baseUrl) {
 }
 
 /**
- * Crea un resolutor de leyendas WMS. `resolve(config, pageProtocol)` devuelve las URLs de imagen
- * de leyenda de las capas de `config.layers`; una lista vacía si el servicio no publica leyenda.
- * Comparte el `loader` de GetCapabilities para leer cada servicio una sola vez.
+ * URLs de imagen de leyenda de las capas de `config.layers` a partir del GetCapabilities ya leído
+ * (`root`); si no se pudo leer (`root` null) se usa GetLegendGraphic. Lista vacía si el servicio no
+ * publica leyenda.
+ */
+export function wmsLegendUrls(root, config, pageProtocol) {
+    if (!config?.baseUrl || !config?.layers) return [];
+    const url = capabilitiesUrl(config.baseUrl);
+    const secureHost = secureHostOf(config.baseUrl);
+
+    const legends = wmsLayerNames(config.layers).map((layerName) => {
+        // Si el GetCapabilities no se pudo leer (por ejemplo, sin CORS), se intenta GetLegendGraphic:
+        // una imagen no necesita CORS y, si el servidor no lo soporta, la leyenda se oculta al fallar.
+        if (!root) return [getLegendGraphicUrl(config.baseUrl, layerName)];
+        const info = legendFromCapabilities(root, layerName);
+        return [
+            info.legendHref,
+            info.supportsGetLegendGraphic ? getLegendGraphicUrl(config.baseUrl, layerName) : null,
+        ];
+    });
+
+    return legends
+        .map((candidates) => candidates
+            .filter(Boolean)
+            .map((href) => loadableUrl(href, url, pageProtocol, secureHost))
+            .find(Boolean))
+        .filter(Boolean);
+}
+
+/**
+ * Crea un resolutor de leyendas WMS. `resolve(config, pageProtocol)` lee el GetCapabilities con
+ * el `loader` (compartido, para leer cada servicio una sola vez) y devuelve `wmsLegendUrls`.
  */
 export function createOgcWmsLegendResolver({
     fetchImpl,
@@ -83,28 +111,8 @@ export function createOgcWmsLegendResolver({
 } = {}) {
     async function resolve(config, pageProtocol) {
         if (!config?.baseUrl || !config?.layers) return [];
-        const url = capabilitiesUrl(config.baseUrl);
-        const { root: capabilities } = await loader.load(url);
-        const secureHost = secureHostOf(config.baseUrl);
-        const layerNames = config.layers.split(",").map((name) => name.trim()).filter(Boolean);
-
-        const legends = layerNames.map((layerName) => {
-            // Si el GetCapabilities no se pudo leer (por ejemplo, sin CORS), se intenta GetLegendGraphic:
-            // una imagen no necesita CORS y, si el servidor no lo soporta, la leyenda se oculta al fallar.
-            if (!capabilities) return [getLegendGraphicUrl(config.baseUrl, layerName)];
-            const info = legendFromCapabilities(capabilities, layerName);
-            return [
-                info.legendHref,
-                info.supportsGetLegendGraphic ? getLegendGraphicUrl(config.baseUrl, layerName) : null,
-            ];
-        });
-
-        return legends
-            .map((candidates) => candidates
-                .filter(Boolean)
-                .map((href) => loadableUrl(href, url, pageProtocol, secureHost))
-                .find(Boolean))
-            .filter(Boolean);
+        const { root } = await loader.load(capabilitiesUrl(config.baseUrl));
+        return wmsLegendUrls(root, config, pageProtocol);
     }
 
     return { resolve };
