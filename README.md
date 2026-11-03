@@ -1,5 +1,7 @@
 # Sheets Map
 
+La [depuración mínima AGCID01-278](docs/limpieza-minima.md) documenta las cuatro trazas retiradas, los contratos conservados y su verificación.
+
 ## Project setup
 
 ---
