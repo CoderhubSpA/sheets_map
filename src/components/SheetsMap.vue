@@ -4,11 +4,9 @@
             Ver esta zona
         </button>
         <div class="search-and-quick-layer-container">
-            <search-bar-proxy v-if="
-                config.sh_map_search_component &&
-                config.sh_map_search_component_config
-            " :componentName="config.sh_map_search_component" :config="JSON.parse(config.sh_map_search_component_config)"
-                @change-location="zoomToLocation" />
+            <search-bar-proxy v-if="showSearchBar" :componentName="config.sh_map_search_component"
+                :config="searchComponentConfig" @change-location="zoomToLocation"
+                @change-bounds="zoomToBounds" />
             <QuickLayers :layers="working_layers" :css_vars="css_vars" v-on:set-layer="setLayer"></QuickLayers>
         </div>
         <div ref="map_container" class="my-map-container" :class="[
@@ -34,15 +32,18 @@
                         </b-button>
                     </div>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
-                        @click.capture.stop="polygonAction('polygon')" title="Traza libremente sobre el mapa">
+                        @click.capture.stop="polygonAction('polygon', true)" :pressed="buttons_pressed.polygon"
+                        title="Dibujar polígono" aria-label="Dibujar polígono">
                         <b-icon icon="bounding-box"></b-icon>
                     </b-button>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
-                        @click.capture.stop="polygonAction('circle')" title="Traza libremente sobre el mapa">
+                        @click.capture.stop="polygonAction('circle', true)" :pressed="buttons_pressed.circle"
+                        title="Dibujar círculo" aria-label="Dibujar círculo">
                         <b-icon icon="circle"></b-icon>
                     </b-button>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
-                        @click.capture.stop="polygonAction('rectangle')" title="Traza libremente sobre el mapa">
+                        @click.capture.stop="polygonAction('rectangle', true)" :pressed="buttons_pressed.rectangle"
+                        title="Dibujar rectángulo" aria-label="Dibujar rectángulo">
                         <b-icon icon="square"></b-icon>
                     </b-button>
                     <b-button v-if="config.sh_map_has_draw_toolbar" class="zoom-btn"
@@ -122,6 +123,7 @@
                     :layer="vectorTile.layer" :info="info" :visible_columns="vectorTile.visible_columns"
                     :entity_type_id="vectorTile.entity_type_id" :base_url="base_url"
                     :request_auth="requestAuthForLayer(vectorTile.layer)"
+                    :drawn-areas="drawn_areas"
                     :disable-feature-click="disable_feature_click"
                     :opacity="getLayerOpacity(vectorTile.layer.id)"
                     :highlight-color="style_variables['feature-highlight-color']"
@@ -138,6 +140,7 @@
                 <polygon-drafter ref="polygon_drafter" :info="info" :style_variables="style_variables"
                     :analytic_geojson_list="analytic_geojson_list" :operative_geojson_list="operative_geojson_list"
                     :map="map" v-on:apply-filter="polygonFilter" v-on:button-pressed="setButtonsPressed"
+                    @areas-changed="drawn_areas = $event"
                     v-on:drawing-empty="findBounds"></polygon-drafter>
 
                 <!-- Escribir URL y hardcodear atributos para ver priori de capas operativas  -->
@@ -388,6 +391,10 @@ const DEFAULT_BASE_TILE_MAX_ZOOM = 20;
 const DEFAULT_BASE_TILE_MAX_NATIVE_ZOOM = 19;
 // Margen para que el encuadre no quede bajo el panel de capas ni los controles de zoom.
 const LAYER_FIT_PADDING = Object.freeze([64, 64]);
+const SEARCH_BOUNDS_PADDING = Object.freeze([24, 24]);
+const SEARCH_BOUNDS_MAX_ZOOM = 17;
+// Buscadores que funcionan sin configuración (no requieren API key).
+const SEARCH_COMPONENTS_WITHOUT_CONFIG = Object.freeze(["SearchBarNominatim"]);
 const INVALID_MAP_CONFIG_VALUES = new Set(["", "null", "undefined"]);
 
 function hasValidMapConfigValue(value) {
@@ -519,6 +526,7 @@ export default {
             end_map_move: false,
             end_map_pressure: false,
             bounds_filters: [],
+            drawn_areas: [],
             num_zoom: false,
             bounds: [],
             h3,
@@ -533,6 +541,9 @@ export default {
             buttons_pressed: {
                 marker: false,
                 polyline: false,
+                polygon: false,
+                circle: false,
+                rectangle: false,
                 delete: false,
             },
             hide_base_layer: false,
@@ -545,6 +556,25 @@ export default {
         };
     },
     computed: {
+        showSearchBar() {
+            const component = this.config.sh_map_search_component;
+            if (!component) return false;
+            // Los buscadores con API key (p. ej. Google) siguen exigiendo configuración.
+            return SEARCH_COMPONENTS_WITHOUT_CONFIG.includes(component)
+                || Boolean(this.config.sh_map_search_component_config);
+        },
+        searchComponentConfig() {
+            const raw = this.config.sh_map_search_component_config;
+            if (raw && typeof raw === "object") return raw;
+            if (typeof raw !== "string" || !raw.trim()) return {};
+            try {
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === "object" ? parsed : {};
+            } catch (error) {
+                console.error("SheetsMap: sh_map_search_component_config no es un JSON válido", error);
+                return {};
+            }
+        },
         mapViewportStyle() {
             return {
                 "--sh-map-available-height": this.map_viewport_height,
@@ -1877,6 +1907,19 @@ export default {
             }
             this.map.flyTo(latLng, this.clampMapZoom(zoom || 12), options.leaflet || {});
         },
+        // Encuadra el mapa a [[south, west], [north, east]] (p. ej. resultado de un buscador).
+        zoomToBounds(bounds) {
+            if (!this.map || !Array.isArray(bounds) || bounds.length !== 2) return;
+
+            const leafletBounds = L.latLngBounds(bounds);
+            if (!leafletBounds.isValid()) return;
+
+            this.clearLocationMarker();
+            this.map.flyToBounds(leafletBounds, {
+                padding: SEARCH_BOUNDS_PADDING,
+                maxZoom: this.clampMapZoom(SEARCH_BOUNDS_MAX_ZOOM),
+            });
+        },
         // El pedido solo se da por atendido cuando el mapa pudo aplicarlo; si llega
         // antes de que Leaflet esté listo, queda pendiente hasta ready().
         applyPendingLayerFit() {
@@ -2005,6 +2048,7 @@ export default {
         },
 
         filter() {
+            this.$refs.polygon_drafter?.deleteAll();
             this.findBounds();
         },
 
@@ -3065,6 +3109,8 @@ export default {
             }
         },
         onMapClick(event) {
+            const drafter = this.$refs.polygon_drafter;
+            if (drafter?.drawing || drafter?.buttons_pressed?.delete) return;
             // Check the mode
             if (this.point_mode === "form-point") {
                 // Save the point
@@ -3101,6 +3147,7 @@ export default {
             }
         },
         findBounds() {
+            if (this.drawn_areas.length) return;
             if (!this.should_skip_bounds_filter) {
                 let all_col = this.info.columns;
 
@@ -3399,12 +3446,14 @@ export default {
         },
         // END HELPERS
         // Polygon Action: draw or delete
-        polygonAction(action) {
+        polygonAction(action, toggleDrawing = false) {
             if (action === "delete") {
                 this.$refs.polygon_drafter.toggleDelete();
             } else if (action === "clear") {
                 this.$refs.polygon_drafter.deleteAll();
             } else if (action === "cancel") {
+                this.$refs.polygon_drafter.cancelDraw();
+            } else if (toggleDrawing && this.$refs.polygon_drafter.buttons_pressed[action] === true) {
                 this.$refs.polygon_drafter.cancelDraw();
             } else {
                 this.$refs.polygon_drafter.beginDraw(action);
@@ -3795,11 +3844,16 @@ li {
 .custom-controls {
     position: relative;
     z-index: 800;
+    pointer-events: none;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
     margin-top: 24px;
+}
+
+.custom-controls > * {
+    pointer-events: auto;
 }
 
 .zoom-wrapper {
@@ -3841,6 +3895,10 @@ li {
     background-color: #e2e6ea;
     border-color: #dae0e5;
     color: #212529;
+}
+
+.custom-controls .zoom-btn.active {
+    box-shadow: inset 0 0 0 2px currentColor !important;
 }
 
 /* This line delete the UKR flag in the leaflet powered banner */
