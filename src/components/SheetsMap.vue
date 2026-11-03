@@ -1602,7 +1602,7 @@ export default {
             return selectRequestAuthForLayer(this.request_auth, layer);
         },
         ogcCapabilitiesLoader() {
-            // Un solo lector por mapa: cada GetCapabilities externo se pide una vez.
+            // Un solo lector por mapa: cada GetCapabilities externo leído se pide una sola vez.
             if (!this.ogc_capabilities_loader) this.ogc_capabilities_loader = createCapabilitiesLoader();
             return this.ogc_capabilities_loader;
         },
@@ -1631,9 +1631,9 @@ export default {
 
             this.$set(configs, layerId, { key, config: null, error: null });
             const capabilities = await this.ogcCapabilitiesLoader().load(entry.capabilitiesUrl);
-            const resolved = capabilities
-                ? resolve(capabilities, { ...entry, pageProtocol: window.location.protocol })
-                : { error: `No se pudo leer el GetCapabilities del servicio ${service}. Revise la URL y que el servicio permita CORS.` };
+            const resolved = capabilities.root
+                ? resolve(capabilities.root, { ...entry, pageProtocol: window.location.protocol })
+                : { error: `No se pudo leer el GetCapabilities del servicio ${service}. ${capabilities.error}` };
             // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
             if (configs[layerId]?.key !== key) return null;
 
@@ -2252,10 +2252,29 @@ export default {
             this.active_layers.forEach((l) => {
                 this.activeLayers(l);
             });
+            this.forgetInactiveOgcLayers();
 
             this.disabled_layers.forEach((l) => {
                 this.disableLayers(l);
             });
+        },
+        // Olvida el estado de las capas OGC apagadas para que al volver a encenderlas se lean de
+        // nuevo: un servicio que falló se reintenta y uno ya leído sale de la caché del lector.
+        forgetInactiveOgcLayers() {
+            const activeIds = new Set(
+                [
+                    ...this.operative_ogc_wms,
+                    ...this.operative_ogc_wmts,
+                    ...this.operative_ogc_features,
+                    ...this.operative_ogc_wfs,
+                ].map((entry) => String(entry.layer.id)),
+            );
+            const states = [this.ogc_wmts_configs, this.ogc_wfs_configs, this.ogc_features_status, this.ogc_legends];
+            for (const state of states) {
+                for (const layerId of Object.keys(state)) {
+                    if (!activeIds.has(layerId)) this.$delete(state, layerId);
+                }
+            }
         },
         activeLayers(layer) {
             let geojson_bounds = this.getMapGeoJsonBounds();

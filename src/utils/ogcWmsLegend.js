@@ -84,7 +84,7 @@ export function createOgcWmsLegendResolver({
     async function resolve(config, pageProtocol) {
         if (!config?.baseUrl || !config?.layers) return [];
         const url = capabilitiesUrl(config.baseUrl);
-        const capabilities = await loader.load(url);
+        const { root: capabilities } = await loader.load(url);
         const secureHost = secureHostOf(config.baseUrl);
         const layerNames = config.layers.split(",").map((name) => name.trim()).filter(Boolean);
 

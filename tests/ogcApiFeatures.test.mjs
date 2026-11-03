@@ -126,3 +126,13 @@ test("reports a timeout and propagates a cancellation", async () => {
     controller.abort();
     await assert.rejects(pending, (error) => error.name === "AbortError");
 });
+
+test("explains a request the browser could not complete (network or CORS)", async () => {
+    const failing = async () => {
+        throw new TypeError("Failed to fetch");
+    };
+    await assert.rejects(
+        fetchFeaturesInView({ itemsUrl: ITEMS, bbox: [0, 0, 1, 1], fetchImpl: failing }),
+        /no respondió o no permite el acceso desde este sitio \(CORS\)/,
+    );
+});

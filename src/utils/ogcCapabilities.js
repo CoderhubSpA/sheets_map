@@ -4,6 +4,7 @@
 const CAPABILITIES_TIMEOUT_MS = 15000;
 const MAX_CAPABILITIES_BYTES = 10 * 1024 * 1024;
 const REQUEST_TIMEOUT_MESSAGE = "El servicio tardó demasiado en responder.";
+const NO_RESPONSE_MESSAGE = "El servicio no respondió o no permite el acceso desde este sitio (CORS).";
 const COORDINATE_DECIMALS = 6;
 
 // Códigos EPSG con los que los servidores anuncian Web Mercator, la proyección del visor.
@@ -60,7 +61,7 @@ export const roundCoordinate = (value) => Math.round(value * 10 ** COORDINATE_DE
 /**
  * Pide `url` a un servicio externo con tiempo máximo y entrega la respuesta a `read`, que lee el
  * cuerpo dentro del mismo plazo. `signal` cancela desde fuera (se propaga como AbortError); si se
- * agota el plazo se lanza un Error con un mensaje para el usuario.
+ * agota el plazo o el servicio no responde se lanza un Error con un mensaje para el usuario.
  */
 export async function fetchExternal(url, { fetchImpl, signal, timeoutMs, headers }, read) {
     const controller = new AbortController();
@@ -74,12 +75,19 @@ export async function fetchExternal(url, { fetchImpl, signal, timeoutMs, headers
     }, timeoutMs);
 
     try {
-        // Sin credenciales: el servicio es externo y no debe recibir cookies del sitio.
-        const response = await fetchImpl(url, {
-            ...(headers ? { headers } : {}),
-            credentials: "omit",
-            signal: controller.signal,
-        });
+        let response;
+        try {
+            // Sin credenciales: el servicio es externo y no debe recibir cookies del sitio.
+            response = await fetchImpl(url, {
+                ...(headers ? { headers } : {}),
+                credentials: "omit",
+                signal: controller.signal,
+            });
+        } catch (error) {
+            if (error?.name === "AbortError") throw error;
+            // El navegador entrega el mismo error para una falla de red y para un bloqueo por CORS.
+            throw new Error(NO_RESPONSE_MESSAGE, { cause: error });
+        }
         return await read(response);
     } catch (error) {
         if (timedOut) throw new Error(REQUEST_TIMEOUT_MESSAGE);
@@ -155,9 +163,10 @@ export function secureHostOf(serviceUrl) {
 }
 
 /**
- * Crea un lector de GetCapabilities que pide cada URL una sola vez, sin credenciales, con
- * tiempo y tamaño máximos. `load(url)` devuelve el árbol del documento o null si no se pudo
- * leer (red, CORS, tiempo, tamaño o XML inválido).
+ * Crea un lector de GetCapabilities sin credenciales, con tiempo y tamaño máximos. `load(url)`
+ * devuelve `{ root }` con el árbol del documento o `{ error }` con la causa para el usuario
+ * (estado HTTP, tiempo, tamaño, XML inválido, o sin respuesta por red o CORS). Un documento
+ * leído se guarda y no se vuelve a pedir; uno que falló se pide de nuevo en la siguiente llamada.
  */
 export function createCapabilitiesLoader({
     fetchImpl = globalThis.fetch?.bind(globalThis),
@@ -166,25 +175,34 @@ export function createCapabilitiesLoader({
     maxBytes = MAX_CAPABILITIES_BYTES,
 } = {}) {
     const cache = new Map();
+    const tooLarge = { error: `El GetCapabilities del servicio supera los ${Math.round(maxBytes / (1024 * 1024))} MB.` };
 
     async function fetchCapabilities(url) {
-        if (typeof fetchImpl !== "function") return null;
+        if (typeof fetchImpl !== "function") return { error: "El navegador no permite consultar el servicio." };
         try {
             return await fetchExternal(url, { fetchImpl, timeoutMs }, async (response) => {
-                if (!response?.ok) return null;
+                if (!response?.ok) return { error: `El servicio respondió con el estado ${response?.status ?? "desconocido"}.` };
                 const declaredLength = Number(response.headers?.get?.("content-length"));
-                if (declaredLength > maxBytes) return null;
+                if (declaredLength > maxBytes) return tooLarge;
                 const text = await response.text();
-                if (text.length > maxBytes) return null;
-                return parseXml(text);
+                if (text.length > maxBytes) return tooLarge;
+                const root = parseXml(text);
+                return root ? { root } : { error: "El GetCapabilities del servicio no es un XML válido." };
             });
-        } catch {
-            return null;
+        } catch (error) {
+            return { error: error?.message || NO_RESPONSE_MESSAGE };
         }
     }
 
     function load(url) {
-        if (!cache.has(url)) cache.set(url, fetchCapabilities(url));
+        if (!cache.has(url)) {
+            const pending = fetchCapabilities(url).then((result) => {
+                // Solo se guarda lo leído: así apagar y encender la capa reintenta un servicio que falló.
+                if (!result.root) cache.delete(url);
+                return result;
+            });
+            cache.set(url, pending);
+        }
         return cache.get(url);
     }
 
