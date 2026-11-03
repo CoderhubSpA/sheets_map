@@ -4,6 +4,7 @@
 
 <script>
 import { createAuthenticatedWmsLayer } from '../../utils/authenticatedWmsLayer';
+import { watchTileLoad } from '../../utils/tileLoadStatus';
 
 export default {
     name: 'AuthenticatedWmsTileLayer',
@@ -28,6 +29,11 @@ export default {
             type: String,
             default: 'image/png',
         },
+        // Versión WMS de las peticiones; vacía usa la de Leaflet (1.1.1).
+        version: {
+            type: String,
+            default: '',
+        },
         opacity: {
             type: Number,
             default: 1,
@@ -42,7 +48,7 @@ export default {
         },
     },
     data() {
-        return { tileLayer: null };
+        return { tileLayer: null, stopWatchingTiles: null };
     },
     watch: {
         map(_newMap, oldMap) {
@@ -59,6 +65,9 @@ export default {
             this.mountLayer();
         },
         format() {
+            this.mountLayer();
+        },
+        version() {
             this.mountLayer();
         },
         request_auth() {
@@ -86,10 +95,15 @@ export default {
                 opacity: this.opacity,
                 requestAuth: this.request_auth,
                 transparent: this.transparent,
+                ...(this.version ? { version: this.version } : {}),
             });
+            // Antes de agregarla al mapa, para no perder el inicio de la primera carga.
+            this.stopWatchingTiles = watchTileLoad(this.tileLayer, (status) => this.$emit('tile-status', status));
             this.tileLayer.addTo(this.map);
         },
         unmountLayer(map = this.map) {
+            this.stopWatchingTiles?.();
+            this.stopWatchingTiles = null;
             if (!this.tileLayer) return;
             if (map?.hasLayer?.(this.tileLayer)) map.removeLayer(this.tileLayer);
             this.tileLayer = null;

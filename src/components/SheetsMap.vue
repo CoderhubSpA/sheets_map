@@ -152,6 +152,30 @@
                     :opacity="getLayerOpacity(layer.id)"
                     :options="{ maxNativeZoom: 20, maxZoom: 20 }" />
 
+                <!-- Capas WMS 1.3.0 de servicios OGC externos: nunca reciben el token interno -->
+                <authenticated-wms-tile-layer v-for="entry in renderable_ogc_wms" :key="entry.layer.id"
+                    :map="map" :request_auth="null"
+                    :base-url="entry.baseUrl" :layers="entry.layers"
+                    :transparent="true" :format="entry.format" :version="entry.version"
+                    :opacity="getLayerOpacity(entry.layer.id)"
+                    :options="{ maxNativeZoom: 20, maxZoom: 20, uppercase: true }"
+                    @tile-status="handleOgcTileStatus(entry.layer.id, $event)" />
+
+                <!-- Capas WMTS 1.0.0 de servicios OGC externos: se piden sin token ni cookies -->
+                <ogc-wmts-tile-layer v-for="entry in renderable_ogc_wmts" :key="entry.layer.id"
+                    :map="map" :config="entry.config"
+                    :opacity="getLayerOpacity(entry.layer.id)"
+                    :options="{ maxZoom: 20 }"
+                    @tile-status="handleOgcTileStatus(entry.layer.id, $event)" />
+
+                <!-- Elementos de OGC API Features y WFS 2.0 externos: se piden sin token ni cookies.
+                     Sin color propio de la capa, OgcFeaturesLayer usa su color por omisión. -->
+                <ogc-features-layer v-for="entry in renderable_ogc_features" :key="entry.layer.id"
+                    :map="map" :layer="entry.layer" :source="entry.source"
+                    :color="entry.layer.sh_map_has_layer_color || undefined"
+                    :opacity="getLayerOpacity(entry.layer.id)"
+                    @status="handleOgcFeaturesStatus" @feature-click="emitFeatureClick" />
+
                 <l-control class="sheets-map-legend" position="bottomright"
                     v-if="active_layers.length > 0 && show_legend">
                     <div class="legend-container">
@@ -183,6 +207,13 @@
                                     <span v-else>
                                         <i class="legend-icon-color" :style="legendIconControl(layer)"></i>
                                         {{ layer.name }}
+                                        <!-- Leyenda publicada por el servicio OGC externo, si la tiene -->
+                                        <img v-for="url in ogcLegendUrls(layer.id)" :key="url"
+                                            class="ogc-legend-image" :src="url" :alt="`Leyenda de ${layer.name}`"
+                                            @error="hideOgcLegend(layer.id, url)" />
+                                        <small v-if="ogcLayerStatusText(layer.id)" class="ogc-layer-status">
+                                            {{ ogcLayerStatusText(layer.id) }}
+                                        </small>
                                     </span>
                                 </span>
                             </div>
@@ -302,11 +333,28 @@
                 </l-control>
                 <l-control-scale v-if="show_coordinates" class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
-            <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
-                <strong>No fue posible cargar una capa protegida.</strong>
-                <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
-                    {{ error.layerName }}: {{ error.message }}
-                </span>
+            <!-- Avisos sobre el mapa: se apilan, para que un error no oculte a otro -->
+            <div v-if="visible_vector_tile_auth_errors.length || ogc_layer_errors.length || ogc_layer_warnings.length"
+                class="map-alerts">
+                <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
+                    <strong>No fue posible cargar una capa protegida.</strong>
+                    <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
+                        {{ error.layerName }}: {{ error.message }}
+                    </span>
+                </div>
+                <div v-if="ogc_layer_errors.length" class="layer-auth-alert" role="alert" aria-live="polite">
+                    <strong>No fue posible cargar una capa de un servicio externo.</strong>
+                    <span v-for="entry in ogc_layer_errors" :key="entry.id">
+                        {{ entry.name }}: {{ entry.error }}
+                    </span>
+                </div>
+                <!-- Avisos que no impiden cargar la capa: se intenta igual y el usuario sabe por qué podría no verse -->
+                <div v-if="ogc_layer_warnings.length" class="layer-auth-alert layer-warning-alert" role="status" aria-live="polite">
+                    <strong>Una capa de un servicio externo puede no verse.</strong>
+                    <span v-for="entry in ogc_layer_warnings" :key="entry.id">
+                        {{ entry.name }}: {{ entry.warning }}
+                    </span>
+                </div>
             </div>
         </div>
         <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
@@ -332,6 +380,14 @@ import SuperclusterEntityTypeLayer from "./layers/SuperclusterEntityTypeLayer.vu
 import VectorTileLayer from "./layers/VectorTileLayer.vue";
 import VectorTileLegend from "./layers/VectorTileLegend.vue";
 import AuthenticatedWmsTileLayer from "./layers/AuthenticatedWmsTileLayer.vue";
+import OgcWmtsTileLayer from "./layers/OgcWmtsTileLayer.vue";
+import OgcFeaturesLayer from "./layers/OgcFeaturesLayer.vue";
+import { ogcWmsCapabilitiesWarning, ogcWmsLayerConfig } from "../utils/ogcWms";
+import { capabilitiesUrl as wmsCapabilitiesUrl, wmsLegendUrls } from "../utils/ogcWmsLegend";
+import { createCapabilitiesLoader } from "../utils/ogcCapabilities";
+import { ogcWmtsLayerRequest, resolveWmtsLayer } from "../utils/ogcWmts";
+import { ogcFeaturesLayerConfig } from "../utils/ogcApiFeatures";
+import { ogcWfsLayerRequest, resolveWfsFeatureType } from "../utils/ogcWfs";
 import PolygonDrafter from "./PolygonDrafter.vue";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
@@ -409,6 +465,8 @@ export default {
         LTileLayer,
         LGeoJson,
         AuthenticatedWmsTileLayer,
+        OgcWmtsTileLayer,
+        OgcFeaturesLayer,
         BButton,
         BIcon,
         BPopover,
@@ -512,6 +570,16 @@ export default {
             base_map_guide: undefined,
             base_open_street_map: undefined,
             operative_geoserver_wms: [],
+            operative_ogc_wms: [],
+            operative_ogc_wmts: [],
+            operative_ogc_features: [],
+            operative_ogc_wfs: [],
+            ogc_wmts_configs: {},
+            ogc_wfs_configs: {},
+            ogc_features_status: {},
+            ogc_tile_status: {},
+            ogc_legends: {},
+            ogc_warnings: {},
             operative_vector_tiles_xyz: [],
             vector_tile_legends: {},
             layer_auth_errors: {},
@@ -1322,6 +1390,57 @@ export default {
                     return 0;
                 });
         },
+        renderable_ogc_wms() {
+            return this.operative_ogc_wms.filter((entry) => !entry.error);
+        },
+        renderable_ogc_wmts() {
+            return this.operative_ogc_wmts
+                .filter((entry) => !entry.error && this.ogc_wmts_configs[entry.layer.id]?.config)
+                .map((entry) => ({ layer: entry.layer, config: this.ogc_wmts_configs[entry.layer.id].config }));
+        },
+        renderable_ogc_features() {
+            const apiFeatures = this.operative_ogc_features
+                .filter((entry) => !entry.error)
+                .map((entry) => ({
+                    layer: entry.layer,
+                    source: { key: entry.itemsUrl, kind: "api-features", itemsUrl: entry.itemsUrl },
+                }));
+            const wfs = this.operative_ogc_wfs
+                .filter((entry) => !entry.error && this.ogc_wfs_configs[entry.layer.id]?.config)
+                .map((entry) => {
+                    const { key, config } = this.ogc_wfs_configs[entry.layer.id];
+                    return { layer: entry.layer, source: { key, kind: "wfs", config } };
+                });
+            return [...apiFeatures, ...wfs];
+        },
+        ogc_layer_errors() {
+            const errors = [];
+            const add = (layer, error) => {
+                if (error) errors.push({ id: layer.id, name: layer.name, error });
+            };
+            this.operative_ogc_wms.forEach((entry) => add(entry.layer, entry.error));
+            this.operative_ogc_wmts.forEach((entry) => add(
+                entry.layer,
+                entry.error || this.ogc_wmts_configs[entry.layer.id]?.error,
+            ));
+            this.operative_ogc_features.forEach((entry) => add(
+                entry.layer,
+                entry.error || this.ogc_features_status[entry.layer.id]?.error,
+            ));
+            this.operative_ogc_wfs.forEach((entry) => add(
+                entry.layer,
+                entry.error
+                    || this.ogc_wfs_configs[entry.layer.id]?.error
+                    || this.ogc_features_status[entry.layer.id]?.error,
+            ));
+            return errors;
+        },
+        ogc_layer_warnings() {
+            const failed = new Set(this.ogc_layer_errors.map((entry) => String(entry.id)));
+            return [...this.operative_ogc_wms, ...this.operative_ogc_wfs]
+                .filter((entry) => !failed.has(String(entry.layer.id)) && this.ogc_warnings[entry.layer.id])
+                .map((entry) => ({ id: entry.layer.id, name: entry.layer.name, warning: this.ogc_warnings[entry.layer.id] }));
+        },
         visible_vector_tile_auth_errors() {
             const visibleLayerIds = new Set(
                 this.renderable_vector_tiles_xyz.map((entry) => String(entry.layer?.id || "")),
@@ -1503,6 +1622,108 @@ export default {
     methods: {
         requestAuthForLayer(layer) {
             return selectRequestAuthForLayer(this.request_auth, layer);
+        },
+        ogcCapabilitiesLoader() {
+            // Un solo lector por mapa: cada GetCapabilities externo leído se pide una sola vez.
+            if (!this.ogc_capabilities_loader) this.ogc_capabilities_loader = createCapabilitiesLoader();
+            return this.ogc_capabilities_loader;
+        },
+        async loadOgcWms(entry) {
+            const layerId = entry.layer.id;
+            const key = `${entry.baseUrl}|${entry.layers}`;
+            if (this.ogc_legends[layerId]?.key === key) return;
+
+            this.$set(this.ogc_legends, layerId, { key, urls: [] });
+            const { root } = await this.ogcCapabilitiesLoader().load(wmsCapabilitiesUrl(entry.baseUrl));
+            // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
+            if (this.ogc_legends[layerId]?.key !== key) return;
+            this.$set(this.ogc_legends, layerId, { key, urls: wmsLegendUrls(root, entry, window.location.protocol) });
+            // Sin GetCapabilities (por ejemplo, sin CORS) no hay aviso: las imágenes no necesitan CORS y se piden igual.
+            this.$set(this.ogc_warnings, layerId, root ? ogcWmsCapabilitiesWarning(root, entry.layers) : null);
+        },
+        /**
+         * Lee el GetCapabilities de una capa WMTS o WFS, lo resuelve con `resolve` y guarda en
+         * `configs` `{ key, config, error }`. Devuelve lo resuelto, o null si no hubo que leer
+         * (misma configuración) o si la configuración cambió mientras se leía.
+         */
+        async loadOgcServiceConfig(configs, entry, { key, service, resolve }) {
+            const layerId = entry.layer.id;
+            if (configs[layerId]?.key === key) return null;
+
+            this.$set(configs, layerId, { key, config: null, error: null });
+            const capabilities = await this.ogcCapabilitiesLoader().load(entry.capabilitiesUrl);
+            const resolved = capabilities.root
+                ? resolve(capabilities.root, { ...entry, pageProtocol: window.location.protocol })
+                : { error: `No se pudo leer el GetCapabilities del servicio ${service}. ${capabilities.error}` };
+            // La configuración de la capa pudo cambiar mientras se leía el GetCapabilities.
+            if (configs[layerId]?.key !== key) return null;
+
+            this.$set(configs, layerId, {
+                key,
+                config: resolved.error ? null : resolved,
+                error: resolved.error || null,
+            });
+            return resolved;
+        },
+        async loadOgcWmts(entry) {
+            const key = `${entry.capabilitiesUrl}|${entry.layerId}|${entry.preferredFormat || ""}`;
+            const resolved = await this.loadOgcServiceConfig(this.ogc_wmts_configs, entry, {
+                key,
+                service: "WMTS",
+                resolve: resolveWmtsLayer,
+            });
+            if (!resolved) return;
+            this.$set(this.ogc_legends, entry.layer.id, {
+                key,
+                urls: resolved.legendHref ? [resolved.legendHref] : [],
+            });
+        },
+        async loadOgcWfs(entry) {
+            const resolved = await this.loadOgcServiceConfig(this.ogc_wfs_configs, entry, {
+                key: `${entry.capabilitiesUrl}|${entry.typeName}`,
+                service: "WFS",
+                resolve: resolveWfsFeatureType,
+            });
+            if (resolved) this.$set(this.ogc_warnings, entry.layer.id, resolved.warning || null);
+        },
+        handleOgcFeaturesStatus(status) {
+            this.$set(this.ogc_features_status, status.layerId, status);
+        },
+        handleOgcTileStatus(layerId, status) {
+            this.$set(this.ogc_tile_status, layerId, status);
+        },
+        // Texto bajo la capa en la leyenda: avance de elementos (WFS, Features) o de teselas (WMS, WMTS).
+        ogcLayerStatusText(layerId) {
+            return this.ogcFeaturesStatusText(layerId) || this.ogcTileStatusText(layerId);
+        },
+        ogcTileStatusText(layerId) {
+            const status = this.ogc_tile_status[layerId];
+            if (!status) return "";
+            if (status.loading) return "Cargando teselas…";
+            if (!status.failed) return "";
+            return `${status.failed} de ${status.total} teselas no cargaron en esta vista; `
+                + "el servicio puede estar lento o rechazar la petición.";
+        },
+        ogcFeaturesStatusText(layerId) {
+            const status = this.ogc_features_status[layerId];
+            if (!status || status.error) return "";
+            if (status.loading) return "Cargando elementos…";
+            if (status.truncated) {
+                const total = Number.isFinite(status.numberMatched) ? ` de ${status.numberMatched}` : "";
+                return `${status.count}${total} elementos en esta vista; acerque el mapa para ver todos.`;
+            }
+            return `${status.count} elementos en esta vista.`;
+        },
+        ogcLegendUrls(layerId) {
+            return this.ogc_legends[layerId]?.urls || [];
+        },
+        hideOgcLegend(layerId, url) {
+            const legend = this.ogc_legends[layerId];
+            if (!legend) return;
+            this.$set(this.ogc_legends, layerId, {
+                ...legend,
+                urls: legend.urls.filter((current) => current !== url),
+            });
         },
         handleVectorTileAuthError(details = {}) {
             const layerId = String(details.layerId || "").trim();
@@ -2053,8 +2274,12 @@ export default {
         },
 
         switchLayers() {
-            // Recalculamos siempre las operative_geoserver_wms activas
+            // Recalculamos siempre las operative_geoserver_wms y las capas OGC externas activas
             this.operative_geoserver_wms = [];
+            this.operative_ogc_wms = [];
+            this.operative_ogc_wmts = [];
+            this.operative_ogc_features = [];
+            this.operative_ogc_wfs = [];
 
             // Reset base layer references so they are rebuilt from active_layers
             this.base_open_street_map = undefined;
@@ -2064,10 +2289,36 @@ export default {
             this.active_layers.forEach((l) => {
                 this.activeLayers(l);
             });
+            this.forgetInactiveOgcLayers();
 
             this.disabled_layers.forEach((l) => {
                 this.disableLayers(l);
             });
+        },
+        // Olvida el estado de las capas OGC apagadas para que al volver a encenderlas se lean de
+        // nuevo: un servicio que falló se reintenta y uno ya leído sale de la caché del lector.
+        forgetInactiveOgcLayers() {
+            const activeIds = new Set(
+                [
+                    ...this.operative_ogc_wms,
+                    ...this.operative_ogc_wmts,
+                    ...this.operative_ogc_features,
+                    ...this.operative_ogc_wfs,
+                ].map((entry) => String(entry.layer.id)),
+            );
+            const states = [
+                this.ogc_wmts_configs,
+                this.ogc_wfs_configs,
+                this.ogc_features_status,
+                this.ogc_tile_status,
+                this.ogc_legends,
+                this.ogc_warnings,
+            ];
+            for (const state of states) {
+                for (const layerId of Object.keys(state)) {
+                    if (!activeIds.has(layerId)) this.$delete(state, layerId);
+                }
+            }
         },
         activeLayers(layer) {
             let geojson_bounds = this.getMapGeoJsonBounds();
@@ -2202,6 +2453,40 @@ export default {
                 }
                 case "operative_geoserver_wms": {
                     this.operative_geoserver_wms.push(layer);
+                    break;
+                }
+                case "operative_ogc_wms_1_3_0": {
+                    const entry = {
+                        layer,
+                        ...ogcWmsLayerConfig(layer, window.location.protocol),
+                    };
+                    this.operative_ogc_wms.push(entry);
+                    if (!entry.error) this.loadOgcWms(entry);
+                    break;
+                }
+                case "operative_ogc_wmts_1_0_0": {
+                    const entry = {
+                        layer,
+                        ...ogcWmtsLayerRequest(layer, window.location.protocol),
+                    };
+                    this.operative_ogc_wmts.push(entry);
+                    if (!entry.error) this.loadOgcWmts(entry);
+                    break;
+                }
+                case "operative_ogc_api_features_1_0": {
+                    this.operative_ogc_features.push({
+                        layer,
+                        ...ogcFeaturesLayerConfig(layer, window.location.protocol),
+                    });
+                    break;
+                }
+                case "operative_ogc_wfs_2_0_2": {
+                    const entry = {
+                        layer,
+                        ...ogcWfsLayerRequest(layer, window.location.protocol),
+                    };
+                    this.operative_ogc_wfs.push(entry);
+                    if (!entry.error) this.loadOgcWfs(entry);
                     break;
                 }
                 case "operative_geoserver_wfs_point": {
@@ -3782,23 +4067,35 @@ export default {
     position: relative;
 }
 
-.layer-auth-alert {
+.map-alerts {
     position: absolute;
     z-index: 1000;
     top: 16px;
     left: 50%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     width: min(520px, calc(100% - 32px));
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.layer-auth-alert {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     padding: 12px 16px;
     border: 1px solid #b42318;
     border-radius: 6px;
     background: #fff4f2;
     color: #7a271a;
     box-shadow: 0 4px 12px rgb(16 24 40 / 18%);
-    transform: translateX(-50%);
-    pointer-events: none;
+}
+
+.layer-warning-alert {
+    border-color: #b54708;
+    background: #fffaeb;
+    color: #7a2e0e;
 }
 
 .my-map-container.drawing .my-map,
@@ -3949,6 +4246,22 @@ li {
     float: left;
     margin-right: 8px;
     opacity: 0.7;
+}
+
+.ogc-legend-image {
+    display: block;
+    clear: both;
+    max-width: 240px;
+    max-height: 320px;
+    margin-top: 4px;
+    object-fit: contain;
+}
+
+.ogc-layer-status {
+    display: block;
+    clear: both;
+    max-width: 240px;
+    color: #555;
 }
 
 .legend-sublavel-container {
