@@ -19,6 +19,12 @@ export const OGC_WFS_MAX_FEATURES = 2000;
 const REQUEST_TIMEOUT_MS = 20000;
 // CRS que se pide cuando el tipo no anuncia uno usable: el servidor tendría que reproyectar.
 const FALLBACK_SRS_NAME = "urn:ogc:def:crs:EPSG::3857";
+// Posiciones que se revisan para decidir el orden de los ejes de la respuesta.
+const AXIS_ORDER_SAMPLE_SIZE = 50;
+// Holgura en grados al comparar una posición con los bordes de la vista pedida.
+const VIEW_EDGE_TOLERANCE_DEG = 1e-6;
+// Largo máximo del mensaje de error del servicio que se muestra al usuario.
+const MAX_SERVICE_MESSAGE_LENGTH = 300;
 const EARTH_RADIUS = 6378137;
 const MAX_MERCATOR_LATITUDE = 85.05112878;
 // Parámetros que arma el cliente; si vienen en la URL configurada se quitan.
@@ -218,7 +224,7 @@ function mapCoordinates(geometry, transform) {
     return { ...geometry, coordinates: walk(geometry.coordinates) };
 }
 
-function firstPositions(features, limit = 50) {
+function firstPositions(features, limit = AXIS_ORDER_SAMPLE_SIZE) {
     const positions = [];
     const walk = (coordinates) => {
         if (positions.length >= limit || !Array.isArray(coordinates)) return;
@@ -242,20 +248,22 @@ export function normalizeWfsFeatures(features, config, view) {
     if (config.crsKind === "mercator") {
         const inMeters = firstPositions(features).some(([x, y]) => Math.abs(x) > 180 || Math.abs(y) > 90);
         if (!inMeters) return features;
-        return features.map((feature) => ({ ...feature, geometry: mapCoordinates(feature.geometry, (c) => [...mercatorToLonLat(c), ...c.slice(2)]) }));
+        return features.map((feature) => ({ ...feature, geometry: mapCoordinates(feature.geometry, (position) => [...mercatorToLonLat(position), ...position.slice(2)]) }));
     }
 
-    const inside = ([lon, lat]) => lon >= view.west - 1e-6 && lon <= view.east + 1e-6 && lat >= view.south - 1e-6 && lat <= view.north + 1e-6;
+    const tolerance = VIEW_EDGE_TOLERANCE_DEG;
+    const inside = ([lon, lat]) => lon >= view.west - tolerance && lon <= view.east + tolerance
+        && lat >= view.south - tolerance && lat <= view.north + tolerance;
     const positions = firstPositions(features);
-    const asLonLat = positions.filter((c) => inside([c[0], c[1]])).length;
-    const asLatLon = positions.filter((c) => inside([c[1], c[0]])).length;
+    const asLonLat = positions.filter((position) => inside([position[0], position[1]])).length;
+    const asLatLon = positions.filter((position) => inside([position[1], position[0]])).length;
     if (asLatLon <= asLonLat) return features;
-    return features.map((feature) => ({ ...feature, geometry: mapCoordinates(feature.geometry, (c) => [c[1], c[0], ...c.slice(2)]) }));
+    return features.map((feature) => ({ ...feature, geometry: mapCoordinates(feature.geometry, (position) => [position[1], position[0], ...position.slice(2)]) }));
 }
 
 function exceptionText(text) {
     const match = /<(?:\w+:)?ExceptionText>([\s\S]*?)<\/(?:\w+:)?ExceptionText>/.exec(text || "");
-    return match ? match[1].replace(/<!\[CDATA\[|\]\]>/g, "").replace(/\s+/g, " ").trim().slice(0, 300) : null;
+    return match ? match[1].replace(/<!\[CDATA\[|\]\]>/g, "").replace(/\s+/g, " ").trim().slice(0, MAX_SERVICE_MESSAGE_LENGTH) : null;
 }
 
 /**

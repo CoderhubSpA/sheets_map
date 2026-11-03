@@ -9,6 +9,11 @@ import { fetchWfsFeaturesInView } from '../../utils/ogcWfs';
 
 // Espera tras mover el mapa antes de pedir los elementos de la nueva vista.
 const MOVE_DEBOUNCE_MS = 400;
+// Estilo de los elementos: el color y la opacidad vienen de la capa.
+const DEFAULT_COLOR = '#0074bd';
+const LINE_WEIGHT_PX = 2;
+const FILL_OPACITY = 0.3;
+const POINT_RADIUS_PX = 6;
 
 export default {
     name: 'OgcFeaturesLayer',
@@ -28,7 +33,7 @@ export default {
         },
         color: {
             type: String,
-            default: '#0074bd',
+            default: DEFAULT_COLOR,
         },
         opacity: {
             type: Number,
@@ -63,10 +68,10 @@ export default {
         featureStyle() {
             return {
                 color: this.color,
-                weight: 2,
+                weight: LINE_WEIGHT_PX,
                 opacity: this.opacity,
                 fillColor: this.color,
-                fillOpacity: 0.3 * this.opacity,
+                fillOpacity: FILL_OPACITY * this.opacity,
             };
         },
         mountLayer() {
@@ -75,7 +80,7 @@ export default {
 
             this.geoJsonLayer = L.geoJSON(null, {
                 style: () => this.featureStyle(),
-                pointToLayer: (_feature, latlng) => L.circleMarker(latlng, { ...this.featureStyle(), radius: 6 }),
+                pointToLayer: (_feature, latlng) => L.circleMarker(latlng, { ...this.featureStyle(), radius: POINT_RADIUS_PX }),
                 onEachFeature: (feature, featureLayer) => {
                     // Mismo formato que las demás capas del visor: latlng como [lat, lng].
                     featureLayer.on('click', (event) => this.$emit('feature-click', {

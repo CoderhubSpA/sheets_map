@@ -168,10 +168,11 @@
                     :options="{ maxZoom: 20 }"
                     @tile-status="handleOgcTileStatus(entry.layer.id, $event)" />
 
-                <!-- Elementos de OGC API Features y WFS 2.0 externos: se piden sin token ni cookies -->
+                <!-- Elementos de OGC API Features y WFS 2.0 externos: se piden sin token ni cookies.
+                     Sin color propio de la capa, OgcFeaturesLayer usa su color por omisión. -->
                 <ogc-features-layer v-for="entry in renderable_ogc_features" :key="entry.layer.id"
                     :map="map" :layer="entry.layer" :source="entry.source"
-                    :color="entry.layer.sh_map_has_layer_color || '#0074bd'"
+                    :color="entry.layer.sh_map_has_layer_color || undefined"
                     :opacity="getLayerOpacity(entry.layer.id)"
                     @status="handleOgcFeaturesStatus" @feature-click="emitFeatureClick" />
 

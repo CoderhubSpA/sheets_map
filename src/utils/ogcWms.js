@@ -1,5 +1,5 @@
 // Capas de servicios WMS externos según OGC 06-042 (WMS 1.3.0, ISO 19128).
-import { childrenNamed, childText, ogcServiceUrl } from "./ogcCapabilities.js";
+import { childrenNamed, childText, DEFAULT_IMAGE_FORMAT, ogcServiceUrl } from "./ogcCapabilities.js";
 
 export const OGC_WMS_1_3_0_VERSION = "1.3.0";
 // CRS de las imágenes que pide el visor (Leaflet en Web Mercator).
@@ -46,7 +46,7 @@ export function ogcWmsLayerConfig(layer, pageProtocol) {
     return {
         baseUrl: service.url,
         layers,
-        format: String(layer?.sh_map_has_layer_wms_format ?? "").trim() || "image/png",
+        format: String(layer?.sh_map_has_layer_wms_format ?? "").trim() || DEFAULT_IMAGE_FORMAT,
         version: OGC_WMS_1_3_0_VERSION,
     };
 }

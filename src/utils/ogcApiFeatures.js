@@ -1,4 +1,6 @@
-// Colecciones de OGC API – Features – Part 1: Core 1.0 (OGC 17-069r4), lo que antes se llamaba WFS 3.0.
+// Colecciones de OGC API – Features – Part 1: Core 1.0.1 (OGC 17-069r4), lo que antes se llamaba WFS 3.0.
+// El gen_code operative_ogc_api_features_1_0 nombra la versión 1.0; 1.0.1 es su corrección y no
+// cambia la interfaz.
 import { clamp, fetchExternal, ogcServiceUrl, roundCoordinate } from "./ogcCapabilities.js";
 
 export const OGC_API_FEATURES_PAGE_LIMIT = 500;

@@ -6,9 +6,13 @@ import {
     childrenNamed,
     childText,
     createCapabilitiesLoader,
+    DEFAULT_IMAGE_FORMAT,
     loadableUrl,
     secureHostOf,
 } from "./ogcCapabilities.js";
+
+// Versión del perfil SLD de WMS para GetLegendGraphic (OGC 05-078r4).
+const SLD_VERSION = "1.1.0";
 
 /** Busca la capa por su `Name` y devuelve sus estilos propios seguidos de los heredados. */
 function findLayerStyles(root, layerName) {
@@ -56,9 +60,9 @@ export function getLegendGraphicUrl(baseUrl, layerName) {
     url.searchParams.set("SERVICE", "WMS");
     url.searchParams.set("REQUEST", "GetLegendGraphic");
     url.searchParams.set("VERSION", OGC_WMS_1_3_0_VERSION);
-    url.searchParams.set("FORMAT", "image/png");
+    url.searchParams.set("FORMAT", DEFAULT_IMAGE_FORMAT);
     url.searchParams.set("LAYER", layerName);
-    url.searchParams.set("SLD_VERSION", "1.1.0");
+    url.searchParams.set("SLD_VERSION", SLD_VERSION);
     return url.toString();
 }
 

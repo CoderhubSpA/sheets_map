@@ -3,6 +3,7 @@ import {
     childNamed,
     childrenNamed,
     childText,
+    DEFAULT_IMAGE_FORMAT,
     isWebMercator,
     loadableUrl,
     ogcServiceUrl,
@@ -31,6 +32,10 @@ const WMTS_CLIENT_PARAMS = [
 const ZOOM_0_SCALE_DENOMINATOR = 559082264.0287178;
 const WEB_MERCATOR_EDGE = 20037508.3427892;
 const MAX_ZOOM = 30;
+// Holguras al comparar una TileMatrix con la grilla del visor: la esquina en metros y el nivel
+// de zoom calculado desde la escala (los servidores redondean ambos valores).
+const TOP_LEFT_TOLERANCE_M = 1;
+const ZOOM_LEVEL_TOLERANCE = 1e-4;
 const TILE_SIZE = 256;
 
 const TEMPLATE_VARIABLE = /\{([^{}]+)\}/g;
@@ -84,11 +89,11 @@ export function compatibleMatrixIds(tileMatrixSet) {
         const width = Number(childText(matrix, "TileWidth"));
         const height = Number(childText(matrix, "TileHeight"));
         if (!(scale > 0) || width !== TILE_SIZE || height !== TILE_SIZE) continue;
-        if (Math.abs(x + WEB_MERCATOR_EDGE) > 1 || Math.abs(y - WEB_MERCATOR_EDGE) > 1) continue;
+        if (Math.abs(x + WEB_MERCATOR_EDGE) > TOP_LEFT_TOLERANCE_M || Math.abs(y - WEB_MERCATOR_EDGE) > TOP_LEFT_TOLERANCE_M) continue;
 
         const zoom = Math.log2(ZOOM_0_SCALE_DENOMINATOR / scale);
         const level = Math.round(zoom);
-        if (Math.abs(zoom - level) > 1e-4 || level < 0 || level > MAX_ZOOM) continue;
+        if (Math.abs(zoom - level) > ZOOM_LEVEL_TOLERANCE || level < 0 || level > MAX_ZOOM) continue;
         ids[level] = childText(matrix, "Identifier");
     }
     return Object.keys(ids).length ? ids : null;
@@ -139,9 +144,9 @@ export function resolveWmtsLayer(root, { layerId, preferredFormat, capabilitiesU
     if (!layer) return { error: `El servicio WMTS no publica la capa «${layerId}».` };
 
     const formats = childrenNamed(layer, "Format").map((node) => node.text.trim()).filter(Boolean);
-    const format = [preferredFormat, "image/png", formats[0]].find((candidate) => candidate && formats.includes(candidate))
+    const format = [preferredFormat, DEFAULT_IMAGE_FORMAT, formats[0]].find((candidate) => candidate && formats.includes(candidate))
         || formats[0]
-        || "image/png";
+        || DEFAULT_IMAGE_FORMAT;
 
     const styles = childrenNamed(layer, "Style");
     const style = styles.find((node) => String(node.attrs?.isDefault).toLowerCase() === "true") || styles[0];

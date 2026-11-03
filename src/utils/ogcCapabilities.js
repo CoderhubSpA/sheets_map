@@ -6,6 +6,8 @@ const MAX_CAPABILITIES_BYTES = 10 * 1024 * 1024;
 const REQUEST_TIMEOUT_MESSAGE = "El servicio tardó demasiado en responder.";
 const NO_RESPONSE_MESSAGE = "El servicio no respondió o no permite el acceso desde este sitio (CORS).";
 const COORDINATE_DECIMALS = 6;
+// Formato de imagen por omisión de los servicios de mapas; el único que todos ofrecen.
+export const DEFAULT_IMAGE_FORMAT = "image/png";
 
 // Códigos EPSG con los que los servidores anuncian Web Mercator, la proyección del visor.
 const WEB_MERCATOR_CODES = new Set(["3857", "900913", "102100", "102113", "3785"]);
