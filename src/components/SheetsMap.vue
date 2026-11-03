@@ -330,17 +330,20 @@
                 </l-control>
                 <l-control-scale v-if="show_coordinates" class="scale" position="bottomleft" :imperial="false" :metric="true"></l-control-scale>
             </l-map>
-            <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
-                <strong>No fue posible cargar una capa protegida.</strong>
-                <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
-                    {{ error.layerName }}: {{ error.message }}
-                </span>
-            </div>
-            <div v-else-if="ogc_layer_errors.length" class="layer-auth-alert" role="alert" aria-live="polite">
-                <strong>No fue posible cargar una capa de un servicio externo.</strong>
-                <span v-for="entry in ogc_layer_errors" :key="entry.id">
-                    {{ entry.name }}: {{ entry.error }}
-                </span>
+            <!-- Avisos sobre el mapa: se apilan, para que un error no oculte a otro -->
+            <div v-if="visible_vector_tile_auth_errors.length || ogc_layer_errors.length" class="map-alerts">
+                <div v-if="visible_vector_tile_auth_errors.length" class="layer-auth-alert" role="alert" aria-live="assertive">
+                    <strong>No fue posible cargar una capa protegida.</strong>
+                    <span v-for="error in visible_vector_tile_auth_errors" :key="error.layerId">
+                        {{ error.layerName }}: {{ error.message }}
+                    </span>
+                </div>
+                <div v-if="ogc_layer_errors.length" class="layer-auth-alert" role="alert" aria-live="polite">
+                    <strong>No fue posible cargar una capa de un servicio externo.</strong>
+                    <span v-for="entry in ogc_layer_errors" :key="entry.id">
+                        {{ entry.name }}: {{ entry.error }}
+                    </span>
+                </div>
             </div>
         </div>
         <feature-detail-modal v-model="selectedFeatureModalVisible" :point-data="selectedFeatureModalData" />
@@ -4025,23 +4028,29 @@ export default {
     position: relative;
 }
 
-.layer-auth-alert {
+.map-alerts {
     position: absolute;
     z-index: 1000;
     top: 16px;
     left: 50%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     width: min(520px, calc(100% - 32px));
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.layer-auth-alert {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     padding: 12px 16px;
     border: 1px solid #b42318;
     border-radius: 6px;
     background: #fff4f2;
     color: #7a271a;
     box-shadow: 0 4px 12px rgb(16 24 40 / 18%);
-    transform: translateX(-50%);
-    pointer-events: none;
 }
 
 .my-map-container.drawing .my-map,

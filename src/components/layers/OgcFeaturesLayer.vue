@@ -77,10 +77,11 @@ export default {
                 style: () => this.featureStyle(),
                 pointToLayer: (_feature, latlng) => L.circleMarker(latlng, { ...this.featureStyle(), radius: 6 }),
                 onEachFeature: (feature, featureLayer) => {
+                    // Mismo formato que las demás capas del visor: latlng como [lat, lng].
                     featureLayer.on('click', (event) => this.$emit('feature-click', {
                         layer: this.layer,
                         properties: feature.properties || {},
-                        latlng: event.latlng,
+                        latlng: [event.latlng.lat, event.latlng.lng],
                     }));
                 },
             }).addTo(this.map);
