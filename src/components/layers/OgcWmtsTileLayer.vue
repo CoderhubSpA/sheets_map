@@ -11,6 +11,16 @@ const WmtsTileLayer = L.TileLayer.extend({
     getTileUrl(coords) {
         return wmtsTileUrl(this.options.wmts, coords);
     },
+
+    createTile(coords, done) {
+        // Una tesela que el servicio no tiene (nivel o límites) se deja vacía, sin pedirla.
+        if (!this.getTileUrl(coords)) {
+            const tile = document.createElement('div');
+            setTimeout(() => done(null, tile), 0);
+            return tile;
+        }
+        return L.TileLayer.prototype.createTile.call(this, coords, done);
+    },
 });
 
 export default {

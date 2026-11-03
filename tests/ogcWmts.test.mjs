@@ -184,6 +184,27 @@ test("validates the layer row before reading the service", () => {
     assert.match(ogcWmtsLayerRequest({ ...layer, sh_map_has_layer_url: "http://x.org/wmts" }, "https:").error, /WMTS usa http/);
 });
 
+test("skips tiles outside the TileMatrixSetLimits announced for the layer", () => {
+    // Límites como los que publica GeoWebCache para una capa acotada a Santiago.
+    const limits = (matrix, minRow, maxRow, minCol, maxCol) => el("TileMatrixLimits", {},
+        text("TileMatrix", matrix), text("MinTileRow", minRow), text("MaxTileRow", maxRow), text("MinTileCol", minCol), text("MaxTileCol", maxCol));
+    const layer = wmtsLayer({ resources: ["https://tiles.example.org/{TileMatrix}/{TileRow}/{TileCol}.png"], links: [] });
+    layer.children.push(el("TileMatrixSetLink", {},
+        text("TileMatrixSet", "EPSG:900913"),
+        el("TileMatrixSetLimits", {}, limits("EPSG:900913:7", 76, 76, 38, 38))));
+    const root = capabilities({
+        layers: [layer],
+        sets: [matrixSet("EPSG:900913", "urn:ogc:def:crs:EPSG::900913", levels(0, 8, (z) => ({ id: `EPSG:900913:${z}` })))],
+    });
+    const config = resolveWmtsLayer(root, resolveOptions());
+    assert.deepEqual(config.limits, { 7: { minRow: 76, maxRow: 76, minCol: 38, maxCol: 38 } });
+    assert.equal(wmtsTileUrl(config, { x: 38, y: 76, z: 7 }), "https://tiles.example.org/EPSG:900913:7/76/38.png");
+    assert.equal(wmtsTileUrl(config, { x: 39, y: 76, z: 7 }), "");
+    assert.equal(wmtsTileUrl(config, { x: 38, y: 75, z: 7 }), "");
+    // Un nivel sin límites publicados se pide completo.
+    assert.equal(wmtsTileUrl(config, { x: 1, y: 2, z: 8 }), "https://tiles.example.org/EPSG:900913:8/2/1.png");
+});
+
 test("fills template variables case-insensitively and keeps colons", () => {
     assert.equal(fillTemplate("{tilematrix}/{TILEROW}/{TileCol}", { tilematrix: "EPSG:3857:5", tilerow: 1, tilecol: 2 }), "EPSG:3857:5/1/2");
 });

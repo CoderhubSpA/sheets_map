@@ -168,7 +168,7 @@ export function resolveWmtsLayer(root, { layerId, preferredFormat, capabilitiesU
         const id = childText(link, "TileMatrixSet");
         const matrixIds = tileMatrixSets.has(id) ? compatibleMatrixIds(tileMatrixSets.get(id)) : null;
         const levels = matrixIds ? Object.keys(matrixIds).length : 0;
-        if (levels && (!best || levels > best.levels)) best = { id, matrixIds, levels };
+        if (levels && (!best || levels > best.levels)) best = { id, matrixIds, levels, link };
     }
     if (!best) {
         return { error: "El servicio WMTS no ofrece la capa en una grilla compatible con el visor (EPSG:3857, teselas de 256 px)." };
@@ -211,15 +211,38 @@ export function resolveWmtsLayer(root, { layerId, preferredFormat, capabilitiesU
     return {
         template,
         matrixIds: best.matrixIds,
+        limits: tileMatrixLimits(best.link, best.matrixIds),
         minNativeZoom: Math.min(...zooms),
         maxNativeZoom: Math.max(...zooms),
         legendHref: legendHref ? loadableUrl(legendHref, capabilitiesUrl, pageProtocol, secureHost) : null,
     };
 }
 
-/** URL de la tesela `{ x, y, z }` del visor; vacía si el servicio no tiene ese nivel. */
+/**
+ * Lee los `TileMatrixSetLimits` del enlace de la capa: las filas y columnas que el servicio tiene
+ * en cada nivel. Devuelve `{ zoom: { minRow, maxRow, minCol, maxCol } }`; vacío si no los publica.
+ */
+export function tileMatrixLimits(link, matrixIds) {
+    const zoomByMatrix = new Map(Object.entries(matrixIds).map(([zoom, id]) => [id, Number(zoom)]));
+    const limits = {};
+    for (const limit of childrenNamed(childNamed(link, "TileMatrixSetLimits"), "TileMatrixLimits")) {
+        const zoom = zoomByMatrix.get(childText(limit, "TileMatrix"));
+        const values = ["MinTileRow", "MaxTileRow", "MinTileCol", "MaxTileCol"].map((name) => Number(childText(limit, name)));
+        if (zoom === undefined || values.some((value) => !Number.isInteger(value))) continue;
+        const [minRow, maxRow, minCol, maxCol] = values;
+        limits[zoom] = { minRow, maxRow, minCol, maxCol };
+    }
+    return limits;
+}
+
+/**
+ * URL de la tesela `{ x, y, z }` del visor; vacía si el servicio no tiene ese nivel o la tesela
+ * queda fuera de sus `TileMatrixSetLimits` (el servidor respondería TileOutOfRange).
+ */
 export function wmtsTileUrl(config, { x, y, z }) {
     const matrix = config?.matrixIds?.[z];
     if (matrix === undefined) return "";
+    const limit = config.limits?.[z];
+    if (limit && (y < limit.minRow || y > limit.maxRow || x < limit.minCol || x > limit.maxCol)) return "";
     return fillTemplate(config.template, { tilematrix: matrix, tilerow: y, tilecol: x });
 }
