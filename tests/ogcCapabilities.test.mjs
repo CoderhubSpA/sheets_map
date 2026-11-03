@@ -91,3 +91,19 @@ test("keeps an external cancellation as AbortError", async () => {
         { name: "AbortError" },
     );
 });
+
+test("never sends the site's cookies or an Authorization header to the external service", async () => {
+    const calls = [];
+    const fetchImpl = async (url, options) => {
+        calls.push(options);
+        return { ok: true };
+    };
+    await fetchExternal(URL_A, { fetchImpl, timeoutMs: 1000, headers: { Accept: "application/json" } }, async () => null);
+    await fetchExternal(URL_A, { fetchImpl, timeoutMs: 1000 }, async () => null);
+
+    for (const options of calls) {
+        assert.equal(options.credentials, "omit");
+        assert.equal(Object.keys(options.headers || {}).some((name) => name.toLowerCase() === "authorization"), false);
+    }
+    assert.deepEqual(calls[0].headers, { Accept: "application/json" });
+});
