@@ -38,8 +38,8 @@
                     :request_auth="request_auth"
                     :semantic-legend="semanticLegend"
                     :spatial-context="spatialContext"
-                    @update:draft="draft = $event"
-                    @attribute-change="loadAttributeLegend"
+                    @update:draft="updateLegendDraft"
+                    @attribute-change="selectLegendAttribute"
                 />
             </section>
 
@@ -96,7 +96,7 @@
             <span v-show="copyFeedback" class="copy-feedback" :class="{ 'copy-feedback--error': copyError }" aria-live="polite" role="status">{{ copyFeedback }}</span>
             <button type="button" class="btn btn-outline-secondary" :disabled="!canCopy" @click="copySerializedLegendConfig">Copiar JSON</button>
             <button type="button" class="btn btn-secondary" @click="visibleProxy = false">Cancelar</button>
-            <button type="button" class="btn btn-primary" :disabled="loading || !geometryResolved" @click="applyAndClose">Aplicar en el visor</button>
+            <button type="button" class="btn btn-primary" :disabled="loading || (shouldApplyLegend && !geometryResolved)" @click="applyAndClose">Aplicar en el visor</button>
         </footer>
     </b-modal>
 </template>
@@ -136,6 +136,7 @@ export default {
         return {
             attributes: [],
             draft: null,
+            symbologyEdited: false,
             opacity: 1,
             filterAttribute: '',
             filterValue: '',
@@ -162,6 +163,9 @@ export default {
             set(value) { this.$emit('update:visible', value) },
         },
         loading() { return this.loadingAttributes || this.loadingLegend },
+        // Los filtros no deben obligar a crear ni reemplazar la leyenda existente.
+        // Si hubo una edición explícita, se valida aunque se cambie de pestaña.
+        shouldApplyLegend() { return this.activeTab === 'symbology' || this.symbologyEdited },
         canCopy() {
             return Boolean(this.draft) && !this.loading && this.validateState().length === 0
         },
@@ -173,6 +177,14 @@ export default {
         this.cancelRequests()
     },
     methods: {
+        updateLegendDraft(draft) {
+            this.symbologyEdited = true
+            this.draft = draft
+        },
+        selectLegendAttribute(attribute) {
+            this.symbologyEdited = true
+            return this.loadAttributeLegend(attribute)
+        },
         validateState() {
             const errors = this.draft ? validateVectorTileLegendDraft(this.draft) : ['La configuración no está disponible.']
             if (!this.geometryResolved) errors.push('No fue posible validar la geometría de la capa.')
@@ -209,6 +221,7 @@ export default {
             this.generatedJson = ''
             this.manualJsonVisible = false
             this.activeTab = 'symbology'
+            this.symbologyEdited = false
             this.legendError = ''
             this.semanticLegend = null
             this.spatialContext = { bbox: null, centroid: null }
@@ -310,19 +323,22 @@ export default {
             }
         },
         save(event) {
-            this.validationErrors = this.validateState()
+            this.validationErrors = this.shouldApplyLegend ? this.validateState() : []
             if (this.validationErrors.length) {
                 this.activeTab = 'symbology'
                 event?.preventDefault()
                 return
             }
-            this.$emit('apply', {
+            const settings = {
                 layerKey: this.layer.key,
                 opacity: this.opacity,
                 filterAttribute: this.filterAttribute,
                 filterValue: this.filterAttribute ? this.filterValue : '',
-                legendConfig: stringifyVectorTileLegendConfig(this.draft),
-            })
+            }
+            if (this.shouldApplyLegend) {
+                settings.legendConfig = stringifyVectorTileLegendConfig(this.draft)
+            }
+            this.$emit('apply', settings)
         },
         applyAndClose() {
             this.save()
