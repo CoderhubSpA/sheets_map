@@ -720,8 +720,12 @@ export default {
             } else {
                 this.$delete(this.layer_filters, settings.layerKey);
             }
-            this.$set(this.runtimeLegendConfigs, settings.layerKey, settings.legendConfig);
-            this.$set(this.legendRevisions, settings.layerKey, (this.legendRevisions[settings.layerKey] || 0) + 1);
+            // Un cambio de filtros/transparencia conserva la configuración y revisión
+            // de la leyenda: no debe borrar overrides ni reconstruir la simbología.
+            if (settings.legendConfig !== undefined) {
+                this.$set(this.runtimeLegendConfigs, settings.layerKey, settings.legendConfig);
+                this.$set(this.legendRevisions, settings.layerKey, (this.legendRevisions[settings.layerKey] || 0) + 1);
+            }
         },
 
         toggleLayer(layer, group, subgroup) {
